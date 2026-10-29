@@ -286,6 +286,7 @@ export default function InteractiveWorldMap({
   onCreateNation,
   onJumpToTab,
   onVictoriaAction,
+  isReadOnly = false,
 }) {
   const nations = state.nations || [];
   const territoryMap = state.territoryMap || {};
