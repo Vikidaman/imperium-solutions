@@ -468,6 +468,24 @@ export default function App() {
     }
   };
 
+  if (!authChecking && showLoginPortal && !isDirector) {
+    return (
+      <DirectorLoginPortal
+        onAuthenticated={({ token, username }) => {
+          localStorage.setItem("imperium_director_2fa_token", token);
+          setDirectorToken(token);
+          setIsDirector(true);
+          setShowLoginPortal(false);
+          if (username) setActorName(username);
+          showToast(`Welcome, Director ${username || ""}! Full edit privileges unlocked.`);
+        }}
+        onSwitchToPublicView={() => {
+          setShowLoginPortal(false);
+        }}
+      />
+    );
+  }
+
   if (loading || !sessionData) {
     return (
       <div className="min-h-screen bg-slate-950 flex items-center justify-center text-slate-300">
@@ -515,13 +533,32 @@ export default function App() {
                     IMPERIUM WORLD SIMULATOR
                   </h1>
                   {isReadOnly ? (
-                    <span className="text-[10px] font-mono-num uppercase px-2.5 py-0.5 rounded bg-slate-800 text-slate-300 border border-slate-600 flex items-center gap-1">
-                      <Eye className="w-3 h-3 text-cyan-400" /> Public Spectator View (Read-Only)
-                    </span>
+                    <>
+                      <span className="text-[10px] font-mono-num uppercase px-2.5 py-0.5 rounded bg-slate-800 text-slate-300 border border-slate-600 flex items-center gap-1">
+                        <Eye className="w-3 h-3 text-cyan-400" /> Public Spectator View (Read-Only)
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setShowLoginPortal(true)}
+                        className="text-[10px] font-mono-num uppercase px-2.5 py-0.5 rounded bg-cyan-500/15 hover:bg-cyan-500/25 text-cyan-300 border border-cyan-500/40 flex items-center gap-1 cursor-pointer transition"
+                      >
+                        <Lock className="w-3 h-3" /> Director Login (Telegram 2FA)
+                      </button>
+                    </>
                   ) : (
-                    <span className="text-[10px] font-mono-num uppercase px-2.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 flex items-center gap-1">
-                      <ShieldCheck className="w-3 h-3 text-emerald-400" /> Private Director Link (Full Edit Access)
-                    </span>
+                    <>
+                      <span className="text-[10px] font-mono-num uppercase px-2.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 flex items-center gap-1">
+                        <ShieldCheck className="w-3 h-3 text-emerald-400" /> Private Director Portal (2FA Verified)
+                      </span>
+                      <button
+                        type="button"
+                        onClick={handleDirectorLogout}
+                        className="text-[10px] font-mono-num uppercase px-2 py-0.5 rounded bg-slate-800 hover:bg-rose-500/20 text-slate-300 hover:text-rose-300 border border-slate-700 flex items-center gap-1 cursor-pointer transition"
+                        title="Lock Private Director Portal"
+                      >
+                        <LogOut className="w-3 h-3" /> Lock
+                      </button>
+                    </>
                   )}
                 </div>
                 <p className="text-[11px] text-slate-400">
