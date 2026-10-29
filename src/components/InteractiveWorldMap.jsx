@@ -1155,11 +1155,51 @@ export default function InteractiveWorldMap({
               </div>
             </div>
 
-            {/* Interactive Statecraft & Cabinet Levers (No spreadsheet jargon!) */}
+            {/* Interactive Statecraft & Cabinet Levers */}
             <div className="space-y-3 text-xs">
-              <div className="font-bold uppercase tracking-wider text-cyan-400 flex items-center gap-1.5">
-                <Sliders className="w-3.5 h-3.5" />
-                Cabinet Policy & Macroeconomic Levers
+              <div className="flex items-center justify-between">
+                <div className="font-bold uppercase tracking-wider text-cyan-400 flex items-center gap-1.5">
+                  <Sliders className="w-3.5 h-3.5" />
+                  Cabinet Policy & Fiscal Levers
+                </div>
+                {!isReadOnly && (
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() =>
+                        onUpdateNation(activeNation.id, {
+                          incomeTaxOverride: null,
+                          salesTaxOverride: null,
+                          corporateTaxOverride: null,
+                          workerShareOverride: null,
+                          budgetPercentOverride: null,
+                        })
+                      }
+                      className="px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-amber-300 text-[10px] flex items-center gap-1 cursor-pointer"
+                      title="Reset custom tax overrides to Ruling Coalition defaults"
+                    >
+                      <RotateCcw className="w-3 h-3" /> Party Defaults
+                    </button>
+                    {nations.length > 1 && onDeleteNation && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (
+                            window.confirm(
+                              `Dissolve ${activeNation.name} from the world map?`
+                            )
+                          ) {
+                            onDeleteNation(activeNation.id);
+                          }
+                        }}
+                        className="p-1 rounded bg-rose-950/60 hover:bg-rose-900/70 text-rose-400 border border-rose-800/50 cursor-pointer"
+                        title="Dissolve Nation"
+                      >
+                        <Trash2 className="w-3 h-3" />
+                      </button>
+                    )}
+                  </div>
+                )}
               </div>
 
               <div className="grid grid-cols-2 gap-3">
@@ -1216,7 +1256,7 @@ export default function InteractiveWorldMap({
                 </div>
               </div>
 
-              {/* Tax & Wage Sliders */}
+              {/* Buffered 60fps Tax & Wage Sliders */}
               <div className="grid grid-cols-2 gap-3 bg-slate-950/50 border border-slate-800/80 rounded-xl p-3">
                 <div>
                   <div className="flex justify-between text-[11px] mb-1">
@@ -1225,15 +1265,14 @@ export default function InteractiveWorldMap({
                       {formatPercent(c.incomeTax, 0)}
                     </span>
                   </div>
-                  <input
-                    type="range"
-                    min="0"
-                    max="0.7"
-                    step="0.01"
+                  <BufferedRangeSlider
+                    min={0}
+                    max={0.7}
+                    step={0.01}
                     value={c.incomeTax}
-                    onChange={(e) =>
+                    onChangeCommitted={(val) =>
                       onUpdateNation(activeNation.id, {
-                        incomeTaxOverride: Number(e.target.value),
+                        incomeTaxOverride: val,
                       })
                     }
                     className="w-full accent-cyan-400 cursor-pointer"
@@ -1247,15 +1286,14 @@ export default function InteractiveWorldMap({
                       {formatPercent(c.corporateTax, 0)}
                     </span>
                   </div>
-                  <input
-                    type="range"
-                    min="0"
-                    max="0.7"
-                    step="0.01"
+                  <BufferedRangeSlider
+                    min={0}
+                    max={0.7}
+                    step={0.01}
                     value={c.corporateTax}
-                    onChange={(e) =>
+                    onChangeCommitted={(val) =>
                       onUpdateNation(activeNation.id, {
-                        corporateTaxOverride: Number(e.target.value),
+                        corporateTaxOverride: val,
                       })
                     }
                     className="w-full accent-cyan-400 cursor-pointer"
@@ -1269,15 +1307,14 @@ export default function InteractiveWorldMap({
                       {formatPercent(c.workerShareOfGdp, 0)}
                     </span>
                   </div>
-                  <input
-                    type="range"
-                    min="0.1"
-                    max="0.85"
-                    step="0.01"
+                  <BufferedRangeSlider
+                    min={0.1}
+                    max={0.85}
+                    step={0.01}
                     value={c.workerShareOfGdp}
-                    onChange={(e) =>
+                    onChangeCommitted={(val) =>
                       onUpdateNation(activeNation.id, {
-                        workerShareOverride: Number(e.target.value),
+                        workerShareOverride: val,
                       })
                     }
                     className="w-full accent-emerald-400 cursor-pointer"
@@ -1291,15 +1328,14 @@ export default function InteractiveWorldMap({
                       {formatPercent(c.stateBudgetPercent, 0)}
                     </span>
                   </div>
-                  <input
-                    type="range"
-                    min="0.05"
-                    max="0.6"
-                    step="0.01"
+                  <BufferedRangeSlider
+                    min={0.05}
+                    max={0.6}
+                    step={0.01}
                     value={c.stateBudgetPercent}
-                    onChange={(e) =>
+                    onChangeCommitted={(val) =>
                       onUpdateNation(activeNation.id, {
-                        budgetPercentOverride: Number(e.target.value),
+                        budgetPercentOverride: val,
                       })
                     }
                     className="w-full accent-amber-400 cursor-pointer"
@@ -1307,7 +1343,7 @@ export default function InteractiveWorldMap({
                 </div>
               </div>
 
-              {/* Infrastructure, Literacy & Social Doctrines */}
+              {/* Infrastructure, Literacy & Urbanisation Buffered Sliders */}
               <div className="grid grid-cols-3 gap-2">
                 <div className="bg-slate-950/50 border border-slate-800/80 rounded-lg p-2.5">
                   <div className="flex justify-between text-[11px] mb-1">
@@ -1316,15 +1352,14 @@ export default function InteractiveWorldMap({
                       {formatPercent(c.infrastructureEfficiency, 0)}
                     </span>
                   </div>
-                  <input
-                    type="range"
-                    min="0.1"
-                    max="1"
-                    step="0.01"
+                  <BufferedRangeSlider
+                    min={0.1}
+                    max={1}
+                    step={0.01}
                     value={c.infrastructureEfficiency}
-                    onChange={(e) =>
+                    onChangeCommitted={(val) =>
                       onUpdateNation(activeNation.id, {
-                        infrastructureEfficiency: Number(e.target.value),
+                        infrastructureEfficiency: val,
                       })
                     }
                     className="w-full accent-amber-400 cursor-pointer"
@@ -1338,15 +1373,14 @@ export default function InteractiveWorldMap({
                       {formatPercent(c.literacyRate, 0)}
                     </span>
                   </div>
-                  <input
-                    type="range"
-                    min="0.1"
-                    max="0.99"
-                    step="0.01"
+                  <BufferedRangeSlider
+                    min={0.1}
+                    max={0.99}
+                    step={0.01}
                     value={c.literacyRate}
-                    onChange={(e) =>
+                    onChangeCommitted={(val) =>
                       onUpdateNation(activeNation.id, {
-                        literacyRate: Number(e.target.value),
+                        literacyRate: val,
                       })
                     }
                     className="w-full accent-emerald-400 cursor-pointer"
@@ -1360,34 +1394,77 @@ export default function InteractiveWorldMap({
                       {formatPercent(c.urbanisationIndex, 0)}
                     </span>
                   </div>
-                  <input
-                    type="range"
-                    min="0.1"
-                    max="0.99"
-                    step="0.01"
+                  <BufferedRangeSlider
+                    min={0.1}
+                    max={0.99}
+                    step={0.01}
                     value={c.urbanisationIndex}
-                    onChange={(e) =>
+                    onChangeCommitted={(val) =>
                       onUpdateNation(activeNation.id, {
-                        urbanisationIndex: Number(e.target.value),
+                        urbanisationIndex: val,
                       })
                     }
                     className="w-full accent-cyan-400 cursor-pointer"
                   />
                 </div>
               </div>
+
+              {/* Integrated Quarterly Fiscal Breakdown (Replaces separate Cabinet tab) */}
+              <div className="bg-slate-950/60 border border-slate-800/80 rounded-xl p-3 grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px]">
+                <div>
+                  <span className="text-slate-400 block">Tax Revenues</span>
+                  <span className="font-mono-num font-semibold text-emerald-300">
+                    {formatCurrency(
+                      (c.incomeTaxRevenue || 0) +
+                        (c.corporateTaxRevenue || 0) +
+                        (c.salesTaxRevenue || 0)
+                    )}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-slate-400 block">Tariffs & Divs</span>
+                  <span className="font-mono-num font-semibold text-cyan-300">
+                    {formatCurrency(
+                      (c.importTariffRevenues || 0) +
+                        (c.exportTariffRevenues || 0) +
+                        (c.govtDividends || 0)
+                    )}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-slate-400 block">State Expenses</span>
+                  <span className="font-mono-num font-semibold text-amber-300">
+                    {formatCurrency(
+                      (c.stateExpenditure || 0) + (c.subsidiesCost || 0)
+                    )}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-slate-400 block">Trade Balance</span>
+                  <span
+                    className={`font-mono-num font-semibold ${
+                      (c.netTradeBalance || 0) >= 0
+                        ? "text-emerald-400"
+                        : "text-rose-400"
+                    }`}
+                  >
+                    {formatCurrency(c.netTradeBalance || 0)}
+                  </span>
+                </div>
+              </div>
             </div>
 
-            {/* Top Flagship Corporations Preview & Deep-Dive Navigation Buttons */}
+            {/* Top Flagship Corporations Preview & Deep-Dive Navigation */}
             <div className="pt-2 border-t border-slate-800 space-y-2.5">
               <div className="flex items-center justify-between text-xs">
                 <span className="font-bold uppercase tracking-wider text-slate-300">
                   Flagship National Champions ({activeNation.companies?.length || 0})
                 </span>
                 <button
-                  onClick={() => onJumpToTab("companies")}
+                  onClick={() => onJumpToTab("markets")}
                   className="text-cyan-400 hover:text-cyan-300 text-[11px] flex items-center gap-1 cursor-pointer"
                 >
-                  Manage All Corporations <ArrowRight className="w-3 h-3" />
+                  Open Economy & Corporations <ArrowRight className="w-3 h-3" />
                 </button>
               </div>
 
@@ -1426,23 +1503,6 @@ export default function InteractiveWorldMap({
                       </div>
                     </div>
                   ))}
-              </div>
-
-              <div className="grid grid-cols-2 gap-2.5 pt-1">
-                <button
-                  onClick={() => onJumpToTab("desk")}
-                  className="py-2 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-semibold flex items-center justify-center gap-1.5 cursor-pointer"
-                >
-                  <Sliders className="w-3.5 h-3.5 text-cyan-400" />
-                  Full Cabinet & Fiscal Desk
-                </button>
-                <button
-                  onClick={() => onJumpToTab("markets")}
-                  className="py-2 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-semibold flex items-center justify-center gap-1.5 cursor-pointer"
-                >
-                  <ShoppingBag className="w-3.5 h-3.5 text-amber-400" />
-                  Supply Chains & Tech Tree
-                </button>
               </div>
             </div>
           </div>
