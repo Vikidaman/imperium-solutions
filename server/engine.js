@@ -637,7 +637,7 @@ export function evaluateSimulation(state) {
       mRow.importTariffRevenues = mRow.importTariffRate * mRow.importedFromGlobalMarket;
     }
 
-    // Compute Company VGP (H = I * LocalPrice) and Valuation (G = H * F)
+    // Compute Company & National Sector VGP (H = I * LocalPrice) and Valuation
     const vgpByGood = new Map();
     let totalEmployed = 0;
     let numberOfCriminals = 0;
@@ -654,36 +654,58 @@ export function evaluateSimulation(state) {
       "Office & Corporate Services GDP": 0,
     };
 
-    for (const comp of nation.companies || []) {
-      const mRow = mMap.get(comp.flagshipGood);
-      const localPrice = mRow ? mRow.localPrice : 1500;
-      const emp = Math.max(0, Number(comp.employedPops) || 0);
+    if (hasCompanies) {
+      for (const comp of nation.companies) {
+        const mRow = mMap.get(comp.flagshipGood);
+        const localPrice = mRow ? mRow.localPrice : 1500;
+        const emp = Math.max(0, Number(comp.employedPops) || 0);
 
-      // If recalculateHype is requested or hypeFactor is missing:
-      if (!comp.hypeFactor || comp.hypeFactor <= 0) {
-        const secCfg = sectorMap.get(comp.gdpSector);
-        const secSent = secCfg ? Number(secCfg.sentiment) : 50;
-        const goodHype = mRow ? Number(mRow.hype) : 50;
-        const consSent = Number(nation.consumerSentiment) || 50;
-        comp.hypeFactor =
-          12.5 + (consSent / 100) * 25 + (secSent / 100) * 25 + (goodHype / 100) * 25;
+        if (!comp.hypeFactor || comp.hypeFactor <= 0) {
+          const secCfg = sectorMap.get(comp.gdpSector);
+          const secSent = secCfg ? Number(secCfg.sentiment) : 50;
+          const goodHype = mRow ? Number(mRow.hype) : 50;
+          const consSent = Number(nation.consumerSentiment) || 50;
+          comp.hypeFactor =
+            12.5 + (consSent / 100) * 25 + (secSent / 100) * 25 + (goodHype / 100) * 25;
+        }
+
+        comp.vgp = emp * localPrice;
+        comp.valuation = comp.vgp * comp.hypeFactor;
+
+        totalEmployed += emp;
+        if (comp.illegal) {
+          numberOfCriminals += emp;
+        }
+        vgpByGood.set(comp.flagshipGood, (vgpByGood.get(comp.flagshipGood) || 0) + comp.vgp);
+
+        if (sectorVgp[comp.gdpSector] !== undefined) {
+          sectorVgp[comp.gdpSector] += comp.vgp;
+          sectorEmp[comp.gdpSector] += emp;
+        } else {
+          sectorVgp["Industry & Manufacturing GDP"] += comp.vgp;
+          sectorEmp["Industry & Manufacturing GDP"] += emp;
+        }
       }
+    } else {
+      // Macroeconomic evaluation from sellOrdersByGood
+      for (const [gName, mRow] of mMap.entries()) {
+        const emp = sellOrdersByGood.get(gName) || 0;
+        const localPrice = mRow.localPrice || 1000;
+        const goodVgp = emp * localPrice;
+        vgpByGood.set(gName, goodVgp);
 
-      comp.vgp = emp * localPrice;
-      comp.valuation = comp.vgp * comp.hypeFactor;
-
-      totalEmployed += emp;
-      if (comp.illegal) {
-        numberOfCriminals += emp;
-      }
-      vgpByGood.set(comp.flagshipGood, (vgpByGood.get(comp.flagshipGood) || 0) + comp.vgp);
-
-      if (sectorVgp[comp.gdpSector] !== undefined) {
-        sectorVgp[comp.gdpSector] += comp.vgp;
-        sectorEmp[comp.gdpSector] += emp;
-      } else {
-        sectorVgp["Industry & Manufacturing GDP"] += comp.vgp;
-        sectorEmp["Industry & Manufacturing GDP"] += emp;
+        const sec = mRow.category || "Industry & Manufacturing GDP";
+        if (sectorVgp[sec] !== undefined) {
+          sectorVgp[sec] += goodVgp;
+          sectorEmp[sec] += emp;
+        } else {
+          sectorVgp["Industry & Manufacturing GDP"] += goodVgp;
+          sectorEmp["Industry & Manufacturing GDP"] += emp;
+        }
+        totalEmployed += emp;
+        if (mRow.illegal) {
+          numberOfCriminals += emp;
+        }
       }
     }
 
