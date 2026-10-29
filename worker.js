@@ -383,6 +383,14 @@ async function getActivityLog(db, sessionId, limit = 50) {
 }
 
 const DIRECTOR_SECRET_KEY = "imperium-director-9942";
+const DEFAULT_MASTER_PASSWORD = "imperium-2026";
+
+async function isValidDirectorToken(db, token) {
+  if (!token) return false;
+  if (token === DIRECTOR_SECRET_KEY) return true;
+  const activeSessions = await getD1AuthValue(db, "sessions", {});
+  return Boolean(activeSessions[token]);
+}
 
 function jsonResponse(data, status = 200) {
   return new Response(JSON.stringify(data), {
@@ -404,26 +412,250 @@ export default {
     }
 
     if (!url.pathname.startsWith("/api/")) {
-      return env.ASSETS.fetch(request);
+      const assetRes = await env.ASSETS.fetch(request);
+      if (assetRes.status === 404 && !url.pathname.includes(".")) {
+        const indexUrl = new URL("/index.html", request.url);
+        return env.ASSETS.fetch(new Request(indexUrl));
+      }
+      return assetRes;
+    }
+
+    const db = env.DB;
+    const parts = url.pathname.split("/").filter(Boolean); // ["api", ...]
+
+    // --- TELEGRAM 2FA AUTHENTICATION ROUTES ---
+    if (parts[1] === "auth") {
+      const subRoute = parts[2];
+
+      if (subRoute === "status" && request.method === "GET") {
+        const cfg = await getD1AuthValue(db, "config", {});
+        const providedToken =
+          request.headers.get("x-director-key") || url.searchParams.get("token");
+        const activeSessions = await getD1AuthValue(db, "sessions", {});
+        const sessionInfo = providedToken ? activeSessions[providedToken] : null;
+        return jsonResponse({
+          telegramConfigured: Boolean(cfg.botToken && cfg.chatId),
+          maskedChatId: cfg.chatId ? maskChatId(cfg.chatId) : null,
+          authenticated: Boolean(sessionInfo),
+          username: sessionInfo?.username || null,
+        });
+      }
+
+      if (subRoute === "telegram-detect" && request.method === "POST") {
+        const body = await request.json().catch(() => ({}));
+        const botToken = body.botToken;
+        if (!botToken || !String(botToken).includes(":")) {
+          return jsonResponse(
+            { error: "Please provide a valid Telegram Bot Token from @BotFather." },
+            400
+          );
+        }
+        try {
+          const tgRes = await fetch(
+            `https://api.telegram.org/bot${String(botToken).trim()}/getUpdates`
+          );
+          const tgData = await tgRes.json();
+          if (!tgData.ok) {
+            return jsonResponse(
+              { error: tgData.description || "Invalid Telegram Bot Token." },
+              400
+            );
+          }
+          const results = tgData.result || [];
+          for (let i = results.length - 1; i >= 0; i--) {
+            const msg =
+              results[i].message ||
+              results[i].edited_message ||
+              results[i].channel_post;
+            if (msg && msg.chat && msg.chat.id) {
+              return jsonResponse({
+                chatId: String(msg.chat.id),
+                username: msg.chat.username
+                  ? `@${msg.chat.username}`
+                  : msg.chat.first_name || "Director",
+                chatTitle:
+                  msg.chat.title ||
+                  [msg.chat.first_name, msg.chat.last_name]
+                    .filter(Boolean)
+                    .join(" ") ||
+                  msg.chat.username ||
+                  "Telegram Chat",
+              });
+            }
+          }
+          return jsonResponse(
+            {
+              error:
+                "No messages found yet! Open your bot in Telegram, send '/start', and click Auto-Detect again.",
+            },
+            404
+          );
+        } catch (err) {
+          return jsonResponse(
+            { error: `Telegram API connection error: ${err.message}` },
+            500
+          );
+        }
+      }
+
+      if (subRoute === "login" && request.method === "POST") {
+        const body = await request.json().catch(() => ({}));
+        const { username = "Director", password, botToken, chatId } = body;
+        const cfg = await getD1AuthValue(db, "config", {
+          masterPassword: DEFAULT_MASTER_PASSWORD,
+        });
+        const expectedPassword = cfg.masterPassword || DEFAULT_MASTER_PASSWORD;
+
+        if (!password || password !== expectedPassword) {
+          return jsonResponse(
+            { error: "Invalid Director Master Password." },
+            401
+          );
+        }
+
+        if (botToken && chatId) {
+          cfg.botToken = String(botToken).trim();
+          cfg.chatId = String(chatId).trim();
+          await setD1AuthValue(db, "config", cfg);
+        }
+
+        const activeBotToken = cfg.botToken || env.TELEGRAM_BOT_TOKEN;
+        const activeChatId = cfg.chatId || env.TELEGRAM_CHAT_ID;
+
+        if (!activeBotToken || !activeChatId) {
+          return jsonResponse(
+            {
+              needsTelegramSetup: true,
+              error:
+                "Telegram 2FA is not paired yet. Please link your Telegram Bot & Chat ID.",
+            },
+            400
+          );
+        }
+
+        const code = String(Math.floor(100000 + Math.random() * 900000));
+        const expiresAt = Date.now() + 5 * 60 * 1000;
+        await setD1AuthValue(db, "pending_otp", {
+          code,
+          username: String(username || "Director").trim(),
+          expiresAt,
+        });
+
+        const text =
+          `🏛 *IMPERIUM WORLD SIMULATOR — 2FA LOGIN*\n\n` +
+          `👤 *Director:* \`${String(username || "Director").trim()}\`\n` +
+          `🔐 *Your 6-Digit 2FA Code:* \`${code}\`\n\n` +
+          `_Expires in 5 minutes. Enter this code in the Private Director Portal to unlock edit access._`;
+
+        try {
+          const tgRes = await fetch(
+            `https://api.telegram.org/bot${activeBotToken}/sendMessage`,
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                chat_id: activeChatId,
+                text,
+                parse_mode: "Markdown",
+              }),
+            }
+          );
+          const tgData = await tgRes.json();
+          if (!tgData.ok) {
+            return jsonResponse(
+              {
+                error: `Telegram rejected message: ${
+                  tgData.description || "Check your Bot Token and Chat ID"
+                }`,
+              },
+              400
+            );
+          }
+        } catch (err) {
+          return jsonResponse(
+            { error: `Failed to reach Telegram API: ${err.message}` },
+            500
+          );
+        }
+
+        return jsonResponse({
+          ok: true,
+          maskedChatId: maskChatId(activeChatId),
+          message: `6-digit 2FA verification code sent to Telegram (${maskChatId(
+            activeChatId
+          )})!`,
+        });
+      }
+
+      if (subRoute === "verify-2fa" && request.method === "POST") {
+        const body = await request.json().catch(() => ({}));
+        const { username = "Director", otpCode } = body;
+        const pending = await getD1AuthValue(db, "pending_otp", null);
+
+        if (!pending || !pending.code) {
+          return jsonResponse(
+            { error: "No pending 2FA code found. Please request a new code." },
+            400
+          );
+        }
+        if (Date.now() > pending.expiresAt) {
+          return jsonResponse(
+            { error: "2FA code has expired. Please request a new code." },
+            400
+          );
+        }
+        if (String(otpCode || "").trim() !== String(pending.code)) {
+          return jsonResponse(
+            { error: "Invalid 6-digit 2FA verification code." },
+            401
+          );
+        }
+
+        const sessionToken = `dir_sess_${Date.now().toString(36)}_${Math.random()
+          .toString(36)
+          .slice(2, 12)}`;
+        const activeSessions = await getD1AuthValue(db, "sessions", {});
+        activeSessions[sessionToken] = {
+          username: String(username || pending.username || "Director").trim(),
+          createdAt: new Date().toISOString(),
+        };
+        await setD1AuthValue(db, "sessions", activeSessions);
+        await setD1AuthValue(db, "pending_otp", null);
+
+        return jsonResponse({
+          ok: true,
+          sessionToken,
+          username: activeSessions[sessionToken].username,
+        });
+      }
+
+      if (subRoute === "logout" && request.method === "POST") {
+        const body = await request.json().catch(() => ({}));
+        const providedToken =
+          request.headers.get("x-director-key") || body.sessionToken;
+        if (providedToken) {
+          const activeSessions = await getD1AuthValue(db, "sessions", {});
+          delete activeSessions[providedToken];
+          await setD1AuthValue(db, "sessions", activeSessions);
+        }
+        return jsonResponse({ ok: true });
+      }
     }
 
     // Enforce Public Read-Only Mode vs. Private Director Mode on all mutating endpoints
     if (["POST", "PATCH", "DELETE", "PUT"].includes(request.method)) {
       const providedKey =
         request.headers.get("x-director-key") || url.searchParams.get("access");
-      if (providedKey !== DIRECTOR_SECRET_KEY) {
+      if (!(await isValidDirectorToken(db, providedKey))) {
         return jsonResponse(
           {
             error:
-              "Read-Only Public Spectator Mode: Editing is disabled on the public link. Use the Private Director Link to make changes.",
+              "Read-Only Public Spectator Mode: Editing requires authentication via the Private Director Telegram 2FA Login Portal.",
           },
           403
         );
       }
     }
-
-    const db = env.DB;
-    const parts = url.pathname.split("/").filter(Boolean); // ["api", "sessions", ...]
 
     try {
       // GET /api/sessions
