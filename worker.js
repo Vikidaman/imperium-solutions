@@ -334,6 +334,8 @@ async function getActivityLog(db, sessionId, limit = 50) {
   return rows.results || [];
 }
 
+const DIRECTOR_SECRET_KEY = "imperium-director-9942";
+
 function jsonResponse(data, status = 200) {
   return new Response(JSON.stringify(data), {
     status,
@@ -341,7 +343,7 @@ function jsonResponse(data, status = 200) {
       "Content-Type": "application/json",
       "Access-Control-Allow-Origin": "*",
       "Access-Control-Allow-Methods": "GET, POST, PATCH, DELETE, OPTIONS",
-      "Access-Control-Allow-Headers": "Content-Type",
+      "Access-Control-Allow-Headers": "Content-Type, X-Director-Key",
     },
   });
 }
@@ -355,6 +357,21 @@ export default {
 
     if (!url.pathname.startsWith("/api/")) {
       return env.ASSETS.fetch(request);
+    }
+
+    // Enforce Public Read-Only Mode vs. Private Director Mode on all mutating endpoints
+    if (["POST", "PATCH", "DELETE", "PUT"].includes(request.method)) {
+      const providedKey =
+        request.headers.get("x-director-key") || url.searchParams.get("access");
+      if (providedKey !== DIRECTOR_SECRET_KEY) {
+        return jsonResponse(
+          {
+            error:
+              "Read-Only Public Spectator Mode: Editing is disabled on the public link. Use the Private Director Link to make changes.",
+          },
+          403
+        );
+      }
     }
 
     const db = env.DB;
