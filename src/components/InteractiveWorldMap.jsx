@@ -74,6 +74,84 @@ const SUBCONTINENT_PRESETS = [
   { id: "oc", name: "Oceania", zoom: 2.4, pan: { x: -470, y: -180 } },
 ];
 
+// Constituent Regional States for Victoria 3-style state-level deep dive
+const CONSTITUENT_REGIONAL_STATES = {
+  usa: [
+    { name: "California & Pacific Coast", gdpShare: 0.22, popShare: 0.20, role: "High-Tech, Silicon Valley & Aerospace Core" },
+    { name: "Texas & Gulf Energy Corridor", gdpShare: 0.19, popShare: 0.17, role: "Petrochemicals, Energy Grid & Heavy Refining" },
+    { name: "Northeast Atlantic Megalopolis", gdpShare: 0.23, popShare: 0.21, role: "Financial Bourse, Corporate HQs & Commerce" },
+    { name: "Midwest Industrial Rustbelt", gdpShare: 0.16, popShare: 0.18, role: "Automotive, Machine Tools & Grain Agriculture" },
+    { name: "Mountain West & Frontier Shelf", gdpShare: 0.11, popShare: 0.12, role: "Rare Earths, Mining & Orbital Defense" },
+    { name: "Southern Logistics Sunbelt", gdpShare: 0.09, popShare: 0.12, role: "Advanced Manufacturing & Deepwater Shipping" },
+  ],
+  china: [
+    { name: "Pearl River Delta & Guangdong", gdpShare: 0.25, popShare: 0.22, role: "Global Electronics & Precision Manufacturing" },
+    { name: "Yangtze River Economic Basin", gdpShare: 0.26, popShare: 0.24, role: "Shanghai Financial Hub & Heavy Machinery" },
+    { name: "Beijing-Tianjin-Hebei Capital Core", gdpShare: 0.20, popShare: 0.18, role: "Administrative Statecraft & Quantum R&D" },
+    { name: "Sichuan-Chongqing Industrial Basin", gdpShare: 0.15, popShare: 0.18, role: "Inland Logistics & Renewable Energy Hub" },
+    { name: "Northwestern Resource Corridor", gdpShare: 0.14, popShare: 0.18, role: "Rare Earth Metallurgy & Solar Fields" },
+  ],
+  russia: [
+    { name: "Central Federal District (Moscow)", gdpShare: 0.35, popShare: 0.28, role: "Imperial Command, Sovereign Vault & Services" },
+    { name: "Northwestern Region (St. Petersburg)", gdpShare: 0.18, popShare: 0.16, role: "Baltic Maritime Shipyards & Optics" },
+    { name: "Volga-Ural Heavy Industrial Heartland", gdpShare: 0.22, popShare: 0.24, role: "Steel Forges, Machine Tools & Metallurgy" },
+    { name: "Siberian Hydrocarbon & Minerals Belt", gdpShare: 0.15, popShare: 0.18, role: "Hydrocarbons, Nickel & Rare Metals Extraction" },
+    { name: "Far East Pacific Gateway (Vladivostok)", gdpShare: 0.10, popShare: 0.14, role: "Pacific Logistics & Deepwater Trade" },
+  ],
+  india: [
+    { name: "Maharashtra & Western Commercial Coast", gdpShare: 0.26, popShare: 0.20, role: "Mumbai Bourse, Finance & Pharmaceuticals" },
+    { name: "Deccan Tech Corridor (Bengaluru-Hyd)", gdpShare: 0.22, popShare: 0.18, role: "Semiconductors, Artificial Intelligence & Software" },
+    { name: "Indo-Gangetic Industrial Belt (Delhi-UP)", gdpShare: 0.22, popShare: 0.28, role: "National Governance, Textiles & Agriculture" },
+    { name: "Tamil Nadu Southern Automotive Hub", gdpShare: 0.16, popShare: 0.16, role: "Precision Engineering & Heavy Vehicle Assembly" },
+    { name: "Eastern Mineral & Steel Shelf", gdpShare: 0.14, popShare: 0.18, role: "Iron Ore, Bauxite & Blast Furnaces" },
+  ],
+  japan: [
+    { name: "Kanto Plain & Tokyo Megalopolis", gdpShare: 0.42, popShare: 0.38, role: "Financial Exchanges, Robotics & Corporate HQs" },
+    { name: "Kansai Region (Osaka-Kyoto-Kobe)", gdpShare: 0.24, popShare: 0.22, role: "Advanced Chemicals, Electronics & High-Speed Transit" },
+    { name: "Chubu Industrial Corridor (Nagoya)", gdpShare: 0.20, popShare: 0.20, role: "Automotive Heavy Assembly & Aerospace Parts" },
+    { name: "Kyushu & Southwestern Tech Island", gdpShare: 0.14, popShare: 0.20, role: "Silicon Wafer Fabrication & Agricultural Basin" },
+  ],
+  brazil: [
+    { name: "São Paulo Southeastern Megalopolis", gdpShare: 0.45, popShare: 0.35, role: "Financial Center, Automotive & Bio-Refineries" },
+    { name: "Rio de Janeiro Offshore Basin", gdpShare: 0.20, popShare: 0.18, role: "Deepwater Oil Extraction & Petrochemicals" },
+    { name: "Southern Agro-Industrial Belt", gdpShare: 0.20, popShare: 0.22, role: "Grains, Machinery & Livestock Export" },
+    { name: "Amazonian Mineral & Bio-Reserve", gdpShare: 0.15, popShare: 0.25, role: "Hydroelectric Power & Rare Minerals" },
+  ],
+  australia: [
+    { name: "New South Wales (Sydney)", gdpShare: 0.36, popShare: 0.34, role: "Financial Services & Maritime Trade" },
+    { name: "Victoria (Melbourne)", gdpShare: 0.28, popShare: 0.27, role: "Biotech, Advanced Manufacturing & Culture" },
+    { name: "Western Australia Mining Shelf", gdpShare: 0.22, popShare: 0.18, role: "Iron Ore, Lithium & Rare Earths Export" },
+    { name: "Queensland Tropical Energy Coast", gdpShare: 0.14, popShare: 0.21, role: "Metallurgical Coal & Bauxite Extraction" },
+  ],
+  mexico: [
+    { name: "Valley of Mexico (Federal District)", gdpShare: 0.32, popShare: 0.28, role: "Capital Administration & Corporate Commerce" },
+    { name: "Northern Nearshoring Border Corridor", gdpShare: 0.30, popShare: 0.25, role: "Automotive Assembly & Electronics Export" },
+    { name: "Bajio Aerospace & Machine Hub", gdpShare: 0.20, popShare: 0.22, role: "Precision Tooling & Chemical Plants" },
+    { name: "Gulf Coast Oil & Southern Belt", gdpShare: 0.18, popShare: 0.25, role: "Petroleum Extraction & Agriculture" },
+  ],
+  olympus: [
+    { name: "Olympus Mons Central Caldera", gdpShare: 0.40, popShare: 0.35, role: "Planetary Space Elevator & Mag-Lev Terminal" },
+    { name: "Tharsis Volcanic Highlands", gdpShare: 0.32, popShare: 0.33, role: "Geothermal Extraction & Heavy Foundry Grid" },
+    { name: "Marineris Canyon Logistics Shelf", gdpShare: 0.28, popShare: 0.32, role: "Pressurized Biosphere & Hydroponic Farms" },
+  ],
+  heinan: [
+    { name: "Heinan Crater Habitation Ring", gdpShare: 0.52, popShare: 0.48, role: "Deep-Drilling Regolith Refinery & Subterranean Core" },
+    { name: "Elysium Planitia Solar Array", gdpShare: 0.48, popShare: 0.52, role: "Orbital Relay Station & Rare Gas Extraction" },
+  ],
+  mitsubishi: [
+    { name: "Mitsubishi Heavy Martian Arcology", gdpShare: 0.55, popShare: 0.50, role: "Automated Foundry Complex & Exo-Suit Fabrication" },
+    { name: "Utopia Planitia Sub-Surface Mines", gdpShare: 0.45, popShare: 0.50, role: "Water-Ice Extraction & Fusion Fuel Depots" },
+  ],
+  sumitomo: [
+    { name: "Sumitomo Bio-Dome Mega-Cluster", gdpShare: 0.52, popShare: 0.52, role: "Hydroponics, Oxygen Scrubbers & Life Support" },
+    { name: "Argyre Impact Basin Depot", gdpShare: 0.48, popShare: 0.48, role: "Freight Rail Terminal & Heavy Rare Earth Processing" },
+  ],
+  ifc: [
+    { name: "Interstellar Financial Center Spire", gdpShare: 0.60, popShare: 0.45, role: "Off-World Bourse, Banking Vaults & AI Data Shrines" },
+    { name: "Phobos-Deimos Orbital Gateway", gdpShare: 0.40, popShare: 0.55, role: "Deep Space Freight Dock & Ion Propulsion Yard" },
+  ],
+};
+
 // Distinct sovereign color palette for nations
 const NATION_PALETTE = [
   "#06b6d4", // Cyan (USA)
