@@ -1421,7 +1421,131 @@ export default function InteractiveWorldMap({
               </div>
             </div>
 
-            {/* 6 Core Visual Gauges */}
+            {/* Drawer View Switcher: States & Provinces vs Cabinet & Economy */}
+            <div className="flex items-center gap-1.5 p-1 bg-slate-950/80 rounded-xl border border-slate-800 text-xs font-semibold">
+              <button
+                onClick={() => setRightPanelTab("states")}
+                className={`flex-1 py-1.5 rounded-lg flex items-center justify-center gap-1.5 transition cursor-pointer ${
+                  rightPanelTab === "states"
+                    ? "bg-cyan-500 text-slate-950 shadow-sm font-bold"
+                    : "text-slate-400 hover:text-white"
+                }`}
+              >
+                <Layers className="w-3.5 h-3.5" />
+                States & Provinces ({nationalStatesList.length})
+              </button>
+              <button
+                onClick={() => setRightPanelTab("cabinet")}
+                className={`flex-1 py-1.5 rounded-lg flex items-center justify-center gap-1.5 transition cursor-pointer ${
+                  rightPanelTab === "cabinet"
+                    ? "bg-cyan-500 text-slate-950 shadow-sm font-bold"
+                    : "text-slate-400 hover:text-white"
+                }`}
+              >
+                <Sliders className="w-3.5 h-3.5" />
+                Cabinet & Economy
+              </button>
+            </div>
+
+            {/* VIEW 1: STATES & PROVINCES BREAKDOWN */}
+            {rightPanelTab === "states" && (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <span className="text-[10px] font-mono-num uppercase tracking-wider text-cyan-400 font-bold block">
+                      Provincial Sovereignty & Local Development
+                    </span>
+                    <h3 className="text-sm font-bold text-white">
+                      Constituent States of {activeNation.name}
+                    </h3>
+                  </div>
+
+                  {!isReadOnly && (
+                    <button
+                      onClick={() => setShowProvinceManager(true)}
+                      className="px-3 py-1.5 rounded-xl bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 border border-cyan-500/40 text-xs font-bold flex items-center gap-1.5 cursor-pointer transition shadow-sm"
+                    >
+                      <PlusCircle className="w-3.5 h-3.5" /> Annex Province
+                    </button>
+                  )}
+                </div>
+
+                {/* List of States & Provinces */}
+                <div className="space-y-2.5 max-h-[580px] overflow-y-auto pr-1">
+                  {nationalStatesList.map((st, idx) => (
+                    <div
+                      key={st.name || idx}
+                      className="p-3.5 rounded-xl bg-slate-950/70 border border-slate-800 hover:border-cyan-500/40 transition space-y-2.5"
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <div>
+                          <div className="flex items-center gap-1.5">
+                            <span className="w-2 h-2 rounded-full bg-cyan-400 shrink-0" />
+                            <h4 className="text-sm font-bold text-white">{st.name}</h4>
+                            <span className="text-[10px] px-2 py-0.5 rounded bg-slate-900 border border-slate-700 text-slate-300 font-mono-num">
+                              State #{idx + 1}
+                            </span>
+                          </div>
+                          <p className="text-[11px] text-slate-400 mt-0.5">{st.role}</p>
+                        </div>
+
+                        <div className="text-right shrink-0">
+                          <span className="text-[10px] text-slate-500 block">State GDP</span>
+                          <span className="text-xs font-bold font-mono-num text-emerald-400">
+                            {formatCurrency(st.gdp)}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-3 gap-2 bg-slate-900/60 p-2 rounded-lg text-[10px] font-mono-num text-slate-300">
+                        <div>
+                          <span className="text-slate-500 block">Working Pops:</span>
+                          <span className="text-white font-bold">{formatCompactNumber(st.pops)}</span>
+                        </div>
+                        <div>
+                          <span className="text-slate-500 block">Infra Efficiency:</span>
+                          <span className="text-amber-300 font-bold">{formatPercent(st.infra, 0)}</span>
+                        </div>
+                        <div>
+                          <span className="text-slate-500 block">Urbanisation:</span>
+                          <span className="text-cyan-300 font-bold">{formatPercent(st.urban, 0)}</span>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center justify-between gap-2 pt-1 border-t border-slate-900">
+                        <button
+                          onClick={() => focusOnTerritory(st.name)}
+                          className="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-cyan-300 text-[11px] font-semibold flex items-center gap-1 cursor-pointer transition"
+                        >
+                          <MapPin className="w-3 h-3" /> Focus on Map
+                        </button>
+
+                        {!isReadOnly && nationalStatesList.length > 1 && (
+                          <button
+                            onClick={() =>
+                              onTransferTerritory({
+                                territoryName: st.name,
+                                mode: "RELEASE",
+                                planet: activeNation.planet || "Earth",
+                              })
+                            }
+                            className="text-[11px] text-slate-500 hover:text-rose-400 cursor-pointer font-semibold transition"
+                            title="Release this territory as an independent sovereign nation"
+                          >
+                            Release as Sovereign State
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* VIEW 2: CABINET, TAXES & POLICIES */}
+            {rightPanelTab === "cabinet" && (
+              <div className="space-y-5">
+                {/* 6 Core Visual Gauges */}
             <div className="grid grid-cols-3 gap-2.5 text-xs">
               <div className="bg-slate-950/70 border border-slate-800/80 rounded-xl p-3">
                 <div className="text-[11px] text-slate-400">
@@ -1943,6 +2067,8 @@ export default function InteractiveWorldMap({
             </div>
           </div>
         )}
+      </div>
+    )}
       </div>
 
       {/* COUNTRY PROVINCE MANAGER MODAL */}
