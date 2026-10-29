@@ -134,7 +134,7 @@ app.get("/api/sessions", (req, res) => {
 
 // 2. Create a new session
 app.post("/api/sessions", (req, res) => {
-  const { name, description, scenarioType, customState, actor } = req.body;
+  const { name, description, scenarioType, customState, startDate, electionIntervalDays, actor } = req.body;
   if (!name) {
     return res.status(400).json({ error: "Session name is required" });
   }
@@ -148,9 +148,18 @@ app.post("/api/sessions", (req, res) => {
     scenarioType: scenarioType || "interstellar",
     customState,
   });
+  if (startDate) {
+    setCustomStartDate(created.state, {
+      startDate,
+      resetCurrentDate: true,
+      electionIntervalDays,
+    });
+    evaluateSimulation(created.state);
+    saveSessionState(id, created.state);
+  }
   sessionCache.set(id, created);
   if (actor) {
-    logActivity(id, actor, "Created Scenario", name);
+    logActivity(id, actor, "Created Scenario", `${name}${startDate ? ` (Start: ${startDate})` : ""}`);
   }
   res.json({ session: created });
 });
