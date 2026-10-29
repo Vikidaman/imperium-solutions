@@ -3,6 +3,12 @@ import {
   advanceSimulationTime,
   runBudgetAndDividendUpdater,
   transferTerritory,
+  setCustomStartDate,
+  triggerElectionAction,
+  triggerLawAction,
+  queueConstruction,
+  resolveNewsDilemma,
+  publishCustomNews,
 } from "./server/engine.js";
 
 const CHUNK_SIZE = 350000; // 350 KB per D1 row (well below D1's 1 MB limit)
