@@ -679,11 +679,25 @@ export default function InteractiveWorldMap({
         directTerritories.push(terr);
       }
     }
-    // If the nation has multiple sovereign territories in territoryMap (e.g. EU or expanded empires)
-    if (directTerritories.length > 1) {
-      const gdpPerTerr = (c.aggregateGdp || 0) / directTerritories.length;
-      const popPerTerr = (c.effectiveWorkingPops || 0) / directTerritories.length;
-      return directTerritories.map((name) => ({
+    // Direct constituent regional states from template
+    const regional = CONSTITUENT_REGIONAL_STATES[activeNation.id.toLowerCase()] || [];
+    // Active regional states: not transferred away to someone else
+    const activeRegional = regional.filter((r) => {
+      const assigned = territoryMap[r.name];
+      return !assigned || assigned === activeNation.id;
+    });
+
+    // Also include any regional states from other nations that were transferred into activeNation
+    const transferredIn = Object.entries(territoryMap)
+      .filter(([terr, cid]) => cid === activeNation.id && !directTerritories.includes(terr))
+      .map(([terr]) => terr);
+
+    const combinedTerritories = [...new Set([...directTerritories, ...transferredIn])];
+
+    if (combinedTerritories.length > 1) {
+      const gdpPerTerr = (c.aggregateGdp || 0) / combinedTerritories.length;
+      const popPerTerr = (c.effectiveWorkingPops || 0) / combinedTerritories.length;
+      return combinedTerritories.map((name) => ({
         name,
         role: "Incorporated Sovereign Territory",
         isCore: name.toLowerCase() === activeNation.name.toLowerCase(),
@@ -695,10 +709,8 @@ export default function InteractiveWorldMap({
       }));
     }
 
-    // Single territory nation: expand using constituent regional states
-    const regional = CONSTITUENT_REGIONAL_STATES[activeNation.id.toLowerCase()] || [];
-    if (regional.length > 0) {
-      return regional.map((r) => ({
+    if (activeRegional.length > 0) {
+      return activeRegional.map((r) => ({
         name: r.name,
         role: r.role,
         isCore: true,
