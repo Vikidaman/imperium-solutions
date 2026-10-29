@@ -19,6 +19,12 @@ import {
   advanceSimulationTime,
   runBudgetAndDividendUpdater,
   transferTerritory,
+  setCustomStartDate,
+  triggerElectionAction,
+  triggerLawAction,
+  queueConstruction,
+  resolveNewsDilemma,
+  publishCustomNews,
 } from "./engine.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
