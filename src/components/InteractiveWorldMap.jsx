@@ -665,6 +665,102 @@ export default function InteractiveWorldMap({
         </div>
       </div>
 
+      {/* 3-Tier Map View Switcher Bar (World-Wide / Subcontinent / Country & States) */}
+      <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-3 flex flex-wrap items-center justify-between gap-3 text-xs shadow-md">
+        <div className="flex items-center gap-2">
+          <span className="text-[10px] font-mono-num uppercase tracking-wider text-slate-400 font-bold">
+            Map View Tier:
+          </span>
+          <div className="flex items-center gap-1 bg-slate-950 p-1 rounded-xl border border-slate-800">
+            <button
+              onClick={() => {
+                setViewTier("worldwide");
+                resetCamera();
+              }}
+              className={`px-3 py-1.5 rounded-lg font-bold transition cursor-pointer flex items-center gap-1.5 ${
+                viewTier === "worldwide"
+                  ? "bg-cyan-500 text-slate-950 shadow-sm shadow-cyan-500/20"
+                  : "text-slate-400 hover:text-slate-200"
+              }`}
+            >
+              <Globe2 className="w-3.5 h-3.5" />
+              1. World-Wide
+            </button>
+
+            <button
+              onClick={() => {
+                setViewTier("subcontinent");
+                if (selectedSubcontinent === "all") handleSelectSubcontinent("we");
+              }}
+              className={`px-3 py-1.5 rounded-lg font-bold transition cursor-pointer flex items-center gap-1.5 ${
+                viewTier === "subcontinent"
+                  ? "bg-amber-500 text-slate-950 shadow-sm shadow-amber-500/20"
+                  : "text-slate-400 hover:text-slate-200"
+              }`}
+            >
+              <Compass className="w-3.5 h-3.5" />
+              2. Subcontinent Focus
+            </button>
+
+            <button
+              onClick={() => {
+                setViewTier("country");
+                focusOnCountry(activeNation);
+              }}
+              className={`px-3 py-1.5 rounded-lg font-bold transition cursor-pointer flex items-center gap-1.5 ${
+                viewTier === "country"
+                  ? "bg-emerald-500 text-slate-950 shadow-sm shadow-emerald-500/20"
+                  : "text-slate-400 hover:text-slate-200"
+              }`}
+            >
+              <Flag className="w-3.5 h-3.5" />
+              3. Country & States ({activeNation?.name})
+            </button>
+          </div>
+        </div>
+
+        {/* Subcontinent Presets (Visible when Subcontinent Tier is active) */}
+        {viewTier === "subcontinent" && (
+          <div className="flex flex-wrap items-center gap-1.5">
+            <span className="text-slate-400 text-[11px]">Region:</span>
+            {SUBCONTINENT_PRESETS.map((p) => (
+              <button
+                key={p.id}
+                onClick={() => handleSelectSubcontinent(p.id)}
+                className={`px-2 py-1 rounded-lg text-[11px] font-semibold transition cursor-pointer ${
+                  selectedSubcontinent === p.id
+                    ? "bg-amber-500/20 text-amber-300 border border-amber-500/40"
+                    : "bg-slate-950 text-slate-400 hover:text-slate-200 border border-slate-800"
+                }`}
+              >
+                {p.name}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {/* Country Tier Quick Focus (Visible when Country Tier is active) */}
+        {viewTier === "country" && (
+          <div className="flex items-center gap-2">
+            <span className="text-slate-400 text-[11px]">Focus State:</span>
+            <select
+              value={activeNation?.id || ""}
+              onChange={(e) => {
+                const target = nations.find((n) => n.id === e.target.value);
+                if (target) focusOnCountry(target);
+              }}
+              className="px-2.5 py-1 rounded-lg bg-slate-950 border border-slate-700 text-cyan-300 font-bold text-xs cursor-pointer"
+            >
+              {nations.map((n) => (
+                <option key={n.id} value={n.id}>
+                  {n.name} ({n.planet} • {n.territoryCount || 1} territories)
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+      </div>
+
       {/* Main Split View: Interactive Map Canvas (Left 7 Cols) + Nation Command Drawer (Right 5 Cols) */}
       <div className="grid grid-cols-1 xl:grid-cols-12 gap-5 items-start">
         {/* INTERACTIVE VECTOR MAP CANVAS */}
