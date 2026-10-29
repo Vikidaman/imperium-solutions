@@ -174,22 +174,129 @@ export function ensureTerritoryMap(state) {
 }
 
 /**
+ * Applies a historical era or date to the world state:
+ * Sets start dates, re-maps all sovereign borders, assigns accurate constituent states & unincorporated territories.
+ */
+export function applyHistoricalEra(state, eraIdOrDate) {
+  const era = typeof eraIdOrDate === "string" && eraIdOrDate.startsWith("era_")
+    ? HISTORICAL_ERAS.find((e) => e.id === eraIdOrDate) || HISTORICAL_ERAS[6]
+    : getHistoricalEraForDate(eraIdOrDate);
+
+  if (!era) return { state, action: "Historical Era not found" };
+
+  state.currentEraId = era.id;
+  if (!state.timeManager) state.timeManager = {};
+  state.timeManager.crisisStartDate = era.startDate;
+  state.timeManager.crisisDate = era.startDate;
+
+  // Re-map territory ownership and statuses
+  state.territoryMap = { ...(era.territoryMap || {}) };
+  state.territoryStatusMap = {};
+
+  // Setup nations for this era
+  const newNations = [];
+  for (const nTemplate of era.nations) {
+    const statesList = (nTemplate.constituentStates || []).map((st) => ({
+      ...st,
+      status: "STATE",
+    }));
+    const territoriesList = (nTemplate.unincorporatedTerritories || []).map((tr) => ({
+      ...tr,
+      status: "TERRITORY",
+    }));
+
+    statesList.forEach((st) => {
+      state.territoryStatusMap[st.name] = "STATE";
+      if (!state.territoryMap[st.name]) state.territoryMap[st.name] = nTemplate.id;
+    });
+    territoriesList.forEach((tr) => {
+      state.territoryStatusMap[tr.name] = "TERRITORY";
+      if (!state.territoryMap[tr.name]) state.territoryMap[tr.name] = nTemplate.id;
+    });
+
+    const nationObj = {
+      id: nTemplate.id,
+      name: nTemplate.name,
+      planet: nTemplate.planet || "Earth",
+      color: nTemplate.color,
+      stockExchangeName: `${nTemplate.name} Bourse`,
+      consumerSentiment: 55,
+      kFactorScaler: 1500,
+      workingPops: nTemplate.workingPops || 25000000,
+      literacyRate: nTemplate.literacyRate || 0.8,
+      urbanisationIndex: nTemplate.urbanisationIndex || 0.6,
+      infrastructureEfficiency: nTemplate.infrastructureEfficiency || 0.75,
+      rulingParty: nTemplate.rulingParty || "National Council",
+      federalCooperativity: 0.1,
+      diplomaticExpenses: 0,
+      treasuryBalance: nTemplate.treasuryBalance || 25000000000,
+      specializedIndustry: "Industry & Manufacturing GDP",
+      crimePolicy: "Beat Cops",
+      healthcarePolicy: "State-run Healthcare",
+      highImmigration: false,
+      companies: [],
+      constituentStates: statesList,
+      unincorporatedTerritories: territoriesList,
+      market: [],
+    };
+    newNations.push(nationObj);
+  }
+
+  // Preserve off-world Martian nations if Mars is configured
+  const marsPlanets = (state.planetsConfig || []).filter((p) => (p.name || "").toLowerCase() === "mars");
+  if (marsPlanets.length > 0) {
+    const marsNations = (state.nations || []).filter((n) => (n.planet || "").toLowerCase() === "mars");
+    marsNations.forEach((mn) => {
+      if (!newNations.some((n) => n.id === mn.id)) {
+        newNations.push(mn);
+      }
+    });
+  }
+
+  state.nations = newNations;
+  ensureVictoriaState(state);
+
+  state.newsFeed = state.newsFeed || [];
+  state.newsFeed.unshift({
+    id: `news_era_${Date.now().toString(36)}`,
+    date: era.startDate,
+    quarter: 1,
+    category: "GLOBAL EPOCH",
+    headline: `Historical Era Initialized: ${era.label}`,
+    summary: `The geopolitical world order, sovereign national borders, and internal state divisions have been realigned to the historical period of ${era.shortLabel}. ${era.description}`,
+    nationName: newNations[0]?.name || "World Order",
+    impact: `Borders Realigned to ${era.shortLabel}`,
+  });
+
+  evaluateSimulation(state);
+  return {
+    state,
+    action: `Applied Historical Era: ${era.label}`,
+    toastMessage: `World borders and internal divisions updated to ${era.shortLabel}!`,
+  };
+}
+
+/**
  * Handles dynamic border changes:
- * - mode === "ANNEX": Transfers a territory to targetNationId (shifting population, companies & resources)
- * - mode === "RELEASE": Releases/awakens a territory on the map as a brand-new independent sovereign nation
+ * - mode === "ANNEX": Transfers a territory to targetNationId as an UNINCORPORATED TERRITORY first
+ * - mode === "INTEGRATE": Integrates an unincorporated territory into full Constituent Statehood
+ * - mode === "RELEASE": Releases a state as a unitary sovereign nation with NO internal sub-provinces
  */
 export function transferTerritory(state, { territoryName, targetNationId, mode = "ANNEX", planet = "Earth" }) {
   ensureTerritoryMap(state);
+  if (!state.territoryStatusMap) state.territoryStatusMap = {};
   const prevControllerId = state.territoryMap[territoryName];
   const prevNation = (state.nations || []).find((n) => n.id === prevControllerId);
 
+  // 1. SECESSION / RELEASE:
+  // "When one state within a country secedes, it should not have any more state and provinces since it is a state itself."
   if (mode === "RELEASE") {
-    // Check if nation with this name already exists
     const existing = (state.nations || []).find(
       (n) => n.name.toLowerCase() === territoryName.toLowerCase()
     );
     if (existing) {
       state.territoryMap[territoryName] = existing.id;
+      state.territoryStatusMap[territoryName] = "STATE";
       evaluateSimulation(state);
       return { state, nationId: existing.id, action: `Restored sovereignty to ${existing.name}` };
     }
@@ -205,12 +312,23 @@ export function transferTerritory(state, { territoryName, targetNationId, mode =
       const popShare = Math.round((prevNation.workingPops || 20000000) * 0.12);
       prevNation.workingPops = Math.max(1000000, prevNation.workingPops - popShare);
       newPops = Math.max(2500000, popShare);
+      if (prevNation.constituentStates) {
+        prevNation.constituentStates = prevNation.constituentStates.filter((s) => s.name !== territoryName);
+      }
+      if (prevNation.unincorporatedTerritories) {
+        prevNation.unincorporatedTerritories = prevNation.unincorporatedTerritories.filter((t) => t.name !== territoryName);
+      }
     }
 
+    // A seceded state is a unitary sovereign entity with NO internal sub-states/provinces
     const newNation = {
       id: newId,
       name: territoryName,
       planet,
+      isSeceded: true,
+      isUnitaryState: true,
+      constituentStates: [],
+      unincorporatedTerritories: [],
       stockExchangeName: `${territoryName} National Bourse`,
       consumerSentiment: 56,
       kFactorScaler: 1500,
@@ -232,6 +350,7 @@ export function transferTerritory(state, { territoryName, targetNationId, mode =
 
     state.nations.push(newNation);
     state.territoryMap[territoryName] = newId;
+    state.territoryStatusMap[territoryName] = "STATE";
     ensureVictoriaState(state);
     state.newsFeed.unshift({
       id: `news_ind_${Date.now().toString(36)}`,
@@ -239,19 +358,60 @@ export function transferTerritory(state, { territoryName, targetNationId, mode =
       quarter: state.timeManager?.quarterNumber || 1,
       category: "DIPLOMATIC PLAY",
       headline: `Sovereignty Proclaimed: ${territoryName} Declares Independence!`,
-      summary: `A new sovereign flag rises over ${territoryName} (${planet}), establishing the ${territoryName} National Bourse and mobilizing ${(newPops / 1e6).toFixed(1)}M citizens.`,
+      summary: `A new sovereign unitary state rises over ${territoryName} (${planet}), establishing the ${territoryName} National Bourse and mobilizing ${(newPops / 1e6).toFixed(1)}M citizens.`,
       nationName: territoryName,
-      impact: `New Sovereign State: ${territoryName}`,
+      impact: `New Sovereign State: ${territoryName} (Unitary)`,
     });
     evaluateSimulation(state);
     return {
       state,
       nationId: newId,
-      action: `${territoryName} declared independence as a sovereign state`,
+      action: `${territoryName} declared independence as a sovereign unitary state`,
     };
   }
 
-  // ANNEX / TRANSFER mode
+  // 2. CONSTITUTIONAL INTEGRATION:
+  // Upgrades an annexed territory to full Constituent State status
+  if (mode === "INTEGRATE") {
+    state.territoryStatusMap[territoryName] = "STATE";
+    const ctrlId = state.territoryMap[territoryName];
+    const ctrlNation = (state.nations || []).find((n) => n.id === ctrlId);
+    if (ctrlNation) {
+      if (ctrlNation.unincorporatedTerritories) {
+        ctrlNation.unincorporatedTerritories = ctrlNation.unincorporatedTerritories.filter(
+          (t) => t.name !== territoryName
+        );
+      }
+      ctrlNation.constituentStates = ctrlNation.constituentStates || [];
+      if (!ctrlNation.constituentStates.some((s) => s.name === territoryName)) {
+        ctrlNation.constituentStates.push({
+          name: territoryName,
+          role: "Integrated Constituent State",
+          status: "STATE",
+          gdpShare: 0.15,
+          popShare: 0.15,
+        });
+      }
+    }
+    state.newsFeed.unshift({
+      id: `news_integ_${Date.now().toString(36)}`,
+      date: state.timeManager?.crisisDate || "2025-01-01",
+      quarter: state.timeManager?.quarterNumber || 1,
+      category: "CONSTITUTIONAL REFORM",
+      headline: `${territoryName} Admitted to Full Statehood in ${ctrlNation?.name || "its nation"}!`,
+      summary: `The territory of ${territoryName} has completed constitutional integration and is now recognized as a full constituent state with complete legislative representation.`,
+      nationName: ctrlNation?.name || territoryName,
+      impact: `${territoryName}: Territory → Constituent State`,
+    });
+    evaluateSimulation(state);
+    return {
+      state,
+      action: `Integrated ${territoryName} as a constituent state of ${ctrlNation?.name || "its nation"}`,
+    };
+  }
+
+  // 3. ANNEX / TRANSFER mode:
+  // "When it is annexed, it should be counted as a territory first, before being made a state."
   const targetNation = (state.nations || []).find((n) => n.id === targetNationId);
   if (!targetNation) return { state, action: "Target nation not found" };
 
@@ -263,6 +423,12 @@ export function transferTerritory(state, { territoryName, targetNationId, mode =
     const popShift = Math.max(500000, Math.round((prevNation.workingPops || 10000000) * 0.08));
     prevNation.workingPops = Math.max(500000, Math.round(prevNation.workingPops - popShift));
     targetNation.workingPops = Math.round((targetNation.workingPops || 10000000) + popShift);
+    if (prevNation.constituentStates) {
+      prevNation.constituentStates = prevNation.constituentStates.filter((s) => s.name !== territoryName);
+    }
+    if (prevNation.unincorporatedTerritories) {
+      prevNation.unincorporatedTerritories = prevNation.unincorporatedTerritories.filter((t) => t.name !== territoryName);
+    }
   } else {
     // Annexing neutral/unclaimed territory adds frontier workforce
     const bonusPops = targetNation.planet === "Mars" ? 1800000 : 4500000;
@@ -270,26 +436,35 @@ export function transferTerritory(state, { territoryName, targetNationId, mode =
   }
 
   state.territoryMap[territoryName] = targetNation.id;
+  // Mark as unincorporated territory first!
+  state.territoryStatusMap[territoryName] = "TERRITORY";
+  targetNation.unincorporatedTerritories = targetNation.unincorporatedTerritories || [];
+  if (!targetNation.unincorporatedTerritories.some((t) => t.name === territoryName)) {
+    targetNation.unincorporatedTerritories.push({
+      name: territoryName,
+      role: "Annexed Unincorporated Territory",
+      status: "TERRITORY",
+    });
+  }
+
   ensureVictoriaState(state);
   state.newsFeed.unshift({
     id: `news_annex_${Date.now().toString(36)}`,
     date: state.timeManager?.crisisDate || "2025-01-01",
     quarter: state.timeManager?.quarterNumber || 1,
     category: "DIPLOMATIC PLAY",
-    headline: `Borders Redrawn: ${targetNation.name} Annexes ${territoryName}!`,
-    summary: `Sovereign jurisdiction over ${territoryName} has been integrated into ${targetNation.name}${
-      prevNation ? ` following territorial transfer from ${prevNation.name}` : ""
-    }, expanding ${targetNation.name}'s industrial base and workforce.`,
+    headline: `Territory Annexed: ${targetNation.name} Claims Jurisdiction over ${territoryName}!`,
+    summary: `${territoryName} has been incorporated as a dependent territory of ${targetNation.name}${
+      prevNation ? ` following diplomatic transfer from ${prevNation.name}` : ""
+    }. It is designated as an unincorporated territory pending formal statehood integration.`,
     nationName: targetNation.name,
-    impact: `${territoryName} → ${targetNation.name}`,
+    impact: `${territoryName} → ${targetNation.name} (Unincorporated Territory)`,
   });
   evaluateSimulation(state);
   return {
     state,
     nationId: targetNation.id,
-    action: `${targetNation.name} annexed ${territoryName}${
-      prevNation ? ` from ${prevNation.name}` : ""
-    }`,
+    action: `${targetNation.name} annexed ${territoryName} as an unincorporated territory`,
   };
 }
 
