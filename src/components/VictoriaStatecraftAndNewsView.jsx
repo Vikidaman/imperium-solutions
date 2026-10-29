@@ -993,16 +993,30 @@ export default function VictoriaStatecraftAndNewsView({
 
                   {!isReadOnly && (
                     <button
-                      onClick={() =>
-                        onVictoriaAction({
-                          type: "QUEUE_CONSTRUCTION",
-                          nationId: nation.id,
-                          buildingId: b.id,
-                        })
-                      }
-                      className="w-full py-2 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer"
+                      disabled={queuingBuildingId === b.id}
+                      onClick={async () => {
+                        setQueuingBuildingId(b.id);
+                        try {
+                          await onVictoriaAction({
+                            type: "QUEUE_CONSTRUCTION",
+                            nationId: nation.id,
+                            buildingId: b.id,
+                          });
+                        } finally {
+                          setQueuingBuildingId(null);
+                        }
+                      }}
+                      className="w-full py-2 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed transition"
                     >
-                      <Hammer className="w-3.5 h-3.5" /> Construct in {nation.name}
+                      {queuingBuildingId === b.id ? (
+                        <>
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" /> Queuing Project...
+                        </>
+                      ) : (
+                        <>
+                          <Hammer className="w-3.5 h-3.5" /> Construct in {nation.name}
+                        </>
+                      )}
                     </button>
                   )}
                 </div>
