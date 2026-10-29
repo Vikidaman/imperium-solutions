@@ -490,23 +490,6 @@ export default function InteractiveWorldMap({
             <Rocket className="w-4 h-4" />
             Mars Planetary Grid
           </button>
-
-          {hasVietnam && (
-            <button
-              onClick={() => {
-                setTheater("Vietnam");
-                resetCamera();
-              }}
-              className={`px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition cursor-pointer ${
-                theater === "Vietnam"
-                  ? "bg-emerald-500 text-slate-950 shadow-md shadow-emerald-500/25"
-                  : "bg-slate-800/90 text-slate-300 hover:bg-slate-700"
-              }`}
-            >
-              <MapPin className="w-4 h-4" />
-              Vietnam 1977 Theater
-            </button>
-          )}
         </div>
 
         {/* Center: Choropleth Map Lenses */}
