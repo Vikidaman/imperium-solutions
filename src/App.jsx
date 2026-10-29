@@ -1,10 +1,7 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef, lazy, Suspense } from "react";
 import {
   Globe2,
-  Landmark,
-  Building2,
   GitBranch,
-  Briefcase,
   Clock,
   FastForward,
   Play,
@@ -19,14 +16,13 @@ import {
   LogOut,
 } from "lucide-react";
 import InteractiveWorldMap from "./components/InteractiveWorldMap";
-import NationSimulatorDesk from "./components/NationSimulatorDesk";
-import CompaniesRegistry from "./components/CompaniesRegistry";
-import MarketsAndTechView from "./components/MarketsAndTechView";
-import PoliticalPartiesAndStockView from "./components/PoliticalPartiesAndStockView";
-import LedgerAndTimeView from "./components/LedgerAndTimeView";
-import VictoriaStatecraftAndNewsView from "./components/VictoriaStatecraftAndNewsView";
 import DirectorLoginPortal from "./components/DirectorLoginPortal";
-import { formatCurrency } from "./utils/formatters";
+
+const MarketsAndTechView = lazy(() => import("./components/MarketsAndTechView"));
+const LedgerAndTimeView = lazy(() => import("./components/LedgerAndTimeView"));
+const VictoriaStatecraftAndNewsView = lazy(() =>
+  import("./components/VictoriaStatecraftAndNewsView")
+);
 
 const DIRECTOR_SECRET_KEY = "imperium-director-9942";
 
@@ -64,12 +60,29 @@ export default function App() {
   const [activityLog, setActivityLog] = useState([]);
   const [selectedNationId, setSelectedNationId] = useState("usa");
   const [activeTab, setActiveTab] = useState("map");
-  const [onlineCount, setOnlineCount] = useState(1);
+  const [marketsSubTab, setMarketsSubTab] = useState("supplychain");
+  const [, setOnlineCount] = useState(1);
   const [actorName, setActorName] = useState("World Director");
   const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState(null);
   const [showStartDatePicker, setShowStartDatePicker] = useState(false);
   const [customStartDateInput, setCustomStartDateInput] = useState("1836-01-01");
+  const lastMutationTimeRef = useRef(0);
+
+  const handleJumpToTab = useCallback((tabId) => {
+    if (tabId === "companies") {
+      setMarketsSubTab("corporations");
+      setActiveTab("markets");
+    } else if (tabId === "politics") {
+      setMarketsSubTab("global");
+      setActiveTab("markets");
+    } else if (tabId === "desk") {
+      setActiveTab("map");
+    } else {
+      if (tabId === "markets") setMarketsSubTab("supplychain");
+      setActiveTab(tabId);
+    }
+  }, []);
 
   const showToast = useCallback((msg) => {
     setToast(msg);
@@ -187,7 +200,10 @@ export default function App() {
         if (payload.type === "CONNECTED" || payload.type === "PRESENCE") {
           setOnlineCount(payload.onlineCount || 1);
         } else if (payload.type === "STATE_UPDATED") {
-          fetchSessionDetail(activeSessionId);
+          // Skip redundant full-state refetch if we just mutated locally within 1200ms
+          if (Date.now() - lastMutationTimeRef.current > 1200) {
+            fetchSessionDetail(activeSessionId);
+          }
           if (payload.action) {
             showToast(`${payload.actor}: ${payload.action}`);
           }
@@ -202,6 +218,7 @@ export default function App() {
   // API Mutation Helpers
   const handleTimeAction = async (body) => {
     if (guardReadOnly()) return;
+    lastMutationTimeRef.current = Date.now();
     const res = await fetch(`/api/sessions/${activeSessionId}/time`, {
       method: "POST",
       headers: getMutationHeaders(),
@@ -220,6 +237,7 @@ export default function App() {
 
   const handleTransferTerritory = async (payload) => {
     if (guardReadOnly()) return;
+    lastMutationTimeRef.current = Date.now();
     const res = await fetch(`/api/sessions/${activeSessionId}/territories`, {
       method: "POST",
       headers: getMutationHeaders(),
@@ -240,6 +258,7 @@ export default function App() {
 
   const handleUpdateNation = async (nationId, updates) => {
     if (guardReadOnly()) return;
+    lastMutationTimeRef.current = Date.now();
     const res = await fetch(
       `/api/sessions/${activeSessionId}/nations/${nationId}`,
       {
@@ -257,6 +276,7 @@ export default function App() {
 
   const handleCreateNation = async (nationForm) => {
     if (guardReadOnly()) return;
+    lastMutationTimeRef.current = Date.now();
     const res = await fetch(`/api/sessions/${activeSessionId}/nations`, {
       method: "POST",
       headers: getMutationHeaders(),
@@ -274,6 +294,7 @@ export default function App() {
 
   const handleDeleteNation = async (nationId) => {
     if (guardReadOnly()) return;
+    lastMutationTimeRef.current = Date.now();
     const res = await fetch(
       `/api/sessions/${activeSessionId}/nations/${nationId}`,
       {
@@ -294,6 +315,7 @@ export default function App() {
 
   const handleCreateCompany = async (nationId, compForm) => {
     if (guardReadOnly()) return;
+    lastMutationTimeRef.current = Date.now();
     const res = await fetch(
       `/api/sessions/${activeSessionId}/nations/${nationId}/companies`,
       {
@@ -311,6 +333,7 @@ export default function App() {
 
   const handleUpdateCompany = async (nationId, companyId, updates) => {
     if (guardReadOnly()) return;
+    lastMutationTimeRef.current = Date.now();
     const res = await fetch(
       `/api/sessions/${activeSessionId}/nations/${nationId}/companies/${companyId}`,
       {
@@ -328,6 +351,7 @@ export default function App() {
 
   const handleDeleteCompany = async (nationId, companyId) => {
     if (guardReadOnly()) return;
+    lastMutationTimeRef.current = Date.now();
     const res = await fetch(
       `/api/sessions/${activeSessionId}/nations/${nationId}/companies/${companyId}`,
       {
@@ -345,6 +369,7 @@ export default function App() {
 
   const handleUpdateMarket = async (nationId, payload) => {
     if (guardReadOnly()) return;
+    lastMutationTimeRef.current = Date.now();
     const res = await fetch(
       `/api/sessions/${activeSessionId}/nations/${nationId}/market`,
       {
@@ -362,6 +387,7 @@ export default function App() {
 
   const handleUpdateCompanion = async (payload) => {
     if (guardReadOnly()) return;
+    lastMutationTimeRef.current = Date.now();
     const res = await fetch(`/api/sessions/${activeSessionId}/companion`, {
       method: "PATCH",
       headers: getMutationHeaders(),
@@ -376,6 +402,7 @@ export default function App() {
 
   const handleSaveParty = async (partyData) => {
     if (guardReadOnly()) return;
+    lastMutationTimeRef.current = Date.now();
     const res = await fetch(`/api/sessions/${activeSessionId}/parties`, {
       method: "POST",
       headers: getMutationHeaders(),
@@ -390,6 +417,7 @@ export default function App() {
 
   const handleCreateStockAccount = async (payload) => {
     if (guardReadOnly()) return;
+    lastMutationTimeRef.current = Date.now();
     const res = await fetch(`/api/sessions/${activeSessionId}/stock-accounts`, {
       method: "POST",
       headers: getMutationHeaders(),
@@ -404,6 +432,7 @@ export default function App() {
 
   const handleExecuteTrade = async (accountId, payload) => {
     if (guardReadOnly()) return;
+    lastMutationTimeRef.current = Date.now();
     const res = await fetch(
       `/api/sessions/${activeSessionId}/stock-accounts/${accountId}/trade`,
       {
@@ -424,6 +453,7 @@ export default function App() {
 
   const handleResetScenario = async () => {
     if (guardReadOnly()) return;
+    lastMutationTimeRef.current = Date.now();
     const res = await fetch(`/api/sessions/${activeSessionId}/reset`, {
       method: "POST",
       headers: getMutationHeaders(),
@@ -439,6 +469,7 @@ export default function App() {
 
   const handleCreateNewScenario = async (payload) => {
     if (guardReadOnly()) return;
+    lastMutationTimeRef.current = Date.now();
     const res = await fetch("/api/sessions", {
       method: "POST",
       headers: getMutationHeaders(),
@@ -453,6 +484,7 @@ export default function App() {
 
   const handleVictoriaAction = async (payload) => {
     if (guardReadOnly()) return;
+    lastMutationTimeRef.current = Date.now();
     const res = await fetch(`/api/sessions/${activeSessionId}/victoria`, {
       method: "POST",
       headers: getMutationHeaders(),
@@ -503,128 +535,110 @@ export default function App() {
 
   const state = sessionData.state;
   const tm = state.timeManager || {};
-  const totalWorldGdp = (state.planetsSummary || []).reduce(
-    (acc, p) => acc + (p.aggregateGdp || 0),
-    0
-  );
-  const totalCompaniesCount = (state.nations || []).reduce(
-    (acc, n) => acc + (n.companies?.length || 0),
-    0
-  );
-  const currentNationName =
-    state.nations?.find((n) => n.id === selectedNationId)?.name || "Select";
   const latestNews = state.newsFeed?.[0];
   const dilemmaCount = state.activeDilemmas?.length || 0;
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col">
-      {/* Top World Simulator HUD Header */}
-      <header className="sticky top-0 z-40 bg-slate-950/90 backdrop-blur-md border-b border-slate-800/80 px-4 lg:px-8 py-3">
-        <div className="max-w-[1650px] mx-auto flex flex-wrap items-center justify-between gap-4">
-          {/* Brand & Scenario Selector */}
-          <div className="flex flex-wrap items-center gap-4">
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center text-slate-950 font-black shadow-lg shadow-cyan-500/20">
-                IS
-              </div>
-              <div>
-                <div className="flex items-center gap-2">
-                  <h1 className="text-base font-bold font-display tracking-tight text-white">
-                    IMPERIUM WORLD SIMULATOR
-                  </h1>
-                  {isReadOnly ? (
-                    <>
-                      <span className="text-[10px] font-mono-num uppercase px-2.5 py-0.5 rounded bg-slate-800 text-slate-300 border border-slate-600 flex items-center gap-1">
-                        <Eye className="w-3 h-3 text-cyan-400" /> Public Spectator View (Read-Only)
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => setShowLoginPortal(true)}
-                        className="text-[10px] font-mono-num uppercase px-2.5 py-0.5 rounded bg-cyan-500/15 hover:bg-cyan-500/25 text-cyan-300 border border-cyan-500/40 flex items-center gap-1 cursor-pointer transition"
-                      >
-                        <Lock className="w-3 h-3" /> Director Login (Telegram 2FA)
-                      </button>
-                    </>
-                  ) : (
-                    <>
-                      <span className="text-[10px] font-mono-num uppercase px-2.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 flex items-center gap-1">
-                        <ShieldCheck className="w-3 h-3 text-emerald-400" /> Private Director Portal (2FA Verified)
-                      </span>
-                      <button
-                        type="button"
-                        onClick={handleDirectorLogout}
-                        className="text-[10px] font-mono-num uppercase px-2 py-0.5 rounded bg-slate-800 hover:bg-rose-500/20 text-slate-300 hover:text-rose-300 border border-slate-700 flex items-center gap-1 cursor-pointer transition"
-                        title="Lock Private Director Portal"
-                      >
-                        <LogOut className="w-3 h-3" /> Lock
-                      </button>
-                    </>
-                  )}
-                </div>
-                <p className="text-[11px] text-slate-400">
-                  Custom Start Date, Pops & Interest Groups, Laws, Dynamic Elections & Global Gazette
-                </p>
-              </div>
+      {/* Sleek Single-Row Top HUD Header */}
+      <header className="sticky top-0 z-40 bg-slate-950/90 backdrop-blur-md border-b border-slate-800/80 px-4 lg:px-8 py-2.5">
+        <div className="max-w-[1650px] mx-auto flex flex-wrap items-center justify-between gap-3">
+          {/* Left: Clean Brand Title Only */}
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center text-slate-950 text-xs font-black shadow-lg shadow-cyan-500/20">
+              IS
             </div>
-
-            <select
-              value={activeSessionId}
-              onChange={(e) => setActiveSessionId(e.target.value)}
-              className="px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-700 text-xs font-semibold text-cyan-300 cursor-pointer"
-            >
-              {sessions.map((s) => (
-                <option key={s.id} value={s.id}>
-                  World: {s.name}
-                </option>
-              ))}
-            </select>
+            <h1 className="text-base font-bold font-display tracking-tight text-white">
+              Imperium World Simulator
+            </h1>
           </div>
 
-          {/* Right World Clock, Custom Start Date Picker, Quick Quarter Advance & Multiplayer Callsign */}
-          <div className="flex flex-wrap items-center gap-3 text-xs relative">
-            <div className="bg-slate-900 border border-slate-800 rounded-xl px-3.5 py-1.5 flex items-center gap-3">
-              <div
-                onClick={() => {
-                  if (isReadOnly) return;
-                  setCustomStartDateInput(tm.crisisStartDate || "1836-01-01");
-                  setShowStartDatePicker(!showStartDatePicker);
-                }}
-                className={isReadOnly ? "" : "cursor-pointer group"}
-                title={
-                  isReadOnly
-                    ? "Current World Date"
-                    : "Click to set your custom campaign start date"
-                }
-              >
-                <span className="text-[10px] text-amber-400 flex items-center gap-1 font-semibold">
-                  <Calendar className="w-3 h-3" />{" "}
-                  {isReadOnly ? "World Date" : "World Date (Set Start)"}
-                </span>
-                <span className="font-mono-num font-bold text-white group-hover:text-amber-300 transition">
-                  {tm.crisisDate}
-                </span>
+          {/* Center: 4 Consolidated Navigation Tabs */}
+          <nav className="flex flex-wrap items-center gap-1.5">
+            {[
+              {
+                id: "map",
+                label: "World Map & Cabinet",
+                icon: Globe2,
+              },
+              {
+                id: "victoria",
+                label: "Politics, Laws & Gazette",
+                icon: Scale,
+                badge: dilemmaCount,
+              },
+              {
+                id: "markets",
+                label: "Economy, Tech & Corporations",
+                icon: GitBranch,
+              },
+              {
+                id: "ledger",
+                label: "World Ledger & History",
+                icon: Clock,
+              },
+            ].map((tab) => {
+              const Icon = tab.icon;
+              const active = activeTab === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => handleJumpToTab(tab.id)}
+                  className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-2 transition cursor-pointer ${
+                    active
+                      ? "bg-slate-800 text-cyan-300 border border-cyan-500/40 shadow-sm"
+                      : "text-slate-400 hover:text-slate-200 hover:bg-slate-900"
+                  }`}
+                >
+                  <Icon className="w-3.5 h-3.5" />
+                  {tab.label}
+                  {tab.badge > 0 && (
+                    <span className="px-1.5 py-0.5 rounded-full bg-amber-500 text-slate-950 text-[10px] font-bold">
+                      {tab.badge}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </nav>
+
+          {/* Right: Compact World Date, Time Controls & Director Lock */}
+          <div className="flex flex-wrap items-center gap-2 text-xs relative">
+            {toast && (
+              <div className="text-[11px] px-2.5 py-1 rounded-full bg-cyan-950/90 border border-cyan-500/40 text-cyan-200 flex items-center gap-1.5">
+                <Radio className="w-3 h-3 text-cyan-400 animate-pulse" />
+                {toast}
               </div>
-              <div className="h-6 w-px bg-slate-800" />
-              <div>
-                <span className="text-[10px] text-slate-400 block">Era</span>
-                <span className="font-mono-num font-bold text-cyan-400">
-                  Q{tm.quarterNumber}
-                </span>
-              </div>
-              <div className="h-6 w-px bg-slate-800" />
-              <div>
-                <span className="text-[10px] text-slate-400 block">
-                  World GDP
-                </span>
-                <span className="font-mono-num font-bold text-emerald-400">
-                  {formatCurrency(totalWorldGdp)}
-                </span>
-              </div>
+            )}
+
+            <div
+              onClick={() => {
+                if (isReadOnly) return;
+                setCustomStartDateInput(tm.crisisStartDate || "1836-01-01");
+                setShowStartDatePicker(!showStartDatePicker);
+              }}
+              className={`bg-slate-900 border border-slate-800 rounded-xl px-3 py-1.5 flex items-center gap-2.5 ${
+                isReadOnly ? "" : "cursor-pointer hover:border-amber-500/40 transition"
+              }`}
+              title={
+                isReadOnly
+                  ? "Current World Date"
+                  : "Click to set custom campaign start date"
+              }
+            >
+              <Calendar className="w-3.5 h-3.5 text-amber-400" />
+              <span className="font-mono-num font-bold text-white">
+                {tm.crisisDate}
+              </span>
+              <span className="text-slate-600">•</span>
+              <span className="font-mono-num font-bold text-cyan-400">
+                Q{tm.quarterNumber}
+              </span>
             </div>
 
             {/* Custom Start Date Popover (Private Director Only) */}
             {!isReadOnly && showStartDatePicker && (
-              <div className="absolute top-14 left-0 z-50 w-80 bg-slate-900 border border-amber-500/50 rounded-2xl p-4 shadow-2xl space-y-3">
+              <div className="absolute top-12 right-0 z-50 w-80 bg-slate-900 border border-amber-500/50 rounded-2xl p-4 shadow-2xl space-y-3">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-bold uppercase text-amber-300">
                     Set Custom Campaign Start Date
@@ -685,7 +699,7 @@ export default function App() {
                   onClick={() =>
                     handleTimeAction({ command: tm.isLive ? "LOCK" : "LOAD" })
                   }
-                  className={`px-3 py-2 rounded-xl font-semibold flex items-center gap-1.5 transition cursor-pointer ${
+                  className={`px-2.5 py-1.5 rounded-xl font-semibold flex items-center gap-1.5 transition cursor-pointer ${
                     tm.isLive
                       ? "bg-amber-500 text-slate-950"
                       : "bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700"
@@ -697,116 +711,51 @@ export default function App() {
                     </>
                   ) : (
                     <>
-                      <Play className="w-3.5 h-3.5" /> Auto-Run
+                      <Play className="w-3.5 h-3.5" /> Auto
                     </>
                   )}
                 </button>
 
                 <button
                   onClick={() => handleTimeAction({ daysToAdd: 90 })}
-                  className="px-3.5 py-2 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold flex items-center gap-1.5 shadow-sm shadow-cyan-500/20 cursor-pointer"
+                  className="px-3 py-1.5 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold flex items-center gap-1 shadow-sm shadow-cyan-500/20 cursor-pointer"
                 >
                   <FastForward className="w-3.5 h-3.5" />
-                  Next Quarter
+                  +1Q
                 </button>
               </>
             )}
 
-            <div className="flex items-center gap-2 bg-slate-900 border border-slate-800 rounded-xl px-2.5 py-1.5">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
-              <span className="text-[11px] font-mono-num text-slate-300">
-                {onlineCount} Online
-              </span>
-              {!isReadOnly && (
-                <input
-                  type="text"
-                  value={actorName}
-                  onChange={(e) => setActorName(e.target.value)}
-                  className="w-28 bg-slate-950 border border-slate-800 rounded px-2 py-0.5 text-[11px] text-cyan-300"
-                  title="Your Callsign"
-                />
-              )}
-            </div>
+            {isReadOnly ? (
+              <button
+                type="button"
+                onClick={() => setShowLoginPortal(true)}
+                className="px-2.5 py-1.5 rounded-xl bg-slate-900 hover:bg-cyan-500/15 text-slate-300 hover:text-cyan-300 border border-slate-800 hover:border-cyan-500/40 flex items-center gap-1.5 cursor-pointer transition"
+                title="Director Login (Telegram 2FA)"
+              >
+                <Eye className="w-3.5 h-3.5 text-cyan-400" />
+                <span className="text-[11px] font-semibold">Spectator</span>
+                <Lock className="w-3 h-3 text-slate-400" />
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={handleDirectorLogout}
+                className="px-2.5 py-1.5 rounded-xl bg-emerald-500/15 hover:bg-rose-500/20 text-emerald-300 hover:text-rose-300 border border-emerald-500/30 hover:border-rose-500/40 flex items-center gap-1.5 cursor-pointer transition"
+                title="Lock Private Director Portal"
+              >
+                <ShieldCheck className="w-3.5 h-3.5" />
+                <span className="text-[11px] font-semibold">Director</span>
+                <LogOut className="w-3 h-3" />
+              </button>
+            )}
           </div>
-        </div>
-
-        {/* Navigation Bar */}
-        <div className="max-w-[1650px] mx-auto mt-3 pt-2 border-t border-slate-900 flex flex-wrap items-center justify-between gap-2">
-          <nav className="flex flex-wrap items-center gap-1.5">
-            {[
-              {
-                id: "map",
-                label: "Interactive World Map",
-                icon: Globe2,
-              },
-              {
-                id: "victoria",
-                label: "Laws, Dynamic Elections & Gazette",
-                icon: Scale,
-                badge: dilemmaCount,
-              },
-              {
-                id: "desk",
-                label: `Cabinet & Fiscal (${currentNationName})`,
-                icon: Landmark,
-              },
-              {
-                id: "markets",
-                label: "Supply Chains & Tech Tree",
-                icon: GitBranch,
-              },
-              {
-                id: "companies",
-                label: `Corporate Dynasties (${totalCompaniesCount.toLocaleString()})`,
-                icon: Building2,
-              },
-              {
-                id: "politics",
-                label: "Ideologies & Global Bourse",
-                icon: Briefcase,
-              },
-              {
-                id: "ledger",
-                label: "World Clock & Analytics",
-                icon: Clock,
-              },
-            ].map((tab) => {
-              const Icon = tab.icon;
-              const active = activeTab === tab.id;
-              return (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
-                  className={`px-3.5 py-2 rounded-xl text-xs font-semibold flex items-center gap-2 transition cursor-pointer ${
-                    active
-                      ? "bg-slate-800 text-cyan-300 border border-cyan-500/40 shadow-sm"
-                      : "text-slate-400 hover:text-slate-200 hover:bg-slate-900"
-                  }`}
-                >
-                  <Icon className="w-3.5 h-3.5" />
-                  {tab.label}
-                  {tab.badge > 0 && (
-                    <span className="px-1.5 py-0.5 rounded-full bg-amber-500 text-slate-950 text-[10px] font-bold">
-                      {tab.badge}
-                    </span>
-                  )}
-                </button>
-              );
-            })}
-          </nav>
-
-          {toast && (
-            <div className="text-[11px] px-3 py-1 rounded-full bg-cyan-950/90 border border-cyan-500/40 text-cyan-200 flex items-center gap-1.5">
-              <Radio className="w-3 h-3 text-cyan-400 animate-pulse" />
-              {toast}
-            </div>
-          )}
         </div>
 
         {/* Live Breaking World Gazette Ticker */}
         {latestNews && (
           <div
-            onClick={() => setActiveTab("victoria")}
+            onClick={() => handleJumpToTab("victoria")}
             className="max-w-[1650px] mx-auto mt-2 px-3 py-1.5 rounded-xl bg-amber-500/10 hover:bg-amber-500/15 border border-amber-500/30 flex flex-wrap items-center justify-between gap-2 text-xs cursor-pointer transition"
           >
             <div className="flex items-center gap-2 truncate">
@@ -838,81 +787,66 @@ export default function App() {
           isReadOnly ? "read-only-spectator" : ""
         }`}
       >
-        {activeTab === "map" && (
-          <InteractiveWorldMap
-            state={state}
-            selectedNationId={selectedNationId}
-            onSelectNation={setSelectedNationId}
-            onUpdateNation={handleUpdateNation}
-            onTransferTerritory={handleTransferTerritory}
-            onCreateNation={handleCreateNation}
-            onJumpToTab={setActiveTab}
-            onVictoriaAction={handleVictoriaAction}
-            isReadOnly={isReadOnly}
-          />
-        )}
+        <Suspense
+          fallback={
+            <div className="py-20 text-center text-xs text-slate-400 font-mono-num">
+              Loading module...
+            </div>
+          }
+        >
+          {activeTab === "map" && (
+            <InteractiveWorldMap
+              state={state}
+              selectedNationId={selectedNationId}
+              onSelectNation={setSelectedNationId}
+              onUpdateNation={handleUpdateNation}
+              onDeleteNation={handleDeleteNation}
+              onTransferTerritory={handleTransferTerritory}
+              onCreateNation={handleCreateNation}
+              onJumpToTab={handleJumpToTab}
+              onVictoriaAction={handleVictoriaAction}
+              isReadOnly={isReadOnly}
+            />
+          )}
 
-        {activeTab === "victoria" && (
-          <VictoriaStatecraftAndNewsView
-            state={state}
-            selectedNationId={selectedNationId}
-            onSelectNation={setSelectedNationId}
-            onVictoriaAction={handleVictoriaAction}
-            isReadOnly={isReadOnly}
-          />
-        )}
+          {activeTab === "victoria" && (
+            <VictoriaStatecraftAndNewsView
+              state={state}
+              selectedNationId={selectedNationId}
+              onSelectNation={setSelectedNationId}
+              onVictoriaAction={handleVictoriaAction}
+              isReadOnly={isReadOnly}
+            />
+          )}
 
-        {activeTab === "desk" && (
-          <NationSimulatorDesk
-            state={state}
-            selectedNationId={selectedNationId}
-            onSelectNation={setSelectedNationId}
-            onUpdateNation={handleUpdateNation}
-            onDeleteNation={handleDeleteNation}
-            onJumpToTab={setActiveTab}
-          />
-        )}
+          {activeTab === "markets" && (
+            <MarketsAndTechView
+              state={state}
+              selectedNationId={selectedNationId}
+              onSelectNation={setSelectedNationId}
+              onUpdateMarket={handleUpdateMarket}
+              onUpdateCompanion={handleUpdateCompanion}
+              onCreateCompany={handleCreateCompany}
+              onUpdateCompany={handleUpdateCompany}
+              onDeleteCompany={handleDeleteCompany}
+              onSaveParty={handleSaveParty}
+              onCreateStockAccount={handleCreateStockAccount}
+              onExecuteTrade={handleExecuteTrade}
+              initialSubTab={marketsSubTab}
+            />
+          )}
 
-        {activeTab === "companies" && (
-          <CompaniesRegistry
-            state={state}
-            selectedNationId={selectedNationId}
-            onSelectNation={setSelectedNationId}
-            onCreateCompany={handleCreateCompany}
-            onUpdateCompany={handleUpdateCompany}
-            onDeleteCompany={handleDeleteCompany}
-          />
-        )}
-
-        {activeTab === "markets" && (
-          <MarketsAndTechView
-            state={state}
-            selectedNationId={selectedNationId}
-            onSelectNation={setSelectedNationId}
-            onUpdateMarket={handleUpdateMarket}
-            onUpdateCompanion={handleUpdateCompanion}
-          />
-        )}
-
-        {activeTab === "politics" && (
-          <PoliticalPartiesAndStockView
-            state={state}
-            onSaveParty={handleSaveParty}
-            onCreateStockAccount={handleCreateStockAccount}
-            onExecuteTrade={handleExecuteTrade}
-          />
-        )}
-
-        {activeTab === "ledger" && (
-          <LedgerAndTimeView
-            session={sessionData}
-            ledgerHistory={ledgerHistory}
-            activityLog={activityLog}
-            onTimeAction={handleTimeAction}
-            onResetScenario={handleResetScenario}
-            onCreateNewScenario={handleCreateNewScenario}
-          />
-        )}
+          {activeTab === "ledger" && (
+            <LedgerAndTimeView
+              session={sessionData}
+              ledgerHistory={ledgerHistory}
+              activityLog={activityLog}
+              onTimeAction={handleTimeAction}
+              onResetScenario={handleResetScenario}
+              onCreateNewScenario={handleCreateNewScenario}
+            />
+          )}
+        </Suspense>
       </main>
     </div>
   );

@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import {
   ShoppingBag,
   Globe,
@@ -12,6 +12,8 @@ import {
   GitBranch,
   ShieldAlert,
   TrendingUp,
+  Building2,
+  Briefcase,
 } from "lucide-react";
 import {
   formatCurrency,
@@ -21,6 +23,9 @@ import {
   getSectorBadgeClass,
   getShortSectorName,
 } from "../utils/formatters";
+import BufferedRangeSlider from "./BufferedRangeSlider";
+import CompaniesRegistry from "./CompaniesRegistry";
+import PoliticalPartiesAndStockView from "./PoliticalPartiesAndStockView";
 
 export default function MarketsAndTechView({
   state,
@@ -28,8 +33,18 @@ export default function MarketsAndTechView({
   onSelectNation,
   onUpdateMarket,
   onUpdateCompanion,
+  onCreateCompany,
+  onUpdateCompany,
+  onDeleteCompany,
+  onSaveParty,
+  onCreateStockAccount,
+  onExecuteTrade,
+  initialSubTab = "supplychain",
 }) {
-  const [subTab, setSubTab] = useState("supplychain"); // "supplychain" | "tech" | "global"
+  const [subTab, setSubTab] = useState(initialSubTab); // "supplychain" | "corporations" | "tech" | "global"
+  useEffect(() => {
+    if (initialSubTab) setSubTab(initialSubTab);
+  }, [initialSubTab]);
   const [searchQuery, setSearchQuery] = useState("");
   const [sectorFilter, setSectorFilter] = useState("ALL");
   const [selectedGoodName, setSelectedGoodName] = useState("Tools");
@@ -104,7 +119,19 @@ export default function MarketsAndTechView({
             }`}
           >
             <GitBranch className="w-4 h-4" />
-            Supply Chain Network & Trade Policy ({nation?.name})
+            Supply Chains & Tariffs
+          </button>
+
+          <button
+            onClick={() => setSubTab("corporations")}
+            className={`px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition cursor-pointer ${
+              subTab === "corporations"
+                ? "bg-cyan-500 text-slate-950 shadow-sm shadow-cyan-500/30"
+                : "bg-slate-800 text-slate-300 hover:bg-slate-700"
+            }`}
+          >
+            <Building2 className="w-4 h-4" />
+            Corporations ({nation?.companies?.length || 0})
           </button>
 
           <button
@@ -116,7 +143,7 @@ export default function MarketsAndTechView({
             }`}
           >
             <Cpu className="w-4 h-4" />
-            Civilization Tech Tree & Sector Productivity
+            Tech Tree & Sectors
           </button>
 
           <button
@@ -127,8 +154,8 @@ export default function MarketsAndTechView({
                 : "bg-slate-800 text-slate-300 hover:bg-slate-700"
             }`}
           >
-            <Globe className="w-4 h-4" />
-            Global Commodity Exchange
+            <Briefcase className="w-4 h-4" />
+            Global Exchange & Bourse
           </button>
         </div>
 
@@ -277,17 +304,16 @@ export default function MarketsAndTechView({
                         {formatPercent(activeGood.importTariffRate, 0)}
                       </span>
                     </div>
-                    <input
-                      type="range"
+                    <BufferedRangeSlider
                       min="0"
                       max="1.5"
                       step="0.05"
                       value={activeGood.importTariffRate}
-                      onChange={(e) =>
+                      onChangeCommitted={(val) =>
                         onUpdateMarket(nation.id, {
                           goodName: activeGood.goodName,
                           updates: {
-                            importTariffRate: Number(e.target.value),
+                            importTariffRate: val,
                           },
                         })
                       }
@@ -302,17 +328,16 @@ export default function MarketsAndTechView({
                         {formatPercent(activeGood.exportTariffRate, 0)}
                       </span>
                     </div>
-                    <input
-                      type="range"
+                    <BufferedRangeSlider
                       min="0"
                       max="1.5"
                       step="0.05"
                       value={activeGood.exportTariffRate}
-                      onChange={(e) =>
+                      onChangeCommitted={(val) =>
                         onUpdateMarket(nation.id, {
                           goodName: activeGood.goodName,
                           updates: {
-                            exportTariffRate: Number(e.target.value),
+                            exportTariffRate: val,
                           },
                         })
                       }
@@ -327,17 +352,16 @@ export default function MarketsAndTechView({
                         {activeGood.ddMultiplier.toFixed(2)}x
                       </span>
                     </div>
-                    <input
-                      type="range"
+                    <BufferedRangeSlider
                       min="0.2"
                       max="3.0"
                       step="0.05"
                       value={activeGood.ddMultiplier}
-                      onChange={(e) =>
+                      onChangeCommitted={(val) =>
                         onUpdateMarket(nation.id, {
                           goodName: activeGood.goodName,
                           updates: {
-                            ddMultiplier: Number(e.target.value),
+                            ddMultiplier: val,
                           },
                         })
                       }
@@ -352,17 +376,16 @@ export default function MarketsAndTechView({
                         {activeGood.hype}
                       </span>
                     </div>
-                    <input
-                      type="range"
+                    <BufferedRangeSlider
                       min="5"
                       max="100"
                       step="1"
                       value={activeGood.hype}
-                      onChange={(e) =>
+                      onChangeCommitted={(val) =>
                         onUpdateMarket(nation.id, {
                           goodName: activeGood.goodName,
                           updates: {
-                            hype: Number(e.target.value),
+                            hype: val,
                           },
                         })
                       }
@@ -532,6 +555,18 @@ export default function MarketsAndTechView({
         </div>
       )}
 
+      {/* SUB-TAB: CORPORATIONS REGISTRY */}
+      {subTab === "corporations" && (
+        <CompaniesRegistry
+          state={state}
+          selectedNationId={selectedNationId}
+          onSelectNation={onSelectNation}
+          onCreateCompany={onCreateCompany}
+          onUpdateCompany={onUpdateCompany}
+          onDeleteCompany={onDeleteCompany}
+        />
+      )}
+
       {/* SUB-TAB 2: CIVILIZATION TECH TREE & SECTOR PRODUCTIVITY */}
       {subTab === "tech" && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -630,16 +665,15 @@ export default function MarketsAndTechView({
                           +{Math.round(sec.kFactorBonus * 100)}%
                         </span>
                       </div>
-                      <input
-                        type="range"
+                      <BufferedRangeSlider
                         step="0.05"
                         min="0.05"
                         max="2.0"
                         value={sec.kFactorBonus}
-                        onChange={(e) =>
+                        onChangeCommitted={(val) =>
                           onUpdateCompanion({
                             sectorName: sec.name,
-                            kFactorBonus: Number(e.target.value),
+                            kFactorBonus: val,
                           })
                         }
                         className="w-full accent-cyan-400 cursor-pointer"
@@ -654,16 +688,15 @@ export default function MarketsAndTechView({
                           {sec.sentiment} / 100
                         </span>
                       </div>
-                      <input
-                        type="range"
+                      <BufferedRangeSlider
                         step="1"
                         min="1"
                         max="100"
                         value={sec.sentiment}
-                        onChange={(e) =>
+                        onChangeCommitted={(val) =>
                           onUpdateCompanion({
                             sectorName: sec.name,
-                            sentiment: Number(e.target.value),
+                            sentiment: val,
                           })
                         }
                         className="w-full accent-amber-400 cursor-pointer"
@@ -677,33 +710,47 @@ export default function MarketsAndTechView({
         </div>
       )}
 
-      {/* SUB-TAB 3: GLOBAL COMMODITY EXCHANGE CARDS */}
+      {/* SUB-TAB 3: GLOBAL COMMODITY EXCHANGE & STOCK BOURSE */}
       {subTab === "global" && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3.5">
-          {(state.globalMarket || []).slice(0, 60).map((g) => (
-            <div
-              key={g.goodName}
-              className="bg-slate-900/80 border border-slate-800 rounded-xl p-4 space-y-2 text-xs"
-            >
-              <div className="flex items-center justify-between">
-                <span
-                  className={`text-[10px] px-2 py-0.5 rounded border ${getSectorBadgeClass(
-                    g.category
-                  )}`}
+        <div className="space-y-6">
+          <PoliticalPartiesAndStockView
+            state={state}
+            onSaveParty={onSaveParty}
+            onCreateStockAccount={onCreateStockAccount}
+            onExecuteTrade={onExecuteTrade}
+          />
+          <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-5 space-y-4">
+            <h3 className="text-sm font-bold uppercase tracking-wider text-cyan-400 flex items-center gap-2">
+              <Globe className="w-4 h-4" />
+              Global Commodity Clearing Prices
+            </h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3.5">
+              {(state.globalMarket || []).slice(0, 60).map((g) => (
+                <div
+                  key={g.goodName}
+                  className="bg-slate-950/70 border border-slate-800 rounded-xl p-4 space-y-2 text-xs"
                 >
-                  {getShortSectorName(g.category)}
-                </span>
-                <span className="text-[10px] text-slate-400">{g.era}</span>
-              </div>
-              <div className="font-bold text-sm text-white">{g.goodName}</div>
-              <div className="flex items-center justify-between pt-2 border-t border-slate-800">
-                <span className="text-slate-400">World Clearing Price</span>
-                <span className="font-mono-num font-bold text-cyan-300 text-sm">
-                  {formatExactCurrency(g.amep, 2)}
-                </span>
-              </div>
+                  <div className="flex items-center justify-between">
+                    <span
+                      className={`text-[10px] px-2 py-0.5 rounded border ${getSectorBadgeClass(
+                        g.category
+                      )}`}
+                    >
+                      {getShortSectorName(g.category)}
+                    </span>
+                    <span className="text-[10px] text-slate-400">{g.era}</span>
+                  </div>
+                  <div className="font-bold text-sm text-white">{g.goodName}</div>
+                  <div className="flex items-center justify-between pt-2 border-t border-slate-800">
+                    <span className="text-slate-400">World Clearing Price</span>
+                    <span className="font-mono-num font-bold text-cyan-300 text-sm">
+                      {formatExactCurrency(g.amep, 2)}
+                    </span>
+                  </div>
+                </div>
+              ))}
             </div>
-          ))}
+          </div>
         </div>
       )}
     </div>
