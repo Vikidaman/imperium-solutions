@@ -419,69 +419,74 @@ export function evaluateSimulation(state) {
     healthcarePolicy: "Private Healthcare",
   };
 
-  // 4. Step A: Compute DVGP & Adjusted Domestic Price & Export Price for each Nation's Market
+  // 4. Step A: Precompute Unit DVGP multipliers (kScaler = 1) once across the goods catalog
+  // Since DVGP scales linearly with each nation's kFactorScaler, precomputing unit DVGP once
+  // avoids running the 5-pass 202-good supply chain loop 15 separate times per tick.
+  const unitDvgpMap = new Map();
+  for (const g of state.goodsCatalog || []) {
+    unitDvgpMap.set(g.name, g.name === "Tools" ? 1.0 : 1.7);
+  }
+  for (let pass = 0; pass < 5; pass++) {
+    for (const g of state.goodsCatalog || []) {
+      if (g.name === "Tools") {
+        unitDvgpMap.set("Tools", 1.0);
+        continue;
+      }
+      const secCfg = sectorMap.get(g.sector);
+      const kBonus = secCfg ? Number(secCfg.kFactorBonus) : 0.3;
+      const inputs = goodsMap.get(g.name)?.activeInputs || [];
+      if (inputs.length === 0) {
+        unitDvgpMap.set(g.name, 1.0 * (1 + kBonus));
+      } else {
+        let sum = 0;
+        for (const inpName of inputs) {
+          const inpUnit = unitDvgpMap.get(inpName) ?? 1.0;
+          sum += inpUnit * (1 + kBonus);
+        }
+        unitDvgpMap.set(g.name, sum / inputs.length);
+      }
+    }
+  }
+
+  // Compute DVGP & Adjusted Domestic Price & Export Price for each Nation's Market in 1 pass
   const nationMarketMap = new Map(); // nation.id -> Map(goodName -> marketRow)
 
   for (const nation of state.nations || []) {
     const kScaler = Number(nation.kFactorScaler) || 1500;
     const mMap = new Map();
 
-    // Initialize market rows for all catalog goods
     const existingMarket = new Map(
       (nation.market || []).map((m) => [m.goodName, m])
     );
 
     for (const g of state.goodsCatalog || []) {
       const ex = existingMarket.get(g.name) || {};
+      const gInfo = goodsMap.get(g.name);
+      const dvgp = (unitDvgpMap.get(g.name) ?? 1.0) * kScaler;
+      const ddMultiplier =
+        ex.ddMultiplier !== undefined ? Number(ex.ddMultiplier) : 1.0;
+      const exportTariffRate =
+        ex.exportTariffRate !== undefined ? Number(ex.exportTariffRate) : 0.0;
+      const adjustedPrice = dvgp * ddMultiplier;
+      const postExportPrice = (1 + exportTariffRate) * adjustedPrice;
+
       mMap.set(g.name, {
         goodName: g.name,
         category: g.sector,
         era: g.era,
         goodType: g.goodType,
-        productionMethod: (goodsMap.get(g.name)?.activeInputs || []).join(", "),
-        inputsList: goodsMap.get(g.name)?.activeInputs || [],
+        productionMethod: (gInfo?.activeInputs || []).join(", "),
+        inputsList: gInfo?.activeInputs || [],
         hype: ex.hype !== undefined ? Number(ex.hype) : 50,
-        ddMultiplier: ex.ddMultiplier !== undefined ? Number(ex.ddMultiplier) : 1.0,
-        exportTariffRate: ex.exportTariffRate !== undefined ? Number(ex.exportTariffRate) : 0.0,
-        importTariffRate: ex.importTariffRate !== undefined ? Number(ex.importTariffRate) : 0.0,
+        ddMultiplier,
+        exportTariffRate,
+        importTariffRate:
+          ex.importTariffRate !== undefined ? Number(ex.importTariffRate) : 0.0,
         illegal: Boolean(ex.illegal),
-        dvgp: g.name === "Tools" ? kScaler : kScaler * 1.7,
-        adjustedPrice: 0,
-        postExportPrice: 0,
+        dvgp,
+        adjustedPrice,
+        postExportPrice,
       });
-    }
-
-    // Multi-pass DVGP resolution matching Excel formula:
-    // G_i = AVERAGE(map(inputs, x => DVGP(x) * (1 + kFactorBonus(C_i))))
-    for (let pass = 0; pass < 5; pass++) {
-      for (const [gName, mRow] of mMap.entries()) {
-        if (gName === "Tools") {
-          mRow.dvgp = kScaler;
-          continue;
-        }
-        const secCfg = sectorMap.get(mRow.category);
-        const kBonus = secCfg ? Number(secCfg.kFactorBonus) : 0.3;
-        const inputs = mRow.inputsList;
-        if (!inputs || inputs.length === 0) {
-          mRow.dvgp = kScaler * (1 + kBonus);
-        } else {
-          let sum = 0;
-          let count = 0;
-          for (const inpName of inputs) {
-            const inpRow = mMap.get(inpName);
-            const inpDvgp = inpRow ? inpRow.dvgp : kScaler;
-            sum += inpDvgp * (1 + kBonus);
-            count++;
-          }
-          mRow.dvgp = count > 0 ? sum / count : kScaler;
-        }
-      }
-    }
-
-    // Compute Adjusted Price (H = G * J) and Post-Export Tariff Price (N = (1 + M) * H)
-    for (const mRow of mMap.values()) {
-      mRow.adjustedPrice = mRow.dvgp * mRow.ddMultiplier;
-      mRow.postExportPrice = (1 + mRow.exportTariffRate) * mRow.adjustedPrice;
     }
 
     nationMarketMap.set(nation.id, mMap);
