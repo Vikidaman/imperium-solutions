@@ -18,6 +18,7 @@ import {
   Filter,
   Crown,
   TrendingUp,
+  Loader2,
 } from "lucide-react";
 import { formatCurrency, formatCompactNumber } from "../utils/formatters";
 
@@ -151,6 +152,7 @@ export default function VictoriaStatecraftAndNewsView({
   const [customHeadline, setCustomHeadline] = useState("");
   const [customSummary, setCustomSummary] = useState("");
   const [showPublishForm, setShowPublishForm] = useState(false);
+  const [queuingBuildingId, setQueuingBuildingId] = useState(null);
 
   const nations = state.nations || [];
   const nation = nations.find((n) => n.id === selectedNationId) || nations[0];
