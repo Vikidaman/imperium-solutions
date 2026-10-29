@@ -257,48 +257,13 @@ export function transferTerritory(state, { territoryName, targetNationId, mode =
   }
 
   if (prevNation && prevNation.id !== targetNation.id) {
-    // Transfer 10% of workforce and companies from previous owner to annexing power
-    const takeCompanies = Math.max(
-      2,
-      Math.min(25, Math.floor((prevNation.companies?.length || 10) * 0.08))
-    );
-    const seized = (prevNation.companies || []).splice(0, takeCompanies);
-    let seizedEmp = 0;
-    for (const c of seized) {
-      c.hqCountry = targetNation.name;
-      seizedEmp += Number(c.employedPops) || 0;
-      targetNation.companies.unshift(c);
-    }
-    const popShift = Math.max(seizedEmp * 1.1, (prevNation.workingPops || 10000000) * 0.08);
+    const popShift = Math.max(500000, Math.round((prevNation.workingPops || 10000000) * 0.08));
     prevNation.workingPops = Math.max(500000, Math.round(prevNation.workingPops - popShift));
     targetNation.workingPops = Math.round((targetNation.workingPops || 10000000) + popShift);
   } else {
-    // Annexing neutral/unclaimed territory adds frontier workforce & resource corporations
+    // Annexing neutral/unclaimed territory adds frontier workforce
     const bonusPops = targetNation.planet === "Mars" ? 1800000 : 4500000;
     targetNation.workingPops = Math.round((targetNation.workingPops || 10000000) + bonusPops);
-    const frontierGoods = ["Steel", "Iron", "Grain", "Electricity", "Tools"];
-    for (let i = 0; i < 4; i++) {
-      targetNation.companies.unshift({
-        id: `${targetNation.id}_annex_${Date.now().toString(36)}_${i}`,
-        name: `${territoryName} ${frontierGoods[i]} Consortium`,
-        hqCountry: targetNation.name,
-        flagshipGood: frontierGoods[i],
-        gdpSector: "Industry & Manufacturing GDP",
-        hypeFactor: 55,
-        valuation: 0,
-        vgp: 0,
-        employedPops: Math.round((bonusPops * 0.85) / 4),
-        projectedRealGrowth: 0.03,
-        govtOwnedShares: 0,
-        numberOfShares: 25000000,
-        dividendEfficiency: 0.6,
-        dividendsPerShare: 0,
-        productionMethod: "Tools",
-        subsidised: false,
-        targetGrowth: 0.03,
-        illegal: false,
-      });
-    }
   }
 
   state.territoryMap[territoryName] = targetNation.id;
