@@ -670,9 +670,45 @@ export default function InteractiveWorldMap({
   const c = activeNation?.computed || {};
   const parties = state.politicalParties || [];
 
-  // Victoria 3-style Constituent States & Provinces Breakdown
+  // Constituent States & Internal Territorial Divisions
   const nationalStatesList = useMemo(() => {
     if (!activeNation) return [];
+
+    // "When one state within a country secedes, it should not have any more state and provinces since it is a state itself."
+    if (activeNation.isSeceded || activeNation.isUnitaryState) {
+      return [];
+    }
+
+    const territoryStatusMap = state.territoryStatusMap || {};
+
+    // 1. If explicit constituentStates and unincorporatedTerritories are defined on the nation (from historical era / statehood)
+    if (
+      (activeNation.constituentStates && activeNation.constituentStates.length > 0) ||
+      (activeNation.unincorporatedTerritories && activeNation.unincorporatedTerritories.length > 0)
+    ) {
+      const states = (activeNation.constituentStates || []).map((s) => ({
+        ...s,
+        status: territoryStatusMap[s.name] || s.status || "STATE",
+        isCore: true,
+        gdp: (c.aggregateGdp || 0) * (s.gdpShare || 0.2),
+        pops: Math.round((c.effectiveWorkingPops || 0) * (s.popShare || 0.2)),
+        infra: c.infrastructureEfficiency || 0.8,
+        literacy: c.literacyRate || 0.85,
+        urban: c.urbanisationIndex || 0.75,
+      }));
+      const territories = (activeNation.unincorporatedTerritories || []).map((t) => ({
+        ...t,
+        status: territoryStatusMap[t.name] || t.status || "TERRITORY",
+        isCore: false,
+        gdp: ((c.aggregateGdp || 0) * 0.1) / Math.max(1, activeNation.unincorporatedTerritories.length),
+        pops: Math.round(((c.effectiveWorkingPops || 0) * 0.1) / Math.max(1, activeNation.unincorporatedTerritories.length)),
+        infra: (c.infrastructureEfficiency || 0.8) * 0.8,
+        literacy: (c.literacyRate || 0.85) * 0.85,
+        urban: (c.urbanisationIndex || 0.75) * 0.7,
+      }));
+      return [...states, ...territories];
+    }
+
     const directTerritories = [];
     for (const [terr, cid] of Object.entries(territoryMap)) {
       if (cid === activeNation.id) {
@@ -681,7 +717,6 @@ export default function InteractiveWorldMap({
     }
     // Direct constituent regional states from template
     const regional = CONSTITUENT_REGIONAL_STATES[activeNation.id.toLowerCase()] || [];
-    // Active regional states: not transferred away to someone else
     const activeRegional = regional.filter((r) => {
       const assigned = territoryMap[r.name];
       return !assigned || assigned === activeNation.id;
@@ -697,22 +732,30 @@ export default function InteractiveWorldMap({
     if (combinedTerritories.length > 1) {
       const gdpPerTerr = (c.aggregateGdp || 0) / combinedTerritories.length;
       const popPerTerr = (c.effectiveWorkingPops || 0) / combinedTerritories.length;
-      return combinedTerritories.map((name) => ({
-        name,
-        role: "Incorporated Sovereign Territory",
-        isCore: name.toLowerCase() === activeNation.name.toLowerCase(),
-        gdp: gdpPerTerr,
-        pops: Math.round(popPerTerr),
-        infra: c.infrastructureEfficiency || 0.8,
-        literacy: c.literacyRate || 0.85,
-        urban: c.urbanisationIndex || 0.75,
-      }));
+      return combinedTerritories.map((name) => {
+        const isCore = name.toLowerCase() === activeNation.name.toLowerCase();
+        const explicitStatus = territoryStatusMap[name];
+        // Newly annexed lands default to "TERRITORY", while homeland core defaults to "STATE"
+        const status = explicitStatus || (isCore ? "STATE" : "TERRITORY");
+        return {
+          name,
+          status,
+          role: status === "STATE" ? "Incorporated Constituent State" : "Unincorporated Dependent Territory",
+          isCore,
+          gdp: gdpPerTerr,
+          pops: Math.round(popPerTerr),
+          infra: c.infrastructureEfficiency || 0.8,
+          literacy: c.literacyRate || 0.85,
+          urban: c.urbanisationIndex || 0.75,
+        };
+      });
     }
 
     if (activeRegional.length > 0) {
       return activeRegional.map((r) => ({
         name: r.name,
         role: r.role,
+        status: territoryStatusMap[r.name] || "STATE",
         isCore: true,
         gdp: (c.aggregateGdp || 0) * r.gdpShare,
         pops: Math.round((c.effectiveWorkingPops || 0) * r.popShare),
@@ -722,13 +765,14 @@ export default function InteractiveWorldMap({
       }));
     }
 
-    // Fallback constituent states
+    // Fallback constituent states (only for multi-state non-seceded nations)
     const basePops = Math.round((c.effectiveWorkingPops || 0) / 4);
     const baseGdp = (c.aggregateGdp || 0) / 4;
     return [
       {
         name: `${activeNation.name} Capital District`,
         role: "Metropolitan Administration & Financial Core",
+        status: "STATE",
         isCore: true,
         gdp: baseGdp * 1.5,
         pops: Math.round(basePops * 1.3),
@@ -739,6 +783,7 @@ export default function InteractiveWorldMap({
       {
         name: `${activeNation.name} Industrial Basin`,
         role: "Heavy Manufacturing & Energy Infrastructure",
+        status: "STATE",
         isCore: true,
         gdp: baseGdp * 1.2,
         pops: Math.round(basePops * 1.1),
@@ -749,6 +794,7 @@ export default function InteractiveWorldMap({
       {
         name: `${activeNation.name} Agro-Resource Belt`,
         role: "Primary Commodities & Food Security",
+        status: "STATE",
         isCore: true,
         gdp: baseGdp * 0.7,
         pops: Math.round(basePops * 0.8),
@@ -759,6 +805,7 @@ export default function InteractiveWorldMap({
       {
         name: `${activeNation.name} Maritime/Orbital Gateway`,
         role: "Interstellar Freight & Trade Logistics Hub",
+        status: "STATE",
         isCore: true,
         gdp: baseGdp * 0.6,
         pops: Math.round(basePops * 0.8),
@@ -767,7 +814,7 @@ export default function InteractiveWorldMap({
         urban: c.urbanisationIndex || 0.78,
       },
     ];
-  }, [activeNation, territoryMap, c]);
+  }, [activeNation, territoryMap, state.territoryStatusMap, c]);
 
   return (
     <div className="space-y-5">
