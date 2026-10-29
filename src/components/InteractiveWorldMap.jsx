@@ -444,7 +444,7 @@ export default function InteractiveWorldMap({
     // Default Inspect Mode:
     if (controllingNation) {
       onSelectNation(controllingNation.id);
-    } else {
+    } else if (!isReadOnly) {
       // Clicked a non-aligned or unclaimed territory -> prompt to either Annex into active nation or Awaken as Sovereign Nation
       if (
         window.confirm(
