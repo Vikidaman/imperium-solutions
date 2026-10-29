@@ -44,13 +44,30 @@ const STATIC_EARTH_FEATURES = topojson
   .features.filter((f) => f.properties.name !== "Antarctica")
   .map((f) => {
     const centroid = STATIC_PATH_GEN.centroid(f);
+    const bounds = STATIC_PATH_GEN.bounds(f);
     return {
       id: f.id,
       name: f.properties.name,
       d: STATIC_PATH_GEN(f),
       centroid: Number.isFinite(centroid[0]) ? centroid : [0, 0],
+      bounds: bounds || [[0, 0], [0, 0]],
     };
   });
+
+// Subcontinent Presets for Tier-2 Subcontinent Zoom
+const SUBCONTINENT_PRESETS = [
+  { id: "all", name: "World Overview", zoom: 1, pan: { x: 0, y: 0 } },
+  { id: "na", name: "North America", zoom: 2.2, pan: { x: 260, y: 130 } },
+  { id: "sa", name: "South America", zoom: 2.2, pan: { x: 140, y: -110 } },
+  { id: "we", name: "Western Europe", zoom: 3.5, pan: { x: -60, y: 180 } },
+  { id: "ee", name: "Eastern Europe & Eurasia", zoom: 2.1, pan: { x: -160, y: 200 } },
+  { id: "ea", name: "East Asia", zoom: 2.4, pan: { x: -360, y: 120 } },
+  { id: "sa_asia", name: "South Asia", zoom: 3.2, pan: { x: -360, y: 70 } },
+  { id: "sea", name: "Southeast Asia", zoom: 2.8, pan: { x: -440, y: -40 } },
+  { id: "me", name: "Middle East", zoom: 2.8, pan: { x: -200, y: 80 } },
+  { id: "af", name: "Africa", zoom: 2.0, pan: { x: -50, y: -50 } },
+  { id: "oc", name: "Oceania", zoom: 2.4, pan: { x: -470, y: -180 } },
+];
 
 // Distinct sovereign color palette for nations
 const NATION_PALETTE = [
