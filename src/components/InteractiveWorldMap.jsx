@@ -1344,8 +1344,93 @@ export default function InteractiveWorldMap({
                       />
                     ))}
 
-                    {/* Country Territory Polygons */}
+                    {/* Country Territory Polygons & Individual Constituent States */}
                     {earthFeatures.map((feat) => {
+                      const isUsa = feat.name === "United States of America";
+                      const shouldRenderUsStates =
+                        isUsa &&
+                        (viewTier === "country" ||
+                          zoom >= 1.6 ||
+                          activeNation?.id === "usa");
+
+                      // Render Individual 50 US States & Territories
+                      if (shouldRenderUsStates) {
+                        return (
+                          <g key="usa_constituent_states_layer" id="usa_constituent_states_layer">
+                            {STATIC_US_STATE_FEATURES.map((stFeat) => {
+                              const directOwner = territoryMap[stFeat.name];
+                              const stNation = directOwner
+                                ? nationById.get(directOwner)
+                                : nationById.get(territoryMap["United States of America"]) ||
+                                  nationById.get("usa");
+                              const stMeta = getUsaStateData(stFeat.name);
+                              const isStSelected = selectedStateName === stFeat.name;
+                              const isNationActive =
+                                stNation && stNation.id === activeNation?.id;
+
+                              // State fill color: subtle regional variation with national palette
+                              const baseColor = stNation?.color || "#0284c7";
+                              const regionTint =
+                                isNationActive && REGION_TINTS[stMeta.region]
+                                  ? REGION_TINTS[stMeta.region]
+                                  : baseColor;
+
+                              return (
+                                <path
+                                  key={stFeat.id || stFeat.name}
+                                  d={stFeat.d}
+                                  fill={regionTint}
+                                  fillOpacity={
+                                    isStSelected ? 1.0 : isNationActive ? 0.92 : 0.65
+                                  }
+                                  stroke={
+                                    isStSelected
+                                      ? "#ffffff"
+                                      : isNationActive
+                                      ? "#38bdf8"
+                                      : "#475569"
+                                  }
+                                  strokeOpacity={isStSelected ? 1 : 0.85}
+                                  strokeWidth={(isStSelected ? 2.2 : 0.85) / zoom}
+                                  className="transition-colors duration-150 hover:brightness-130 cursor-pointer"
+                                  onMouseEnter={() => {
+                                    const cGdp =
+                                      activeNation?.computed?.aggregateGdp ||
+                                      25000000000000;
+                                    const cPops =
+                                      activeNation?.computed?.effectiveWorkingPops ||
+                                      165000000;
+                                    setHoveredTerritory({
+                                      name: stFeat.name,
+                                      code: stMeta.code,
+                                      region: stMeta.region,
+                                      isControlled: Boolean(stNation),
+                                      controllerName:
+                                        stNation?.name || "United States of America",
+                                      role: stMeta.role,
+                                      gdp: cGdp * stMeta.gdpShare,
+                                      pops: Math.round(cPops * stMeta.popShare),
+                                      status:
+                                        (state.territoryStatusMap || {})[
+                                          stFeat.name
+                                        ] ||
+                                        stMeta.status ||
+                                        "STATE",
+                                    });
+                                  }}
+                                  onMouseLeave={() => setHoveredTerritory(null)}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setSelectedStateName(stFeat.name);
+                                    focusOnTerritory(stFeat.name);
+                                  }}
+                                />
+                              );
+                            })}
+                          </g>
+                        );
+                      }
+
                       const ctrlId = territoryMap[feat.name];
                       const ctrlNation = nationById.get(ctrlId);
                       const isSelected =
@@ -1384,6 +1469,21 @@ export default function InteractiveWorldMap({
                       );
                     })}
 
+                    {/* United States Crisp Internal State Boundaries Mesh */}
+                    {(viewTier === "country" ||
+                      zoom >= 1.6 ||
+                      activeNation?.id === "usa") && (
+                      <path
+                        d={STATIC_US_STATES_MESH}
+                        fill="none"
+                        stroke="#f8fafc"
+                        strokeOpacity={0.75}
+                        strokeWidth={0.9 / zoom}
+                        strokeDasharray={`${3 / zoom},${1.8 / zoom}`}
+                        pointerEvents="none"
+                      />
+                    )}
+
                     {/* Internal Provincial Borders (Distinct Provincial Delineations across Nations) */}
                     {internalBorderPath && (
                       <path
@@ -1415,7 +1515,15 @@ export default function InteractiveWorldMap({
                         const ctrlId = territoryMap[f.name];
                         const n = nationById.get(ctrlId);
                         if (!n) return false;
-                        // Show primary label on main homeland territory
+                        if (
+                          n.id === "usa" &&
+                          (viewTier === "country" ||
+                            zoom >= 1.6 ||
+                            activeNation?.id === "usa")
+                        ) {
+                          // Hide single national center label when US individual states are expanded
+                          return false;
+                        }
                         if (
                           n.id === "european_union" &&
                           f.name === "France"
@@ -1460,6 +1568,95 @@ export default function InteractiveWorldMap({
                           </g>
                         );
                       })}
+
+                    {/* Individual US State Labels & Pins (Tier 3 / Zoomed) */}
+                    {(viewTier === "country" ||
+                      zoom >= 1.6 ||
+                      activeNation?.id === "usa") && (
+                      <g key="us_state_labels_layer" className="pointer-events-none">
+                        {STATIC_US_STATE_FEATURES.map((stFeat) => {
+                          const meta = getUsaStateData(stFeat.name);
+                          if (!meta || !meta.code) return null;
+                          const [cx, cy] = stFeat.centroid;
+                          if (!cx || !cy || cx <= 0) return null;
+                          const isStSelected = selectedStateName === stFeat.name;
+
+                          return (
+                            <g
+                              key={`st_label_${stFeat.name}`}
+                              transform={`translate(${cx}, ${cy})`}
+                            >
+                              <circle
+                                r={(isStSelected ? 3.0 : 1.8) / Math.sqrt(zoom)}
+                                fill={isStSelected ? "#ffffff" : "#22d3ee"}
+                                stroke="#020617"
+                                strokeWidth={0.6 / Math.sqrt(zoom)}
+                              />
+                              <text
+                                y={-3 / Math.sqrt(zoom)}
+                                textAnchor="middle"
+                                fill="#ffffff"
+                                fontSize={(isStSelected ? 8.5 : 7.2) / Math.sqrt(zoom)}
+                                fontWeight="700"
+                                style={{
+                                  textShadow: "0 1px 3px rgba(0,0,0,0.95)",
+                                }}
+                              >
+                                {meta.code}
+                              </text>
+                            </g>
+                          );
+                        })}
+                      </g>
+                    )}
+
+                    {/* Regional Constituent States for Other Major Global Nations */}
+                    {viewTier === "country" &&
+                      activeNation &&
+                      activeNation.id !== "usa" && (
+                        <g key="global_regional_states_pins" className="pointer-events-none">
+                          {(
+                            GLOBAL_REGIONAL_CENTROIDS[
+                              activeNation.id.toLowerCase()
+                            ] || []
+                          ).map((reg, idx) => {
+                            const pt = STATIC_PATH_GEN.projection()(reg.coords);
+                            if (!pt) return null;
+                            const [rx, ry] = pt;
+                            const isRegSelected =
+                              selectedStateName &&
+                              reg.name
+                                .toLowerCase()
+                                .includes(selectedStateName.toLowerCase());
+
+                            return (
+                              <g
+                                key={`reg_marker_${idx}`}
+                                transform={`translate(${rx}, ${ry})`}
+                              >
+                                <circle
+                                  r={(isRegSelected ? 4.2 : 2.8) / Math.sqrt(zoom)}
+                                  fill={isRegSelected ? "#ffffff" : "#38bdf8"}
+                                  stroke="#020617"
+                                  strokeWidth={0.8 / Math.sqrt(zoom)}
+                                />
+                                <text
+                                  y={-4 / Math.sqrt(zoom)}
+                                  textAnchor="middle"
+                                  fill="#ffffff"
+                                  fontSize={7.8 / Math.sqrt(zoom)}
+                                  fontWeight="700"
+                                  style={{
+                                    textShadow: "0 1px 3px rgba(0,0,0,0.95)",
+                                  }}
+                                >
+                                  {reg.name.split(" ")[0]}
+                                </text>
+                              </g>
+                            );
+                          })}
+                        </g>
+                      )}
                   </>
                 )}
 
