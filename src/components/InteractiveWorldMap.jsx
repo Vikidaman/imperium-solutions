@@ -246,6 +246,43 @@ const MARS_PROVINCE_POLYGONS = [
   },
 ];
 
+const MapHoverTooltip = forwardRef(function MapHoverTooltip(
+  { interactionMode, activeNationName },
+  ref
+) {
+  const [hovered, setHovered] = useState(null);
+  useImperativeHandle(ref, () => ({
+    setHover: (val) => setHovered(val),
+  }));
+  if (!hovered) return null;
+  return (
+    <div className="absolute top-14 right-4 z-20 bg-slate-950/90 backdrop-blur-md border border-slate-700 rounded-xl px-3.5 py-2.5 shadow-xl pointer-events-none text-xs">
+      <div className="font-bold text-white flex items-center gap-2">
+        <span>{hovered.name}</span>
+        <span className="text-[10px] px-2 py-0.5 rounded bg-slate-800 text-cyan-300">
+          {hovered.controllerName}
+        </span>
+      </div>
+      {hovered.gdp !== undefined && (
+        <div className="text-[11px] text-slate-300 font-mono-num mt-1 flex items-center gap-3">
+          <span>GDP: {formatCurrency(hovered.gdp)}</span>
+          <span>SOL: {hovered.sol?.toFixed(2)}</span>
+          <span>Pops: {formatCompactNumber(hovered.pops)}</span>
+        </div>
+      )}
+      <div className="text-[10px] text-amber-300 mt-1">
+        {interactionMode === "annex"
+          ? `Click to Annex into ${activeNationName || ""}`
+          : interactionMode === "release"
+          ? `Click to Release ${hovered.name} as Independent State`
+          : hovered.isControlled
+          ? "Click to Inspect & Govern"
+          : "Click to Awaken as Playable Nation or Annex"}
+      </div>
+    </div>
+  );
+});
+
 export default function InteractiveWorldMap({
   state,
   selectedNationId,
@@ -264,7 +301,8 @@ export default function InteractiveWorldMap({
   const [theater, setTheater] = useState("Earth"); // "Earth" | "Mars"
   const [mapLens, setMapLens] = useState("sovereignty"); // "sovereignty" | "gdp" | "sol" | "unrest"
   const [interactionMode, setInteractionMode] = useState("inspect"); // "inspect" | "annex" | "release"
-  const [hoveredTerritory, setHoveredTerritory] = useState(null);
+  const tooltipRef = useRef(null);
+  const setHoveredTerritory = (val) => tooltipRef.current?.setHover(val);
 
   // Pan & Zoom state
   const [zoom, setZoom] = useState(1);
