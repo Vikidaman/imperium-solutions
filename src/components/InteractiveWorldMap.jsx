@@ -1533,87 +1533,134 @@ export default function InteractiveWorldMap({
 
                 {/* List of States & Provinces */}
                 <div className="space-y-2.5 max-h-[580px] overflow-y-auto pr-1">
-                  {nationalStatesList.map((st, idx) => (
-                    <div
-                      key={st.name || idx}
-                      className="p-3.5 rounded-xl bg-slate-950/70 border border-slate-800 hover:border-cyan-500/40 transition space-y-2.5"
-                    >
-                      <div className="flex items-start justify-between gap-2">
-                        <div>
-                          <div className="flex items-center gap-1.5">
-                            <span className="w-2 h-2 rounded-full bg-cyan-400 shrink-0" />
-                            <h4 className="text-sm font-bold text-white">{st.name}</h4>
-                            <span className="text-[10px] px-2 py-0.5 rounded bg-slate-900 border border-slate-700 text-slate-300 font-mono-num">
-                              State #{idx + 1}
-                            </span>
-                          </div>
-                          <p className="text-[11px] text-slate-400 mt-0.5">{st.role}</p>
-                        </div>
-
-                        <div className="text-right shrink-0">
-                          <span className="text-[10px] text-slate-500 block">State GDP</span>
-                          <span className="text-xs font-bold font-mono-num text-emerald-400">
-                            {formatCurrency(st.gdp)}
-                          </span>
-                        </div>
+                  {nationalStatesList.length === 0 ? (
+                    <div className="p-6 rounded-2xl bg-cyan-950/20 border border-cyan-500/30 text-center space-y-2">
+                      <div className="w-8 h-8 rounded-full bg-cyan-500/20 text-cyan-300 flex items-center justify-center mx-auto font-bold text-xs">
+                        ★
                       </div>
-
-                      <div className="grid grid-cols-3 gap-2 bg-slate-900/60 p-2 rounded-lg text-[10px] font-mono-num text-slate-300">
-                        <div>
-                          <span className="text-slate-500 block">Working Pops:</span>
-                          <span className="text-white font-bold">{formatCompactNumber(st.pops)}</span>
-                        </div>
-                        <div>
-                          <span className="text-slate-500 block">Infra Efficiency:</span>
-                          <span className="text-amber-300 font-bold">{formatPercent(st.infra, 0)}</span>
-                        </div>
-                        <div>
-                          <span className="text-slate-500 block">Urbanisation:</span>
-                          <span className="text-cyan-300 font-bold">{formatPercent(st.urban, 0)}</span>
-                        </div>
-                      </div>
-
-                      <div className="flex items-center justify-between gap-2 pt-1 border-t border-slate-900 flex-wrap">
-                        <div className="flex items-center gap-2">
-                          <button
-                            onClick={() => focusOnTerritory(st.name)}
-                            className="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-cyan-300 text-[11px] font-semibold flex items-center gap-1 cursor-pointer transition"
-                          >
-                            <MapPin className="w-3 h-3" /> Focus on Map
-                          </button>
-
-                          {!isReadOnly && nations.length > 1 && (
-                            <button
-                              onClick={() => {
-                                setTransferringState(st);
-                                setTransferTargetNationId("");
-                              }}
-                              className="px-2.5 py-1 rounded-lg bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 border border-amber-500/30 text-[11px] font-semibold flex items-center gap-1 cursor-pointer transition"
-                              title="Transfer this constituent state to another country"
-                            >
-                              <ArrowRightLeft className="w-3 h-3" /> Transfer State
-                            </button>
-                          )}
-                        </div>
-
-                        {!isReadOnly && nationalStatesList.length > 1 && (
-                          <button
-                            onClick={() =>
-                              onTransferTerritory({
-                                territoryName: st.name,
-                                mode: "RELEASE",
-                                planet: activeNation.planet || "Earth",
-                              })
-                            }
-                            className="text-[11px] text-slate-500 hover:text-rose-400 cursor-pointer font-semibold transition"
-                            title="Release this territory as an independent sovereign nation"
-                          >
-                            Release as Sovereign State
-                          </button>
-                        )}
-                      </div>
+                      <h4 className="text-sm font-bold text-white">Unitary Sovereign State</h4>
+                      <p className="text-xs text-slate-300 max-w-sm mx-auto leading-relaxed">
+                        <strong className="text-cyan-300">{activeNation.name}</strong> is an independent constituent state that seceded from its former sovereign. In accordance with statecraft rules, it is a unitary sovereign entity and contains no further sub-provinces or internal subdivisions.
+                      </p>
                     </div>
-                  ))}
+                  ) : (
+                    nationalStatesList.map((st, idx) => {
+                      const isTerritory = st.status === "TERRITORY";
+
+                      return (
+                        <div
+                          key={st.name || idx}
+                          className={`p-3.5 rounded-xl border transition space-y-2.5 ${
+                            isTerritory
+                              ? "bg-slate-950/80 border-amber-500/30"
+                              : "bg-slate-950/70 border-slate-800 hover:border-cyan-500/40"
+                          }`}
+                        >
+                          <div className="flex items-start justify-between gap-2">
+                            <div>
+                              <div className="flex items-center gap-1.5">
+                                <span
+                                  className={`w-2 h-2 rounded-full shrink-0 ${
+                                    isTerritory ? "bg-amber-400" : "bg-cyan-400"
+                                  }`}
+                                />
+                                <h4 className="text-sm font-bold text-white">{st.name}</h4>
+                                {isTerritory ? (
+                                  <span className="text-[10px] px-2 py-0.5 rounded bg-amber-500/15 border border-amber-500/30 text-amber-300 font-bold font-mono-num">
+                                    TERRITORY
+                                  </span>
+                                ) : (
+                                  <span className="text-[10px] px-2 py-0.5 rounded bg-slate-900 border border-slate-700 text-slate-300 font-mono-num">
+                                    State #{idx + 1}
+                                  </span>
+                                )}
+                              </div>
+                              <p className="text-[11px] text-slate-400 mt-0.5">{st.role}</p>
+                            </div>
+
+                            <div className="text-right shrink-0">
+                              <span className="text-[10px] text-slate-500 block">Regional GDP</span>
+                              <span className="text-xs font-bold font-mono-num text-emerald-400">
+                                {formatCurrency(st.gdp)}
+                              </span>
+                            </div>
+                          </div>
+
+                          <div className="grid grid-cols-3 gap-2 bg-slate-900/60 p-2 rounded-lg text-[10px] font-mono-num text-slate-300">
+                            <div>
+                              <span className="text-slate-500 block">Working Pops:</span>
+                              <span className="text-white font-bold">{formatCompactNumber(st.pops)}</span>
+                            </div>
+                            <div>
+                              <span className="text-slate-500 block">Infra Efficiency:</span>
+                              <span className="text-amber-300 font-bold">{formatPercent(st.infra, 0)}</span>
+                            </div>
+                            <div>
+                              <span className="text-slate-500 block">Urbanisation:</span>
+                              <span className="text-cyan-300 font-bold">{formatPercent(st.urban, 0)}</span>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center justify-between gap-2 pt-1 border-t border-slate-900 flex-wrap">
+                            <div className="flex items-center gap-2">
+                              <button
+                                onClick={() => focusOnTerritory(st.name)}
+                                className="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-cyan-300 text-[11px] font-semibold flex items-center gap-1 cursor-pointer transition"
+                              >
+                                <MapPin className="w-3 h-3" /> Focus on Map
+                              </button>
+
+                              {isTerritory && !isReadOnly && (
+                                <button
+                                  onClick={() =>
+                                    onTransferTerritory({
+                                      territoryName: st.name,
+                                      targetNationId: activeNation.id,
+                                      mode: "INTEGRATE",
+                                      planet: activeNation.planet || "Earth",
+                                    })
+                                  }
+                                  className="px-2.5 py-1 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40 text-[11px] font-bold flex items-center gap-1 cursor-pointer transition"
+                                  title="Elevate this territory into full Constituent Statehood"
+                                >
+                                  ★ Integrate as State
+                                </button>
+                              )}
+
+                              {!isReadOnly && nations.length > 1 && (
+                                <button
+                                  onClick={() => {
+                                    setTransferringState(st);
+                                    setTransferTargetNationId("");
+                                  }}
+                                  className="px-2.5 py-1 rounded-lg bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 border border-amber-500/30 text-[11px] font-semibold flex items-center gap-1 cursor-pointer transition"
+                                  title="Transfer this territory/state to another country (enters as territory first)"
+                                >
+                                  <ArrowRightLeft className="w-3 h-3" /> Transfer
+                                </button>
+                              )}
+                            </div>
+
+                            {!isReadOnly && nationalStatesList.length > 1 && (
+                              <button
+                                onClick={() =>
+                                  onTransferTerritory({
+                                    territoryName: st.name,
+                                    mode: "RELEASE",
+                                    planet: activeNation.planet || "Earth",
+                                  })
+                                }
+                                className="text-[11px] text-slate-500 hover:text-rose-400 cursor-pointer font-semibold transition"
+                                title="Release this territory as an independent unitary state (with no sub-provinces)"
+                              >
+                                Secede as Sovereign State
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })
+                  )}
                 </div>
               </div>
             )}
