@@ -13,6 +13,8 @@ import {
   getLedgerHistory,
   logActivity,
   getActivityLog,
+  getAuthValue,
+  setAuthValue,
 } from "./db.js";
 import {
   evaluateSimulation,
@@ -33,16 +35,189 @@ app.use(cors());
 app.use(express.json({ limit: "50mb" }));
 
 const DIRECTOR_SECRET_KEY = process.env.DIRECTOR_SECRET_KEY || "imperium-director-9942";
+const DEFAULT_MASTER_PASSWORD = process.env.DIRECTOR_MASTER_PASSWORD || "imperium-2026";
+
+function isValidDirectorSessionToken(token) {
+  if (!token) return false;
+  if (token === DIRECTOR_SECRET_KEY) return true;
+  const activeSessions = getAuthValue("sessions", {});
+  return Boolean(activeSessions[token]);
+}
+
+function maskChatId(chatId) {
+  const s = String(chatId || "");
+  if (s.length <= 4) return s;
+  return `***${s.slice(-4)}`;
+}
+
+// --- TELEGRAM 2FA AUTHENTICATION ROUTES ---
+app.get("/api/auth/status", (req, res) => {
+  const cfg = getAuthValue("config", {});
+  const providedToken = req.headers["x-director-key"] || req.query.token;
+  const activeSessions = getAuthValue("sessions", {});
+  const sessionInfo = providedToken ? activeSessions[providedToken] : null;
+  res.json({
+    telegramConfigured: Boolean(cfg.botToken && cfg.chatId),
+    maskedChatId: cfg.chatId ? maskChatId(cfg.chatId) : null,
+    authenticated: Boolean(sessionInfo),
+    username: sessionInfo?.username || null,
+  });
+});
+
+app.post("/api/auth/telegram-detect", async (req, res) => {
+  const { botToken } = req.body || {};
+  if (!botToken || !String(botToken).includes(":")) {
+    return res.status(400).json({ error: "Please provide a valid Telegram Bot Token from @BotFather." });
+  }
+  try {
+    const tgRes = await fetch(`https://api.telegram.org/bot${botToken.trim()}/getUpdates`);
+    const tgData = await tgRes.json();
+    if (!tgData.ok) {
+      return res.status(400).json({ error: tgData.description || "Invalid Telegram Bot Token." });
+    }
+    const results = tgData.result || [];
+    for (let i = results.length - 1; i >= 0; i--) {
+      const msg = results[i].message || results[i].edited_message || results[i].channel_post;
+      if (msg && msg.chat && msg.chat.id) {
+        return res.json({
+          chatId: String(msg.chat.id),
+          username: msg.chat.username ? `@${msg.chat.username}` : msg.chat.first_name || "Director",
+          chatTitle:
+            msg.chat.title ||
+            [msg.chat.first_name, msg.chat.last_name].filter(Boolean).join(" ") ||
+            msg.chat.username ||
+            "Telegram Chat",
+        });
+      }
+    }
+    return res.status(404).json({
+      error: "No messages found yet! Open your bot in Telegram, send '/start', and click Auto-Detect again.",
+    });
+  } catch (err) {
+    return res.status(500).json({ error: `Telegram API connection error: ${err.message}` });
+  }
+});
+
+app.post("/api/auth/login", async (req, res) => {
+  const { username = "Director", password, botToken, chatId } = req.body || {};
+  const cfg = getAuthValue("config", { masterPassword: DEFAULT_MASTER_PASSWORD });
+  const expectedPassword = cfg.masterPassword || DEFAULT_MASTER_PASSWORD;
+
+  if (!password || password !== expectedPassword) {
+    return res.status(401).json({ error: "Invalid Director Master Password." });
+  }
+
+  if (botToken && chatId) {
+    cfg.botToken = String(botToken).trim();
+    cfg.chatId = String(chatId).trim();
+    setAuthValue("config", cfg);
+  }
+
+  const activeBotToken = cfg.botToken || process.env.TELEGRAM_BOT_TOKEN;
+  const activeChatId = cfg.chatId || process.env.TELEGRAM_CHAT_ID;
+
+  if (!activeBotToken || !activeChatId) {
+    return res.status(400).json({
+      needsTelegramSetup: true,
+      error: "Telegram 2FA is not paired yet. Please link your Telegram Bot & Chat ID.",
+    });
+  }
+
+  const code = String(Math.floor(100000 + Math.random() * 900000));
+  const expiresAt = Date.now() + 5 * 60 * 1000;
+  setAuthValue("pending_otp", {
+    code,
+    username: username.trim() || "Director",
+    expiresAt,
+  });
+
+  const text =
+    `🏛 *IMPERIUM WORLD SIMULATOR — 2FA LOGIN*\n\n` +
+    `👤 *Director:* \`${username.trim() || "Director"}\`\n` +
+    `🔐 *Your 6-Digit 2FA Code:* \`${code}\`\n\n` +
+    `_Expires in 5 minutes. Enter this code in the Private Director Portal to unlock edit access._`;
+
+  try {
+    const tgRes = await fetch(`https://api.telegram.org/bot${activeBotToken}/sendMessage`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        chat_id: activeChatId,
+        text,
+        parse_mode: "Markdown",
+      }),
+    });
+    const tgData = await tgRes.json();
+    if (!tgData.ok) {
+      return res.status(400).json({
+        error: `Telegram rejected message: ${tgData.description || "Check your Bot Token and Chat ID"}`,
+      });
+    }
+  } catch (err) {
+    return res.status(500).json({
+      error: `Failed to reach Telegram API: ${err.message}`,
+    });
+  }
+
+  res.json({
+    ok: true,
+    maskedChatId: maskChatId(activeChatId),
+    message: `6-digit 2FA verification code sent to Telegram (${maskChatId(activeChatId)})!`,
+  });
+});
+
+app.post("/api/auth/verify-2fa", (req, res) => {
+  const { username = "Director", otpCode } = req.body || {};
+  const pending = getAuthValue("pending_otp", null);
+
+  if (!pending || !pending.code) {
+    return res.status(400).json({ error: "No pending 2FA code found. Please request a new code." });
+  }
+  if (Date.now() > pending.expiresAt) {
+    return res.status(400).json({ error: "2FA code has expired. Please request a new code." });
+  }
+  if (String(otpCode || "").trim() !== String(pending.code)) {
+    return res.status(401).json({ error: "Invalid 6-digit 2FA verification code." });
+  }
+
+  const sessionToken = `dir_sess_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 12)}`;
+  const activeSessions = getAuthValue("sessions", {});
+  activeSessions[sessionToken] = {
+    username: username.trim() || pending.username || "Director",
+    createdAt: new Date().toISOString(),
+  };
+  setAuthValue("sessions", activeSessions);
+  setAuthValue("pending_otp", null);
+
+  res.json({
+    ok: true,
+    sessionToken,
+    username: activeSessions[sessionToken].username,
+  });
+});
+
+app.post("/api/auth/logout", (req, res) => {
+  const providedToken = req.headers["x-director-key"] || req.body?.sessionToken;
+  if (providedToken) {
+    const activeSessions = getAuthValue("sessions", {});
+    delete activeSessions[providedToken];
+    setAuthValue("sessions", activeSessions);
+  }
+  res.json({ ok: true });
+});
 
 // Enforce Read-Only Public Mode vs. Private Director Mode on all mutating API endpoints
 app.use("/api", (req, res, next) => {
+  if (req.path.startsWith("/auth/")) {
+    return next();
+  }
   if (["POST", "PATCH", "DELETE", "PUT"].includes(req.method)) {
     const providedKey =
       req.headers["x-director-key"] || req.query.access || req.body?.directorKey;
-    if (providedKey !== DIRECTOR_SECRET_KEY) {
+    if (!isValidDirectorSessionToken(providedKey)) {
       return res.status(403).json({
         error:
-          "Read-Only Public Spectator Mode: Editing is disabled on the public link. Use the Private Director Link to make changes.",
+          "Read-Only Public Spectator Mode: Editing requires authentication via the Private Director Telegram 2FA Login Portal.",
       });
     }
   }
