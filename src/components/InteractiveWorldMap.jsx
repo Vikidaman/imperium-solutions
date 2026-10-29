@@ -406,6 +406,8 @@ export default function InteractiveWorldMap({
   const [selectedSubcontinent, setSelectedSubcontinent] = useState("all");
   const [showProvinceManager, setShowProvinceManager] = useState(false);
   const [provinceSearchQuery, setProvinceSearchQuery] = useState("");
+  const [transferringState, setTransferringState] = useState(null);
+  const [transferTargetNationId, setTransferTargetNationId] = useState("");
   const tooltipRef = useRef(null);
   const setHoveredTerritory = (val) => tooltipRef.current?.setHover(val);
 
