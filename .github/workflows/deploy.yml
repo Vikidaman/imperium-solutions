@@ -32,3 +32,4 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: "a1915d92692b35762bd4e2f4e356df97"
         with:
           command: deploy
+
