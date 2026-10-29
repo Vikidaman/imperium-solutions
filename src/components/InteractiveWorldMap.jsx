@@ -246,63 +246,12 @@ const MARS_PROVINCE_POLYGONS = [
   },
 ];
 
-// Vietnam 1977 Regional Theater Polygons (960 x 500 viewBox)
-const VIETNAM_REGION_POLYGONS = [
-  {
-    name: "NorthWest Vietnam",
-    points: "320,30 430,35 435,130 330,120",
-    cx: 380,
-    cy: 80,
-  },
-  {
-    name: "NorthEast Vietnam",
-    points: "430,35 560,25 570,115 495,120 435,100",
-    cx: 500,
-    cy: 72,
-  },
-  {
-    name: "Red River Delta",
-    points: "435,100 495,120 520,165 445,165 435,130",
-    cx: 472,
-    cy: 138,
-  },
-  {
-    name: "North Central Coast",
-    points: "390,145 445,165 520,165 565,255 495,265 405,195",
-    cx: 475,
-    cy: 210,
-  },
-  {
-    name: "South Central Coast",
-    points: "495,265 565,255 615,345 555,395 525,365",
-    cx: 562,
-    cy: 325,
-  },
-  {
-    name: "Central Highlands",
-    points: "455,275 495,265 525,365 475,385 440,335",
-    cx: 482,
-    cy: 330,
-  },
-  {
-    name: "SouthEast Vietnam",
-    points: "440,365 475,385 555,395 515,435 435,415",
-    cx: 488,
-    cy: 402,
-  },
-  {
-    name: "Mekong Delta",
-    points: "365,415 435,415 515,435 445,485 355,465",
-    cx: 432,
-    cy: 450,
-  },
-];
-
 export default function InteractiveWorldMap({
   state,
   selectedNationId,
   onSelectNation,
   onUpdateNation,
+  onDeleteNation,
   onTransferTerritory,
   onCreateNation,
   onJumpToTab,
@@ -312,11 +261,7 @@ export default function InteractiveWorldMap({
   const nations = state.nations || [];
   const territoryMap = state.territoryMap || {};
 
-  // Determine default theater from scenario
-  const hasVietnam = nations.some((n) =>
-    (n.planet || "").toLowerCase().includes("vietnam")
-  );
-  const [theater, setTheater] = useState(hasVietnam ? "Vietnam" : "Earth"); // "Earth" | "Mars" | "Vietnam"
+  const [theater, setTheater] = useState("Earth"); // "Earth" | "Mars"
   const [mapLens, setMapLens] = useState("sovereignty"); // "sovereignty" | "gdp" | "sol" | "unrest"
   const [interactionMode, setInteractionMode] = useState("inspect"); // "inspect" | "annex" | "release"
   const [hoveredTerritory, setHoveredTerritory] = useState(null);
@@ -347,33 +292,9 @@ export default function InteractiveWorldMap({
     ) ||
     nations[0];
 
-  // Build D3 Geo paths & dynamic merged borders for Earth from world-atlas TopoJSON
-  const { earthFeatures, sovereignBorderPath, internalBorderPath, projection } =
+  // Dynamic merged border paths (uses precomputed STATIC_EARTH_FEATURES & STATIC_PATH_GEN)
+  const { earthFeatures, sovereignBorderPath, internalBorderPath } =
     useMemo(() => {
-      const proj = geoNaturalEarth1()
-        .scale(175)
-        .translate([480, 265]);
-      const pathGen = geoPath(proj);
-
-      const geojson = topojson.feature(
-        worldAtlas,
-        worldAtlas.objects.countries
-      );
-
-      // Compute centroids for capital/label markers
-      const features = geojson.features
-        .filter((f) => f.properties.name !== "Antarctica")
-        .map((f) => {
-          const centroid = pathGen.centroid(f);
-          return {
-            ...f,
-            name: f.properties.name,
-            d: pathGen(f),
-            centroid: Number.isFinite(centroid[0]) ? centroid : [0, 0],
-          };
-        });
-
-      // Sovereign border mesh: drawn wherever two adjacent countries have DIFFERENT controlling nations
       const sovMesh = topojson.mesh(
         worldAtlas,
         worldAtlas.objects.countries,
@@ -385,7 +306,6 @@ export default function InteractiveWorldMap({
         }
       );
 
-      // Internal provincial border mesh: drawn subtly where two adjacent countries share the SAME controlling superpower (e.g. EU or annexed territories)
       const intMesh = topojson.mesh(
         worldAtlas,
         worldAtlas.objects.countries,
@@ -398,10 +318,9 @@ export default function InteractiveWorldMap({
       );
 
       return {
-        earthFeatures: features,
-        sovereignBorderPath: pathGen(sovMesh),
-        internalBorderPath: pathGen(intMesh),
-        projection: proj,
+        earthFeatures: STATIC_EARTH_FEATURES,
+        sovereignBorderPath: STATIC_PATH_GEN(sovMesh),
+        internalBorderPath: STATIC_PATH_GEN(intMesh),
       };
     }, [territoryMap]);
 
