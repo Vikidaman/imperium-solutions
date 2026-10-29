@@ -639,7 +639,7 @@ export default function VictoriaStatecraftAndNewsView({
                               <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
                                 Enacted
                               </span>
-                            ) : (
+                            ) : !isReadOnly ? (
                               <div className="flex items-center gap-1">
                                 <button
                                   onClick={() =>
@@ -671,7 +671,7 @@ export default function VictoriaStatecraftAndNewsView({
                                   Decree
                                 </button>
                               </div>
-                            )}
+                            ) : null}
                           </div>
                           <p className="text-[11px] text-slate-400 mt-1">
                             {opt.desc}
