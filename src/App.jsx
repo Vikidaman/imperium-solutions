@@ -14,6 +14,7 @@ import {
   ShieldCheck,
   Lock,
   LogOut,
+  Sliders,
 } from "lucide-react";
 import InteractiveWorldMap from "./components/InteractiveWorldMap";
 import DirectorLoginPortal from "./components/DirectorLoginPortal";
@@ -23,6 +24,7 @@ const LedgerAndTimeView = lazy(() => import("./components/LedgerAndTimeView"));
 const VictoriaStatecraftAndNewsView = lazy(() =>
   import("./components/VictoriaStatecraftAndNewsView")
 );
+const DirectorConfigView = lazy(() => import("./components/DirectorConfigView"));
 
 const DIRECTOR_SECRET_KEY = "imperium-director-9942";
 
