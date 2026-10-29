@@ -115,17 +115,20 @@ export default function App() {
   const lastMutationTimeRef = useRef(0);
 
   const handleJumpToTab = useCallback((tabId) => {
-    if (tabId === "companies") {
+    let resolved = tabId;
+    if (resolved === "victoria") resolved = "statecraft";
+
+    if (resolved === "companies") {
       setMarketsSubTab("corporations");
       setActiveTab("markets");
-    } else if (tabId === "politics") {
+    } else if (resolved === "politics") {
       setMarketsSubTab("global");
       setActiveTab("markets");
-    } else if (tabId === "desk") {
+    } else if (resolved === "desk") {
       setActiveTab("map");
     } else {
-      if (tabId === "markets") setMarketsSubTab("supplychain");
-      setActiveTab(tabId);
+      if (resolved === "markets") setMarketsSubTab("supplychain");
+      setActiveTab(resolved);
     }
   }, []);
 
@@ -646,7 +649,7 @@ export default function App() {
                 icon: Globe2,
               },
               {
-                id: "victoria",
+                id: "statecraft",
                 label: "Politics, Laws & Gazette",
                 icon: Scale,
                 badge: dilemmaCount,
