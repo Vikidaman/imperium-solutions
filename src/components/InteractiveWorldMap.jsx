@@ -815,6 +815,46 @@ export default function InteractiveWorldMap({
       return [...states, ...territories];
     }
 
+    // 2. United States 50 Individual Constituent States Mode
+    if (activeNation.id === "usa" && usaDivisionMode === "states") {
+      const statesList = Object.entries(US_STATES_CATALOG).map(([name, meta]) => {
+        const assignedId = territoryMap[name];
+        if (assignedId && assignedId !== "usa") return null; // Transferred away
+
+        const status = territoryStatusMap[name] || meta.status || "STATE";
+        return {
+          name,
+          code: meta.code,
+          region: meta.region,
+          role: meta.role,
+          status,
+          isCore: true,
+          gdp: (c.aggregateGdp || 0) * meta.gdpShare,
+          pops: Math.round((c.effectiveWorkingPops || 0) * meta.popShare),
+          infra: c.infrastructureEfficiency || 0.88,
+          literacy: c.literacyRate || 0.90,
+          urban: c.urbanisationIndex || 0.82,
+        };
+      }).filter(Boolean);
+
+      // Include any foreign annexed territories acquired into USA
+      const annexedIntoUsa = Object.entries(territoryMap)
+        .filter(([terr, cid]) => cid === "usa" && terr !== "United States of America" && !US_STATES_CATALOG[terr])
+        .map(([name]) => ({
+          name,
+          status: territoryStatusMap[name] || "TERRITORY",
+          role: "Annexed Dependent Territory",
+          isCore: false,
+          gdp: (c.aggregateGdp || 0) * 0.005,
+          pops: Math.round((c.effectiveWorkingPops || 0) * 0.005),
+          infra: (c.infrastructureEfficiency || 0.8) * 0.75,
+          literacy: (c.literacyRate || 0.85) * 0.8,
+          urban: (c.urbanisationIndex || 0.75) * 0.7,
+        }));
+
+      return [...statesList, ...annexedIntoUsa];
+    }
+
     const directTerritories = [];
     for (const [terr, cid] of Object.entries(territoryMap)) {
       if (cid === activeNation.id) {
