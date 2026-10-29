@@ -1571,25 +1571,43 @@ export function triggerLawAction(state, { nationId, category, lawId, actionType 
   return { action: "Law option not found" };
 }
 
-export function queueConstruction(state, { nationId, buildingId }) {
+export function queueConstruction(state, { nationId, buildingId, targetState }) {
   ensureVictoriaState(state);
   const nation = (state.nations || []).find((n) => n.id === nationId);
   if (!nation) return { action: "Nation not found" };
   const bldg = CONSTRUCTION_BUILDINGS.find((b) => b.id === buildingId);
   if (!bldg) return { action: "Building template not found" };
 
-  nation.treasuryBalance = (Number(nation.treasuryBalance) || 0) - bldg.cost;
+  const currentTreasury = Number(nation.treasuryBalance) || 0;
+  if (currentTreasury <= 0) {
+    return {
+      action: `Cannot build in ${nation.name}: Sovereign treasury is negative or depleted ($${(currentTreasury / 1e9).toFixed(2)}B). Deficit construction is prohibited.`,
+      toastMessage: `Cannot build: Sovereign Treasury is negative or empty!`,
+      error: true,
+    };
+  }
+
+  if (currentTreasury < bldg.cost) {
+    return {
+      action: `Cannot build ${bldg.name}: Project cost ($${(bldg.cost / 1e9).toFixed(1)}B) exceeds available sovereign treasury ($${(currentTreasury / 1e9).toFixed(2)}B).`,
+      toastMessage: `Insufficient funds in sovereign treasury!`,
+      error: true,
+    };
+  }
+
+  nation.treasuryBalance = currentTreasury - bldg.cost;
   nation.constructionQueue = nation.constructionQueue || [];
   nation.constructionQueue.push({
     queueId: `q_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 5)}`,
     ...bldg,
+    targetState: targetState || "Nationwide Infrastructure",
     daysRemaining: bldg.daysRequired,
   });
 
   evaluateVictoriaMechanics(state);
   return {
-    action: `Queued ${bldg.name} in ${nation.name} ($${(bldg.cost / 1e9).toFixed(1)}B)`,
-    toastMessage: `Construction started: ${bldg.name} in ${nation.name}!`,
+    action: `Queued ${bldg.name} in ${targetState ? `${targetState} (${nation.name})` : nation.name} ($${(bldg.cost / 1e9).toFixed(1)}B)`,
+    toastMessage: `Construction started in ${targetState || nation.name}: ${bldg.name}!`,
   };
 }
 
