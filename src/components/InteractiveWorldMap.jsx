@@ -1238,6 +1238,14 @@ export default function InteractiveWorldMap({
 
           <div className="flex items-center gap-2">
             <button
+              onClick={() => setShowStatesTableModal(true)}
+              className="px-3.5 py-2 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 text-xs font-bold flex items-center gap-2 cursor-pointer transition shadow-md shadow-cyan-500/20"
+            >
+              <Layers className="w-3.5 h-3.5" />
+              States & Territories Table Pop Up
+            </button>
+
+            <button
               onClick={() => {
                 setViewTier("worldwide");
                 resetCamera();
@@ -1251,7 +1259,7 @@ export default function InteractiveWorldMap({
             {!isReadOnly && (
               <button
                 onClick={() => setShowProvinceManager(true)}
-                className="px-3.5 py-2 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 text-xs font-bold flex items-center gap-2 cursor-pointer transition shadow-md shadow-cyan-500/20"
+                className="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-cyan-300 border border-cyan-500/30 text-xs font-bold flex items-center gap-2 cursor-pointer transition"
               >
                 <PlusCircle className="w-3.5 h-3.5" />
                 + Annex / Add State
