@@ -1,4 +1,4 @@
-// Victoria 3-Inspired Socio-Economic, Law, Interest Group, Dynamic Election & World News Engine
+// Socio-Economic, Law, Interest Group, Dynamic Election & World News Engine
 
 export const LAW_CATALOG = {
   governance: {
@@ -593,7 +593,7 @@ export function ensureVictoriaState(state) {
       : [];
   }
 
-  // Ensure per-nation Victoria 3 structures
+  // Ensure per-nation statecraft structures
   const partyNames = state.politicalParties.map((p) => p.name);
   for (let idx = 0; idx < (state.nations || []).length; idx++) {
     const nation = state.nations[idx];

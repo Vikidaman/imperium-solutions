@@ -1610,10 +1610,8 @@ export default function InteractiveWorldMap({
                         );
                       })}
 
-                    {/* Individual US State Labels & Pins (Tier 3 / Zoomed) */}
-                    {(viewTier === "country" ||
-                      zoom >= 1.6 ||
-                      activeNation?.id === "usa") && (
+                    {/* Individual US State Labels & Pins (Tier 3 Country View) */}
+                    {viewTier === "country" && activeNation?.id === "usa" && (
                       <g key="us_state_labels_layer" className="pointer-events-none">
                         {STATIC_US_STATE_FEATURES.map((stFeat) => {
                           const meta = getUsaStateData(stFeat.name);
