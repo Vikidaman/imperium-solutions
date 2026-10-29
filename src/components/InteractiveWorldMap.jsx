@@ -966,6 +966,58 @@ export default function InteractiveWorldMap({
         )}
       </div>
 
+      {/* Country View Banner when Tier 3 Country & States is Active */}
+      {viewTier === "country" && activeNation && (
+        <div className="bg-gradient-to-r from-cyan-950/80 via-slate-900/90 to-slate-900 border border-cyan-500/40 rounded-2xl p-4 flex flex-wrap items-center justify-between gap-4 shadow-xl">
+          <div className="flex items-center gap-3">
+            <div
+              className="w-10 h-10 rounded-xl flex items-center justify-center text-slate-950 font-black text-sm shadow-md"
+              style={{
+                backgroundColor: nationColorMap.get(activeNation.id) || "#06b6d4",
+              }}
+            >
+              {activeNation.name.slice(0, 2).toUpperCase()}
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-mono-num uppercase tracking-wider text-cyan-400 font-bold">
+                  Country & State View
+                </span>
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 border border-slate-700">
+                  {activeNation.planet} • {nationalStatesList.length} States
+                </span>
+              </div>
+              <h3 className="text-base font-bold text-white">
+                {activeNation.name} Sovereignty & Constituent States
+              </h3>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => {
+                setViewTier("worldwide");
+                resetCamera();
+              }}
+              className="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold flex items-center gap-2 cursor-pointer transition border border-slate-700"
+            >
+              <ArrowLeft className="w-3.5 h-3.5 text-cyan-400" />
+              ← Back to World Map
+            </button>
+
+            {!isReadOnly && (
+              <button
+                onClick={() => setShowProvinceManager(true)}
+                className="px-3.5 py-2 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 text-xs font-bold flex items-center gap-2 cursor-pointer transition shadow-md shadow-cyan-500/20"
+              >
+                <PlusCircle className="w-3.5 h-3.5" />
+                + Annex / Add State
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Main Split View: Interactive Map Canvas (Left 7 Cols) + Nation Command Drawer (Right 5 Cols) */}
       <div className="grid grid-cols-1 xl:grid-cols-12 gap-5 items-start">
         {/* INTERACTIVE VECTOR MAP CANVAS */}
