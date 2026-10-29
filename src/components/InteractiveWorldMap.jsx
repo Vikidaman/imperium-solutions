@@ -1709,7 +1709,7 @@ export default function InteractiveWorldMap({
               </div>
             </div>
 
-            {/* Victoria 3 Statecraft, Legitimacy & Dynamic Elections Quick Card */}
+            {/* National Statecraft, Legitimacy & Dynamic Elections Quick Card */}
             <div className="bg-amber-950/20 border border-amber-500/30 rounded-xl p-3.5 space-y-2.5 text-xs">
               <div className="flex items-center justify-between">
                 <span className="font-bold uppercase tracking-wider text-amber-300">
@@ -1724,7 +1724,7 @@ export default function InteractiveWorldMap({
 
               <div className="grid grid-cols-3 gap-2 text-[11px] bg-slate-950/70 rounded-lg p-2 border border-slate-800">
                 <div>
-                  <span className="text-slate-400 block">Victoria SoL</span>
+                  <span className="text-slate-400 block">Prosperity (SoL)</span>
                   <strong className="text-cyan-300 font-mono-num">
                     {activeNation.strata?.averageSol || 16.5} (
                     {activeNation.strata?.solTier || "Middling"})
@@ -1766,7 +1766,7 @@ export default function InteractiveWorldMap({
                 )}
                 {onJumpToTab && (
                   <button
-                    onClick={() => onJumpToTab("victoria")}
+                    onClick={() => onJumpToTab("statecraft")}
                     className="flex-1 py-1.5 px-2.5 rounded-lg bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 border border-cyan-500/40 font-semibold text-[11px] cursor-pointer"
                   >
                     Laws, IGs & Gazette →
