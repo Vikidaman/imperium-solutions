@@ -1160,6 +1160,72 @@ export default function InteractiveWorldMap({
               </div>
             </div>
 
+            {/* Victoria 3 Statecraft, Legitimacy & Dynamic Elections Quick Card */}
+            <div className="bg-amber-950/20 border border-amber-500/30 rounded-xl p-3.5 space-y-2.5 text-xs">
+              <div className="flex items-center justify-between">
+                <span className="font-bold uppercase tracking-wider text-amber-300">
+                  #{activeNation.capacities?.globalRank || 1}{" "}
+                  {activeNation.capacities?.rankTitle || "Great Power"} •{" "}
+                  {activeNation.laws?.governance || "Universal Suffrage"}
+                </span>
+                <span className="font-mono-num text-emerald-400 font-bold">
+                  Legitimacy: {activeNation.radicals?.legitimacy || 75}/100
+                </span>
+              </div>
+
+              <div className="grid grid-cols-3 gap-2 text-[11px] bg-slate-950/70 rounded-lg p-2 border border-slate-800">
+                <div>
+                  <span className="text-slate-400 block">Victoria SoL</span>
+                  <strong className="text-cyan-300 font-mono-num">
+                    {activeNation.strata?.averageSol || 16.5} (
+                    {activeNation.strata?.solTier || "Middling"})
+                  </strong>
+                </div>
+                <div>
+                  <span className="text-slate-400 block">Loyal / Radical</span>
+                  <strong className="text-emerald-400 font-mono-num">
+                    {activeNation.radicals?.loyalistShare || 18}%
+                  </strong>{" "}
+                  /{" "}
+                  <strong className="text-rose-400 font-mono-num">
+                    {activeNation.radicals?.share || 7}%
+                  </strong>
+                </div>
+                <div>
+                  <span className="text-slate-400 block">Next Election</span>
+                  <strong className="text-amber-300 font-mono-num">
+                    {activeNation.electionState?.daysUntilElection ?? 180}d (
+                    {activeNation.electionState?.nextElectionDate || "Soon"})
+                  </strong>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2">
+                {onVictoriaAction && (
+                  <button
+                    onClick={() =>
+                      onVictoriaAction({
+                        type: "ELECTION_ACTION",
+                        nationId: activeNation.id,
+                        actionType: "CALL_SNAP_ELECTION",
+                      })
+                    }
+                    className="flex-1 py-1.5 px-2.5 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 font-semibold text-[11px] cursor-pointer"
+                  >
+                    Hold Snap Election Now
+                  </button>
+                )}
+                {onJumpToTab && (
+                  <button
+                    onClick={() => onJumpToTab("victoria")}
+                    className="flex-1 py-1.5 px-2.5 rounded-lg bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 border border-cyan-500/40 font-semibold text-[11px] cursor-pointer"
+                  >
+                    Laws, IGs & Gazette →
+                  </button>
+                )}
+              </div>
+            </div>
+
             {/* 4-Sector Economic Structure Ring/Bar */}
             <div className="bg-slate-950/60 border border-slate-800/80 rounded-xl p-3.5 space-y-2">
               <div className="flex items-center justify-between text-xs">
