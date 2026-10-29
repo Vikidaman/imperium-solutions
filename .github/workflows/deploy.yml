@@ -14,22 +14,18 @@ jobs:
       CLOUDFLARE_ACCOUNT_ID: "a1915d92692b35762bd4e2f4e356df97"
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        run: |
+          git init .
+          git remote add origin "https://github.com/${GITHUB_REPOSITORY}.git"
+          git fetch --no-tags --prune --depth=1 origin "${GITHUB_SHA}"
+          git checkout --force FETCH_HEAD
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: "22"
-          cache: "npm"
-
-      - name: Install dependencies
-        run: npm install
-
-      - name: Build production frontend bundle
-        run: npm run build
+      - name: Install dependencies & build production bundle
+        run: |
+          node --version
+          npm install
+          npm run build
 
       - name: Deploy to Cloudflare Workers (when CLOUDFLARE_API_TOKEN secret is set)
         if: env.CLOUDFLARE_API_TOKEN != ''
-        uses: cloudflare/wrangler-action@v3
-        with:
-          command: deploy
+        run: npx wrangler deploy

@@ -14,6 +14,7 @@ const WATCH_PATHS = [
   "vite.config.js",
   "wrangler.jsonc",
   "package.json",
+  ".github",
 ];
 
 let debounceTimer = null;
