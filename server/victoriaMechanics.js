@@ -747,7 +747,7 @@ export function evaluateVictoriaMechanics(state) {
     const middlePops = Math.round(pops * 0.28);
     const upperPops = Math.max(100, pops - lowerPops - middlePops);
 
-    // Map spreadsheet `c.sol` (~8 to 20) into Victoria 3's 1–50 Standard of Living scale
+    // Map spreadsheet `c.sol` (~8 to 20) into a 1–50 Standard of Living scale
     const baseV3Sol = Math.min(42, Math.max(4, (Number(c.sol) || 10) * 1.35));
     const unempPenalty = Math.max(0, (c.unemploymentRate || 0) * 18);
     const taxDrag = ((c.incomeTax || 0.2) + (c.salesTax || 0.15)) * 8;
@@ -1150,7 +1150,7 @@ export function processTimeTickVictoria(state, daysAdded, prevDateStr, newDateSt
       }
     }
 
-    // 2. Advance Active Law Enactment (Victoria 3 3-Phase Siege System)
+    // 2. Advance Active Law Enactment (3-Phase Legislative System)
     if (nation.activeLawEnactment) {
       const enact = nation.activeLawEnactment;
       enact.daysProgress = (enact.daysProgress || 0) + daysAdded;
@@ -1519,7 +1519,7 @@ export function triggerLawAction(state, { nationId, category, lawId, actionType 
     };
   }
 
-  // Default: START_ENACTMENT (3-phase Victoria 3 legislative process)
+  // Default: START_ENACTMENT (3-phase legislative process)
   if (lawOpt) {
     // Compute support chance from IGs
     let supportClout = 18;
