@@ -219,7 +219,7 @@ async function ensureDefaultSessions(env, requestUrl) {
   await ensureSchema(db);
 
   if (db) {
-    const existing = await getSessionFromD1(db, "interstellar-default");
+    const existing = await loadSession(env, "interstellar-default");
     if (existing?.state) {
       const hasOldCompanies = (existing.state.nations || []).some(
         (n) => (n.companies || []).length > 0
