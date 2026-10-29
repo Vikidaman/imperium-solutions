@@ -1325,3 +1325,394 @@ export function processTimeTickVictoria(state, daysAdded, prevDateStr, newDateSt
 
   state.newsFeed = (state.newsFeed || []).slice(0, 80);
 }
+
+export function setCustomStartDate(
+  state,
+  { startDate, resetCurrentDate = true, electionIntervalDays }
+) {
+  ensureVictoriaState(state);
+  const cleanDate = (startDate || "2025-01-01").split("T")[0];
+  const tm = state.timeManager;
+  tm.crisisStartDate = cleanDate;
+  if (resetCurrentDate) {
+    tm.crisisDate = cleanDate;
+    tm.nextPaymentDate = addDaysToIso(cleanDate, 90);
+    tm.quarterNumber = 1;
+    tm.daysElapsed = 0;
+  }
+
+  const curDate = tm.crisisDate || cleanDate;
+  for (const nation of state.nations || []) {
+    if (nation.electionState) {
+      if (electionIntervalDays && Number(electionIntervalDays) >= 30) {
+        nation.electionState.electionIntervalDays = Number(electionIntervalDays);
+      }
+      nation.electionState.lastElectionDate = curDate;
+      nation.electionState.nextElectionDate = addDaysToIso(
+        curDate,
+        nation.electionState.electionIntervalDays || 360
+      );
+    }
+  }
+
+  state.newsFeed.unshift({
+    id: `news_epoch_${Date.now().toString(36)}`,
+    date: curDate,
+    quarter: tm.quarterNumber || 1,
+    category: "CHRONICLE EPOCH",
+    headline: `Timeline Anchored to ${cleanDate}: New Historical Epoch Initialized`,
+    summary: `The World Director has set the simulation start date to ${cleanDate}. Quarterly treasury settlements are scheduled for ${tm.nextPaymentDate}, with dynamic national election calendars recalibrated.`,
+    nationName: "Global",
+    impact: `Start Date: ${cleanDate}`,
+  });
+
+  evaluateVictoriaMechanics(state);
+  return {
+    action: `Set Campaign Start Date to ${cleanDate}`,
+    toastMessage: `World Start Date set to ${cleanDate}! Next quarterly settlement: ${tm.nextPaymentDate}`,
+  };
+}
+
+export function triggerElectionAction(
+  state,
+  { nationId, actionType, partyName, coalitionParties, electionIntervalDays }
+) {
+  ensureVictoriaState(state);
+  const nation = (state.nations || []).find((n) => n.id === nationId);
+  if (!nation) return { action: "Nation not found" };
+  const curDate = state.timeManager?.crisisDate || "2025-01-01";
+  const es = nation.electionState;
+
+  if (actionType === "CALL_SNAP_ELECTION") {
+    const result = executeGeneralElection(state, nation, curDate);
+    evaluateVictoriaMechanics(state);
+    return {
+      action: `${nation.name} held a Snap General Election — ${result?.winner?.partyName} won ${result?.winner?.voteShare}% (${result?.winner?.seats} seats)!`,
+      toastMessage: `Election Winner in ${nation.name}: ${result?.winner?.partyName} (${result?.winner?.voteShare}% vote, ${result?.winner?.seats} seats)!`,
+    };
+  }
+
+  if (actionType === "RALLY_PARTY" && partyName) {
+    es.partyMomentum[partyName] = Math.min(60, (Number(es.partyMomentum[partyName]) || 5) + 12);
+    state.newsFeed.unshift({
+      id: `news_rally_${Date.now().toString(36)}`,
+      date: curDate,
+      quarter: state.timeManager?.quarterNumber || 1,
+      category: "CAMPAIGN TRAIL",
+      headline: `Mass Campaign Rally in ${nation.name} Surges Momentum for ${partyName}`,
+      summary: `Tens of thousands of supporters gathered in ${nation.name}'s capital as ${partyName} leaders pledged sweeping economic and social reforms ahead of the ${es.nextElectionDate} election.`,
+      nationName: nation.name,
+      impact: `${partyName} Momentum +12`,
+    });
+    evaluateVictoriaMechanics(state);
+    return {
+      action: `Held Mass Rally for ${partyName} in ${nation.name} (+12 Momentum)`,
+      toastMessage: `${partyName} campaign momentum surged in ${nation.name}!`,
+    };
+  }
+
+  if (actionType === "FUND_PARTY" && partyName) {
+    const cost = 2000000000;
+    nation.treasuryBalance = (Number(nation.treasuryBalance) || 0) - cost;
+    es.partyMomentum[partyName] = Math.min(75, (Number(es.partyMomentum[partyName]) || 5) + 18);
+    evaluateVictoriaMechanics(state);
+    return {
+      action: `Channeled $2.0B Campaign Funding to ${partyName} in ${nation.name} (+18 Momentum)`,
+      toastMessage: `Funded ${partyName} campaign (+18 Momentum)!`,
+    };
+  }
+
+  if (actionType === "REFORM_GOVERNMENT") {
+    if (Array.isArray(coalitionParties) && coalitionParties.length > 0) {
+      es.coalitionParties = coalitionParties;
+      nation.rulingParty = coalitionParties[0];
+      for (const ig of nation.interestGroups || []) {
+        ig.inGovernment = coalitionParties.includes(ig.party);
+      }
+      state.newsFeed.unshift({
+        id: `news_coalition_${Date.now().toString(36)}`,
+        date: curDate,
+        quarter: state.timeManager?.quarterNumber || 1,
+        category: "CABINET REFORM",
+        headline: `${nation.name} Forms New Ruling Coalition Led by ${coalitionParties.join(" & ")}`,
+        summary: `A cabinet reshuffle in ${nation.name} has brought ${coalitionParties.join(", ")} into government, realigning parliamentary legitimacy and fiscal priorities.`,
+        nationName: nation.name,
+        impact: `Ruling Coalition: ${coalitionParties.join(" + ")}`,
+      });
+    }
+    if (electionIntervalDays && Number(electionIntervalDays) >= 30) {
+      es.electionIntervalDays = Number(electionIntervalDays);
+      es.nextElectionDate = addDaysToIso(curDate, Number(electionIntervalDays));
+    }
+    evaluateVictoriaMechanics(state);
+    return {
+      action: `Reformed Government Coalition in ${nation.name} (${nation.rulingParty})`,
+      toastMessage: `New Government formed in ${nation.name} (Legitimacy: ${nation.radicals?.legitimacy})!`,
+    };
+  }
+
+  if (actionType === "TOGGLE_IG_GOVERNMENT") {
+    const ig = (nation.interestGroups || []).find((g) => g.id === partyName);
+    if (ig) {
+      ig.inGovernment = !ig.inGovernment;
+      evaluateVictoriaMechanics(state);
+      return {
+        action: `${ig.name} moved ${ig.inGovernment ? "into Government" : "to Opposition"} in ${nation.name}`,
+        toastMessage: `${ig.name} is now ${ig.inGovernment ? "In Government" : "In Opposition"} (Legitimacy: ${nation.radicals?.legitimacy})`,
+      };
+    }
+  }
+
+  evaluateVictoriaMechanics(state);
+  return { action: `Updated election settings in ${nation.name}` };
+}
+
+export function triggerLawAction(state, { nationId, category, lawId, actionType }) {
+  ensureVictoriaState(state);
+  const nation = (state.nations || []).find((n) => n.id === nationId);
+  if (!nation) return { action: "Nation not found" };
+  const curDate = state.timeManager?.crisisDate || "2025-01-01";
+
+  const catObj = LAW_CATALOG[category];
+  const lawOpt = catObj?.options?.find((o) => o.id === lawId);
+
+  if (actionType === "CANCEL_ENACTMENT") {
+    nation.activeLawEnactment = null;
+    evaluateVictoriaMechanics(state);
+    return {
+      action: `Cancelled law enactment in ${nation.name}`,
+      toastMessage: "Legislative enactment cancelled.",
+    };
+  }
+
+  if (actionType === "INSTANT_DECREE" && lawOpt) {
+    nation.laws[category] = lawOpt.id;
+    if (category === "policing") nation.crimePolicy = lawOpt.id;
+    if (category === "welfare") nation.healthcarePolicy = lawOpt.id;
+    nation.activeLawEnactment = null;
+    state.newsFeed.unshift({
+      id: `news_decree_${Date.now().toString(36)}`,
+      date: curDate,
+      quarter: state.timeManager?.quarterNumber || 1,
+      category: "SOVEREIGN DECREE",
+      headline: `${nation.name} Enacts ${lawOpt.name} by Executive Decree`,
+      summary: `${nation.name}'s leadership invoked sovereign authority to immediately promulgate ${lawOpt.name} (${catObj.label}). ${lawOpt.desc}`,
+      nationName: nation.name,
+      impact: `Law Active: ${lawOpt.name}`,
+    });
+    evaluateVictoriaMechanics(state);
+    return {
+      action: `${nation.name} enacted ${lawOpt.name} (${catObj.label})`,
+      toastMessage: `Enacted ${lawOpt.name} in ${nation.name}!`,
+    };
+  }
+
+  if (actionType === "ADVANCE_PHASE" && nation.activeLawEnactment) {
+    const enact = nation.activeLawEnactment;
+    enact.phase = (enact.phase || 1) + 1;
+    if (enact.phase > 3) {
+      nation.laws[enact.category] = enact.lawId;
+      if (enact.category === "policing") nation.crimePolicy = enact.lawId;
+      if (enact.category === "welfare") nation.healthcarePolicy = enact.lawId;
+      const passedName = enact.lawName;
+      nation.activeLawEnactment = null;
+      state.newsFeed.unshift({
+        id: `news_lawpass_${Date.now().toString(36)}`,
+        date: curDate,
+        quarter: state.timeManager?.quarterNumber || 1,
+        category: "LAW & PARLIAMENT",
+        headline: `Parliament Passes ${passedName} in ${nation.name}!`,
+        summary: `Following final parliamentary assent, ${passedName} is now the law of the land in ${nation.name}.`,
+        nationName: nation.name,
+        impact: `Law Enacted: ${passedName}`,
+      });
+      evaluateVictoriaMechanics(state);
+      return {
+        action: `${nation.name} completed enactment of ${passedName}!`,
+        toastMessage: `Law Passed: ${passedName}!`,
+      };
+    }
+    evaluateVictoriaMechanics(state);
+    return {
+      action: `Advanced ${enact.lawName} to Phase ${enact.phase}/3 in ${nation.name}`,
+      toastMessage: `${enact.lawName} advanced to Phase ${enact.phase}/3!`,
+    };
+  }
+
+  // Default: START_ENACTMENT (3-phase Victoria 3 legislative process)
+  if (lawOpt) {
+    // Compute support chance from IGs
+    let supportClout = 18;
+    let opposeClout = 0;
+    for (const ig of nation.interestGroups || []) {
+      if (lawOpt.supportedBy?.some((s) => ig.name.toLowerCase().includes(s.toLowerCase()))) {
+        supportClout += ig.clout * (ig.inGovernment ? 1.4 : 0.8);
+      }
+      if (lawOpt.opposedBy?.some((s) => ig.name.toLowerCase().includes(s.toLowerCase()))) {
+        opposeClout += ig.clout;
+      }
+    }
+    const successChance = Math.round(
+      Math.max(20, Math.min(85, 35 + supportClout - opposeClout * 0.5))
+    );
+
+    nation.activeLawEnactment = {
+      category,
+      categoryLabel: catObj.label,
+      lawId: lawOpt.id,
+      lawName: lawOpt.name,
+      desc: lawOpt.desc,
+      phase: 1, // 1: Debate, 2: Committee Vote, 3: Final Assent
+      daysProgress: 0,
+      checkpointIntervalDays: 30,
+      successChance,
+      stallChance: Math.round(Math.max(5, Math.min(45, opposeClout * 0.7))),
+      lastOutcome: "Bill introduced to Parliament Floor (Phase 1: Debate)",
+    };
+
+    state.newsFeed.unshift({
+      id: `news_bill_${Date.now().toString(36)}`,
+      date: curDate,
+      quarter: state.timeManager?.quarterNumber || 1,
+      category: "LAW & PARLIAMENT",
+      headline: `${nation.name} Introduces Bill to Enact ${lawOpt.name}`,
+      summary: `Legislators in ${nation.name} have opened Phase 1 Debate on ${lawOpt.name} (${catObj.label}) with an initial ${successChance}% passage probability per checkpoint.`,
+      nationName: nation.name,
+      impact: `Enacting ${lawOpt.name} (${successChance}% Chance)`,
+    });
+
+    evaluateVictoriaMechanics(state);
+    return {
+      action: `Started enacting ${lawOpt.name} in ${nation.name} (${successChance}% success chance)`,
+      toastMessage: `Started enacting ${lawOpt.name} (Phase 1/3 Debate)!`,
+    };
+  }
+
+  return { action: "Law option not found" };
+}
+
+export function queueConstruction(state, { nationId, buildingId }) {
+  ensureVictoriaState(state);
+  const nation = (state.nations || []).find((n) => n.id === nationId);
+  if (!nation) return { action: "Nation not found" };
+  const bldg = CONSTRUCTION_BUILDINGS.find((b) => b.id === buildingId);
+  if (!bldg) return { action: "Building template not found" };
+
+  nation.treasuryBalance = (Number(nation.treasuryBalance) || 0) - bldg.cost;
+  nation.constructionQueue = nation.constructionQueue || [];
+  nation.constructionQueue.push({
+    queueId: `q_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 5)}`,
+    ...bldg,
+    daysRemaining: bldg.daysRequired,
+  });
+
+  evaluateVictoriaMechanics(state);
+  return {
+    action: `Queued ${bldg.name} in ${nation.name} ($${(bldg.cost / 1e9).toFixed(1)}B)`,
+    toastMessage: `Construction started: ${bldg.name} in ${nation.name}!`,
+  };
+}
+
+export function resolveNewsDilemma(state, { dilemmaId, optionIndex }) {
+  ensureVictoriaState(state);
+  const idx = (state.activeDilemmas || []).findIndex((d) => d.id === dilemmaId);
+  if (idx === -1) return { action: "Dispatch already resolved" };
+
+  const dilemma = state.activeDilemmas[idx];
+  const option = dilemma.options?.[optionIndex] || dilemma.options?.[0];
+  state.activeDilemmas.splice(idx, 1);
+
+  const nation = (state.nations || []).find((n) => n.id === dilemma.nationId) || state.nations?.[0];
+  const curDate = state.timeManager?.crisisDate || "2025-01-01";
+
+  if (nation && option) {
+    if (option.type === "FAVOR_INDUSTRIALISTS") {
+      nation.consumerSentiment = Math.min(100, (Number(nation.consumerSentiment) || 50) + 3);
+      for (const ig of nation.interestGroups || []) {
+        if (ig.id === "industrialists" || ig.id === "armed_forces") {
+          ig.manualApprovalMod = (Number(ig.manualApprovalMod) || 0) + 4;
+        }
+        if (ig.id === "trade_unions") {
+          ig.manualApprovalMod = (Number(ig.manualApprovalMod) || 0) - 2;
+        }
+      }
+    } else if (option.type === "FAVOR_UNIONS") {
+      const curShare = Number(nation.workerShareOverride ?? nation.computed?.workerShareOfGdp ?? 0.38);
+      nation.workerShareOverride = Math.min(0.75, Number((curShare + 0.03).toFixed(2)));
+      for (const ig of nation.interestGroups || []) {
+        if (ig.id === "trade_unions" || ig.id === "rural_folk") {
+          ig.manualApprovalMod = (Number(ig.manualApprovalMod) || 0) + 4;
+        }
+        if (ig.id === "industrialists") {
+          ig.manualApprovalMod = (Number(ig.manualApprovalMod) || 0) - 2;
+        }
+      }
+    } else if (option.type === "FAVOR_INTELLIGENTSIA") {
+      nation.literacyRate = Math.min(1, Number(((Number(nation.literacyRate) || 0.75) + 0.02).toFixed(3)));
+      for (const ig of nation.interestGroups || []) {
+        if (ig.id === "intelligentsia") {
+          ig.manualApprovalMod = (Number(ig.manualApprovalMod) || 0) + 4;
+        }
+      }
+    } else if (option.type === "BOOST_CHALLENGER_MOMENTUM") {
+      for (const p of state.politicalParties || []) {
+        if (p.name !== nation.rulingParty) {
+          nation.electionState.partyMomentum[p.name] =
+            (Number(nation.electionState.partyMomentum[p.name]) || 5) + 10;
+        }
+      }
+    } else if (option.type === "BOOST_INCUMBENT_MOMENTUM") {
+      const r = nation.rulingParty;
+      if (r) {
+        nation.electionState.partyMomentum[r] =
+          (Number(nation.electionState.partyMomentum[r]) || 5) + 12;
+      }
+      nation.consumerSentiment = Math.min(100, (Number(nation.consumerSentiment) || 50) + 5);
+    } else if (option.type === "INFRA_BOOM") {
+      nation.infrastructureEfficiency = Math.min(
+        1,
+        Number(((Number(nation.infrastructureEfficiency) || 0.75) + 0.03).toFixed(3))
+      );
+      nation.treasuryBalance = (Number(nation.treasuryBalance) || 0) + 8000000000;
+    } else if (option.type === "MARKET_BOOM") {
+      nation.consumerSentiment = Math.min(100, (Number(nation.consumerSentiment) || 50) + 6);
+    }
+
+    state.newsFeed.unshift({
+      id: `news_res_${Date.now().toString(36)}`,
+      date: curDate,
+      quarter: state.timeManager?.quarterNumber || 1,
+      category: "POLICY DECISION",
+      headline: `${nation.name} Responds to "${dilemma.title}"`,
+      summary: `State leadership enacted decision: "${option.label}" (${option.effectSummary}).`,
+      nationName: nation.name,
+      impact: option.effectSummary,
+    });
+  }
+
+  evaluateVictoriaMechanics(state);
+  return {
+    action: `Resolved Policy Dispatch: ${dilemma.title}`,
+    toastMessage: `Policy Decision Enacted: ${option?.effectSummary || "Complete"}!`,
+  };
+}
+
+export function publishCustomNews(state, { headline, summary, category = "SPECIAL EDITION", nationName = "Global" }) {
+  ensureVictoriaState(state);
+  const curDate = state.timeManager?.crisisDate || "2025-01-01";
+  const article = {
+    id: `news_custom_${Date.now().toString(36)}`,
+    date: curDate,
+    quarter: state.timeManager?.quarterNumber || 1,
+    category,
+    headline,
+    summary,
+    nationName,
+    impact: "Press Dispatch Published",
+  };
+  state.newsFeed.unshift(article);
+  return {
+    action: `Published Gazette Headline: "${headline}"`,
+    toastMessage: `Published to The Imperial Gazette: "${headline}"`,
+  };
+}
