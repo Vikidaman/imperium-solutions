@@ -400,6 +400,14 @@ export default {
               request.url,
               body.scenarioType || "interstellar"
             );
+        if (body.startDate) {
+          setCustomStartDate(state, {
+            startDate: body.startDate,
+            resetCurrentDate: true,
+            electionIntervalDays: body.electionIntervalDays,
+          });
+          evaluateSimulation(state);
+        }
         const now = new Date().toISOString();
         const newSess = {
           id,
