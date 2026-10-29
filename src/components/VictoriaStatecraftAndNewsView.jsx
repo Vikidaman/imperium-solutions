@@ -709,38 +709,40 @@ export default function VictoriaStatecraftAndNewsView({
                 </p>
               </div>
 
-              <div className="flex flex-wrap items-center gap-2.5">
-                <select
-                  value={es.electionIntervalDays || 360}
-                  onChange={(e) =>
-                    onVictoriaAction({
-                      type: "ELECTION_ACTION",
-                      nationId: nation.id,
-                      actionType: "REFORM_GOVERNMENT",
-                      electionIntervalDays: Number(e.target.value),
-                    })
-                  }
-                  className="px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-xs font-semibold text-slate-200 cursor-pointer"
-                >
-                  <option value={180}>Election Cycle: Every 180 Days</option>
-                  <option value={360}>Election Cycle: Every 1 Year (360d)</option>
-                  <option value={720}>Election Cycle: Every 2 Years (720d)</option>
-                  <option value={1460}>Election Cycle: Every 4 Years (1460d)</option>
-                </select>
+              {!isReadOnly && (
+                <div className="flex flex-wrap items-center gap-2.5">
+                  <select
+                    value={es.electionIntervalDays || 360}
+                    onChange={(e) =>
+                      onVictoriaAction({
+                        type: "ELECTION_ACTION",
+                        nationId: nation.id,
+                        actionType: "REFORM_GOVERNMENT",
+                        electionIntervalDays: Number(e.target.value),
+                      })
+                    }
+                    className="px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-xs font-semibold text-slate-200 cursor-pointer"
+                  >
+                    <option value={180}>Election Cycle: Every 180 Days</option>
+                    <option value={360}>Election Cycle: Every 1 Year (360d)</option>
+                    <option value={720}>Election Cycle: Every 2 Years (720d)</option>
+                    <option value={1460}>Election Cycle: Every 4 Years (1460d)</option>
+                  </select>
 
-                <button
-                  onClick={() =>
-                    onVictoriaAction({
-                      type: "ELECTION_ACTION",
-                      nationId: nation.id,
-                      actionType: "CALL_SNAP_ELECTION",
-                    })
-                  }
-                  className="px-4 py-2 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 font-bold text-xs flex items-center gap-2 shadow-lg shadow-cyan-500/20 cursor-pointer"
-                >
-                  <Vote className="w-4 h-4" /> Call Snap General Election Now
-                </button>
-              </div>
+                  <button
+                    onClick={() =>
+                      onVictoriaAction({
+                        type: "ELECTION_ACTION",
+                        nationId: nation.id,
+                        actionType: "CALL_SNAP_ELECTION",
+                      })
+                    }
+                    className="px-4 py-2 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 font-bold text-xs flex items-center gap-2 shadow-lg shadow-cyan-500/20 cursor-pointer"
+                  >
+                    <Vote className="w-4 h-4" /> Call Snap General Election Now
+                  </button>
+                </div>
+              )}
             </div>
 
             {/* 500-Seat Parliamentary Distribution Bar */}
