@@ -198,52 +198,10 @@ export function transferTerritory(state, { territoryName, targetNationId, mode =
     let transferredCompanies = [];
     let newPops = planet === "Mars" ? 4500000 : 18000000;
 
-    if (prevNation && prevNation.companies && prevNation.companies.length > 10) {
-      // Carve out 10% of companies from previous controller
-      const takeCount = Math.max(5, Math.floor(prevNation.companies.length * 0.1));
-      transferredCompanies = prevNation.companies.splice(0, takeCount).map((c, idx) => ({
-        ...c,
-        id: `${newId}_comp_${idx + 1}`,
-        hqCountry: territoryName,
-      }));
+    if (prevNation) {
       const popShare = Math.round((prevNation.workingPops || 20000000) * 0.12);
       prevNation.workingPops = Math.max(1000000, prevNation.workingPops - popShare);
       newPops = Math.max(2500000, popShare);
-    } else {
-      const sampleGoods = [
-        "Tools",
-        "Steel",
-        "Electricity",
-        "Grain",
-        "Semi-Conductor",
-        "Automobile",
-        "Banking",
-        "Construction",
-        "Pharmaceuticals",
-        "International Trade",
-      ];
-      for (let i = 1; i <= 15; i++) {
-        transferredCompanies.push({
-          id: `${newId}_comp_${i}`,
-          name: `${territoryName} National Syndicate ${i}`,
-          hqCountry: territoryName,
-          flagshipGood: sampleGoods[(i - 1) % sampleGoods.length],
-          gdpSector: "Industry & Manufacturing GDP",
-          hypeFactor: 54,
-          valuation: 0,
-          vgp: 0,
-          employedPops: Math.round((newPops * 0.88) / 15),
-          projectedRealGrowth: 0.025,
-          govtOwnedShares: 1000000,
-          numberOfShares: 10000000,
-          dividendEfficiency: 0.6,
-          dividendsPerShare: 0,
-          productionMethod: "Tools",
-          subsidised: false,
-          targetGrowth: 0.03,
-          illegal: false,
-        });
-      }
     }
 
     const newNation = {
