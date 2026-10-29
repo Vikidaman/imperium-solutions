@@ -979,6 +979,37 @@ app.post("/api/sessions/:id/territories", (req, res) => {
   });
 });
 
+// 18. Victoria 3 Mechanics: Elections, Laws, Construction Queue, Gazette Dispatches & Dilemmas
+app.post("/api/sessions/:id/victoria", (req, res) => {
+  const { id } = req.params;
+  const sess = getCachedSession(id);
+  if (!sess) return res.status(404).json({ error: "Session not found" });
+
+  const { type, actor } = req.body;
+  let result = { action: "Updated statecraft", toastMessage: null };
+
+  if (type === "ELECTION_ACTION") {
+    result = triggerElectionAction(sess.state, req.body);
+  } else if (type === "LAW_ACTION") {
+    result = triggerLawAction(sess.state, req.body);
+  } else if (type === "QUEUE_CONSTRUCTION") {
+    result = queueConstruction(sess.state, req.body);
+  } else if (type === "RESOLVE_DILEMMA") {
+    result = resolveNewsDilemma(sess.state, req.body);
+  } else if (type === "PUBLISH_NEWS") {
+    result = publishCustomNews(sess.state, req.body);
+  } else if (type === "SET_START_DATE") {
+    result = setCustomStartDate(sess.state, req.body);
+  }
+
+  persistAndBroadcast(id, actor, result.action, type || "Statecraft");
+  res.json({
+    session: sess,
+    toastMessage: result.toastMessage || result.action,
+    activityLog: getActivityLog(id, 60),
+  });
+});
+
 // Mount Vite in development or static dist in production
 async function startServer() {
   const isProd = process.env.NODE_ENV === "production";
