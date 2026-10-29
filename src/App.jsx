@@ -135,9 +135,10 @@ export default function App() {
 
   // API Mutation Helpers
   const handleTimeAction = async (body) => {
+    if (guardReadOnly()) return;
     const res = await fetch(`/api/sessions/${activeSessionId}/time`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: getMutationHeaders(),
       body: JSON.stringify({ ...body, actor: actorName }),
     });
     if (res.ok) {
@@ -152,9 +153,10 @@ export default function App() {
   };
 
   const handleTransferTerritory = async (payload) => {
+    if (guardReadOnly()) return;
     const res = await fetch(`/api/sessions/${activeSessionId}/territories`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: getMutationHeaders(),
       body: JSON.stringify({ ...payload, actor: actorName }),
     });
     if (res.ok) {
@@ -171,11 +173,12 @@ export default function App() {
   };
 
   const handleUpdateNation = async (nationId, updates) => {
+    if (guardReadOnly()) return;
     const res = await fetch(
       `/api/sessions/${activeSessionId}/nations/${nationId}`,
       {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+        headers: getMutationHeaders(),
         body: JSON.stringify({ ...updates, actor: actorName }),
       }
     );
@@ -187,9 +190,10 @@ export default function App() {
   };
 
   const handleCreateNation = async (nationForm) => {
+    if (guardReadOnly()) return;
     const res = await fetch(`/api/sessions/${activeSessionId}/nations`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: getMutationHeaders(),
       body: JSON.stringify({ ...nationForm, actor: actorName }),
     });
     if (res.ok) {
@@ -203,11 +207,12 @@ export default function App() {
   };
 
   const handleDeleteNation = async (nationId) => {
+    if (guardReadOnly()) return;
     const res = await fetch(
       `/api/sessions/${activeSessionId}/nations/${nationId}`,
       {
         method: "DELETE",
-        headers: { "Content-Type": "application/json" },
+        headers: getMutationHeaders(),
         body: JSON.stringify({ actor: actorName }),
       }
     );
@@ -222,11 +227,12 @@ export default function App() {
   };
 
   const handleCreateCompany = async (nationId, compForm) => {
+    if (guardReadOnly()) return;
     const res = await fetch(
       `/api/sessions/${activeSessionId}/nations/${nationId}/companies`,
       {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: getMutationHeaders(),
         body: JSON.stringify({ ...compForm, actor: actorName }),
       }
     );
@@ -238,11 +244,12 @@ export default function App() {
   };
 
   const handleUpdateCompany = async (nationId, companyId, updates) => {
+    if (guardReadOnly()) return;
     const res = await fetch(
       `/api/sessions/${activeSessionId}/nations/${nationId}/companies/${companyId}`,
       {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+        headers: getMutationHeaders(),
         body: JSON.stringify({ ...updates, actor: actorName }),
       }
     );
@@ -254,11 +261,12 @@ export default function App() {
   };
 
   const handleDeleteCompany = async (nationId, companyId) => {
+    if (guardReadOnly()) return;
     const res = await fetch(
       `/api/sessions/${activeSessionId}/nations/${nationId}/companies/${companyId}`,
       {
         method: "DELETE",
-        headers: { "Content-Type": "application/json" },
+        headers: getMutationHeaders(),
         body: JSON.stringify({ actor: actorName }),
       }
     );
@@ -270,11 +278,12 @@ export default function App() {
   };
 
   const handleUpdateMarket = async (nationId, payload) => {
+    if (guardReadOnly()) return;
     const res = await fetch(
       `/api/sessions/${activeSessionId}/nations/${nationId}/market`,
       {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+        headers: getMutationHeaders(),
         body: JSON.stringify({ ...payload, actor: actorName }),
       }
     );
@@ -286,9 +295,10 @@ export default function App() {
   };
 
   const handleUpdateCompanion = async (payload) => {
+    if (guardReadOnly()) return;
     const res = await fetch(`/api/sessions/${activeSessionId}/companion`, {
       method: "PATCH",
-      headers: { "Content-Type": "application/json" },
+      headers: getMutationHeaders(),
       body: JSON.stringify({ ...payload, actor: actorName }),
     });
     if (res.ok) {
@@ -299,9 +309,10 @@ export default function App() {
   };
 
   const handleSaveParty = async (partyData) => {
+    if (guardReadOnly()) return;
     const res = await fetch(`/api/sessions/${activeSessionId}/parties`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: getMutationHeaders(),
       body: JSON.stringify({ ...partyData, actor: actorName }),
     });
     if (res.ok) {
@@ -312,9 +323,10 @@ export default function App() {
   };
 
   const handleCreateStockAccount = async (payload) => {
+    if (guardReadOnly()) return;
     const res = await fetch(`/api/sessions/${activeSessionId}/stock-accounts`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: getMutationHeaders(),
       body: JSON.stringify({ ...payload, actor: actorName }),
     });
     if (res.ok) {
@@ -325,11 +337,12 @@ export default function App() {
   };
 
   const handleExecuteTrade = async (accountId, payload) => {
+    if (guardReadOnly()) return;
     const res = await fetch(
       `/api/sessions/${activeSessionId}/stock-accounts/${accountId}/trade`,
       {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: getMutationHeaders(),
         body: JSON.stringify({ ...payload, actor: actorName }),
       }
     );
@@ -344,9 +357,10 @@ export default function App() {
   };
 
   const handleResetScenario = async () => {
+    if (guardReadOnly()) return;
     const res = await fetch(`/api/sessions/${activeSessionId}/reset`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: getMutationHeaders(),
       body: JSON.stringify({ actor: actorName }),
     });
     if (res.ok) {
@@ -358,9 +372,10 @@ export default function App() {
   };
 
   const handleCreateNewScenario = async (payload) => {
+    if (guardReadOnly()) return;
     const res = await fetch("/api/sessions", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: getMutationHeaders(),
       body: JSON.stringify({ ...payload, actor: actorName }),
     });
     if (res.ok) {
@@ -371,9 +386,10 @@ export default function App() {
   };
 
   const handleVictoriaAction = async (payload) => {
+    if (guardReadOnly()) return;
     const res = await fetch(`/api/sessions/${activeSessionId}/victoria`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: getMutationHeaders(),
       body: JSON.stringify({ ...payload, actor: actorName }),
     });
     if (res.ok) {
