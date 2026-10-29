@@ -540,23 +540,57 @@ export function evaluateSimulation(state) {
   for (const nation of state.nations || []) {
     const mMap = nationMarketMap.get(nation.id);
 
-    // First, compute Local Price (F = min(U, H)) and aggregate sell orders (L) by good
+    // Compute aggregate sell orders (L) by good
     const sellOrdersByGood = new Map();
     let hasInternationalTradeCompany = false;
 
-    for (const comp of nation.companies || []) {
-      const gName = comp.flagshipGood;
-      const mRow = mMap.get(gName);
-      if (mRow) {
-        comp.gdpSector = mRow.category;
-        comp.productionMethod = mRow.productionMethod;
-        comp.illegal = Boolean(mRow.illegal);
+    // Macroeconomic baseline distribution when companies array is empty
+    const nationWorkingPops = Math.max(1000000, Number(nation.workingPops) || 280000000);
+    const hasCompanies = Array.isArray(nation.companies) && nation.companies.length > 0;
+
+    if (hasCompanies) {
+      for (const comp of nation.companies) {
+        const gName = comp.flagshipGood;
+        const mRow = mMap.get(gName);
+        if (mRow) {
+          comp.gdpSector = mRow.category;
+          comp.productionMethod = mRow.productionMethod;
+          comp.illegal = Boolean(mRow.illegal);
+        }
+        if (gName === "International Trade" || gName === "Retail, Trade & Logistics") {
+          hasInternationalTradeCompany = true;
+        }
+        const emp = Math.max(0, Number(comp.employedPops) || 0);
+        sellOrdersByGood.set(gName, (sellOrdersByGood.get(gName) || 0) + emp);
       }
-      if (gName === "International Trade") {
-        hasInternationalTradeCompany = true;
+    } else {
+      // Direct macroeconomic distribution: 95% employed pops across 60 simplified goods
+      hasInternationalTradeCompany = true;
+      const totalBaseEmp = nationWorkingPops * 0.95;
+      const goodsCount = Math.max(1, mMap.size);
+      
+      // Sector allocation weights
+      const sectorWeights = {
+        "Agricultural Sector GDP": 0.12,
+        "Industry & Manufacturing GDP": 0.58,
+        "Hospitality & Tourist Services GDP": 0.08,
+        "Office & Corporate Services GDP": 0.22,
+      };
+
+      // Count goods per sector
+      const sectorGoodsCounts = {};
+      for (const mRow of mMap.values()) {
+        const sec = mRow.category || "Industry & Manufacturing GDP";
+        sectorGoodsCounts[sec] = (sectorGoodsCounts[sec] || 0) + 1;
       }
-      const emp = Math.max(0, Number(comp.employedPops) || 0);
-      sellOrdersByGood.set(gName, (sellOrdersByGood.get(gName) || 0) + emp);
+
+      for (const [gName, mRow] of mMap.entries()) {
+        const sec = mRow.category || "Industry & Manufacturing GDP";
+        const secWeight = sectorWeights[sec] || 0.25;
+        const countInSec = Math.max(1, sectorGoodsCounts[sec] || 1);
+        const empForGood = Math.round((totalBaseEmp * secWeight) / countInSec);
+        sellOrdersByGood.set(gName, empForGood);
+      }
     }
 
     // Set K (Global Price), U (Post-Import Tariff Price), F (Local Price), L (Sell Orders)
