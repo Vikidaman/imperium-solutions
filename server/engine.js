@@ -37,10 +37,292 @@ export function getHealthcareMortalityBase(policy) {
   return 0.05;
 }
 
+const EU_MEMBER_COUNTRIES = [
+  "France",
+  "Germany",
+  "Italy",
+  "Spain",
+  "Poland",
+  "Netherlands",
+  "Belgium",
+  "Sweden",
+  "Austria",
+  "Denmark",
+  "Finland",
+  "Ireland",
+  "Portugal",
+  "Greece",
+  "Czechia",
+  "Hungary",
+  "Romania",
+  "Bulgaria",
+  "Croatia",
+  "Slovakia",
+  "Slovenia",
+  "Estonia",
+  "Latvia",
+  "Lithuania",
+  "Luxembourg",
+  "Cyprus",
+];
+
+const DEFAULT_MARS_PROVINCES = {
+  "Olympus Mons": "olympus",
+  "Tharsis Montes": "olympus",
+  "Alba Mons": "olympus",
+  "Amazonis Planitia": "olympus",
+  "Valles Marineris": "heinan",
+  "Solis Planum": "heinan",
+  "Noctis Labyrinthus": "heinan",
+  "Chryse Planitia": "mitsubishi",
+  "Acidalia Planitia": "mitsubishi",
+  "Tempe Terra": "mitsubishi",
+  "Meridiani Planum": "mitsubishi",
+  "Utopia Planitia": "sumitomo",
+  "Elysium Planitia": "sumitomo",
+  "Arcadia Planitia": "sumitomo",
+  "Isidis Planitia": "sumitomo",
+  "Hellas Planitia": "ifc",
+  "Syrtis Major": "ifc",
+  "Arabia Terra": "ifc",
+  "Noachis Terra": "ifc",
+  "Argyre Planitia": "UNCLAIMED",
+  "Cimmeria Terra": "UNCLAIMED",
+  "Sirenum Terra": "UNCLAIMED",
+  "Hesperia Planum": "UNCLAIMED",
+  "Vastitas Borealis": "UNCLAIMED",
+};
+
+export function ensureTerritoryMap(state) {
+  if (!state.territoryMap) {
+    state.territoryMap = {};
+  }
+  const tm = state.territoryMap;
+  const nationsById = new Map((state.nations || []).map((n) => [n.id, n]));
+  const nationsByName = new Map(
+    (state.nations || []).map((n) => [n.name.toLowerCase(), n])
+  );
+
+  // Seed default Earth mappings if empty
+  if (Object.keys(tm).length === 0) {
+    if (nationsById.has("usa")) tm["United States of America"] = "usa";
+    if (nationsById.has("china")) tm["China"] = "china";
+    if (nationsById.has("japan")) tm["Japan"] = "japan";
+    if (nationsById.has("india")) tm["India"] = "india";
+    if (nationsById.has("russia")) tm["Russia"] = "russia";
+    if (nationsById.has("botswana")) tm["Botswana"] = "botswana";
+    if (nationsById.has("brazil")) tm["Brazil"] = "brazil";
+    if (nationsById.has("australia")) tm["Australia"] = "australia";
+    if (nationsById.has("mexico")) tm["Mexico"] = "mexico";
+    if (nationsById.has("european_union")) {
+      for (const c of EU_MEMBER_COUNTRIES) {
+        tm[c] = "european_union";
+      }
+    }
+    for (const [prov, controller] of Object.entries(DEFAULT_MARS_PROVINCES)) {
+      if (controller === "UNCLAIMED" || nationsById.has(controller)) {
+        tm[prov] = controller;
+      }
+    }
+    // Also map any nation whose name matches a territory
+    for (const n of state.nations || []) {
+      if (!Object.values(tm).includes(n.id)) {
+        tm[n.name] = n.id;
+      }
+    }
+  }
+
+  // Compute controlled territory count per nation
+  const counts = {};
+  for (const [terr, cid] of Object.entries(tm)) {
+    if (cid && cid !== "UNCLAIMED") {
+      counts[cid] = (counts[cid] || 0) + 1;
+    }
+  }
+  for (const n of state.nations || []) {
+    n.territoryCount = counts[n.id] || 1;
+  }
+  return tm;
+}
+
+/**
+ * Handles dynamic border changes:
+ * - mode === "ANNEX": Transfers a territory to targetNationId (shifting population, companies & resources)
+ * - mode === "RELEASE": Releases/awakens a territory on the map as a brand-new independent sovereign nation
+ */
+export function transferTerritory(state, { territoryName, targetNationId, mode = "ANNEX", planet = "Earth" }) {
+  ensureTerritoryMap(state);
+  const prevControllerId = state.territoryMap[territoryName];
+  const prevNation = (state.nations || []).find((n) => n.id === prevControllerId);
+
+  if (mode === "RELEASE") {
+    // Check if nation with this name already exists
+    const existing = (state.nations || []).find(
+      (n) => n.name.toLowerCase() === territoryName.toLowerCase()
+    );
+    if (existing) {
+      state.territoryMap[territoryName] = existing.id;
+      evaluateSimulation(state);
+      return { state, nationId: existing.id, action: `Restored sovereignty to ${existing.name}` };
+    }
+
+    const newId = `${territoryName.toLowerCase().replace(/[^a-z0-9]+/g, "_")}_${Date.now()
+      .toString(36)
+      .slice(-3)}`;
+    const templateNation = prevNation || state.nations[0];
+    let transferredCompanies = [];
+    let newPops = planet === "Mars" ? 4500000 : 18000000;
+
+    if (prevNation && prevNation.companies && prevNation.companies.length > 10) {
+      // Carve out 10% of companies from previous controller
+      const takeCount = Math.max(5, Math.floor(prevNation.companies.length * 0.1));
+      transferredCompanies = prevNation.companies.splice(0, takeCount).map((c, idx) => ({
+        ...c,
+        id: `${newId}_comp_${idx + 1}`,
+        hqCountry: territoryName,
+      }));
+      const popShare = Math.round((prevNation.workingPops || 20000000) * 0.12);
+      prevNation.workingPops = Math.max(1000000, prevNation.workingPops - popShare);
+      newPops = Math.max(2500000, popShare);
+    } else {
+      const sampleGoods = [
+        "Tools",
+        "Steel",
+        "Electricity",
+        "Grain",
+        "Semi-Conductor",
+        "Automobile",
+        "Banking",
+        "Construction",
+        "Pharmaceuticals",
+        "International Trade",
+      ];
+      for (let i = 1; i <= 15; i++) {
+        transferredCompanies.push({
+          id: `${newId}_comp_${i}`,
+          name: `${territoryName} National Syndicate ${i}`,
+          hqCountry: territoryName,
+          flagshipGood: sampleGoods[(i - 1) % sampleGoods.length],
+          gdpSector: "Industry & Manufacturing GDP",
+          hypeFactor: 54,
+          valuation: 0,
+          vgp: 0,
+          employedPops: Math.round((newPops * 0.88) / 15),
+          projectedRealGrowth: 0.025,
+          govtOwnedShares: 1000000,
+          numberOfShares: 10000000,
+          dividendEfficiency: 0.6,
+          dividendsPerShare: 0,
+          productionMethod: "Tools",
+          subsidised: false,
+          targetGrowth: 0.03,
+          illegal: false,
+        });
+      }
+    }
+
+    const newNation = {
+      id: newId,
+      name: territoryName,
+      planet,
+      stockExchangeName: `${territoryName} National Bourse`,
+      consumerSentiment: 56,
+      kFactorScaler: 1500,
+      workingPops: newPops,
+      literacyRate: 0.82,
+      urbanisationIndex: 0.72,
+      infrastructureEfficiency: 0.78,
+      rulingParty: state.politicalParties?.[0]?.name || "Republican",
+      federalCooperativity: 0.1,
+      diplomaticExpenses: 0,
+      treasuryBalance: 25000000000,
+      specializedIndustry: "Industry & Manufacturing GDP",
+      crimePolicy: "Beat Cops",
+      healthcarePolicy: "State-run Healthcare",
+      highImmigration: false,
+      companies: transferredCompanies,
+      market: (templateNation?.market || []).map((m) => ({ ...m })),
+    };
+
+    state.nations.push(newNation);
+    state.territoryMap[territoryName] = newId;
+    evaluateSimulation(state);
+    return {
+      state,
+      nationId: newId,
+      action: `${territoryName} declared independence as a sovereign state`,
+    };
+  }
+
+  // ANNEX / TRANSFER mode
+  const targetNation = (state.nations || []).find((n) => n.id === targetNationId);
+  if (!targetNation) return { state, action: "Target nation not found" };
+
+  if (prevControllerId === targetNationId) {
+    return { state, nationId: targetNationId, action: `${territoryName} is already controlled by ${targetNation.name}` };
+  }
+
+  if (prevNation && prevNation.id !== targetNation.id) {
+    // Transfer 10% of workforce and companies from previous owner to annexing power
+    const takeCompanies = Math.max(
+      2,
+      Math.min(25, Math.floor((prevNation.companies?.length || 10) * 0.08))
+    );
+    const seized = (prevNation.companies || []).splice(0, takeCompanies);
+    let seizedEmp = 0;
+    for (const c of seized) {
+      c.hqCountry = targetNation.name;
+      seizedEmp += Number(c.employedPops) || 0;
+      targetNation.companies.unshift(c);
+    }
+    const popShift = Math.max(seizedEmp * 1.1, (prevNation.workingPops || 10000000) * 0.08);
+    prevNation.workingPops = Math.max(500000, Math.round(prevNation.workingPops - popShift));
+    targetNation.workingPops = Math.round((targetNation.workingPops || 10000000) + popShift);
+  } else {
+    // Annexing neutral/unclaimed territory adds frontier workforce & resource corporations
+    const bonusPops = targetNation.planet === "Mars" ? 1800000 : 4500000;
+    targetNation.workingPops = Math.round((targetNation.workingPops || 10000000) + bonusPops);
+    const frontierGoods = ["Steel", "Iron", "Grain", "Electricity", "Tools"];
+    for (let i = 0; i < 4; i++) {
+      targetNation.companies.unshift({
+        id: `${targetNation.id}_annex_${Date.now().toString(36)}_${i}`,
+        name: `${territoryName} ${frontierGoods[i]} Consortium`,
+        hqCountry: targetNation.name,
+        flagshipGood: frontierGoods[i],
+        gdpSector: "Industry & Manufacturing GDP",
+        hypeFactor: 55,
+        valuation: 0,
+        vgp: 0,
+        employedPops: Math.round((bonusPops * 0.85) / 4),
+        projectedRealGrowth: 0.03,
+        govtOwnedShares: 0,
+        numberOfShares: 25000000,
+        dividendEfficiency: 0.6,
+        dividendsPerShare: 0,
+        productionMethod: "Tools",
+        subsidised: false,
+        targetGrowth: 0.03,
+        illegal: false,
+      });
+    }
+  }
+
+  state.territoryMap[territoryName] = targetNation.id;
+  evaluateSimulation(state);
+  return {
+    state,
+    nationId: targetNation.id,
+    action: `${targetNation.name} annexed ${territoryName}${
+      prevNation ? ` from ${prevNation.name}` : ""
+    }`,
+  };
+}
+
 /**
  * Recalculates the entire global/planetary economy in place and returns the enriched state.
  */
 export function evaluateSimulation(state) {
+  ensureTerritoryMap(state);
   const strictSheetQuirks = Boolean(state.strictSheetQuirks);
   const quarterNum = Math.max(1, state.timeManager?.quarterNumber || 1);
 

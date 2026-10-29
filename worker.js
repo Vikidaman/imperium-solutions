@@ -2,6 +2,7 @@ import {
   evaluateSimulation,
   advanceSimulationTime,
   runBudgetAndDividendUpdater,
+  transferTerritory,
 } from "./server/engine.js";
 
 const CHUNK_SIZE = 350000; // 350 KB per D1 row (well below D1's 1 MB limit)
@@ -1052,6 +1053,32 @@ export default {
             activityLog: await getActivityLog(db, sessionId, 60),
           });
         }
+      }
+
+      // POST /api/sessions/:id/territories (Dynamic Border Changes)
+      if (parts[3] === "territories" && request.method === "POST") {
+        const { territoryName, targetNationId, mode = "ANNEX", planet = "Earth", actor } =
+          await request.json();
+        const result = transferTerritory(sess.state, {
+          territoryName,
+          targetNationId,
+          mode,
+          planet,
+        });
+        await saveStateToD1(db, sess);
+        await logActivity(
+          db,
+          sessionId,
+          actor,
+          result.action,
+          `Territory: ${territoryName}`
+        );
+        return jsonResponse({
+          session: sess,
+          nationId: result.nationId,
+          toastMessage: result.action,
+          activityLog: await getActivityLog(db, sessionId, 60),
+        });
       }
 
       return jsonResponse({ error: "Not found" }, 404);

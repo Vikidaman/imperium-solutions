@@ -3,17 +3,15 @@ import {
   Globe2,
   Landmark,
   Building2,
-  ShoppingBag,
+  GitBranch,
   Briefcase,
   Clock,
   FastForward,
   Play,
   Pause,
-  Users,
   Radio,
-  Sparkles,
 } from "lucide-react";
-import PlanetaryOverview from "./components/PlanetaryOverview";
+import InteractiveWorldMap from "./components/InteractiveWorldMap";
 import NationSimulatorDesk from "./components/NationSimulatorDesk";
 import CompaniesRegistry from "./components/CompaniesRegistry";
 import MarketsAndTechView from "./components/MarketsAndTechView";
@@ -28,9 +26,9 @@ export default function App() {
   const [ledgerHistory, setLedgerHistory] = useState([]);
   const [activityLog, setActivityLog] = useState([]);
   const [selectedNationId, setSelectedNationId] = useState("usa");
-  const [activeTab, setActiveTab] = useState("overview");
+  const [activeTab, setActiveTab] = useState("map");
   const [onlineCount, setOnlineCount] = useState(1);
-  const [actorName, setActorName] = useState("Crisis Director");
+  const [actorName, setActorName] = useState("World Director");
   const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState(null);
 
@@ -38,7 +36,7 @@ export default function App() {
     setToast(msg);
     setTimeout(() => {
       setToast((prev) => (prev === msg ? null : prev));
-    }, 3200);
+    }, 3400);
   }, []);
 
   const fetchSessionsList = useCallback(async () => {
@@ -118,6 +116,25 @@ export default function App() {
     }
   };
 
+  const handleTransferTerritory = async (payload) => {
+    const res = await fetch(`/api/sessions/${activeSessionId}/territories`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ...payload, actor: actorName }),
+    });
+    if (res.ok) {
+      const data = await res.json();
+      setSessionData(data.session);
+      setActivityLog(data.activityLog || []);
+      if (data.nationId) {
+        setSelectedNationId(data.nationId);
+      }
+      if (data.toastMessage) {
+        showToast(data.toastMessage);
+      }
+    }
+  };
+
   const handleUpdateNation = async (nationId, updates) => {
     const res = await fetch(
       `/api/sessions/${activeSessionId}/nations/${nationId}`,
@@ -146,7 +163,6 @@ export default function App() {
       setActivityLog(data.activityLog || []);
       if (data.newNationId) {
         setSelectedNationId(data.newNationId);
-        setActiveTab("desk");
       }
     }
   };
@@ -303,9 +319,6 @@ export default function App() {
       setSessionData(data.session);
       setLedgerHistory(data.ledgerHistory || []);
       setActivityLog(data.activityLog || []);
-      if (data.toastMessage) {
-        showToast(data.toastMessage);
-      }
     }
   };
 
@@ -330,7 +343,7 @@ export default function App() {
             <Globe2 className="w-5 h-5 text-cyan-400" />
           </div>
           <div className="text-sm font-display font-semibold">
-            Initializing Imperium Macroeconomic Engine...
+            Loading Imperium World Geopolitical & Economic Simulator...
           </div>
         </div>
       </div>
@@ -347,12 +360,14 @@ export default function App() {
     (acc, n) => acc + (n.companies?.length || 0),
     0
   );
+  const currentNationName =
+    state.nations?.find((n) => n.id === selectedNationId)?.name || "Select";
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col">
-      {/* Top Crisis Command Header */}
+      {/* Top World Simulator HUD Header */}
       <header className="sticky top-0 z-40 bg-slate-950/90 backdrop-blur-md border-b border-slate-800/80 px-4 lg:px-8 py-3">
-        <div className="max-w-[1600px] mx-auto flex flex-wrap items-center justify-between gap-4">
+        <div className="max-w-[1650px] mx-auto flex flex-wrap items-center justify-between gap-4">
           {/* Brand & Scenario Selector */}
           <div className="flex flex-wrap items-center gap-4">
             <div className="flex items-center gap-3">
@@ -362,38 +377,37 @@ export default function App() {
               <div>
                 <div className="flex items-center gap-2">
                   <h1 className="text-base font-bold font-display tracking-tight text-white">
-                    IMPERIUM SOLUTIONS
+                    IMPERIUM WORLD SIMULATOR
                   </h1>
                   <span className="text-[10px] font-mono-num uppercase px-2 py-0.5 rounded bg-cyan-500/15 text-cyan-300 border border-cyan-500/30">
-                    Interstellar 2.0 Engine
+                    Geopolitics & Macroeconomics
                   </span>
                 </div>
                 <p className="text-[11px] text-slate-400">
-                  Planetary Macroeconomics, 202-Good Supply Chain & Corporate Crisis Simulator
+                  Interactive Planetary Borders, Supply Chains & Sovereign Statecraft
                 </p>
               </div>
             </div>
 
-            {/* Scenario Dropdown */}
             <select
               value={activeSessionId}
               onChange={(e) => setActiveSessionId(e.target.value)}
-              className="px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-xs font-semibold text-cyan-300 cursor-pointer"
+              className="px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-700 text-xs font-semibold text-cyan-300 cursor-pointer"
             >
               {sessions.map((s) => (
                 <option key={s.id} value={s.id}>
-                  Scenario: {s.name}
+                  World: {s.name}
                 </option>
               ))}
             </select>
           </div>
 
-          {/* Right Crisis Clock, Quick Quarter Advance & Multiplayer Callsign */}
+          {/* Right World Clock, Quick Quarter Advance & Multiplayer Callsign */}
           <div className="flex flex-wrap items-center gap-3 text-xs">
-            <div className="bg-slate-900 border border-slate-800 rounded-lg px-3 py-1.5 flex items-center gap-3">
+            <div className="bg-slate-900 border border-slate-800 rounded-xl px-3.5 py-1.5 flex items-center gap-3">
               <div>
                 <span className="text-[10px] text-slate-400 block">
-                  Crisis Date
+                  World Date
                 </span>
                 <span className="font-mono-num font-bold text-white">
                   {tm.crisisDate}
@@ -401,15 +415,15 @@ export default function App() {
               </div>
               <div className="h-6 w-px bg-slate-800" />
               <div>
-                <span className="text-[10px] text-slate-400 block">Quarter</span>
+                <span className="text-[10px] text-slate-400 block">Era</span>
                 <span className="font-mono-num font-bold text-cyan-400">
-                  Q{tm.quarterNumber} ({Math.round(tm.daysElapsed || 0)}d)
+                  Q{tm.quarterNumber}
                 </span>
               </div>
               <div className="h-6 w-px bg-slate-800" />
               <div>
                 <span className="text-[10px] text-slate-400 block">
-                  System GDP
+                  World GDP
                 </span>
                 <span className="font-mono-num font-bold text-emerald-400">
                   {formatCurrency(totalWorldGdp)}
@@ -418,35 +432,35 @@ export default function App() {
             </div>
 
             <button
-              onClick={() => handleTimeAction({ isLive: !tm.isLive })}
-              className={`px-3 py-2 rounded-lg font-semibold flex items-center gap-1.5 transition cursor-pointer ${
+              onClick={() =>
+                handleTimeAction({ command: tm.isLive ? "LOCK" : "LOAD" })
+              }
+              className={`px-3 py-2 rounded-xl font-semibold flex items-center gap-1.5 transition cursor-pointer ${
                 tm.isLive
                   ? "bg-amber-500 text-slate-950"
                   : "bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700"
               }`}
-              title="Toggle Live Real-Time Crisis Clock"
             >
               {tm.isLive ? (
                 <>
-                  <Pause className="w-3.5 h-3.5" /> Live
+                  <Pause className="w-3.5 h-3.5" /> Pause
                 </>
               ) : (
                 <>
-                  <Play className="w-3.5 h-3.5" /> Auto-Clock
+                  <Play className="w-3.5 h-3.5" /> Auto-Run
                 </>
               )}
             </button>
 
             <button
               onClick={() => handleTimeAction({ daysToAdd: 90 })}
-              className="px-3.5 py-2 rounded-lg bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold flex items-center gap-1.5 shadow-sm shadow-cyan-500/20 cursor-pointer"
-              title="Advance 90 Days (+1 Quarter) and compound GDP, Population, Treasury & Dividends"
+              className="px-3.5 py-2 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold flex items-center gap-1.5 shadow-sm shadow-cyan-500/20 cursor-pointer"
             >
               <FastForward className="w-3.5 h-3.5" />
-              +1 Quarter
+              Next Quarter
             </button>
 
-            <div className="flex items-center gap-2 bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-1.5">
+            <div className="flex items-center gap-2 bg-slate-900 border border-slate-800 rounded-xl px-2.5 py-1.5">
               <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
               <span className="text-[11px] font-mono-num text-slate-300">
                 {onlineCount} Online
@@ -456,49 +470,44 @@ export default function App() {
                 value={actorName}
                 onChange={(e) => setActorName(e.target.value)}
                 className="w-28 bg-slate-950 border border-slate-800 rounded px-2 py-0.5 text-[11px] text-cyan-300"
-                title="Your Multiplayer Callsign"
+                title="Your Callsign"
               />
             </div>
           </div>
         </div>
 
-        {/* Navigation Tabs */}
-        <div className="max-w-[1600px] mx-auto mt-3 pt-2 border-t border-slate-900 flex flex-wrap items-center justify-between gap-2">
+        {/* Navigation Bar */}
+        <div className="max-w-[1650px] mx-auto mt-3 pt-2 border-t border-slate-900 flex flex-wrap items-center justify-between gap-2">
           <nav className="flex flex-wrap items-center gap-1.5">
             {[
               {
-                id: "overview",
-                label: "Planetary & Federation Overview",
+                id: "map",
+                label: "Interactive World & Planetary Map",
                 icon: Globe2,
               },
               {
                 id: "desk",
-                label: `Country Simulator Desk (${
-                  state.nations?.find((n) => n.id === selectedNationId)?.name ||
-                  "Select"
-                })`,
+                label: `Cabinet & Statecraft (${currentNationName})`,
                 icon: Landmark,
               },
               {
+                id: "markets",
+                label: "Supply Chains & Tech Tree",
+                icon: GitBranch,
+              },
+              {
                 id: "companies",
-                label: `Corporate Registry (${totalCompaniesCount.toLocaleString()})`,
+                label: `Corporate Dynasties (${totalCompaniesCount.toLocaleString()})`,
                 icon: Building2,
               },
               {
-                id: "markets",
-                label: `Markets, Tariffs & 9 Tech Eras (${
-                  state.goodsCatalog?.length || 202
-                } Goods)`,
-                icon: ShoppingBag,
-              },
-              {
                 id: "politics",
-                label: "Political Parties & Stock Exchange",
+                label: "Ideologies & Global Bourse",
                 icon: Briefcase,
               },
               {
                 id: "ledger",
-                label: "Time Manager & Historical Ledger",
+                label: "World Clock & Analytics",
                 icon: Clock,
               },
             ].map((tab) => {
@@ -508,7 +517,7 @@ export default function App() {
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`px-3.5 py-2 rounded-lg text-xs font-semibold flex items-center gap-2 transition cursor-pointer ${
+                  className={`px-3.5 py-2 rounded-xl text-xs font-semibold flex items-center gap-2 transition cursor-pointer ${
                     active
                       ? "bg-slate-800 text-cyan-300 border border-cyan-500/40 shadow-sm"
                       : "text-slate-400 hover:text-slate-200 hover:bg-slate-900"
@@ -531,16 +540,16 @@ export default function App() {
       </header>
 
       {/* Main Content Area */}
-      <main className="flex-1 max-w-[1600px] w-full mx-auto px-4 lg:px-8 py-6">
-        {activeTab === "overview" && (
-          <PlanetaryOverview
+      <main className="flex-1 max-w-[1650px] w-full mx-auto px-4 lg:px-8 py-6">
+        {activeTab === "map" && (
+          <InteractiveWorldMap
             state={state}
-            onSelectNation={(nId) => {
-              setSelectedNationId(nId);
-              setActiveTab("desk");
-            }}
-            onCreateNation={handleCreateNation}
+            selectedNationId={selectedNationId}
+            onSelectNation={setSelectedNationId}
             onUpdateNation={handleUpdateNation}
+            onTransferTerritory={handleTransferTerritory}
+            onCreateNation={handleCreateNation}
+            onJumpToTab={setActiveTab}
           />
         )}
 
@@ -599,4 +608,3 @@ export default function App() {
     </div>
   );
 }
-

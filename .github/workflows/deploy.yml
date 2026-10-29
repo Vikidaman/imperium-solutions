@@ -1,4 +1,4 @@
-name: Deploy to Cloudflare Workers
+name: Build & Deploy Imperium Solutions
 
 on:
   push:
@@ -8,7 +8,10 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    name: Build & Deploy Imperium Solutions to Cloudflare
+    name: Build & Deploy to Cloudflare
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: "a1915d92692b35762bd4e2f4e356df97"
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -25,11 +28,8 @@ jobs:
       - name: Build production frontend bundle
         run: npm run build
 
-      - name: Deploy to Cloudflare Workers
+      - name: Deploy to Cloudflare Workers (when CLOUDFLARE_API_TOKEN secret is set)
+        if: env.CLOUDFLARE_API_TOKEN != ''
         uses: cloudflare/wrangler-action@v3
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: "a1915d92692b35762bd4e2f4e356df97"
         with:
           command: deploy
-

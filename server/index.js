@@ -18,6 +18,7 @@ import {
   evaluateSimulation,
   advanceSimulationTime,
   runBudgetAndDividendUpdater,
+  transferTerritory,
 } from "./engine.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -519,6 +520,8 @@ app.post("/api/sessions/:id/nations", (req, res) => {
   };
 
   sess.state.nations.push(newNation);
+  if (!sess.state.territoryMap) sess.state.territoryMap = {};
+  sess.state.territoryMap[newNation.name] = newNation.id;
   persistAndBroadcast(
     id,
     actor,
@@ -923,6 +926,34 @@ app.post("/api/sessions/:id/stock-accounts/:accountId/trade", (req, res) => {
   }
 
   res.json({ session: sess, activityLog: getActivityLog(id, 60) });
+});
+
+// 17. Dynamic Border Changes: Annex / Transfer Territory or Release Independent Nation
+app.post("/api/sessions/:id/territories", (req, res) => {
+  const { id } = req.params;
+  const sess = getCachedSession(id);
+  if (!sess) return res.status(404).json({ error: "Session not found" });
+
+  const { territoryName, targetNationId, mode = "ANNEX", planet = "Earth", actor } =
+    req.body;
+  if (!territoryName) {
+    return res.status(400).json({ error: "territoryName is required" });
+  }
+
+  const result = transferTerritory(sess.state, {
+    territoryName,
+    targetNationId,
+    mode,
+    planet,
+  });
+
+  persistAndBroadcast(id, actor, result.action, `Territory: ${territoryName}`);
+  res.json({
+    session: sess,
+    nationId: result.nationId,
+    toastMessage: result.action,
+    activityLog: getActivityLog(id, 60),
+  });
 });
 
 // Mount Vite in development or static dist in production

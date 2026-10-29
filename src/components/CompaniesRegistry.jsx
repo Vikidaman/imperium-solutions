@@ -3,11 +3,12 @@ import {
   Building2,
   Search,
   PlusCircle,
-  Filter,
-  ArrowUpDown,
   Trash2,
-  CheckCircle2,
   AlertTriangle,
+  TrendingUp,
+  Users,
+  Sparkles,
+  Landmark,
 } from "lucide-react";
 import {
   formatCurrency,
@@ -35,9 +36,8 @@ export default function CompaniesRegistry({
   const [sectorFilter, setSectorFilter] = useState("ALL");
   const [subsidyFilter, setSubsidyFilter] = useState("ALL");
   const [sortBy, setSortBy] = useState("valuation");
-  const [sortDir, setSortDir] = useState("desc");
   const [page, setPage] = useState(1);
-  const pageSize = 50;
+  const pageSize = 24;
 
   const [showAddModal, setShowAddModal] = useState(false);
   const [newCompForm, setNewCompForm] = useState({
@@ -69,35 +69,25 @@ export default function CompaniesRegistry({
         return false;
       }
       if (subsidyFilter === "SUBSIDISED" && !c.subsidised) return false;
-      if (subsidyFilter === "GOVT_OWNED" && !(c.govtOwnedShares > 0)) return false;
+      if (subsidyFilter === "GOVT_OWNED" && !(c.govtOwnedShares > 0))
+        return false;
       if (subsidyFilter === "ILLEGAL" && !c.illegal) return false;
       return true;
     });
 
-    list.sort((a, b) => {
-      const av = Number(a[sortBy]) || 0;
-      const bv = Number(b[sortBy]) || 0;
-      return sortDir === "desc" ? bv - av : av - bv;
-    });
-
+    list.sort((a, b) => (Number(b[sortBy]) || 0) - (Number(a[sortBy]) || 0));
     return list;
-  }, [companies, searchQuery, sectorFilter, subsidyFilter, sortBy, sortDir]);
+  }, [companies, searchQuery, sectorFilter, subsidyFilter, sortBy]);
 
-  const totalPages = Math.max(1, Math.ceil(filteredCompanies.length / pageSize));
+  const totalPages = Math.max(
+    1,
+    Math.ceil(filteredCompanies.length / pageSize)
+  );
   const currentPage = Math.min(page, totalPages);
   const visibleCompanies = filteredCompanies.slice(
     (currentPage - 1) * pageSize,
     currentPage * pageSize
   );
-
-  const toggleSort = (field) => {
-    if (sortBy === field) {
-      setSortDir((d) => (d === "desc" ? "asc" : "desc"));
-    } else {
-      setSortBy(field);
-      setSortDir("desc");
-    }
-  };
 
   const handleAddCompany = async (e) => {
     e.preventDefault();
@@ -109,7 +99,7 @@ export default function CompaniesRegistry({
   return (
     <div className="space-y-5">
       {/* Nation Selector & Header */}
-      <div className="bg-slate-900/70 border border-slate-800/80 rounded-xl p-4 flex flex-wrap items-center justify-between gap-4">
+      <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-4 flex flex-wrap items-center justify-between gap-4">
         <div className="flex flex-wrap items-center gap-1.5">
           {nations.map((n) => (
             <button
@@ -118,7 +108,7 @@ export default function CompaniesRegistry({
                 onSelectNation(n.id);
                 setPage(1);
               }}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition cursor-pointer ${
+              className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition cursor-pointer ${
                 n.id === nation?.id
                   ? "bg-cyan-500 text-slate-950 shadow-sm shadow-cyan-500/30"
                   : "bg-slate-800/80 text-slate-300 hover:bg-slate-800"
@@ -131,332 +121,329 @@ export default function CompaniesRegistry({
 
         <button
           onClick={() => setShowAddModal(true)}
-          className="px-4 py-2 rounded-lg bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 font-semibold text-xs flex items-center gap-2 shadow-lg shadow-cyan-500/15 cursor-pointer"
+          className="px-4 py-2 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 font-bold text-xs flex items-center gap-2 shadow-lg shadow-cyan-500/15 cursor-pointer"
         >
           <PlusCircle className="w-4 h-4" />
-          Incorporate New Company in {nation?.name}
+          Charter New Corporation in {nation?.name}
         </button>
       </div>
 
-      {/* Filters & Search Strip */}
-      <div className="bg-slate-900/70 border border-slate-800/80 rounded-xl p-4 grid grid-cols-1 md:grid-cols-4 gap-3 text-xs">
+      {/* Filters, Search & Sort Bar */}
+      <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-4 grid grid-cols-1 md:grid-cols-5 gap-3 text-xs">
         <div className="relative md:col-span-2">
           <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
           <input
             type="text"
-            placeholder={`Search ${companies.length} companies by name, flagship good, or input method...`}
+            placeholder={`Search ${companies.length} corporations in ${nation?.name}...`}
             value={searchQuery}
             onChange={(e) => {
               setSearchQuery(e.target.value);
               setPage(1);
             }}
-            className="w-full pl-9 pr-3 py-2 rounded-lg bg-slate-950 border border-slate-700 text-white"
+            className="w-full pl-9 pr-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-white"
           />
         </div>
 
-        <div>
-          <select
-            value={sectorFilter}
-            onChange={(e) => {
-              setSectorFilter(e.target.value);
-              setPage(1);
-            }}
-            className="w-full px-3 py-2 rounded-lg bg-slate-950 border border-slate-700 text-white cursor-pointer"
-          >
-            <option value="ALL">All 4 GDP Sectors</option>
-            <option value="Agricultural Sector GDP">Agricultural Sector GDP</option>
-            <option value="Industry & Manufacturing GDP">
-              Industry & Manufacturing GDP
-            </option>
-            <option value="Hospitality & Tourist Services GDP">
-              Hospitality & Tourist Services GDP
-            </option>
-            <option value="Office & Corporate Services GDP">
-              Office & Corporate Services GDP
-            </option>
-          </select>
+        <select
+          value={sectorFilter}
+          onChange={(e) => {
+            setSectorFilter(e.target.value);
+            setPage(1);
+          }}
+          className="px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-white cursor-pointer"
+        >
+          <option value="ALL">All 4 Economic Sectors</option>
+          <option value="Agricultural Sector GDP">Agriculture</option>
+          <option value="Industry & Manufacturing GDP">
+            Industry & Manufacturing
+          </option>
+          <option value="Hospitality & Tourist Services GDP">
+            Hospitality & Tourism
+          </option>
+          <option value="Office & Corporate Services GDP">
+            Office & Corporate
+          </option>
+        </select>
+
+        <select
+          value={subsidyFilter}
+          onChange={(e) => {
+            setSubsidyFilter(e.target.value);
+            setPage(1);
+          }}
+          className="px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-white cursor-pointer"
+        >
+          <option value="ALL">All Enterprises</option>
+          <option value="SUBSIDISED">State-Subsidised Champions</option>
+          <option value="GOVT_OWNED">State Equity Stake &gt; 0</option>
+          <option value="ILLEGAL">Black-Market / Illicit Syndicates</option>
+        </select>
+
+        <select
+          value={sortBy}
+          onChange={(e) => setSortBy(e.target.value)}
+          className="px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-cyan-300 font-semibold cursor-pointer"
+        >
+          <option value="valuation">Sort by Market Cap</option>
+          <option value="vgp">Sort by Economic Output (VGP)</option>
+          <option value="employedPops">Sort by Workforce Size</option>
+          <option value="projectedRealGrowth">Sort by Real Growth Rate</option>
+          <option value="hypeFactor">Sort by Brand Hype</option>
+        </select>
+      </div>
+
+      {/* Pagination Bar */}
+      <div className="flex items-center justify-between text-xs px-1">
+        <div className="text-slate-400">
+          Showing{" "}
+          <span className="font-mono-num text-white font-bold">
+            {visibleCompanies.length}
+          </span>{" "}
+          of{" "}
+          <span className="font-mono-num text-cyan-300 font-bold">
+            {filteredCompanies.length}
+          </span>{" "}
+          corporations in{" "}
+          <span className="text-white font-semibold">{nation?.name}</span>
         </div>
 
-        <div>
-          <select
-            value={subsidyFilter}
-            onChange={(e) => {
-              setSubsidyFilter(e.target.value);
-              setPage(1);
-            }}
-            className="w-full px-3 py-2 rounded-lg bg-slate-950 border border-slate-700 text-white cursor-pointer"
+        <div className="flex items-center gap-2">
+          <button
+            disabled={currentPage <= 1}
+            onClick={() => setPage((p) => Math.max(1, p - 1))}
+            className="px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-800 disabled:opacity-40 text-slate-200 cursor-pointer"
           >
-            <option value="ALL">All Ownership & Legal Status</option>
-            <option value="SUBSIDISED">State Subsidised Only</option>
-            <option value="GOVT_OWNED">State Shares &gt; 0 Only</option>
-            <option value="ILLEGAL">Illegal / Black Market Goods</option>
-          </select>
+            Previous
+          </button>
+          <span className="font-mono-num text-slate-400">
+            Page {currentPage} of {totalPages}
+          </span>
+          <button
+            disabled={currentPage >= totalPages}
+            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+            className="px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-800 disabled:opacity-40 text-slate-200 cursor-pointer"
+          >
+            Next
+          </button>
         </div>
       </div>
 
-      {/* Companies Table */}
-      <div className="bg-slate-900/70 border border-slate-800/80 rounded-xl overflow-hidden">
-        <div className="px-5 py-3 border-b border-slate-800 flex flex-wrap items-center justify-between gap-2 text-xs">
-          <div className="text-slate-300">
-            Showing{" "}
-            <span className="font-mono-num font-bold text-white">
-              {visibleCompanies.length}
-            </span>{" "}
-            of{" "}
-            <span className="font-mono-num font-bold text-cyan-300">
-              {filteredCompanies.length}
-            </span>{" "}
-            companies in <span className="font-semibold text-white">{nation?.name}</span>{" "}
-            ({nation?.stockExchangeName})
-          </div>
+      {/* Interactive Megacorp Cards Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+        {visibleCompanies.map((comp) => {
+          const stateOwnershipPct =
+            comp.numberOfShares > 0
+              ? Math.min(
+                  100,
+                  ((comp.govtOwnedShares || 0) / comp.numberOfShares) * 100
+                )
+              : 0;
 
-          {/* Pagination Controls */}
-          <div className="flex items-center gap-2">
-            <button
-              disabled={currentPage <= 1}
-              onClick={() => setPage((p) => Math.max(1, p - 1))}
-              className="px-2.5 py-1 rounded bg-slate-800 disabled:opacity-40 text-slate-200 cursor-pointer"
+          return (
+            <div
+              key={comp.id}
+              className="bg-slate-900/85 border border-slate-800 hover:border-slate-700 rounded-2xl p-4 flex flex-col justify-between space-y-3.5 transition shadow-lg"
             >
-              Prev
-            </button>
-            <span className="font-mono-num text-slate-400">
-              Page {currentPage} / {totalPages}
-            </span>
-            <button
-              disabled={currentPage >= totalPages}
-              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-              className="px-2.5 py-1 rounded bg-slate-800 disabled:opacity-40 text-slate-200 cursor-pointer"
-            >
-              Next
-            </button>
-          </div>
-        </div>
-
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="border-b border-slate-800 text-[11px] uppercase tracking-wider text-slate-400 bg-slate-950/60">
-                <th className="py-3 px-3">Company Name</th>
-                <th className="py-3 px-2">Flagship Good</th>
-                <th className="py-3 px-2">Sector & Inputs</th>
-                <th
-                  className="py-3 px-2 text-right cursor-pointer hover:text-white"
-                  onClick={() => toggleSort("hypeFactor")}
-                >
-                  Hype ↕
-                </th>
-                <th
-                  className="py-3 px-2 text-right cursor-pointer hover:text-white"
-                  onClick={() => toggleSort("employedPops")}
-                >
-                  Employees ↕
-                </th>
-                <th
-                  className="py-3 px-2 text-right cursor-pointer hover:text-white"
-                  onClick={() => toggleSort("vgp")}
-                >
-                  VGP (Output) ↕
-                </th>
-                <th
-                  className="py-3 px-2 text-right cursor-pointer hover:text-white"
-                  onClick={() => toggleSort("valuation")}
-                >
-                  Valuation ↕
-                </th>
-                <th
-                  className="py-3 px-2 text-right cursor-pointer hover:text-white"
-                  onClick={() => toggleSort("projectedRealGrowth")}
-                >
-                  Real Growth ↕
-                </th>
-                <th
-                  className="py-3 px-2 text-right cursor-pointer hover:text-white"
-                  onClick={() => toggleSort("dividendsPerShare")}
-                >
-                  Div / Share ↕
-                </th>
-                <th className="py-3 px-2 text-center">Subsidy</th>
-                <th className="py-3 px-2 text-right">Govt Shares</th>
-                <th className="py-3 px-3 text-right">Del</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-800/60 text-xs">
-              {visibleCompanies.map((comp) => (
-                <tr key={comp.id} className="hover:bg-slate-800/40 transition">
-                  <td className="py-2.5 px-3 font-medium text-white max-w-[180px]">
-                    <div className="truncate" title={comp.name}>
-                      {comp.name}
-                    </div>
+              {/* Top Header */}
+              <div>
+                <div className="flex items-start justify-between gap-2">
+                  <span
+                    className={`text-[10px] px-2 py-0.5 rounded border ${getSectorBadgeClass(
+                      comp.gdpSector
+                    )}`}
+                  >
+                    {getShortSectorName(comp.gdpSector)}
+                  </span>
+                  <div className="flex items-center gap-1.5">
                     {comp.illegal && (
-                      <span className="inline-flex items-center gap-1 text-[10px] text-rose-400">
-                        <AlertTriangle className="w-3 h-3" /> Illegal Good
+                      <span className="text-[10px] px-2 py-0.5 rounded bg-rose-500/20 text-rose-300 border border-rose-500/40 flex items-center gap-1">
+                        <AlertTriangle className="w-3 h-3" /> Contraband
                       </span>
                     )}
-                  </td>
-
-                  <td className="py-2.5 px-2">
-                    <select
-                      value={comp.flagshipGood}
-                      onChange={(e) =>
-                        onUpdateCompany(nation.id, comp.id, {
-                          flagshipGood: e.target.value,
-                        })
-                      }
-                      className="px-2 py-1 rounded bg-slate-950 border border-slate-700/80 text-slate-200 text-[11px] max-w-[140px] cursor-pointer"
+                    <button
+                      onClick={() => onDeleteCompany(nation.id, comp.id)}
+                      className="text-slate-500 hover:text-rose-400 p-1 cursor-pointer"
+                      title="Liquidate Enterprise"
                     >
-                      {goods.map((g) => (
-                        <option key={g.id} value={g.name}>
-                          {g.name}
-                        </option>
-                      ))}
-                    </select>
-                  </td>
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </div>
 
-                  <td className="py-2.5 px-2">
-                    <span
-                      className={`inline-block text-[10px] px-2 py-0.5 rounded border ${getSectorBadgeClass(
-                        comp.gdpSector
-                      )}`}
-                    >
-                      {getShortSectorName(comp.gdpSector)}
-                    </span>
-                    <div
-                      className="text-[10px] text-slate-500 truncate max-w-[140px] mt-0.5"
-                      title={`Inputs: ${comp.productionMethod}`}
-                    >
-                      In: {comp.productionMethod}
-                    </div>
-                  </td>
+                <h4 className="text-base font-bold font-display text-white mt-1.5 truncate">
+                  {comp.name}
+                </h4>
 
-                  <td className="py-2.5 px-2 text-right">
-                    <input
-                      type="number"
-                      min="1"
-                      max="200"
-                      step="1"
-                      value={Math.round(comp.hypeFactor)}
-                      onChange={(e) =>
-                        onUpdateCompany(nation.id, comp.id, {
-                          hypeFactor: Number(e.target.value),
-                        })
-                      }
-                      className="w-14 px-1.5 py-1 text-right rounded bg-slate-950 border border-slate-700/80 font-mono-num text-amber-300"
-                    />
-                  </td>
+                {/* Product Selector */}
+                <div className="flex items-center justify-between mt-2 text-xs">
+                  <span className="text-slate-400">Flagship Product:</span>
+                  <select
+                    value={comp.flagshipGood}
+                    onChange={(e) =>
+                      onUpdateCompany(nation.id, comp.id, {
+                        flagshipGood: e.target.value,
+                      })
+                    }
+                    className="px-2 py-1 rounded-lg bg-slate-950 border border-slate-700 text-cyan-300 font-semibold text-xs max-w-[175px] cursor-pointer"
+                  >
+                    {goods.map((g) => (
+                      <option key={g.id} value={g.name}>
+                        {g.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
 
-                  <td className="py-2.5 px-2 text-right">
-                    <input
-                      type="number"
-                      min="100"
-                      step="1000"
-                      value={Math.round(comp.employedPops)}
-                      onChange={(e) =>
-                        onUpdateCompany(nation.id, comp.id, {
-                          employedPops: Number(e.target.value),
-                        })
-                      }
-                      className="w-24 px-1.5 py-1 text-right rounded bg-slate-950 border border-slate-700/80 font-mono-num text-slate-200"
-                    />
-                  </td>
-
-                  <td className="py-2.5 px-2 text-right font-mono-num text-slate-200">
-                    {formatCurrency(comp.vgp)}
-                  </td>
-
-                  <td className="py-2.5 px-2 text-right font-mono-num font-semibold text-cyan-300">
+              {/* Core Valuation, Output & Growth Metrics */}
+              <div className="grid grid-cols-3 gap-2 bg-slate-950/70 border border-slate-800/80 rounded-xl p-3 text-xs">
+                <div>
+                  <span className="text-[10px] text-slate-400 block">
+                    Market Cap
+                  </span>
+                  <span className="font-mono-num font-bold text-cyan-300 text-sm">
                     {formatCurrency(comp.valuation)}
-                  </td>
-
-                  <td
-                    className={`py-2.5 px-2 text-right font-mono-num font-semibold ${
+                  </span>
+                </div>
+                <div>
+                  <span className="text-[10px] text-slate-400 block">
+                    Output (VGP)
+                  </span>
+                  <span className="font-mono-num font-semibold text-slate-200 text-sm">
+                    {formatCurrency(comp.vgp)}
+                  </span>
+                </div>
+                <div className="text-right">
+                  <span className="text-[10px] text-slate-400 block">
+                    Real Growth
+                  </span>
+                  <span
+                    className={`font-mono-num font-bold text-sm ${
                       comp.projectedRealGrowth >= 0
                         ? "text-emerald-400"
                         : "text-rose-400"
                     }`}
                   >
                     {formatPercent(comp.projectedRealGrowth, 2, true)}
-                  </td>
+                  </span>
+                </div>
+              </div>
 
-                  <td
-                    className={`py-2.5 px-2 text-right font-mono-num ${
-                      comp.dividendsPerShare >= 0
-                        ? "text-emerald-300"
-                        : "text-rose-400"
-                    }`}
-                  >
-                    {formatExactCurrency(comp.dividendsPerShare, 2)}
-                  </td>
-
-                  <td className="py-2.5 px-2 text-center">
-                    <div className="flex items-center justify-center gap-1">
-                      <input
-                        type="checkbox"
-                        checked={Boolean(comp.subsidised)}
-                        onChange={(e) =>
-                          onUpdateCompany(nation.id, comp.id, {
-                            subsidised: e.target.checked,
-                          })
-                        }
-                        className="accent-cyan-400 cursor-pointer"
-                        title="Toggle State Subsidy (Overrides Growth to Target Growth; Government pays negative dividend)"
-                      />
-                      {comp.subsidised && (
-                        <input
-                          type="number"
-                          step="0.01"
-                          value={comp.targetGrowth || 0.02}
-                          onChange={(e) =>
-                            onUpdateCompany(nation.id, comp.id, {
-                              targetGrowth: Number(e.target.value),
-                            })
-                          }
-                          className="w-14 px-1 py-0.5 text-[10px] rounded bg-slate-950 border border-cyan-500/40 font-mono-num text-cyan-300"
-                          title="Subsidised Target Growth Rate"
-                        />
-                      )}
-                    </div>
-                  </td>
-
-                  <td className="py-2.5 px-2 text-right">
+              {/* Interactive Workforce, Hype & State Nationalization Levers */}
+              <div className="space-y-2.5 text-xs">
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[10px] text-slate-400 mb-1">
+                      Workforce (Employees)
+                    </label>
                     <input
                       type="number"
-                      min="0"
-                      step="100000"
-                      value={Math.round(comp.govtOwnedShares || 0)}
+                      min="100"
+                      step="5000"
+                      value={Math.round(comp.employedPops)}
                       onChange={(e) =>
                         onUpdateCompany(nation.id, comp.id, {
-                          govtOwnedShares: Number(e.target.value),
+                          employedPops: Number(e.target.value),
                         })
                       }
-                      className="w-20 px-1.5 py-1 text-right rounded bg-slate-950 border border-slate-700/80 font-mono-num text-slate-300 text-[11px]"
-                      title={`Out of ${formatCompactNumber(comp.numberOfShares)} total shares`}
+                      className="w-full px-2.5 py-1.5 rounded-lg bg-slate-950 border border-slate-700 font-mono-num text-white"
                     />
-                  </td>
+                  </div>
+                  <div>
+                    <label className="block text-[10px] text-slate-400 mb-1">
+                      Brand Hype ({Math.round(comp.hypeFactor)})
+                    </label>
+                    <input
+                      type="range"
+                      min="5"
+                      max="120"
+                      value={Math.round(comp.hypeFactor)}
+                      onChange={(e) =>
+                        onUpdateCompany(nation.id, comp.id, {
+                          hypeFactor: Number(e.target.value),
+                        })
+                      }
+                      className="w-full accent-amber-400 mt-1.5 cursor-pointer"
+                    />
+                  </div>
+                </div>
 
-                  <td className="py-2.5 px-3 text-right">
-                    <button
-                      onClick={() => onDeleteCompany(nation.id, comp.id)}
-                      className="text-slate-500 hover:text-rose-400 p-1 cursor-pointer"
-                      title="Liquidate Company"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+                {/* State Ownership / Nationalization Slider */}
+                <div>
+                  <div className="flex justify-between text-[11px] mb-1">
+                    <span className="text-slate-400">
+                      State Equity Stake ({stateOwnershipPct.toFixed(0)}%)
+                    </span>
+                    <span className="font-mono-num text-emerald-300">
+                      Div/Sh: {formatExactCurrency(comp.dividendsPerShare, 2)}
+                    </span>
+                  </div>
+                  <input
+                    type="range"
+                    min="0"
+                    max={comp.numberOfShares || 50000000}
+                    step={Math.max(
+                      1,
+                      Math.round((comp.numberOfShares || 50000000) / 20)
+                    )}
+                    value={comp.govtOwnedShares || 0}
+                    onChange={(e) =>
+                      onUpdateCompany(nation.id, comp.id, {
+                        govtOwnedShares: Number(e.target.value),
+                      })
+                    }
+                    className="w-full accent-emerald-400 cursor-pointer"
+                  />
+                </div>
+
+                {/* State Subsidy Toggle */}
+                <div className="flex items-center justify-between pt-2 border-t border-slate-800/80">
+                  <label className="flex items-center gap-2 text-slate-300 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={Boolean(comp.subsidised)}
+                      onChange={(e) =>
+                        onUpdateCompany(nation.id, comp.id, {
+                          subsidised: e.target.checked,
+                        })
+                      }
+                      className="accent-cyan-400"
+                    />
+                    State Industrial Subsidy
+                  </label>
+                  {comp.subsidised && (
+                    <div className="flex items-center gap-1">
+                      <span className="text-[10px] text-slate-400">
+                        Guaranteed Growth:
+                      </span>
+                      <input
+                        type="number"
+                        step="0.01"
+                        value={comp.targetGrowth || 0.03}
+                        onChange={(e) =>
+                          onUpdateCompany(nation.id, comp.id, {
+                            targetGrowth: Number(e.target.value),
+                          })
+                        }
+                        className="w-16 px-1.5 py-0.5 rounded bg-slate-950 border border-cyan-500/50 font-mono-num text-cyan-300 text-right"
+                      />
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          );
+        })}
       </div>
 
-      {/* Add Company Modal */}
+      {/* Charter New Company Modal */}
       {showAddModal && (
         <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-slate-900 border border-slate-700 rounded-2xl max-w-lg w-full p-6 shadow-2xl">
             <div className="flex items-center justify-between pb-3 border-b border-slate-800">
               <h3 className="text-base font-bold text-white flex items-center gap-2">
                 <Building2 className="w-4 h-4 text-cyan-400" />
-                Incorporate New Company in {nation?.name}
+                Charter New Corporation in {nation?.name}
               </h3>
               <button
                 onClick={() => setShowAddModal(false)}
@@ -469,12 +456,12 @@ export default function CompaniesRegistry({
             <form onSubmit={handleAddCompany} className="space-y-4 mt-4 text-xs">
               <div>
                 <label className="block text-slate-300 font-medium mb-1">
-                  Company Name *
+                  Corporation Name *
                 </label>
                 <input
                   type="text"
                   required
-                  placeholder="e.g. Ares Orbital Mining Corp"
+                  placeholder="e.g. Ares Orbital Mining Syndicate"
                   value={newCompForm.name}
                   onChange={(e) =>
                     setNewCompForm({ ...newCompForm, name: e.target.value })
@@ -486,7 +473,7 @@ export default function CompaniesRegistry({
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-slate-300 font-medium mb-1">
-                    Flagship Good
+                    Flagship Commodity
                   </label>
                   <select
                     value={newCompForm.flagshipGood}
@@ -508,7 +495,7 @@ export default function CompaniesRegistry({
 
                 <div>
                   <label className="block text-slate-300 font-medium mb-1">
-                    Employed Pops
+                    Initial Workforce
                   </label>
                   <input
                     type="number"
@@ -519,61 +506,6 @@ export default function CompaniesRegistry({
                       setNewCompForm({
                         ...newCompForm,
                         employedPops: Number(e.target.value),
-                      })
-                    }
-                    className="w-full px-3 py-2 rounded-lg bg-slate-950 border border-slate-700 text-white font-mono-num"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-3 gap-3">
-                <div>
-                  <label className="block text-slate-300 font-medium mb-1">
-                    Hype Factor
-                  </label>
-                  <input
-                    type="number"
-                    min="1"
-                    max="100"
-                    value={newCompForm.hypeFactor}
-                    onChange={(e) =>
-                      setNewCompForm({
-                        ...newCompForm,
-                        hypeFactor: Number(e.target.value),
-                      })
-                    }
-                    className="w-full px-3 py-2 rounded-lg bg-slate-950 border border-slate-700 text-white font-mono-num"
-                  />
-                </div>
-                <div>
-                  <label className="block text-slate-300 font-medium mb-1">
-                    Total Shares
-                  </label>
-                  <input
-                    type="number"
-                    min="1"
-                    value={newCompForm.numberOfShares}
-                    onChange={(e) =>
-                      setNewCompForm({
-                        ...newCompForm,
-                        numberOfShares: Number(e.target.value),
-                      })
-                    }
-                    className="w-full px-3 py-2 rounded-lg bg-slate-950 border border-slate-700 text-white font-mono-num"
-                  />
-                </div>
-                <div>
-                  <label className="block text-slate-300 font-medium mb-1">
-                    Govt Shares
-                  </label>
-                  <input
-                    type="number"
-                    min="0"
-                    value={newCompForm.govtOwnedShares}
-                    onChange={(e) =>
-                      setNewCompForm({
-                        ...newCompForm,
-                        govtOwnedShares: Number(e.target.value),
                       })
                     }
                     className="w-full px-3 py-2 rounded-lg bg-slate-950 border border-slate-700 text-white font-mono-num"
@@ -593,7 +525,7 @@ export default function CompaniesRegistry({
                   type="submit"
                   className="px-5 py-2 rounded-lg bg-cyan-500 text-slate-950 font-bold cursor-pointer"
                 >
-                  Incorporate Company
+                  Charter Enterprise
                 </button>
               </div>
             </form>
@@ -603,4 +535,3 @@ export default function CompaniesRegistry({
     </div>
   );
 }
-

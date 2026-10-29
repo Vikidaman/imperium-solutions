@@ -3,11 +3,10 @@ import {
   Flag,
   Briefcase,
   PlusCircle,
-  TrendingUp,
   Coins,
-  ArrowUpRight,
-  ArrowDownRight,
   Building2,
+  Users,
+  Shield,
 } from "lucide-react";
 import {
   formatCurrency,
@@ -84,230 +83,240 @@ export default function PoliticalPartiesAndStockView({
   return (
     <div className="space-y-5">
       {/* Sub-navigation */}
-      <div className="bg-slate-900/70 border border-slate-800/80 rounded-xl p-3.5 flex flex-wrap items-center justify-between gap-3">
+      <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-3.5 flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2">
           <button
             onClick={() => setSubTab("parties")}
-            className={`px-4 py-2 rounded-lg text-xs font-semibold flex items-center gap-2 transition cursor-pointer ${
+            className={`px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition cursor-pointer ${
               subTab === "parties"
                 ? "bg-cyan-500 text-slate-950 shadow-sm shadow-cyan-500/30"
                 : "bg-slate-800 text-slate-300 hover:bg-slate-700"
             }`}
           >
             <Flag className="w-4 h-4" />
-            Political Parties Registry ({parties.length})
+            Political Movements & Ideologies ({parties.length})
           </button>
           <button
             onClick={() => setSubTab("stock")}
-            className={`px-4 py-2 rounded-lg text-xs font-semibold flex items-center gap-2 transition cursor-pointer ${
+            className={`px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition cursor-pointer ${
               subTab === "stock"
                 ? "bg-cyan-500 text-slate-950 shadow-sm shadow-cyan-500/30"
                 : "bg-slate-800 text-slate-300 hover:bg-slate-700"
             }`}
           >
             <Briefcase className="w-4 h-4" />
-            Stock Exchange & Investor Accounts ({accounts.length})
+            Global Stock Exchange & Sovereign Funds ({accounts.length})
           </button>
         </div>
 
         {subTab === "parties" && (
           <button
             onClick={() => setShowPartyModal(true)}
-            className="px-4 py-2 rounded-lg bg-gradient-to-r from-cyan-500 to-blue-600 text-slate-950 font-semibold text-xs flex items-center gap-2 cursor-pointer"
+            className="px-4 py-2 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 text-slate-950 font-bold text-xs flex items-center gap-2 cursor-pointer"
           >
             <PlusCircle className="w-4 h-4" />
-            Found New Political Party
+            Found New Political Movement
           </button>
         )}
       </div>
 
-      {/* SUB-TAB 1: POLITICAL PARTIES */}
+      {/* SUB-TAB 1: POLITICAL MOVEMENTS CARDS GRID */}
       {subTab === "parties" && (
-        <div className="bg-slate-900/70 border border-slate-800/80 rounded-xl overflow-hidden">
-          <div className="px-5 py-4 border-b border-slate-800">
-            <h3 className="text-sm font-bold uppercase tracking-wider text-slate-200">
-              Political Parties & Macroeconomic Platforms
-            </h3>
-            <p className="text-xs text-slate-400">
-              Editing any party's tax, wage share, budget, crime, or healthcare preferences immediately recalculates all nations governed by that party
-            </p>
-          </div>
-
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="border-b border-slate-800 text-[11px] uppercase tracking-wider text-slate-400 bg-slate-950/60">
-                  <th className="py-3 px-4">Party Name</th>
-                  <th className="py-3 px-2">Origin</th>
-                  <th className="py-3 px-2">Alignment</th>
-                  <th className="py-3 px-2 text-right">Support</th>
-                  <th className="py-3 px-2 text-right">Income Tax</th>
-                  <th className="py-3 px-2 text-right">Sales Tax</th>
-                  <th className="py-3 px-2 text-right">Corp Tax</th>
-                  <th className="py-3 px-2 text-right">Worker Share</th>
-                  <th className="py-3 px-2 text-right">Budget % GDP</th>
-                  <th className="py-3 px-2">Crime Policy</th>
-                  <th className="py-3 px-3">Healthcare Policy</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-800/60 text-xs">
-                {parties.map((p) => (
-                  <tr key={p.name} className="hover:bg-slate-800/40">
-                    <td className="py-2.5 px-4 font-bold text-white">{p.name}</td>
-                    <td className="py-2.5 px-2 text-slate-300">{p.nation}</td>
-                    <td className="py-2.5 px-2">
-                      <span className="px-2 py-0.5 rounded bg-slate-800 text-cyan-300 border border-slate-700 text-[11px]">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+          {parties.map((p) => {
+            const governedNations = (state.nations || []).filter(
+              (n) => n.rulingParty === p.name
+            );
+            return (
+              <div
+                key={p.name}
+                className="bg-slate-900/85 border border-slate-800 rounded-2xl p-5 space-y-4 shadow-lg"
+              >
+                <div className="flex items-start justify-between border-b border-slate-800 pb-3">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h3 className="text-base font-bold font-display text-white">
+                        {p.name}
+                      </h3>
+                      <span className="text-[10px] px-2 py-0.5 rounded bg-slate-800 text-cyan-300 border border-slate-700">
                         {p.politicalAlignment}
                       </span>
-                    </td>
-                    <td className="py-2.5 px-2 text-right">
-                      <input
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        max="1"
-                        value={p.currentSupport}
-                        onChange={(e) =>
-                          onSaveParty({
-                            ...p,
-                            currentSupport: Number(e.target.value),
-                          })
-                        }
-                        className="w-16 px-1.5 py-1 text-right rounded bg-slate-950 border border-slate-700 font-mono-num text-slate-200"
-                      />
-                    </td>
-                    <td className="py-2.5 px-2 text-right">
-                      <input
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        max="0.9"
-                        value={p.incomeTaxPreference}
-                        onChange={(e) =>
-                          onSaveParty({
-                            ...p,
-                            incomeTaxPreference: Number(e.target.value),
-                          })
-                        }
-                        className="w-16 px-1.5 py-1 text-right rounded bg-slate-950 border border-slate-700 font-mono-num text-cyan-300"
-                      />
-                    </td>
-                    <td className="py-2.5 px-2 text-right">
-                      <input
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        max="0.9"
-                        value={p.salesTaxPreference}
-                        onChange={(e) =>
-                          onSaveParty({
-                            ...p,
-                            salesTaxPreference: Number(e.target.value),
-                          })
-                        }
-                        className="w-16 px-1.5 py-1 text-right rounded bg-slate-950 border border-slate-700 font-mono-num text-cyan-300"
-                      />
-                    </td>
-                    <td className="py-2.5 px-2 text-right">
-                      <input
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        max="0.9"
-                        value={p.corporateTaxRate}
-                        onChange={(e) =>
-                          onSaveParty({
-                            ...p,
-                            corporateTaxRate: Number(e.target.value),
-                          })
-                        }
-                        className="w-16 px-1.5 py-1 text-right rounded bg-slate-950 border border-slate-700 font-mono-num text-cyan-300"
-                      />
-                    </td>
-                    <td className="py-2.5 px-2 text-right">
-                      <input
-                        type="number"
-                        step="0.01"
-                        min="0.05"
-                        max="0.95"
-                        value={p.workerShareOfGdp}
-                        onChange={(e) =>
-                          onSaveParty({
-                            ...p,
-                            workerShareOfGdp: Number(e.target.value),
-                          })
-                        }
-                        className="w-16 px-1.5 py-1 text-right rounded bg-slate-950 border border-slate-700 font-mono-num text-emerald-300"
-                      />
-                    </td>
-                    <td className="py-2.5 px-2 text-right">
-                      <input
-                        type="number"
-                        step="0.01"
-                        min="0.01"
-                        max="0.8"
-                        value={p.budgetAsPercentOfGdp}
-                        onChange={(e) =>
-                          onSaveParty({
-                            ...p,
-                            budgetAsPercentOfGdp: Number(e.target.value),
-                          })
-                        }
-                        className="w-16 px-1.5 py-1 text-right rounded bg-slate-950 border border-slate-700 font-mono-num text-amber-300"
-                      />
-                    </td>
-                    <td className="py-2.5 px-2">
-                      <select
-                        value={p.localCrimePolicy}
-                        onChange={(e) =>
-                          onSaveParty({
-                            ...p,
-                            localCrimePolicy: e.target.value,
-                          })
-                        }
-                        className="px-2 py-1 rounded bg-slate-950 border border-slate-700 text-slate-200 text-[11px]"
-                      >
-                        <option value="Gentle Touch">Gentle Touch</option>
-                        <option value="Beat Cops">Beat Cops</option>
-                        <option value="Profiling">Profiling</option>
-                        <option value="Militarized Police">Militarized Police</option>
-                      </select>
-                    </td>
-                    <td className="py-2.5 px-3">
-                      <select
-                        value={p.healthcarePolicy}
-                        onChange={(e) =>
-                          onSaveParty({
-                            ...p,
-                            healthcarePolicy: e.target.value,
-                          })
-                        }
-                        className="px-2 py-1 rounded bg-slate-950 border border-slate-700 text-slate-200 text-[11px]"
-                      >
-                        <option value="Private Healthcare">Private Healthcare</option>
-                        <option value="State-run Healthcare">
-                          State-run Healthcare
-                        </option>
-                        <option value="Euthanasia">Euthanasia</option>
-                        <option value="No Healthcare">No Healthcare</option>
-                      </select>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                    </div>
+                    <p className="text-[11px] text-slate-400 mt-1">
+                      Origin: {p.nation} • Governing:{" "}
+                      {governedNations.length > 0
+                        ? governedNations.map((n) => n.name).join(", ")
+                        : "In Opposition"}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-[10px] text-slate-400 block">
+                      Popular Support
+                    </span>
+                    <span className="font-mono-num font-bold text-emerald-400 text-sm">
+                      {formatPercent(p.currentSupport, 0)}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Tax & Labor Platform Sliders */}
+                <div className="grid grid-cols-2 gap-3 text-xs">
+                  <div>
+                    <div className="flex justify-between text-[11px] mb-1">
+                      <span className="text-slate-400">Income Tax</span>
+                      <span className="font-mono-num text-cyan-300 font-bold">
+                        {formatPercent(p.incomeTaxPreference, 0)}
+                      </span>
+                    </div>
+                    <input
+                      type="range"
+                      min="0"
+                      max="0.75"
+                      step="0.01"
+                      value={p.incomeTaxPreference}
+                      onChange={(e) =>
+                        onSaveParty({
+                          ...p,
+                          incomeTaxPreference: Number(e.target.value),
+                        })
+                      }
+                      className="w-full accent-cyan-400 cursor-pointer"
+                    />
+                  </div>
+
+                  <div>
+                    <div className="flex justify-between text-[11px] mb-1">
+                      <span className="text-slate-400">Corporate Tax</span>
+                      <span className="font-mono-num text-cyan-300 font-bold">
+                        {formatPercent(p.corporateTaxRate, 0)}
+                      </span>
+                    </div>
+                    <input
+                      type="range"
+                      min="0"
+                      max="0.75"
+                      step="0.01"
+                      value={p.corporateTaxRate}
+                      onChange={(e) =>
+                        onSaveParty({
+                          ...p,
+                          corporateTaxRate: Number(e.target.value),
+                        })
+                      }
+                      className="w-full accent-cyan-400 cursor-pointer"
+                    />
+                  </div>
+
+                  <div>
+                    <div className="flex justify-between text-[11px] mb-1">
+                      <span className="text-slate-400">Labor Wage Share</span>
+                      <span className="font-mono-num text-emerald-300 font-bold">
+                        {formatPercent(p.workerShareOfGdp, 0)}
+                      </span>
+                    </div>
+                    <input
+                      type="range"
+                      min="0.1"
+                      max="0.85"
+                      step="0.01"
+                      value={p.workerShareOfGdp}
+                      onChange={(e) =>
+                        onSaveParty({
+                          ...p,
+                          workerShareOfGdp: Number(e.target.value),
+                        })
+                      }
+                      className="w-full accent-emerald-400 cursor-pointer"
+                    />
+                  </div>
+
+                  <div>
+                    <div className="flex justify-between text-[11px] mb-1">
+                      <span className="text-slate-400">State Spending</span>
+                      <span className="font-mono-num text-amber-300 font-bold">
+                        {formatPercent(p.budgetAsPercentOfGdp, 0)}
+                      </span>
+                    </div>
+                    <input
+                      type="range"
+                      min="0.05"
+                      max="0.65"
+                      step="0.01"
+                      value={p.budgetAsPercentOfGdp}
+                      onChange={(e) =>
+                        onSaveParty({
+                          ...p,
+                          budgetAsPercentOfGdp: Number(e.target.value),
+                        })
+                      }
+                      className="w-full accent-amber-400 cursor-pointer"
+                    />
+                  </div>
+                </div>
+
+                {/* Policing & Healthcare Doctrines */}
+                <div className="grid grid-cols-2 gap-2.5 pt-2 border-t border-slate-800/80 text-xs">
+                  <div>
+                    <label className="block text-[10px] text-slate-400 mb-1">
+                      Policing Doctrine
+                    </label>
+                    <select
+                      value={p.localCrimePolicy}
+                      onChange={(e) =>
+                        onSaveParty({
+                          ...p,
+                          localCrimePolicy: e.target.value,
+                        })
+                      }
+                      className="w-full px-2 py-1.5 rounded-lg bg-slate-950 border border-slate-700 text-slate-200 text-[11px]"
+                    >
+                      <option value="Gentle Touch">Gentle Touch</option>
+                      <option value="Beat Cops">Beat Cops</option>
+                      <option value="Profiling">Profiling</option>
+                      <option value="Militarized Police">
+                        Militarized Police
+                      </option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-[10px] text-slate-400 mb-1">
+                      Healthcare System
+                    </label>
+                    <select
+                      value={p.healthcarePolicy}
+                      onChange={(e) =>
+                        onSaveParty({
+                          ...p,
+                          healthcarePolicy: e.target.value,
+                        })
+                      }
+                      className="w-full px-2 py-1.5 rounded-lg bg-slate-950 border border-slate-700 text-slate-200 text-[11px]"
+                    >
+                      <option value="Private Healthcare">
+                        Private Healthcare
+                      </option>
+                      <option value="State-run Healthcare">
+                        State-run Healthcare
+                      </option>
+                      <option value="No Healthcare">Unregulated</option>
+                      <option value="Euthanasia">Euthanasia</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
         </div>
       )}
 
       {/* SUB-TAB 2: STOCK EXCHANGE & INVESTOR PORTFOLIOS */}
       {subTab === "stock" && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Left Column: Account Selector & New Account */}
+          {/* Left Column: Account Selector & Order Execution */}
           <div className="space-y-4">
-            <div className="bg-slate-900/70 border border-slate-800/80 rounded-xl p-4 space-y-3">
+            <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-4 space-y-3">
               <h3 className="text-xs font-bold uppercase tracking-wider text-cyan-400">
-                Stock Exchange Brokerage Accounts
+                Sovereign Wealth & Investor Funds
               </h3>
               <div className="space-y-2">
                 {accounts.map((acc) => {
@@ -333,7 +342,7 @@ export default function PoliticalPartiesAndStockView({
                       <div className="flex items-center justify-between text-[11px] text-slate-400 mt-1">
                         <span>Cash: {formatCurrency(acc.cashBalance)}</span>
                         <span className="text-emerald-400 font-mono-num">
-                          Div Pot: {formatCurrency(acc.dividendPot)}
+                          Dividends: {formatCurrency(acc.dividendPot)}
                         </span>
                       </div>
                     </div>
@@ -341,11 +350,10 @@ export default function PoliticalPartiesAndStockView({
                 })}
               </div>
 
-              {/* Create New Investor Account */}
               <div className="pt-3 border-t border-slate-800 flex gap-2 text-xs">
                 <input
                   type="text"
-                  placeholder="New Investor / Fund Name..."
+                  placeholder="New Sovereign / Private Fund..."
                   value={newHolderName}
                   onChange={(e) => setNewHolderName(e.target.value)}
                   className="flex-1 px-3 py-1.5 rounded-lg bg-slate-950 border border-slate-700 text-white"
@@ -363,15 +371,15 @@ export default function PoliticalPartiesAndStockView({
               </div>
             </div>
 
-            {/* Order Execution Terminal */}
-            <div className="bg-slate-900/70 border border-slate-800/80 rounded-xl p-4 space-y-3 text-xs">
+            {/* Order Terminal */}
+            <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-4 space-y-3 text-xs">
               <h3 className="text-xs font-bold uppercase tracking-wider text-amber-400">
-                Execute Equity Order ({activeAccount?.holderName})
+                Global Bourse Order Terminal
               </h3>
 
               <div>
                 <label className="block text-slate-400 text-[11px] mb-1">
-                  Exchange / HQ Nation
+                  National Exchange
                 </label>
                 <select
                   value={tradeNation?.id || ""}
@@ -392,7 +400,7 @@ export default function PoliticalPartiesAndStockView({
 
               <div>
                 <label className="block text-slate-400 text-[11px] mb-1">
-                  Target Listed Company
+                  Corporation
                 </label>
                 <select
                   value={selectedTradeCompany?.name || ""}
@@ -401,42 +409,16 @@ export default function PoliticalPartiesAndStockView({
                 >
                   {(tradeNation?.companies || []).slice(0, 150).map((c) => (
                     <option key={c.id} value={c.name}>
-                      {c.name} ({c.flagshipGood}) — Share:{" "}
+                      {c.name} ({c.flagshipGood}) —{" "}
                       {formatExactCurrency(c.sharePrice, 2)}
                     </option>
                   ))}
                 </select>
               </div>
 
-              {selectedTradeCompany && (
-                <div className="bg-slate-950/80 border border-slate-800 rounded-lg p-2.5 grid grid-cols-3 gap-2 text-[11px]">
-                  <div>
-                    <span className="text-slate-400 block">Share Price</span>
-                    <span className="font-mono-num font-bold text-cyan-300">
-                      {formatExactCurrency(selectedTradeCompany.sharePrice, 2)}
-                    </span>
-                  </div>
-                  <div>
-                    <span className="text-slate-400 block">Div / Share</span>
-                    <span className="font-mono-num font-bold text-emerald-300">
-                      {formatExactCurrency(
-                        selectedTradeCompany.dividendsPerShare,
-                        2
-                      )}
-                    </span>
-                  </div>
-                  <div>
-                    <span className="text-slate-400 block">Market Cap</span>
-                    <span className="font-mono-num font-bold text-white">
-                      {formatCurrency(selectedTradeCompany.valuation)}
-                    </span>
-                  </div>
-                </div>
-              )}
-
               <div>
                 <label className="block text-slate-400 text-[11px] mb-1">
-                  Number of Shares to Trade
+                  Shares to Trade
                 </label>
                 <input
                   type="number"
@@ -453,34 +435,34 @@ export default function PoliticalPartiesAndStockView({
                   onClick={() => handleTrade("BUY")}
                   className="py-2 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold cursor-pointer"
                 >
-                  Buy Shares
+                  Acquire Stake
                 </button>
                 <button
                   onClick={() => handleTrade("SELL")}
                   className="py-2 rounded-lg bg-rose-500 hover:bg-rose-400 text-slate-950 font-bold cursor-pointer"
                 >
-                  Sell Shares
+                  Divest Stake
                 </button>
               </div>
             </div>
           </div>
 
-          {/* Right 2 Columns: Active Account Portfolio Holdings */}
-          <div className="lg:col-span-2 bg-slate-900/70 border border-slate-800/80 rounded-xl p-5 space-y-4">
+          {/* Right 2 Columns: Visual Equity Position Cards */}
+          <div className="lg:col-span-2 bg-slate-900/80 border border-slate-800 rounded-2xl p-5 space-y-4">
             <div className="flex flex-wrap items-center justify-between gap-4 pb-4 border-b border-slate-800">
               <div>
                 <h3 className="text-base font-bold text-white">
-                  {activeAccount?.holderName} — Equity Portfolio
+                  {activeAccount?.holderName} — Active Equity Holdings
                 </h3>
                 <p className="text-xs text-slate-400">
-                  Quarterly dividends automatically accrue into the Dividend Pot whenever a quarter advances
+                  Dividends automatically compound into your fund's reserve at the end of every quarter
                 </p>
               </div>
 
               <div className="flex items-center gap-4">
                 <div className="text-right">
                   <div className="text-[11px] text-slate-400">
-                    Unclaimed Dividend Pot
+                    Accrued Dividends
                   </div>
                   <div className="text-lg font-bold font-mono-num text-emerald-400">
                     {formatCurrency(activeAccount?.dividendPot)}
@@ -492,62 +474,50 @@ export default function PoliticalPartiesAndStockView({
                       action: "CLAIM_DIVIDENDS",
                     })
                   }
-                  className="px-3.5 py-2 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40 text-xs font-semibold cursor-pointer"
+                  className="px-3.5 py-2 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40 text-xs font-semibold cursor-pointer"
                 >
-                  Claim Dividends to Cash
+                  Collect Dividends
                 </button>
               </div>
             </div>
 
-            <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse">
-                <thead>
-                  <tr className="border-b border-slate-800 text-[11px] uppercase tracking-wider text-slate-400">
-                    <th className="py-2.5 px-3">Company</th>
-                    <th className="py-2.5 px-3">HQ Nation</th>
-                    <th className="py-2.5 px-3 text-right">Shares Held</th>
-                    <th className="py-2.5 px-3 text-right">Share Price</th>
-                    <th className="py-2.5 px-3 text-right">Position Value</th>
-                    <th className="py-2.5 px-3 text-right">Est. Quarterly Div</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-800/60 text-xs">
-                  {(activeAccount?.holdings || []).length === 0 ? (
-                    <tr>
-                      <td
-                        colSpan={6}
-                        className="py-8 text-center text-slate-500"
-                      >
-                        No equity positions held yet. Use the order terminal on the left to purchase shares.
-                      </td>
-                    </tr>
-                  ) : (
-                    (activeAccount?.holdings || []).map((h, i) => (
-                      <tr key={i} className="hover:bg-slate-800/40">
-                        <td className="py-2.5 px-3 font-semibold text-white">
+            {(activeAccount?.holdings || []).length === 0 ? (
+              <div className="py-12 text-center text-slate-500 text-xs">
+                No equity stakes held in this fund yet. Use the Bourse Order Terminal on the left to acquire shares.
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                {(activeAccount?.holdings || []).map((h, i) => (
+                  <div
+                    key={i}
+                    className="bg-slate-950/70 border border-slate-800 rounded-xl p-4 space-y-2 text-xs"
+                  >
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <div className="font-bold text-white text-sm">
                           {h.companyName}
-                        </td>
-                        <td className="py-2.5 px-3 text-slate-300">
-                          {h.hqCountry}
-                        </td>
-                        <td className="py-2.5 px-3 text-right font-mono-num text-slate-200">
-                          {formatCompactNumber(h.units)}
-                        </td>
-                        <td className="py-2.5 px-3 text-right font-mono-num text-cyan-300">
-                          {formatExactCurrency(h.sharePrice, 2)}
-                        </td>
-                        <td className="py-2.5 px-3 text-right font-mono-num font-bold text-white">
-                          {formatCurrency(h.holdingValue)}
-                        </td>
-                        <td className="py-2.5 px-3 text-right font-mono-num text-emerald-400">
-                          +{formatCurrency(h.holdingDividends)}
-                        </td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
+                        </div>
+                        <div className="text-[11px] text-slate-400">
+                          HQ: {h.hqCountry}
+                        </div>
+                      </div>
+                      <span className="font-mono-num font-bold text-cyan-300 text-sm">
+                        {formatCurrency(h.holdingValue)}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between pt-2 border-t border-slate-800/80 text-[11px] font-mono-num">
+                      <span className="text-slate-300">
+                        {formatCompactNumber(h.units)} shares @{" "}
+                        {formatExactCurrency(h.sharePrice, 2)}
+                      </span>
+                      <span className="text-emerald-400">
+                        +{formatCurrency(h.holdingDividends)}/Q
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -557,16 +527,18 @@ export default function PoliticalPartiesAndStockView({
         <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-slate-900 border border-slate-700 rounded-2xl max-w-lg w-full p-6 shadow-2xl">
             <h3 className="text-base font-bold text-white pb-3 border-b border-slate-800">
-              Found New Political Party
+              Found New Political Movement
             </h3>
             <form onSubmit={handleCreateParty} className="space-y-3 mt-4 text-xs">
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-slate-300 mb-1">Party Name *</label>
+                  <label className="block text-slate-300 mb-1">
+                    Movement Name *
+                  </label>
                   <input
                     type="text"
                     required
-                    placeholder="e.g. Martian Technocratic Front"
+                    placeholder="e.g. Martian Technocratic Union"
                     value={partyForm.name}
                     onChange={(e) =>
                       setPartyForm({ ...partyForm, name: e.target.value })
@@ -575,7 +547,7 @@ export default function PoliticalPartiesAndStockView({
                   />
                 </div>
                 <div>
-                  <label className="block text-slate-300 mb-1">Alignment</label>
+                  <label className="block text-slate-300 mb-1">Ideology</label>
                   <input
                     type="text"
                     value={partyForm.politicalAlignment}
@@ -586,54 +558,6 @@ export default function PoliticalPartiesAndStockView({
                       })
                     }
                     className="w-full px-3 py-2 rounded bg-slate-950 border border-slate-700 text-white"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-3 gap-3">
-                <div>
-                  <label className="block text-slate-300 mb-1">Income Tax</label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    value={partyForm.incomeTaxPreference}
-                    onChange={(e) =>
-                      setPartyForm({
-                        ...partyForm,
-                        incomeTaxPreference: Number(e.target.value),
-                      })
-                    }
-                    className="w-full px-3 py-2 rounded bg-slate-950 border border-slate-700 text-white font-mono-num"
-                  />
-                </div>
-                <div>
-                  <label className="block text-slate-300 mb-1">Sales Tax</label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    value={partyForm.salesTaxPreference}
-                    onChange={(e) =>
-                      setPartyForm({
-                        ...partyForm,
-                        salesTaxPreference: Number(e.target.value),
-                      })
-                    }
-                    className="w-full px-3 py-2 rounded bg-slate-950 border border-slate-700 text-white font-mono-num"
-                  />
-                </div>
-                <div>
-                  <label className="block text-slate-300 mb-1">Corp Tax</label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    value={partyForm.corporateTaxRate}
-                    onChange={(e) =>
-                      setPartyForm({
-                        ...partyForm,
-                        corporateTaxRate: Number(e.target.value),
-                      })
-                    }
-                    className="w-full px-3 py-2 rounded bg-slate-950 border border-slate-700 text-white font-mono-num"
                   />
                 </div>
               </div>
@@ -650,7 +574,7 @@ export default function PoliticalPartiesAndStockView({
                   type="submit"
                   className="px-4 py-2 rounded bg-cyan-500 text-slate-950 font-bold cursor-pointer"
                 >
-                  Register Party
+                  Launch Movement
                 </button>
               </div>
             </form>
@@ -660,4 +584,3 @@ export default function PoliticalPartiesAndStockView({
     </div>
   );
 }
-
