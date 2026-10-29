@@ -496,6 +496,9 @@ export default function InteractiveWorldMap({
   const [selectedStateName, setSelectedStateName] = useState(null);
   const [usaDivisionMode, setUsaDivisionMode] = useState("states"); // "states" | "corridors"
   const [stateSearchQuery, setStateSearchQuery] = useState("");
+  const [showStatesTableModal, setShowStatesTableModal] = useState(false);
+  const [statesModalFilter, setStatesModalFilter] = useState("all"); // "all" | "state" | "territory"
+  const [statesModalSort, setStatesModalSort] = useState("gdp"); // "gdp" | "name" | "pops" | "infra"
   const tooltipRef = useRef(null);
   const setHoveredTerritory = (val) => tooltipRef.current?.setHover(val);
 
