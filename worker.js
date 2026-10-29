@@ -271,9 +271,6 @@ async function ensureDefaultSessions(env, requestUrl) {
     updatedAt: now,
     state: vietnamState,
   };
-    updatedAt: now,
-    state: vietnamState,
-  };
   memorySessions.set(s2.id, s2);
 
   if (db) {
