@@ -1526,13 +1526,28 @@ export default function InteractiveWorldMap({
                         </div>
                       </div>
 
-                      <div className="flex items-center justify-between gap-2 pt-1 border-t border-slate-900">
-                        <button
-                          onClick={() => focusOnTerritory(st.name)}
-                          className="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-cyan-300 text-[11px] font-semibold flex items-center gap-1 cursor-pointer transition"
-                        >
-                          <MapPin className="w-3 h-3" /> Focus on Map
-                        </button>
+                      <div className="flex items-center justify-between gap-2 pt-1 border-t border-slate-900 flex-wrap">
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => focusOnTerritory(st.name)}
+                            className="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-cyan-300 text-[11px] font-semibold flex items-center gap-1 cursor-pointer transition"
+                          >
+                            <MapPin className="w-3 h-3" /> Focus on Map
+                          </button>
+
+                          {!isReadOnly && nations.length > 1 && (
+                            <button
+                              onClick={() => {
+                                setTransferringState(st);
+                                setTransferTargetNationId("");
+                              }}
+                              className="px-2.5 py-1 rounded-lg bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 border border-amber-500/30 text-[11px] font-semibold flex items-center gap-1 cursor-pointer transition"
+                              title="Transfer this constituent state to another country"
+                            >
+                              <ArrowRightLeft className="w-3 h-3" /> Transfer State
+                            </button>
+                          )}
+                        </div>
 
                         {!isReadOnly && nationalStatesList.length > 1 && (
                           <button
