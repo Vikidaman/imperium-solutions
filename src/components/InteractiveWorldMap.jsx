@@ -1908,14 +1908,24 @@ export default function InteractiveWorldMap({
                     </h3>
                   </div>
 
-                  {!isReadOnly && (
+                  <div className="flex items-center gap-1.5">
                     <button
-                      onClick={() => setShowProvinceManager(true)}
-                      className="px-3 py-1.5 rounded-xl bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 border border-cyan-500/40 text-xs font-bold flex items-center gap-1.5 cursor-pointer transition shadow-sm"
+                      onClick={() => setShowStatesTableModal(true)}
+                      className="px-2.5 py-1.5 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 text-xs font-bold flex items-center gap-1 cursor-pointer transition shadow-sm"
+                      title="Open Pop Up Table of States & Territories"
                     >
-                      <PlusCircle className="w-3.5 h-3.5" /> Annex Province
+                      <Layers className="w-3.5 h-3.5" /> Table Pop Up
                     </button>
-                  )}
+
+                    {!isReadOnly && (
+                      <button
+                        onClick={() => setShowProvinceManager(true)}
+                        className="px-2.5 py-1.5 rounded-xl bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 border border-cyan-500/40 text-xs font-bold flex items-center gap-1 cursor-pointer transition shadow-sm"
+                      >
+                        <PlusCircle className="w-3.5 h-3.5" /> Annex
+                      </button>
+                    )}
+                  </div>
                 </div>
 
                 {/* USA Toggle: 50 Sovereign States vs 6 Economic Corridors */}
