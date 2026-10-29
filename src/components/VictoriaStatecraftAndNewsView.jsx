@@ -26,8 +26,8 @@ const LAW_CATALOG_UI = {
   governance: {
     label: "Governance & Suffrage",
     options: [
-      { id: "Autocracy", name: "Autocracy", desc: "Rule by decree (+300 Authority, no elections, Upper Strata +200% weight)." },
-      { id: "Oligarchy", name: "Oligarchy", desc: "Plutocratic elite council (+200 Authority, no elections, Capitalist & Gentry dominance)." },
+      { id: "Autocracy", name: "Autocracy", desc: "Rule by decree (no elections, Upper Strata +200% weight, low popular legitimacy)." },
+      { id: "Oligarchy", name: "Oligarchy", desc: "Plutocratic elite council (no elections, Capitalist & Gentry dominance)." },
       { id: "Wealth Voting", name: "Wealth Voting", desc: "Property & wealth threshold voting. Empowers Industrialists & Petite Bourgeoisie." },
       { id: "Census Suffrage", name: "Census Suffrage", desc: "Literacy & tax-weighted franchise. Empowers Middle Strata & Intelligentsia." },
       { id: "Universal Suffrage", name: "Universal Suffrage", desc: "Equal universal franchise. Empowers Trade Unions, Rural Folk & popular coalitions." },
@@ -41,14 +41,14 @@ const LAW_CATALOG_UI = {
       { id: "Agrarianism", name: "Agrarianism", desc: "Rural estate focus (+20% Agricultural GDP output, empowers Rural Folk)." },
       { id: "Interventionism", name: "Interventionism", desc: "Mixed economy with state subsidies, sovereign equity stakes & balanced growth." },
       { id: "Laissez-Faire", name: "Laissez-Faire", desc: "Free-market capitalism (+25% Corporate Growth, +10% Dividend Efficiency)." },
-      { id: "Command Economy", name: "Command Economy", desc: "Centralized state planning (+20% Fiscal Capture, +100 Authority)." },
+      { id: "Command Economy", name: "Command Economy", desc: "Centralized state planning (+20% Fiscal Capture, directed production)." },
       { id: "Cooperative Ownership", name: "Cooperative Ownership", desc: "Worker-owned enterprises (+15% Worker GDP Share, +2.5 Lower Strata SoL)." },
     ],
   },
   trade: {
     label: "Trade Policy",
     options: [
-      { id: "Isolationism", name: "Isolationism", desc: "Closed self-reliant market (+120 Authority, high tariff barrier)." },
+      { id: "Isolationism", name: "Isolationism", desc: "Closed self-reliant market (+15% Domestic Demand, high tariff barrier)." },
       { id: "Mercantilism", name: "Mercantilism", desc: "Export surplus promotion (+15% Tariff Revenue efficiency)." },
       { id: "Protectionism", name: "Protectionism", desc: "Domestic industry protection (+20% Tariff Revenue efficiency)." },
       { id: "Free Trade", name: "Free Trade", desc: "Open global trade (+12% Company VGP competitiveness, lower tariff friction)." },
@@ -68,8 +68,8 @@ const LAW_CATALOG_UI = {
     options: [
       { id: "Gentle Touch", name: "Gentle Touch", desc: "Civil liberties focus (+Intelligentsia approval, 1.5x crime rate)." },
       { id: "Beat Cops", name: "Beat Cops", desc: "Dedicated municipal police (0.9x crime rate)." },
-      { id: "Profiling", name: "Profiling", desc: "Targeted security apparatus (+50 Authority, 0.75x crime rate)." },
-      { id: "Militarized Police", name: "Militarized Police", desc: "Paramilitary internal security (+120 Authority, 0.1x crime rate)." },
+      { id: "Profiling", name: "Profiling", desc: "Targeted security apparatus (0.75x crime rate, increases Lower Strata radicalism)." },
+      { id: "Militarized Police", name: "Militarized Police", desc: "Paramilitary internal security (0.1x crime rate, suppresses radical turmoil by 40%)." },
     ],
   },
   welfare: {
