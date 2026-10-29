@@ -1270,6 +1270,31 @@ export default {
           }
         }
 
+        if (actionType === "DELETE_PLANET") {
+          const targetId = body.planetId || planetData?.id || planetData?.name;
+          if (targetId) {
+            const existing = (sess.state.planetsConfig || []).find(
+              (p) => p.id === targetId || p.name?.toLowerCase() === String(targetId).toLowerCase()
+            );
+            const planetName = existing?.name || targetId;
+
+            sess.state.planetsConfig = (sess.state.planetsConfig || []).filter(
+              (p) => p.id !== targetId && p.name?.toLowerCase() !== String(targetId).toLowerCase()
+            );
+
+            const fallbackPlanet = sess.state.planetsConfig[0]?.name || "Earth";
+            (sess.state.nations || []).forEach((n) => {
+              if ((n.planet || "").toLowerCase() === String(planetName).toLowerCase()) {
+                n.planet = fallbackPlanet;
+              }
+            });
+
+            sess.state.planetsSummary = (sess.state.planetsSummary || []).filter(
+              (p) => p.name?.toLowerCase() !== String(planetName).toLowerCase()
+            );
+          }
+        }
+
         evaluateSimulation(sess.state);
         await saveStateToD1(db, sess);
         await logActivity(
