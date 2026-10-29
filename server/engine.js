@@ -1,4 +1,4 @@
-// Complete Simulation Engine implementing Interstellar 2.0 & Imperium Solutions Mastersheet formulas + Victoria 3 Socio-Economic & Election Rules
+// Complete Simulation Engine implementing Interstellar 2.0 & Imperium Solutions Mastersheet formulas + Statecraft & Election Rules
 import {
   ensureVictoriaState,
   evaluateVictoriaMechanics,
@@ -13,6 +13,7 @@ import {
   LAW_CATALOG,
   CONSTRUCTION_BUILDINGS,
 } from "./victoriaMechanics.js";
+import { HISTORICAL_ERAS, getHistoricalEraForDate } from "./historicalEras.js";
 
 export {
   setCustomStartDate,
@@ -23,6 +24,8 @@ export {
   publishCustomNews,
   LAW_CATALOG,
   CONSTRUCTION_BUILDINGS,
+  HISTORICAL_ERAS,
+  getHistoricalEraForDate,
 };
 
 const TECH_ERA_TO_TOOL_INPUT = [
