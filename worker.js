@@ -967,47 +967,7 @@ export default {
             sess.state.nations.find((n) => n.id === templateNationId) ||
             sess.state.nations[0];
           const market = (templateNation?.market || []).map((m) => ({ ...m }));
-          const count = Math.min(200, Math.max(1, Number(companyCount) || 20));
           const companies = [];
-          const sampleGoods = [
-            "Tools",
-            "Steel",
-            "Semi-Conductor",
-            "Electricity",
-            "Grain",
-            "Automobile",
-            "Software",
-            "Pharmaceuticals",
-            "Aerospace",
-            "Banking",
-            "International Trade",
-            "Construction",
-          ];
-          for (let i = 1; i <= count; i++) {
-            const gName =
-              templateNation?.companies?.[i - 1]?.flagshipGood ||
-              sampleGoods[(i - 1) % sampleGoods.length];
-            companies.push({
-              id: `${newId}_comp_${i}`,
-              name: `${name} Enterprise ${i}`,
-              hqCountry: name,
-              flagshipGood: gName,
-              gdpSector: "Industry & Manufacturing GDP",
-              hypeFactor: 50,
-              valuation: 0,
-              vgp: 0,
-              employedPops: Math.round((Number(workingPops) * 0.9) / count),
-              projectedRealGrowth: 0.02,
-              govtOwnedShares: 0,
-              numberOfShares: 10000000,
-              dividendEfficiency: 0.6,
-              dividendsPerShare: 0,
-              productionMethod: "Tools",
-              subsidised: false,
-              targetGrowth: 0.03,
-              illegal: false,
-            });
-          }
 
           const newNation = {
             id: newId,
