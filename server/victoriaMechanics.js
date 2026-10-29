@@ -1714,3 +1714,8 @@ export function publishCustomNews(state, { headline, summary, category = "SPECIA
     toastMessage: `Published to The Imperial Gazette: "${headline}"`,
   };
 }
+
+// Seamless aliases
+export const ensureStatecraftState = ensureVictoriaState;
+export const evaluateStatecraftMechanics = evaluateVictoriaMechanics;
+export const processTimeTickStatecraft = processTimeTickVictoria;
