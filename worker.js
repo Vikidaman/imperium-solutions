@@ -1105,6 +1105,42 @@ export default {
         });
       }
 
+      // POST /api/sessions/:id/victoria (Victoria 3 Elections, Laws, Construction, Gazette & Dilemmas)
+      if (parts[3] === "victoria" && request.method === "POST") {
+        const body = await request.json();
+        const { type, actor } = body;
+        let result = { action: "Updated statecraft", toastMessage: null };
+
+        if (type === "ELECTION_ACTION") {
+          result = triggerElectionAction(sess.state, body);
+        } else if (type === "LAW_ACTION") {
+          result = triggerLawAction(sess.state, body);
+        } else if (type === "QUEUE_CONSTRUCTION") {
+          result = queueConstruction(sess.state, body);
+        } else if (type === "RESOLVE_DILEMMA") {
+          result = resolveNewsDilemma(sess.state, body);
+        } else if (type === "PUBLISH_NEWS") {
+          result = publishCustomNews(sess.state, body);
+        } else if (type === "SET_START_DATE") {
+          result = setCustomStartDate(sess.state, body);
+        }
+
+        evaluateSimulation(sess.state);
+        await saveStateToD1(db, sess);
+        await logActivity(
+          db,
+          sessionId,
+          actor,
+          result.action,
+          type || "Statecraft"
+        );
+        return jsonResponse({
+          session: sess,
+          toastMessage: result.toastMessage || result.action,
+          activityLog: await getActivityLog(db, sessionId, 60),
+        });
+      }
+
       return jsonResponse({ error: "Not found" }, 404);
     } catch (err) {
       return jsonResponse({ error: err.message || "Internal error" }, 500);
