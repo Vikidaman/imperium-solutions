@@ -11,7 +11,12 @@ export default defineConfig({
           if (id.includes("node_modules/recharts")) {
             return "vendor-charts";
           }
-          if (id.includes("node_modules/d3-geo") || id.includes("node_modules/topojson-client") || id.includes("world-atlas")) {
+          if (
+            id.includes("node_modules/d3-geo") ||
+            id.includes("node_modules/topojson-client") ||
+            id.includes("world-atlas") ||
+            id.includes("us-atlas")
+          ) {
             return "vendor-geo";
           }
         },
