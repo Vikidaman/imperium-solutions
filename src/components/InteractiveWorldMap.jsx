@@ -2,6 +2,8 @@ import React, { useState, useEffect, useMemo, useRef, forwardRef, useImperativeH
 import { geoNaturalEarth1, geoPath } from "d3-geo";
 import * as topojson from "topojson-client";
 import worldAtlas from "world-atlas/countries-110m.json";
+import usAtlas from "us-atlas/states-10m.json";
+import { US_STATES_CATALOG, REGION_TINTS, getUsaStateData } from "../data/usStatesData";
 import {
   Globe2,
   Rocket,
@@ -29,6 +31,7 @@ import {
   Trash2,
   PlusCircle,
   CheckCircle2,
+  Search,
 } from "lucide-react";
 import BufferedRangeSlider from "./BufferedRangeSlider";
 import {
@@ -58,6 +61,78 @@ const STATIC_EARTH_FEATURES = topojson
       bounds: bounds || [[0, 0], [0, 0]],
     };
   });
+
+// Precompute static United States individual 50 state & territory features
+const STATIC_US_STATE_FEATURES = topojson
+  .feature(usAtlas, usAtlas.objects.states)
+  .features.map((f) => {
+    const centroid = STATIC_PATH_GEN.centroid(f);
+    const bounds = STATIC_PATH_GEN.bounds(f);
+    return {
+      id: f.id,
+      name: f.properties.name,
+      d: STATIC_PATH_GEN(f),
+      centroid: Number.isFinite(centroid[0]) ? centroid : [0, 0],
+      bounds: bounds || [[0, 0], [0, 0]],
+    };
+  });
+
+// Precompute crisp boundary mesh lines between all US states
+const STATIC_US_STATES_MESH = STATIC_PATH_GEN(
+  topojson.mesh(usAtlas, usAtlas.objects.states, (a, b) => a !== b)
+);
+
+// Regional geographic coordinates for other major global nations
+const GLOBAL_REGIONAL_CENTROIDS = {
+  china: [
+    { name: "Pearl River Delta & Guangdong", coords: [113.3, 23.1] },
+    { name: "Yangtze River Economic Basin", coords: [120.5, 31.0] },
+    { name: "Beijing-Tianjin-Hebei Capital Core", coords: [116.4, 39.9] },
+    { name: "Sichuan-Chongqing Industrial Basin", coords: [106.5, 29.5] },
+    { name: "Northwestern Resource Corridor", coords: [87.6, 43.8] },
+  ],
+  russia: [
+    { name: "Central Federal District (Moscow)", coords: [37.6, 55.7] },
+    { name: "Northwestern Region (St. Petersburg)", coords: [30.3, 59.9] },
+    { name: "Volga-Ural Heavy Industrial Heartland", coords: [50.1, 53.2] },
+    { name: "Siberian Hydrocarbon & Minerals Belt", coords: [82.9, 55.0] },
+    { name: "Far East Pacific Gateway (Vladivostok)", coords: [131.9, 43.1] },
+  ],
+  india: [
+    { name: "Maharashtra & Western Commercial Coast", coords: [73.5, 19.0] },
+    { name: "Deccan Tech Corridor (Bengaluru-Hyd)", coords: [77.6, 14.5] },
+    { name: "Indo-Gangetic Industrial Belt (Delhi-UP)", coords: [78.5, 27.5] },
+    { name: "Tamil Nadu Southern Automotive Hub", coords: [79.5, 11.5] },
+    { name: "Eastern Mineral & Steel Shelf", coords: [86.5, 23.0] },
+  ],
+  mexico: [
+    { name: "Northern Nearshoring & Automotive Corridor", coords: [-103.0, 26.5] },
+    { name: "Central Valley & Mexico City Megalopolis", coords: [-99.1, 19.4] },
+    { name: "Bajio Advanced Manufacturing Corridor", coords: [-101.5, 21.0] },
+    { name: "Gulf Energy Basin & Deepwater Ports", coords: [-95.5, 20.0] },
+    { name: "Southern Pacific & Cultural Belt", coords: [-94.0, 16.8] },
+  ],
+  brazil: [
+    { name: "São Paulo Southeastern Megalopolis", coords: [-47.0, -23.0] },
+    { name: "Rio de Janeiro Offshore Basin", coords: [-42.5, -22.5] },
+    { name: "Southern Agro-Industrial Belt", coords: [-51.5, -28.0] },
+    { name: "Amazonian Mineral & Bio-Reserve", coords: [-60.0, -4.0] },
+    { name: "Northeastern Littoral & Clean Tech", coords: [-38.5, -10.0] },
+  ],
+  germany: [
+    { name: "Bavaria High-Tech & Automotive Core", coords: [11.5, 48.5] },
+    { name: "North Rhine-Westphalia Industrial Ruhr", coords: [7.2, 51.5] },
+    { name: "Baden-Württemberg Precision Engineering", coords: [9.0, 48.5] },
+    { name: "Berlin-Brandenburg Capital & Innovation", coords: [13.4, 52.5] },
+    { name: "Northern Maritime Hansa & Ports", coords: [9.9, 53.5] },
+  ],
+  japan: [
+    { name: "Kanto Plain & Tokyo Megalopolis", coords: [139.7, 35.7] },
+    { name: "Kansai Region (Osaka-Kyoto-Kobe)", coords: [135.5, 34.7] },
+    { name: "Chubu Industrial Corridor (Nagoya)", coords: [136.9, 35.2] },
+    { name: "Kyushu & Southwestern Tech Island", coords: [130.4, 33.6] },
+  ],
+};
 
 // Subcontinent Presets for Tier-2 Subcontinent Zoom
 const SUBCONTINENT_PRESETS = [
