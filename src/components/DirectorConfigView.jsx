@@ -707,6 +707,405 @@ export default function DirectorConfigView({
           )}
         </div>
       )}
+
+      {/* SUBTAB 3: HISTORICAL ERAS, BORDERS & INTERNAL DIVISIONS (500 BC to Present) */}
+      {activeSubTab === "historical_borders" && (() => {
+        const selectedEra = HISTORICAL_ERAS.find((e) => e.id === selectedEraId) || HISTORICAL_ERAS[6];
+        const activeNationObj = nations.find((n) => n.id === inspectedNationId) || nations[0];
+        const isUnitary = activeNationObj?.isSeceded || activeNationObj?.isUnitaryState;
+
+        const currentStates = activeNationObj?.constituentStates || [];
+        const currentTerritories = activeNationObj?.unincorporatedTerritories || [];
+
+        return (
+          <div className="space-y-6">
+            <div className="flex flex-wrap items-center justify-between gap-4">
+              <div>
+                <h3 className="text-base font-bold text-white flex items-center gap-2">
+                  <History className="w-5 h-5 text-emerald-400" />
+                  Historical Eras & Constituent Border Configuration (500 BC – Present)
+                </h3>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  Revamp world sovereign borders and internal constituent state divisions across historical epochs.
+                  Seceded states become unitary sovereign states with no sub-provinces; newly annexed lands enter as unincorporated territories first.
+                </p>
+              </div>
+
+              {!isReadOnly && (
+                <button
+                  onClick={() => {
+                    if (
+                      window.confirm(
+                        `Apply ${selectedEra.label} to the world simulation?\n\nThis will align all sovereign borders, territory ownership, and internal state divisions to ${selectedEra.shortLabel}.`
+                      )
+                    ) {
+                      onUpdateDirectorConfig({
+                        actionType: "APPLY_HISTORICAL_ERA",
+                        eraId: selectedEra.id,
+                      });
+                    }
+                  }}
+                  className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:brightness-110 text-slate-950 font-bold text-xs flex items-center gap-2 cursor-pointer shadow-lg shadow-emerald-500/20"
+                >
+                  <CheckCircle2 className="w-4 h-4" />
+                  Apply {selectedEra.shortLabel} Borders to World
+                </button>
+              )}
+            </div>
+
+            {/* Historical Era Carousel / Presets Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
+              {HISTORICAL_ERAS.map((era) => {
+                const isSelected = era.id === selectedEra.id;
+                return (
+                  <div
+                    key={era.id}
+                    onClick={() => {
+                      setSelectedEraId(era.id);
+                      setCustomYearInput(era.year);
+                    }}
+                    className={`p-3 rounded-2xl border cursor-pointer transition text-left space-y-1.5 flex flex-col justify-between ${
+                      isSelected
+                        ? "bg-emerald-950/40 border-emerald-500 text-white shadow-md shadow-emerald-500/10"
+                        : "bg-slate-950/60 border-slate-800 text-slate-300 hover:border-slate-700"
+                    }`}
+                  >
+                    <div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] font-mono-num font-bold text-emerald-400">
+                          {era.year < 0 ? `${Math.abs(era.year)} BC` : `${era.year} AD`}
+                        </span>
+                        {isSelected && (
+                          <span className="w-2 h-2 rounded-full bg-emerald-400" />
+                        )}
+                      </div>
+                      <h4 className="text-xs font-bold mt-1 line-clamp-1">{era.shortLabel}</h4>
+                      <p className="text-[10px] text-slate-400 line-clamp-2 mt-0.5">
+                        {era.label.split("—")[1]?.trim() || era.label}
+                      </p>
+                    </div>
+
+                    <div className="text-[9px] text-slate-500 font-mono-num pt-1 border-t border-slate-900">
+                      {era.nations.length} Primary Empires
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Custom Era / Date Slider */}
+            <div className="bg-slate-950/70 border border-slate-800 rounded-2xl p-4 flex flex-wrap items-center justify-between gap-4 text-xs">
+              <div className="flex items-center gap-3 flex-1 min-w-[280px]">
+                <Calendar className="w-4 h-4 text-emerald-400 shrink-0" />
+                <span className="font-semibold text-slate-300 whitespace-nowrap">
+                  Interpolate Year (-500 to 2026):
+                </span>
+                <input
+                  type="range"
+                  min="-500"
+                  max="2026"
+                  step="25"
+                  value={customYearInput}
+                  onChange={(e) => {
+                    const yr = parseInt(e.target.value, 10);
+                    setCustomYearInput(yr);
+                    const matched = getHistoricalEraForDate(yr);
+                    if (matched) setSelectedEraId(matched.id);
+                  }}
+                  className="flex-1 accent-emerald-400 cursor-pointer"
+                />
+                <span className="font-mono-num font-bold text-emerald-300 px-2 py-1 rounded bg-slate-900 border border-slate-800">
+                  {customYearInput < 0 ? `${Math.abs(customYearInput)} BC` : `${customYearInput} AD`}
+                </span>
+              </div>
+
+              <div className="text-[11px] text-slate-400">
+                Resolved Era: <strong className="text-white">{selectedEra.label}</strong>
+              </div>
+            </div>
+
+            {/* Era Overview Banner */}
+            <div className="bg-gradient-to-r from-emerald-950/30 via-slate-900 to-slate-900 border border-emerald-500/30 rounded-2xl p-4 space-y-2">
+              <div className="flex items-center gap-2">
+                <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 text-[10px] font-bold font-mono-num">
+                  Selected Era Overview
+                </span>
+                <h4 className="text-sm font-bold text-white">{selectedEra.label}</h4>
+              </div>
+              <p className="text-xs text-slate-300 leading-relaxed">{selectedEra.description}</p>
+            </div>
+
+            {/* Internal State Divisions & Sovereignty Inspector */}
+            <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-5 space-y-4">
+              <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-800 pb-3">
+                <div>
+                  <h4 className="text-sm font-bold text-white flex items-center gap-2">
+                    <Flag className="w-4 h-4 text-cyan-400" />
+                    Country Constituent Divisions & Territorial Statehood
+                  </h4>
+                  <p className="text-[11px] text-slate-400 mt-0.5">
+                    Configure individual states and unincorporated territories for each country.
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <span className="text-[11px] text-slate-400 font-semibold">Inspect Country:</span>
+                  <select
+                    value={activeNationObj?.id || ""}
+                    onChange={(e) => setInspectedNationId(e.target.value)}
+                    className="bg-slate-950 border border-slate-700 rounded-xl px-3 py-1.5 text-xs text-white font-bold"
+                  >
+                    {nations.map((n) => (
+                      <option key={n.id} value={n.id}>
+                        {n.name} ({n.planet || "Earth"}) {n.isSeceded ? "• Unitary State" : ""}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {/* Unitary State Notice (Seceded Nations) */}
+              {isUnitary ? (
+                <div className="p-6 rounded-2xl bg-cyan-950/20 border border-cyan-500/30 text-center space-y-2">
+                  <div className="w-9 h-9 rounded-full bg-cyan-500/20 text-cyan-300 flex items-center justify-center mx-auto font-bold text-sm">
+                    ★
+                  </div>
+                  <h4 className="text-sm font-bold text-white">Unitary Sovereign State</h4>
+                  <p className="text-xs text-slate-300 max-w-md mx-auto leading-relaxed">
+                    <strong className="text-cyan-300">{activeNationObj.name}</strong> is an independent constituent state that seceded from its former sovereign. In accordance with statecraft rules, it is a unitary sovereign entity and contains no further sub-provinces or internal subdivisions.
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-5">
+                  {/* Category 1: Constituent States (Full Statehood) */}
+                  <div className="space-y-2.5">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold uppercase tracking-wider text-cyan-400">
+                        Constituent States ({currentStates.length})
+                      </span>
+                      <span className="text-[10px] text-slate-500">
+                        Full statehood with legislative representation
+                      </span>
+                    </div>
+
+                    {currentStates.length > 0 ? (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        {currentStates.map((st, idx) => (
+                          <div
+                            key={st.name || idx}
+                            className="p-3.5 rounded-xl bg-slate-950/80 border border-slate-800 hover:border-cyan-500/40 transition space-y-2"
+                          >
+                            <div className="flex items-start justify-between gap-2">
+                              <div>
+                                <div className="flex items-center gap-1.5">
+                                  <span className="w-2 h-2 rounded-full bg-cyan-400" />
+                                  <span className="text-xs font-bold text-white">{st.name}</span>
+                                </div>
+                                <p className="text-[11px] text-slate-400 mt-0.5">{st.role}</p>
+                              </div>
+                              <span className="px-2 py-0.5 rounded bg-cyan-500/10 text-cyan-300 border border-cyan-500/20 text-[10px] font-bold">
+                                STATE
+                              </span>
+                            </div>
+
+                            {!isReadOnly && onTransferTerritory && (
+                              <div className="flex items-center justify-end gap-2 pt-1 border-t border-slate-900">
+                                <button
+                                  onClick={() => {
+                                    setTransferModalTerritory({ name: st.name, currentNation: activeNationObj });
+                                    setTransferTargetNationId("");
+                                  }}
+                                  className="px-2 py-1 rounded-lg bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 border border-amber-500/30 text-[10px] font-semibold flex items-center gap-1 cursor-pointer transition"
+                                  title="Transfer this state to another country (enters as territory first)"
+                                >
+                                  <ArrowRightLeft className="w-3 h-3" /> Transfer
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    if (
+                                      window.confirm(
+                                        `Release ${st.name} as a sovereign unitary state?\n\nIt will have NO sub-provinces since it is a constituent state itself.`
+                                      )
+                                    ) {
+                                      onTransferTerritory({
+                                        territoryName: st.name,
+                                        mode: "RELEASE",
+                                        planet: activeNationObj.planet || "Earth",
+                                      });
+                                    }
+                                  }}
+                                  className="px-2 py-1 rounded-lg bg-rose-500/15 hover:bg-rose-500/25 text-rose-300 border border-rose-500/30 text-[10px] font-semibold flex items-center gap-1 cursor-pointer transition"
+                                  title="Secede and proclaim independence as a unitary state"
+                                >
+                                  Secede
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="p-3.5 rounded-xl bg-slate-950/60 border border-slate-800 text-xs text-slate-400">
+                        No constituent states currently cataloged.
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Category 2: Unincorporated Territories & Dependencies */}
+                  <div className="space-y-2.5 pt-2 border-t border-slate-800">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold uppercase tracking-wider text-amber-400">
+                        Unincorporated Territories ({currentTerritories.length})
+                      </span>
+                      <span className="text-[10px] text-slate-500">
+                        Annexed dependencies awaiting formal statehood integration
+                      </span>
+                    </div>
+
+                    {currentTerritories.length > 0 ? (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        {currentTerritories.map((tr, idx) => (
+                          <div
+                            key={tr.name || idx}
+                            className="p-3.5 rounded-xl bg-slate-950/80 border border-amber-500/30 space-y-2"
+                          >
+                            <div className="flex items-start justify-between gap-2">
+                              <div>
+                                <div className="flex items-center gap-1.5">
+                                  <span className="w-2 h-2 rounded-full bg-amber-400" />
+                                  <span className="text-xs font-bold text-white">{tr.name}</span>
+                                </div>
+                                <p className="text-[11px] text-slate-400 mt-0.5">{tr.role}</p>
+                              </div>
+                              <span className="px-2 py-0.5 rounded bg-amber-500/10 text-amber-300 border border-amber-500/30 text-[10px] font-bold">
+                                TERRITORY
+                              </span>
+                            </div>
+
+                            {!isReadOnly && onTransferTerritory && (
+                              <div className="flex items-center justify-end gap-2 pt-1 border-t border-slate-900">
+                                <button
+                                  onClick={() =>
+                                    onTransferTerritory({
+                                      territoryName: tr.name,
+                                      targetNationId: activeNationObj.id,
+                                      mode: "INTEGRATE",
+                                      planet: activeNationObj.planet || "Earth",
+                                    })
+                                  }
+                                  className="px-2.5 py-1 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40 text-[10px] font-bold flex items-center gap-1 cursor-pointer transition"
+                                  title="Elevate this territory into full Constituent Statehood"
+                                >
+                                  <Star className="w-3 h-3 text-emerald-400" /> Integrate as State
+                                </button>
+                                <button
+                                  onClick={() =>
+                                    onTransferTerritory({
+                                      territoryName: tr.name,
+                                      mode: "RELEASE",
+                                      planet: activeNationObj.planet || "Earth",
+                                    })
+                                  }
+                                  className="px-2 py-1 rounded-lg bg-rose-500/15 hover:bg-rose-500/25 text-rose-300 border border-rose-500/30 text-[10px] font-semibold cursor-pointer"
+                                  title="Release territory as an independent state"
+                                >
+                                  Release
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="p-3.5 rounded-xl bg-slate-950/60 border border-slate-800 text-xs text-slate-400">
+                        No unincorporated territories. Any newly annexed territories will appear here first before being granted statehood.
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* In-Tab Transfer Territory Modal */}
+            {transferModalTerritory && (
+              <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
+                <div className="bg-slate-900 border border-slate-700/80 rounded-2xl w-full max-w-md p-5 shadow-2xl space-y-4 text-xs">
+                  <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+                    <div className="flex items-center gap-2">
+                      <div className="p-2 rounded-lg bg-amber-500/10 text-amber-400">
+                        <ArrowRightLeft className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <h4 className="text-sm font-bold text-white">Transfer Territorial Jurisdiction</h4>
+                        <p className="text-[11px] text-slate-400">
+                          Transfer <span className="text-amber-300 font-bold">{transferModalTerritory.name}</span>
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => setTransferModalTerritory(null)}
+                      className="text-slate-400 hover:text-white"
+                    >
+                      ✕
+                    </button>
+                  </div>
+
+                  <div className="p-3 rounded-xl bg-slate-950 border border-slate-800 space-y-1 text-slate-300">
+                    <p>
+                      In accordance with Imperium statehood rules, transferred territories enter the recipient country as an <strong className="text-amber-300">Unincorporated Territory</strong> first, before they can be integrated into statehood.
+                    </p>
+                  </div>
+
+                  <div>
+                    <label className="text-slate-400 font-semibold block mb-1">
+                      Recipient Sovereign Nation:
+                    </label>
+                    <select
+                      value={transferTargetNationId}
+                      onChange={(e) => setTransferTargetNationId(e.target.value)}
+                      className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white font-bold"
+                    >
+                      <option value="">-- Choose Recipient Nation --</option>
+                      {nations
+                        .filter((n) => n.id !== transferModalTerritory.currentNation?.id)
+                        .map((n) => (
+                          <option key={n.id} value={n.id}>
+                            {n.name} ({n.planet || "Earth"})
+                          </option>
+                        ))}
+                    </select>
+                  </div>
+
+                  <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-800">
+                    <button
+                      onClick={() => setTransferModalTerritory(null)}
+                      className="px-4 py-2 rounded-xl bg-slate-800 text-slate-300 cursor-pointer"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      disabled={!transferTargetNationId}
+                      onClick={() => {
+                        if (!transferTargetNationId || !onTransferTerritory) return;
+                        onTransferTerritory({
+                          territoryName: transferModalTerritory.name,
+                          targetNationId: transferTargetNationId,
+                          mode: "ANNEX",
+                          planet: transferModalTerritory.currentNation?.planet || "Earth",
+                        });
+                        setTransferModalTerritory(null);
+                      }}
+                      className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 disabled:opacity-40 disabled:cursor-not-allowed text-slate-950 font-bold cursor-pointer"
+                    >
+                      Confirm Transfer
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        );
+      })()}
     </div>
   );
 }
