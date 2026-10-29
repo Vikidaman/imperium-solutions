@@ -431,21 +431,31 @@ const MapHoverTooltip = forwardRef(function MapHoverTooltip(
   }));
   if (!hovered) return null;
   return (
-    <div className="absolute top-14 right-4 z-20 bg-slate-950/90 backdrop-blur-md border border-slate-700 rounded-xl px-3.5 py-2.5 shadow-xl pointer-events-none text-xs">
+    <div className="absolute top-14 right-4 z-20 bg-slate-950/90 backdrop-blur-md border border-slate-700 rounded-xl px-3.5 py-2.5 shadow-xl pointer-events-none text-xs space-y-1">
       <div className="font-bold text-white flex items-center gap-2">
         <span>{hovered.name}</span>
+        {hovered.code && (
+          <span className="text-[10px] px-1.5 py-0.5 rounded bg-cyan-500/20 text-cyan-300 font-mono-num font-bold">
+            {hovered.code}
+          </span>
+        )}
         <span className="text-[10px] px-2 py-0.5 rounded bg-slate-800 text-cyan-300">
-          {hovered.controllerName}
+          {hovered.status || hovered.controllerName}
         </span>
       </div>
+      {hovered.role && (
+        <div className="text-[11px] text-slate-400 font-medium leading-tight">
+          {hovered.role}
+        </div>
+      )}
       {hovered.gdp !== undefined && (
-        <div className="text-[11px] text-slate-300 font-mono-num mt-1 flex items-center gap-3">
+        <div className="text-[11px] text-slate-300 font-mono-num pt-0.5 flex items-center gap-3">
           <span>GDP: {formatCurrency(hovered.gdp)}</span>
-          <span>SOL: {hovered.sol?.toFixed(2)}</span>
+          {hovered.sol !== undefined && <span>SOL: {hovered.sol?.toFixed(2)}</span>}
           <span>Pops: {formatCompactNumber(hovered.pops)}</span>
         </div>
       )}
-      <div className="text-[10px] text-amber-300 mt-1">
+      <div className="text-[10px] text-amber-300">
         {interactionMode === "annex"
           ? `Click to Annex into ${activeNationName || ""}`
           : interactionMode === "release"
@@ -483,6 +493,9 @@ export default function InteractiveWorldMap({
   const [provinceSearchQuery, setProvinceSearchQuery] = useState("");
   const [transferringState, setTransferringState] = useState(null);
   const [transferTargetNationId, setTransferTargetNationId] = useState("");
+  const [selectedStateName, setSelectedStateName] = useState(null);
+  const [usaDivisionMode, setUsaDivisionMode] = useState("states"); // "states" | "corridors"
+  const [stateSearchQuery, setStateSearchQuery] = useState("");
   const tooltipRef = useRef(null);
   const setHoveredTerritory = (val) => tooltipRef.current?.setHover(val);
 
