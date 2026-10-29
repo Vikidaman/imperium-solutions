@@ -240,9 +240,6 @@ export default function DirectorLoginPortal({
                 placeholder="Enter master password..."
                 className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-700 text-sm text-white focus:border-cyan-400 outline-none"
               />
-              <span className="text-[11px] text-slate-500 mt-1 block">
-                Default master password: <code className="text-slate-300">imperium-2026</code>
-              </span>
             </div>
 
             <div className="flex items-center justify-between text-xs pt-1">
@@ -250,19 +247,21 @@ export default function DirectorLoginPortal({
                 Telegram 2FA:{" "}
                 {telegramConfigured ? (
                   <strong className="text-emerald-400">
-                    Connected ({maskedChat})
+                    Locked & Paired ({maskedChat})
                   </strong>
                 ) : (
                   <strong className="text-amber-400">Setup on Next Step</strong>
                 )}
               </span>
-              <button
-                type="button"
-                onClick={() => setStep("pair_telegram")}
-                className="text-cyan-400 hover:text-cyan-300 font-semibold flex items-center gap-1 cursor-pointer"
-              >
-                <Settings className="w-3.5 h-3.5" /> Configure Telegram Bot
-              </button>
+              {!telegramConfigured && (
+                <button
+                  type="button"
+                  onClick={() => setStep("pair_telegram")}
+                  className="text-cyan-400 hover:text-cyan-300 font-semibold flex items-center gap-1 cursor-pointer"
+                >
+                  <Settings className="w-3.5 h-3.5" /> Configure Telegram Bot
+                </button>
+              )}
             </div>
 
             <button
@@ -309,7 +308,7 @@ export default function DirectorLoginPortal({
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="imperium-2026"
+                placeholder="Enter master password..."
                 className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-xs text-white"
               />
             </div>
