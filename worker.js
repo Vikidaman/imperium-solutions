@@ -1220,8 +1220,11 @@ export default {
           }
         }
 
-        if (actionType === "DELETE_BLOC" && blocData?.id) {
-          sess.state.powerBlocs = (sess.state.powerBlocs || []).filter((b) => b.id !== blocData.id);
+        if (actionType === "DELETE_BLOC") {
+          const targetId = body.blocId || blocData?.id;
+          if (targetId) {
+            sess.state.powerBlocs = (sess.state.powerBlocs || []).filter((b) => b.id !== targetId);
+          }
         }
 
         if (actionType === "SAVE_PLANET" && planetData) {
