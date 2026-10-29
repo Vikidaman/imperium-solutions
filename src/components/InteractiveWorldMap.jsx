@@ -22,7 +22,10 @@ import {
   Sliders,
   ArrowRight,
   Layers,
+  RotateCcw,
+  Trash2,
 } from "lucide-react";
+import BufferedRangeSlider from "./BufferedRangeSlider";
 import {
   formatCurrency,
   formatExactCurrency,
@@ -30,6 +33,24 @@ import {
   formatPercent,
   getShortSectorName,
 } from "../utils/formatters";
+
+// Precompute static Earth projection & TopoJSON country geometries ONCE at module load
+const STATIC_EARTH_PROJECTION = geoNaturalEarth1()
+  .scale(175)
+  .translate([480, 265]);
+const STATIC_PATH_GEN = geoPath(STATIC_EARTH_PROJECTION);
+const STATIC_EARTH_FEATURES = topojson
+  .feature(worldAtlas, worldAtlas.objects.countries)
+  .features.filter((f) => f.properties.name !== "Antarctica")
+  .map((f) => {
+    const centroid = STATIC_PATH_GEN.centroid(f);
+    return {
+      id: f.id,
+      name: f.properties.name,
+      d: STATIC_PATH_GEN(f),
+      centroid: Number.isFinite(centroid[0]) ? centroid : [0, 0],
+    };
+  });
 
 // Distinct sovereign color palette for nations
 const NATION_PALETTE = [
