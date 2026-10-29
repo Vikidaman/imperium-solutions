@@ -318,6 +318,10 @@ export default function InteractiveWorldMap({
   const [theater, setTheater] = useState("Earth"); // "Earth" | "Mars"
   const [mapLens, setMapLens] = useState("sovereignty"); // "sovereignty" | "gdp" | "sol" | "unrest"
   const [interactionMode, setInteractionMode] = useState("inspect"); // "inspect" | "annex" | "release"
+  const [viewTier, setViewTier] = useState("worldwide"); // "worldwide" | "subcontinent" | "country"
+  const [selectedSubcontinent, setSelectedSubcontinent] = useState("all");
+  const [showProvinceManager, setShowProvinceManager] = useState(false);
+  const [provinceSearchQuery, setProvinceSearchQuery] = useState("");
   const tooltipRef = useRef(null);
   const setHoveredTerritory = (val) => tooltipRef.current?.setHover(val);
 
@@ -326,6 +330,42 @@ export default function InteractiveWorldMap({
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
   const dragStartRef = useRef({ x: 0, y: 0, panX: 0, panY: 0 });
+
+  // Focus camera on a selected subcontinent
+  const handleSelectSubcontinent = (subId) => {
+    setSelectedSubcontinent(subId);
+    const preset = SUBCONTINENT_PRESETS.find((p) => p.id === subId) || SUBCONTINENT_PRESETS[0];
+    setZoom(preset.zoom);
+    setPan(preset.pan);
+  };
+
+  // Focus camera on a specific nation (Tier 3: Country & States)
+  const focusOnCountry = (targetNation) => {
+    if (!targetNation) return;
+    onSelectNation(targetNation.id);
+    const isMars = (targetNation.planet || "").toLowerCase().includes("mars");
+    if (isMars) {
+      setTheater("Mars");
+      setZoom(1.8);
+      setPan({ x: 0, y: 0 });
+      return;
+    }
+    setTheater("Earth");
+    const matchedFeature = STATIC_EARTH_FEATURES.find(
+      (f) =>
+        f.name.toLowerCase() === targetNation.name.toLowerCase() ||
+        (targetNation.id === "usa" && f.name === "United States of America") ||
+        territoryMap[f.name] === targetNation.id
+    );
+    if (matchedFeature && matchedFeature.centroid) {
+      const [cx, cy] = matchedFeature.centroid;
+      setZoom(3.6);
+      setPan({ x: -(cx - 480) * 3.6, y: -(cy - 265) * 3.6 });
+    } else {
+      setZoom(2.5);
+      setPan({ x: 0, y: 0 });
+    }
+  };
 
   // Nation lookup & color assignment
   const { nationById, nationColorMap } = useMemo(() => {
