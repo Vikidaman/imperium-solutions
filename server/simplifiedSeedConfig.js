@@ -269,3 +269,4 @@ export function buildSimplifiedSeed(originalSeed) {
 
   return seed;
 }
+
