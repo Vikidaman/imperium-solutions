@@ -219,12 +219,27 @@ async function ensureDefaultSessions(env, requestUrl) {
   await ensureSchema(db);
 
   if (db) {
-    const existing = await db
-      .prepare("SELECT COUNT(*) as cnt FROM sessions_meta")
-      .first();
-    if (existing && existing.cnt > 0) return;
+    const existing = await getSessionFromD1(db, "interstellar-default");
+    if (existing?.state) {
+      const hasOldCompanies = (existing.state.nations || []).some(
+        (n) => (n.companies || []).length > 0
+      );
+      const hasOldGoods = (existing.state.goodsCatalog || []).length > 60;
+      if (!hasOldCompanies && !hasOldGoods && existing.state.powerBlocs?.length > 0) {
+        return;
+      }
+    }
   } else if (memorySessions.size > 0) {
-    return;
+    const existing = memorySessions.get("interstellar-default");
+    if (existing?.state) {
+      const hasOldCompanies = (existing.state.nations || []).some(
+        (n) => (n.companies || []).length > 0
+      );
+      const hasOldGoods = (existing.state.goodsCatalog || []).length > 60;
+      if (!hasOldCompanies && !hasOldGoods && existing.state.powerBlocs?.length > 0) {
+        return;
+      }
+    }
   }
 
   const now = new Date().toISOString();
@@ -237,7 +252,7 @@ async function ensureDefaultSessions(env, requestUrl) {
     id: "interstellar-default",
     name: "Interstellar 2.0: Earth & Mars Crisis",
     description:
-      "15 nations across Earth & Mars, 202 tradeable goods, 9 Tech Eras, 7,506 companies, and planetary federations.",
+      "15 nations across Earth & Mars, 60 essential tradeable goods, 9 Tech Eras, zero micro-companies, and planetary power blocs.",
     scenarioType: "interstellar",
     createdAt: now,
     updatedAt: now,
@@ -250,9 +265,12 @@ async function ensureDefaultSessions(env, requestUrl) {
     id: "vietnam-1977",
     name: "Imperium 1977: Vietnam Reunification",
     description:
-      "8 Vietnamese regional states, State-Owned Enterprises, Cooperatives, and post-war reconstruction.",
+      "8 Vietnamese regional states, 60 goods, State-Owned Enterprises, Cooperatives, and post-war reconstruction.",
     scenarioType: "vietnam",
     createdAt: now,
+    updatedAt: now,
+    state: vietnamState,
+  };
     updatedAt: now,
     state: vietnamState,
   };
