@@ -15,6 +15,8 @@ import {
   Calendar,
   Eye,
   ShieldCheck,
+  Lock,
+  LogOut,
 } from "lucide-react";
 import InteractiveWorldMap from "./components/InteractiveWorldMap";
 import NationSimulatorDesk from "./components/NationSimulatorDesk";
@@ -23,20 +25,37 @@ import MarketsAndTechView from "./components/MarketsAndTechView";
 import PoliticalPartiesAndStockView from "./components/PoliticalPartiesAndStockView";
 import LedgerAndTimeView from "./components/LedgerAndTimeView";
 import VictoriaStatecraftAndNewsView from "./components/VictoriaStatecraftAndNewsView";
+import DirectorLoginPortal from "./components/DirectorLoginPortal";
 import { formatCurrency } from "./utils/formatters";
 
 const DIRECTOR_SECRET_KEY = "imperium-director-9942";
 
-function detectDirectorAccess() {
+function detectPrivatePortalRoute() {
   if (typeof window === "undefined") return false;
   const params = new URLSearchParams(window.location.search);
-  const queryKey = params.get("access") || params.get("key") || params.get("director");
-  const pathMatch = window.location.pathname.includes("director-9942");
-  return queryKey === DIRECTOR_SECRET_KEY || pathMatch;
+  const queryKey =
+    params.get("access") || params.get("key") || params.get("portal") || params.get("director");
+  const pathMatch =
+    window.location.pathname.includes("director-9942") ||
+    window.location.pathname.includes("director");
+  return (
+    queryKey === DIRECTOR_SECRET_KEY ||
+    queryKey === "director" ||
+    queryKey === "private" ||
+    pathMatch
+  );
 }
 
 export default function App() {
-  const [isDirector] = useState(() => detectDirectorAccess());
+  const [showLoginPortal, setShowLoginPortal] = useState(() =>
+    detectPrivatePortalRoute()
+  );
+  const [directorToken, setDirectorToken] = useState(() => {
+    if (typeof window === "undefined") return "";
+    return localStorage.getItem("imperium_director_2fa_token") || "";
+  });
+  const [isDirector, setIsDirector] = useState(false);
+  const [authChecking, setAuthChecking] = useState(true);
   const isReadOnly = !isDirector;
   const [sessions, setSessions] = useState([]);
   const [activeSessionId, setActiveSessionId] = useState("interstellar-default");
@@ -59,12 +78,59 @@ export default function App() {
     }, 3400);
   }, []);
 
+  // Verify saved 2FA session token on load
+  useEffect(() => {
+    if (!directorToken) {
+      setIsDirector(false);
+      setAuthChecking(false);
+      return;
+    }
+    fetch(`/api/auth/status?token=${encodeURIComponent(directorToken)}`, {
+      headers: { "X-Director-Key": directorToken },
+    })
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.authenticated) {
+          setIsDirector(true);
+          setShowLoginPortal(false);
+          if (data.username) setActorName(data.username);
+        } else {
+          localStorage.removeItem("imperium_director_2fa_token");
+          setDirectorToken("");
+          setIsDirector(false);
+        }
+      })
+      .catch(() => {})
+      .finally(() => setAuthChecking(false));
+  }, [directorToken]);
+
+  const handleDirectorLogout = async () => {
+    try {
+      await fetch("/api/auth/logout", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Director-Key": directorToken,
+        },
+      });
+    } catch {
+      // ignore
+    }
+    localStorage.removeItem("imperium_director_2fa_token");
+    setDirectorToken("");
+    setIsDirector(false);
+    setShowLoginPortal(detectPrivatePortalRoute());
+    showToast("Logged out of Private Director Portal.");
+  };
+
   const getMutationHeaders = useCallback(() => {
     return {
       "Content-Type": "application/json",
-      ...(isDirector ? { "X-Director-Key": DIRECTOR_SECRET_KEY } : {}),
+      ...(isDirector && directorToken
+        ? { "X-Director-Key": directorToken }
+        : {}),
     };
-  }, [isDirector]);
+  }, [isDirector, directorToken]);
 
   const guardReadOnly = useCallback(() => {
     if (isReadOnly) {
