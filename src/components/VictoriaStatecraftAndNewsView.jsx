@@ -192,12 +192,12 @@ export default function VictoriaStatecraftAndNewsView({
 
   return (
     <div className="space-y-6">
-      {/* Top Nation Selector & Victoria 3 National Capacities Ribbon */}
+      {/* Top Nation Selector & Sovereign Capacities Ribbon */}
       <div className="glass-panel rounded-2xl p-5 border border-slate-800/80 flex flex-wrap items-center justify-between gap-4">
         <div className="flex flex-wrap items-center gap-3">
           <div>
             <span className="text-[10px] font-semibold uppercase tracking-wider text-amber-400 block">
-              Victoria 3 Statecraft & Gazette Desk
+              National Statecraft & Sovereign Desk
             </span>
             <div className="flex items-center gap-2 mt-0.5">
               <select
@@ -220,31 +220,32 @@ export default function VictoriaStatecraftAndNewsView({
           </div>
         </div>
 
-        {/* Victoria 3 Core Capacities Bar */}
+        {/* National Sovereign Capacities Bar */}
         <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5 flex-1 max-w-4xl">
           <div className="bg-slate-900/90 border border-slate-800 rounded-xl px-3 py-2">
-            <div className="text-[10px] text-slate-400 uppercase">Bureaucracy</div>
+            <div className="text-[10px] text-slate-400 uppercase">Sovereign Treasury</div>
             <div
               className={`text-sm font-bold font-mono-num ${
-                (capacities.bureaucracyBalance || 0) >= 0
+                (nation.computed?.treasuryBalance || nation.treasuryBalance || 0) >= 0
                   ? "text-emerald-400"
                   : "text-rose-400"
               }`}
             >
-              {(capacities.bureaucracyBalance || 0) >= 0 ? "+" : ""}
-              {capacities.bureaucracyBalance || 0}
+              {formatCurrency(nation.computed?.treasuryBalance || nation.treasuryBalance || 0)}
             </div>
             <div className="text-[10px] text-slate-500">
-              {capacities.bureaucracyProduced} prod / {capacities.bureaucracyUsed} used
+              {(nation.computed?.treasuryBalance || nation.treasuryBalance || 0) >= 0
+                ? "Active Fiscal Surplus"
+                : "Deficit (Build Blocked)"}
             </div>
           </div>
 
           <div className="bg-slate-900/90 border border-slate-800 rounded-xl px-3 py-2">
-            <div className="text-[10px] text-slate-400 uppercase">Authority</div>
+            <div className="text-[10px] text-slate-400 uppercase">Construction Points</div>
             <div className="text-sm font-bold font-mono-num text-amber-400">
-              +{capacities.authority || 100}
+              {capacities.constructionCapacity || 50} Pts
             </div>
-            <div className="text-[10px] text-slate-500">{nation.laws?.governance}</div>
+            <div className="text-[10px] text-slate-500">Industrial Output</div>
           </div>
 
           <div className="bg-slate-900/90 border border-slate-800 rounded-xl px-3 py-2">
@@ -275,7 +276,7 @@ export default function VictoriaStatecraftAndNewsView({
                 ({strata.solTier})
               </span>
             </div>
-            <div className="text-[10px] text-slate-500">1–50 Victoria Scale</div>
+            <div className="text-[10px] text-slate-500">1–50 Prosperity Scale</div>
           </div>
 
           <div className="bg-slate-900/90 border border-slate-800 rounded-xl px-3 py-2">
