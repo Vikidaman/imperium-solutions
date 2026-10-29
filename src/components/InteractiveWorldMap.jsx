@@ -28,7 +28,6 @@ import {
   Trash2,
   PlusCircle,
   CheckCircle2,
-  Map,
 } from "lucide-react";
 import BufferedRangeSlider from "./BufferedRangeSlider";
 import {
