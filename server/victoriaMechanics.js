@@ -1135,27 +1135,16 @@ export function processTimeTickVictoria(state, daysAdded, prevDateStr, newDateSt
           );
         }
         if (completed.good && completed.sector && completed.sector !== "Infrastructure" && completed.sector !== "Education") {
-          nation.companies = nation.companies || [];
-          nation.companies.unshift({
-            id: `${nation.id}_bldg_${Date.now().toString(36)}`,
-            name: `${nation.name} ${completed.name} #${nation.companies.length + 1}`,
-            hqCountry: nation.name,
-            flagshipGood: completed.good,
-            gdpSector: completed.sector,
-            hypeFactor: 62,
-            valuation: 0,
-            vgp: 0,
-            employedPops: completed.jobsCreated || 150000,
-            projectedRealGrowth: 0.035,
-            govtOwnedShares: 5000000,
-            numberOfShares: 25000000,
-            dividendEfficiency: 0.65,
-            dividendsPerShare: 0,
-            productionMethod: "Tools",
-            subsidised: false,
-            targetGrowth: 0.04,
-            illegal: false,
-          });
+          // Direct macroeconomic boost: jobs, consumer sentiment & sector output
+          nation.workingPops = (Number(nation.workingPops) || 10000000) + (completed.jobsCreated || 150000);
+          nation.consumerSentiment = Math.min(100, (Number(nation.consumerSentiment) || 50) + 2);
+          if (completed.cloutBoost) {
+            for (const ig of nation.interestGroups || []) {
+              if (ig.id === completed.cloutBoost) {
+                ig.manualApprovalMod = (Number(ig.manualApprovalMod) || 0) + 3;
+              }
+            }
+          }
         }
         state.newsFeed.unshift({
           id: `news_bldg_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 5)}`,
