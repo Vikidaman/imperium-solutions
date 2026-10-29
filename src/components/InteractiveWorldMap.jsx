@@ -1100,9 +1100,8 @@ export default function InteractiveWorldMap({
             activeNationName={activeNation?.name}
           />
 
-          {/* SVG Interactive Map Viewport */}
+          {/* SVG Interactive Map Viewport (Scroll-to-zoom disabled for natural page scroll; use zoom buttons or drag) */}
           <div
-            onWheel={handleWheel}
             onMouseDown={handleMouseDown}
             onMouseMove={handleMouseMove}
             onMouseUp={handleMouseUp}
