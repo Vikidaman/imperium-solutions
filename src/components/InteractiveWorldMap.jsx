@@ -966,6 +966,37 @@ export default function InteractiveWorldMap({
     ];
   }, [activeNation, territoryMap, state.territoryStatusMap, c, usaDivisionMode]);
 
+  // Filtered & Sorted constituent states for the Country & States Table Pop Up Modal
+  const modalFilteredStates = useMemo(() => {
+    let list = [...nationalStatesList];
+    if (statesModalFilter === "state") {
+      list = list.filter((s) => s.status === "STATE");
+    } else if (statesModalFilter === "territory") {
+      list = list.filter((s) => s.status === "TERRITORY");
+    }
+
+    if (stateSearchQuery.trim()) {
+      const q = stateSearchQuery.toLowerCase().trim();
+      list = list.filter(
+        (s) =>
+          s.name.toLowerCase().includes(q) ||
+          (s.code && s.code.toLowerCase().includes(q)) ||
+          (s.region && s.region.toLowerCase().includes(q))
+      );
+    }
+
+    if (statesModalSort === "gdp") {
+      list.sort((a, b) => (b.gdp || 0) - (a.gdp || 0));
+    } else if (statesModalSort === "pops") {
+      list.sort((a, b) => (b.pops || 0) - (a.pops || 0));
+    } else if (statesModalSort === "name") {
+      list.sort((a, b) => a.name.localeCompare(b.name));
+    } else if (statesModalSort === "infra") {
+      list.sort((a, b) => (b.infra || 0) - (a.infra || 0));
+    }
+    return list;
+  }, [nationalStatesList, statesModalFilter, stateSearchQuery, statesModalSort]);
+
   return (
     <div className="space-y-5">
       {/* Top Map Command Bar: Theater Switcher, Map Lenses & Border Redraw Tools */}
@@ -1122,6 +1153,7 @@ export default function InteractiveWorldMap({
               onClick={() => {
                 setViewTier("country");
                 focusOnCountry(activeNation);
+                setShowStatesTableModal(true);
               }}
               className={`px-3 py-1.5 rounded-lg font-bold transition cursor-pointer flex items-center gap-1.5 ${
                 viewTier === "country"
