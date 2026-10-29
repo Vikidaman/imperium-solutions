@@ -402,17 +402,35 @@ export default function InteractiveWorldMap({
   const [mapLens, setMapLens] = useState("sovereignty"); // "sovereignty" | "gdp" | "sol" | "unrest"
   const [interactionMode, setInteractionMode] = useState("inspect"); // "inspect" | "annex" | "release"
   const [viewTier, setViewTier] = useState("worldwide"); // "worldwide" | "subcontinent" | "country"
+  const [rightPanelTab, setRightPanelTab] = useState("states"); // "states" | "cabinet"
   const [selectedSubcontinent, setSelectedSubcontinent] = useState("all");
   const [showProvinceManager, setShowProvinceManager] = useState(false);
   const [provinceSearchQuery, setProvinceSearchQuery] = useState("");
   const tooltipRef = useRef(null);
   const setHoveredTerritory = (val) => tooltipRef.current?.setHover(val);
 
+  const planetsConfig = state.planetsConfig || [
+    { id: "earth", name: "Earth" },
+    { id: "mars", name: "Mars" },
+  ];
+
   // Pan & Zoom state
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
   const dragStartRef = useRef({ x: 0, y: 0, panX: 0, panY: 0 });
+
+  // Sync theater if current theater was deleted in Director view
+  useEffect(() => {
+    const exists = planetsConfig.some(
+      (p) => p.name.toLowerCase() === theater.toLowerCase()
+    );
+    if (!exists && planetsConfig.length > 0) {
+      setTheater(planetsConfig[0].name);
+      setZoom(1);
+      setPan({ x: 0, y: 0 });
+    }
+  }, [planetsConfig, theater]);
 
   // Focus camera on a selected subcontinent
   const handleSelectSubcontinent = (subId) => {
@@ -426,27 +444,48 @@ export default function InteractiveWorldMap({
   const focusOnCountry = (targetNation) => {
     if (!targetNation) return;
     onSelectNation(targetNation.id);
+    setViewTier("country");
+    setRightPanelTab("states");
+
     const isMars = (targetNation.planet || "").toLowerCase().includes("mars");
     if (isMars) {
       setTheater("Mars");
-      setZoom(1.8);
+      setZoom(2.0);
       setPan({ x: 0, y: 0 });
       return;
     }
     setTheater("Earth");
-    const matchedFeature = STATIC_EARTH_FEATURES.find(
+    const matchedFeatures = STATIC_EARTH_FEATURES.filter(
       (f) =>
         f.name.toLowerCase() === targetNation.name.toLowerCase() ||
         (targetNation.id === "usa" && f.name === "United States of America") ||
         territoryMap[f.name] === targetNation.id
     );
-    if (matchedFeature && matchedFeature.centroid) {
-      const [cx, cy] = matchedFeature.centroid;
-      setZoom(3.6);
-      setPan({ x: -(cx - 480) * 3.6, y: -(cy - 265) * 3.6 });
+    if (matchedFeatures.length > 0) {
+      let sumX = 0, sumY = 0;
+      matchedFeatures.forEach((f) => {
+        sumX += f.centroid[0];
+        sumY += f.centroid[1];
+      });
+      const cx = sumX / matchedFeatures.length;
+      const cy = sumY / matchedFeatures.length;
+      setZoom(3.2);
+      setPan({ x: Math.round(480 - cx), y: Math.round(250 - cy) });
     } else {
-      setZoom(2.5);
+      setZoom(2.2);
       setPan({ x: 0, y: 0 });
+    }
+  };
+
+  // Focus camera on a specific territory / state
+  const focusOnTerritory = (territoryName) => {
+    const feat = STATIC_EARTH_FEATURES.find(
+      (f) => f.name.toLowerCase() === territoryName.toLowerCase()
+    );
+    if (feat && feat.centroid) {
+      const [cx, cy] = feat.centroid;
+      setZoom(3.8);
+      setPan({ x: Math.round(480 - cx), y: Math.round(250 - cy) });
     }
   };
 
