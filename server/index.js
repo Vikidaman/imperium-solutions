@@ -32,6 +32,23 @@ const app = express();
 app.use(cors());
 app.use(express.json({ limit: "50mb" }));
 
+const DIRECTOR_SECRET_KEY = process.env.DIRECTOR_SECRET_KEY || "imperium-director-9942";
+
+// Enforce Read-Only Public Mode vs. Private Director Mode on all mutating API endpoints
+app.use("/api", (req, res, next) => {
+  if (["POST", "PATCH", "DELETE", "PUT"].includes(req.method)) {
+    const providedKey =
+      req.headers["x-director-key"] || req.query.access || req.body?.directorKey;
+    if (providedKey !== DIRECTOR_SECRET_KEY) {
+      return res.status(403).json({
+        error:
+          "Read-Only Public Spectator Mode: Editing is disabled on the public link. Use the Private Director Link to make changes.",
+      });
+    }
+  }
+  next();
+});
+
 ensureDefaultSessions();
 
 // In-memory cache of active session states for instant 15ms evaluations
