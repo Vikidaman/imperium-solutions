@@ -33,3 +33,15 @@
   background: #334155;
 }
 
+/* Public Spectator Read-Only Lock for Sliders & Numeric Inputs */
+.read-only-spectator input[type="range"],
+.read-only-spectator input[type="number"],
+.read-only-spectator input[type="date"],
+.read-only-spectator input[type="checkbox"],
+.read-only-spectator input[type="file"] {
+  pointer-events: none;
+  opacity: 0.65;
+  cursor: default;
+}
+
+
