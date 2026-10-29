@@ -909,7 +909,7 @@ export default function App() {
               />
             )}
 
-            {activeTab === "victoria" && (
+            {(activeTab === "statecraft" || activeTab === "victoria") && (
               <VictoriaStatecraftAndNewsView
                 state={state}
                 selectedNationId={selectedNationId}
@@ -924,6 +924,7 @@ export default function App() {
                 state={state}
                 onUpdateDirectorConfig={handleUpdateDirectorConfig}
                 onSelectNation={setSelectedNationId}
+                onTransferTerritory={handleTransferTerritory}
                 isReadOnly={isReadOnly}
               />
             )}
