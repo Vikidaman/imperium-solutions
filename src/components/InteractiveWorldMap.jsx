@@ -612,6 +612,15 @@ export default function InteractiveWorldMap({
         {/* Right: Dynamic Border Redraw & Diplomacy Tools */}
         <div className="flex items-center gap-1.5 bg-slate-950/80 border border-slate-800 p-1 rounded-xl text-xs">
           <button
+            onClick={() => setShowProvinceManager(true)}
+            className="px-3 py-1.5 rounded-lg font-semibold flex items-center gap-1.5 bg-cyan-500/15 hover:bg-cyan-500/25 text-cyan-300 border border-cyan-500/30 cursor-pointer transition"
+            title="Open Country Province Manager to annex or release global provinces"
+          >
+            <Layers className="w-3.5 h-3.5 text-cyan-400" />
+            Province Manager
+          </button>
+
+          <button
             onClick={() => setInteractionMode("inspect")}
             className={`px-3 py-1.5 rounded-lg font-semibold flex items-center gap-1.5 transition cursor-pointer ${
               interactionMode === "inspect"
