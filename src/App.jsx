@@ -448,9 +448,15 @@ export default function App() {
                   <h1 className="text-base font-bold font-display tracking-tight text-white">
                     IMPERIUM WORLD SIMULATOR
                   </h1>
-                  <span className="text-[10px] font-mono-num uppercase px-2 py-0.5 rounded bg-amber-500/15 text-amber-300 border border-amber-500/30">
-                    Victoria 3 Rules & Dynamic Elections
-                  </span>
+                  {isReadOnly ? (
+                    <span className="text-[10px] font-mono-num uppercase px-2.5 py-0.5 rounded bg-slate-800 text-slate-300 border border-slate-600 flex items-center gap-1">
+                      <Eye className="w-3 h-3 text-cyan-400" /> Public Spectator View (Read-Only)
+                    </span>
+                  ) : (
+                    <span className="text-[10px] font-mono-num uppercase px-2.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 flex items-center gap-1">
+                      <ShieldCheck className="w-3 h-3 text-emerald-400" /> Private Director Link (Full Edit Access)
+                    </span>
+                  )}
                 </div>
                 <p className="text-[11px] text-slate-400">
                   Custom Start Date, Pops & Interest Groups, Laws, Dynamic Elections & Global Gazette
@@ -476,14 +482,20 @@ export default function App() {
             <div className="bg-slate-900 border border-slate-800 rounded-xl px-3.5 py-1.5 flex items-center gap-3">
               <div
                 onClick={() => {
+                  if (isReadOnly) return;
                   setCustomStartDateInput(tm.crisisStartDate || "1836-01-01");
                   setShowStartDatePicker(!showStartDatePicker);
                 }}
-                className="cursor-pointer group"
-                title="Click to set your custom campaign start date"
+                className={isReadOnly ? "" : "cursor-pointer group"}
+                title={
+                  isReadOnly
+                    ? "Current World Date"
+                    : "Click to set your custom campaign start date"
+                }
               >
                 <span className="text-[10px] text-amber-400 flex items-center gap-1 font-semibold">
-                  <Calendar className="w-3 h-3" /> World Date (Set Start)
+                  <Calendar className="w-3 h-3" />{" "}
+                  {isReadOnly ? "World Date" : "World Date (Set Start)"}
                 </span>
                 <span className="font-mono-num font-bold text-white group-hover:text-amber-300 transition">
                   {tm.crisisDate}
@@ -507,8 +519,8 @@ export default function App() {
               </div>
             </div>
 
-            {/* Custom Start Date Popover */}
-            {showStartDatePicker && (
+            {/* Custom Start Date Popover (Private Director Only) */}
+            {!isReadOnly && showStartDatePicker && (
               <div className="absolute top-14 left-0 z-50 w-80 bg-slate-900 border border-amber-500/50 rounded-2xl p-4 shadow-2xl space-y-3">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-bold uppercase text-amber-300">
@@ -564,47 +576,53 @@ export default function App() {
               </div>
             )}
 
-            <button
-              onClick={() =>
-                handleTimeAction({ command: tm.isLive ? "LOCK" : "LOAD" })
-              }
-              className={`px-3 py-2 rounded-xl font-semibold flex items-center gap-1.5 transition cursor-pointer ${
-                tm.isLive
-                  ? "bg-amber-500 text-slate-950"
-                  : "bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700"
-              }`}
-            >
-              {tm.isLive ? (
-                <>
-                  <Pause className="w-3.5 h-3.5" /> Pause
-                </>
-              ) : (
-                <>
-                  <Play className="w-3.5 h-3.5" /> Auto-Run
-                </>
-              )}
-            </button>
+            {!isReadOnly && (
+              <>
+                <button
+                  onClick={() =>
+                    handleTimeAction({ command: tm.isLive ? "LOCK" : "LOAD" })
+                  }
+                  className={`px-3 py-2 rounded-xl font-semibold flex items-center gap-1.5 transition cursor-pointer ${
+                    tm.isLive
+                      ? "bg-amber-500 text-slate-950"
+                      : "bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700"
+                  }`}
+                >
+                  {tm.isLive ? (
+                    <>
+                      <Pause className="w-3.5 h-3.5" /> Pause
+                    </>
+                  ) : (
+                    <>
+                      <Play className="w-3.5 h-3.5" /> Auto-Run
+                    </>
+                  )}
+                </button>
 
-            <button
-              onClick={() => handleTimeAction({ daysToAdd: 90 })}
-              className="px-3.5 py-2 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold flex items-center gap-1.5 shadow-sm shadow-cyan-500/20 cursor-pointer"
-            >
-              <FastForward className="w-3.5 h-3.5" />
-              Next Quarter
-            </button>
+                <button
+                  onClick={() => handleTimeAction({ daysToAdd: 90 })}
+                  className="px-3.5 py-2 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold flex items-center gap-1.5 shadow-sm shadow-cyan-500/20 cursor-pointer"
+                >
+                  <FastForward className="w-3.5 h-3.5" />
+                  Next Quarter
+                </button>
+              </>
+            )}
 
             <div className="flex items-center gap-2 bg-slate-900 border border-slate-800 rounded-xl px-2.5 py-1.5">
               <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
               <span className="text-[11px] font-mono-num text-slate-300">
                 {onlineCount} Online
               </span>
-              <input
-                type="text"
-                value={actorName}
-                onChange={(e) => setActorName(e.target.value)}
-                className="w-28 bg-slate-950 border border-slate-800 rounded px-2 py-0.5 text-[11px] text-cyan-300"
-                title="Your Callsign"
-              />
+              {!isReadOnly && (
+                <input
+                  type="text"
+                  value={actorName}
+                  onChange={(e) => setActorName(e.target.value)}
+                  className="w-28 bg-slate-950 border border-slate-800 rounded px-2 py-0.5 text-[11px] text-cyan-300"
+                  title="Your Callsign"
+                />
+              )}
             </div>
           </div>
         </div>
@@ -712,7 +730,11 @@ export default function App() {
       </header>
 
       {/* Main Content Area */}
-      <main className="flex-1 max-w-[1650px] w-full mx-auto px-4 lg:px-8 py-6">
+      <main
+        className={`flex-1 max-w-[1650px] w-full mx-auto px-4 lg:px-8 py-6 ${
+          isReadOnly ? "read-only-spectator" : ""
+        }`}
+      >
         {activeTab === "map" && (
           <InteractiveWorldMap
             state={state}
@@ -723,6 +745,7 @@ export default function App() {
             onCreateNation={handleCreateNation}
             onJumpToTab={setActiveTab}
             onVictoriaAction={handleVictoriaAction}
+            isReadOnly={isReadOnly}
           />
         )}
 
@@ -732,6 +755,7 @@ export default function App() {
             selectedNationId={selectedNationId}
             onSelectNation={setSelectedNationId}
             onVictoriaAction={handleVictoriaAction}
+            isReadOnly={isReadOnly}
           />
         )}
 
