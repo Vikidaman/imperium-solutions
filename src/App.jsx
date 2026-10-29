@@ -237,6 +237,27 @@ export default function App() {
     }
   };
 
+  // Auto-Clock simulation ticker for Serverless / Cloudflare Pages execution
+  useEffect(() => {
+    const isLive = sessionData?.state?.timeManager?.isLive;
+    if (!isLive || isReadOnly) return;
+
+    let inFlight = false;
+    const interval = setInterval(async () => {
+      if (inFlight) return;
+      inFlight = true;
+      try {
+        await handleTimeAction({ daysToAdd: 3 });
+      } catch (err) {
+        console.error("Auto tick error:", err);
+      } finally {
+        inFlight = false;
+      }
+    }, 1500);
+
+    return () => clearInterval(interval);
+  }, [sessionData?.state?.timeManager?.isLive, isReadOnly, activeSessionId]);
+
   const handleTransferTerritory = async (payload) => {
     if (guardReadOnly()) return;
     lastMutationTimeRef.current = Date.now();
@@ -489,6 +510,24 @@ export default function App() {
     lastMutationTimeRef.current = Date.now();
     const res = await fetch(`/api/sessions/${activeSessionId}/victoria`, {
       method: "POST",
+      headers: getMutationHeaders(),
+      body: JSON.stringify({ ...payload, actor: actorName }),
+    });
+    if (res.ok) {
+      const data = await res.json();
+      setSessionData(data.session);
+      setActivityLog(data.activityLog || []);
+      if (data.toastMessage) {
+        showToast(data.toastMessage);
+      }
+    }
+  };
+
+  const handleUpdateDirectorConfig = async (payload) => {
+    if (guardReadOnly()) return;
+    lastMutationTimeRef.current = Date.now();
+    const res = await fetch(`/api/sessions/${activeSessionId}/director-config`, {
+      method: "PATCH",
       headers: getMutationHeaders(),
       body: JSON.stringify({ ...payload, actor: actorName }),
     });
