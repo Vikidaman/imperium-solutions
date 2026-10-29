@@ -558,6 +558,14 @@ export default {
             "NuevoGDPManager executed: BudgetUpdater & DividendUpdater completed!";
           actionDesc =
             "NuevoGDPManager(): Updated Budgets, Pops, Employment & Dividends";
+        } else if (command === "SET_START_DATE") {
+          const resStart = setCustomStartDate(sess.state, {
+            startDate: crisisStartDate || body.startDate || "2025-01-01",
+            resetCurrentDate: body.resetCurrentDate !== false,
+            electionIntervalDays: body.electionIntervalDays,
+          });
+          toastMessage = resStart.toastMessage;
+          actionDesc = resStart.action;
         }
 
         if (strictSheetQuirks !== undefined) {
@@ -566,7 +574,9 @@ export default {
             strictSheetQuirks ? "Strict Sheet Formula Mode" : "Balanced VGP Mode"
           }`;
         }
-        if (crisisStartDate !== undefined) tm.crisisStartDate = crisisStartDate;
+        if (crisisStartDate !== undefined && command !== "SET_START_DATE") {
+          tm.crisisStartDate = crisisStartDate;
+        }
         if (intervalDaysPerHour !== undefined) {
           tm.intervalDaysPerHour = Math.max(1, Number(intervalDaysPerHour) || 90);
         }
