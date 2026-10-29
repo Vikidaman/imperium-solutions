@@ -1519,8 +1519,8 @@ export default {
         });
       }
 
-      // POST /api/sessions/:id/victoria (Victoria 3 Elections, Laws, Construction, Gazette & Dilemmas)
-      if (parts[3] === "victoria" && request.method === "POST") {
+      // POST /api/sessions/:id/statecraft or /api/sessions/:id/victoria (Elections, Laws, Construction, Gazette & Dilemmas)
+      if ((parts[3] === "statecraft" || parts[3] === "victoria") && request.method === "POST") {
         const body = await request.json();
         const { type, actor } = body;
         let result = { action: "Updated statecraft", toastMessage: null };
