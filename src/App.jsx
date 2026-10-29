@@ -13,6 +13,8 @@ import {
   Scale,
   Newspaper,
   Calendar,
+  Eye,
+  ShieldCheck,
 } from "lucide-react";
 import InteractiveWorldMap from "./components/InteractiveWorldMap";
 import NationSimulatorDesk from "./components/NationSimulatorDesk";
@@ -23,7 +25,19 @@ import LedgerAndTimeView from "./components/LedgerAndTimeView";
 import VictoriaStatecraftAndNewsView from "./components/VictoriaStatecraftAndNewsView";
 import { formatCurrency } from "./utils/formatters";
 
+const DIRECTOR_SECRET_KEY = "imperium-director-9942";
+
+function detectDirectorAccess() {
+  if (typeof window === "undefined") return false;
+  const params = new URLSearchParams(window.location.search);
+  const queryKey = params.get("access") || params.get("key") || params.get("director");
+  const pathMatch = window.location.pathname.includes("director-9942");
+  return queryKey === DIRECTOR_SECRET_KEY || pathMatch;
+}
+
 export default function App() {
+  const [isDirector] = useState(() => detectDirectorAccess());
+  const isReadOnly = !isDirector;
   const [sessions, setSessions] = useState([]);
   const [activeSessionId, setActiveSessionId] = useState("interstellar-default");
   const [sessionData, setSessionData] = useState(null);
@@ -44,6 +58,21 @@ export default function App() {
       setToast((prev) => (prev === msg ? null : prev));
     }, 3400);
   }, []);
+
+  const getMutationHeaders = useCallback(() => {
+    return {
+      "Content-Type": "application/json",
+      ...(isDirector ? { "X-Director-Key": DIRECTOR_SECRET_KEY } : {}),
+    };
+  }, [isDirector]);
+
+  const guardReadOnly = useCallback(() => {
+    if (isReadOnly) {
+      showToast("Public Spectator Mode (View-Only): Editing is disabled on the public link.");
+      return true;
+    }
+    return false;
+  }, [isReadOnly, showToast]);
 
   const fetchSessionsList = useCallback(async () => {
     try {
