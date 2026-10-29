@@ -753,11 +753,14 @@ export default function App() {
                 />
                 <div className="flex flex-wrap gap-1.5">
                   {[
-                    { label: "1836 Victorian", date: "1836-01-01" },
-                    { label: "1914 Great War", date: "1914-01-01" },
-                    { label: "1977 Cold War", date: "1977-01-01" },
-                    { label: "2026 Modern", date: "2026-01-01" },
-                    { label: "2150 Interstellar", date: "2150-01-01" },
+                    { label: "500 BC Classical", date: "-0500-01-01" },
+                    { label: "117 AD Roman Peak", date: "0117-01-01" },
+                    { label: "1000 AD Medieval", date: "1000-01-01" },
+                    { label: "1776 Revolution", date: "1776-07-04" },
+                    { label: "1836 Industrial", date: "1836-01-01" },
+                    { label: "1939 World War II", date: "1939-09-01" },
+                    { label: "2015 Modern", date: "2015-01-01" },
+                    { label: "2026 Present", date: "2026-01-01" },
                   ].map((preset) => (
                     <button
                       key={preset.date}
@@ -771,6 +774,10 @@ export default function App() {
                 </div>
                 <button
                   onClick={() => {
+                    handleUpdateDirectorConfig({
+                      actionType: "APPLY_HISTORICAL_ERA",
+                      historicalDate: customStartDateInput,
+                    });
                     handleTimeAction({
                       command: "SET_START_DATE",
                       startDate: customStartDateInput,
@@ -780,7 +787,7 @@ export default function App() {
                   }}
                   className="w-full py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs cursor-pointer"
                 >
-                  Apply Start Date ({customStartDateInput})
+                  Apply Start Date & Internal Borders ({customStartDateInput})
                 </button>
               </div>
             )}
