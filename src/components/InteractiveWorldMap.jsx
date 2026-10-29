@@ -791,35 +791,7 @@ export default function InteractiveWorldMap({
 
     const territoryStatusMap = state.territoryStatusMap || {};
 
-    // 1. If explicit constituentStates and unincorporatedTerritories are defined on the nation (from historical era / statehood)
-    if (
-      (activeNation.constituentStates && activeNation.constituentStates.length > 0) ||
-      (activeNation.unincorporatedTerritories && activeNation.unincorporatedTerritories.length > 0)
-    ) {
-      const states = (activeNation.constituentStates || []).map((s) => ({
-        ...s,
-        status: territoryStatusMap[s.name] || s.status || "STATE",
-        isCore: true,
-        gdp: (c.aggregateGdp || 0) * (s.gdpShare || 0.2),
-        pops: Math.round((c.effectiveWorkingPops || 0) * (s.popShare || 0.2)),
-        infra: c.infrastructureEfficiency || 0.8,
-        literacy: c.literacyRate || 0.85,
-        urban: c.urbanisationIndex || 0.75,
-      }));
-      const territories = (activeNation.unincorporatedTerritories || []).map((t) => ({
-        ...t,
-        status: territoryStatusMap[t.name] || t.status || "TERRITORY",
-        isCore: false,
-        gdp: ((c.aggregateGdp || 0) * 0.1) / Math.max(1, activeNation.unincorporatedTerritories.length),
-        pops: Math.round(((c.effectiveWorkingPops || 0) * 0.1) / Math.max(1, activeNation.unincorporatedTerritories.length)),
-        infra: (c.infrastructureEfficiency || 0.8) * 0.8,
-        literacy: (c.literacyRate || 0.85) * 0.85,
-        urban: (c.urbanisationIndex || 0.75) * 0.7,
-      }));
-      return [...states, ...territories];
-    }
-
-    // 2. United States 50 Individual Constituent States Mode
+    // 1. United States 50 Individual Constituent States Mode
     if (activeNation.id === "usa" && usaDivisionMode === "states") {
       const statesList = Object.entries(US_STATES_CATALOG).map(([name, meta]) => {
         const assignedId = territoryMap[name];
@@ -857,6 +829,34 @@ export default function InteractiveWorldMap({
         }));
 
       return [...statesList, ...annexedIntoUsa];
+    }
+
+    // 2. If explicit constituentStates and unincorporatedTerritories are defined on the nation (from historical era / statehood)
+    if (
+      (activeNation.constituentStates && activeNation.constituentStates.length > 0) ||
+      (activeNation.unincorporatedTerritories && activeNation.unincorporatedTerritories.length > 0)
+    ) {
+      const states = (activeNation.constituentStates || []).map((s) => ({
+        ...s,
+        status: territoryStatusMap[s.name] || s.status || "STATE",
+        isCore: true,
+        gdp: (c.aggregateGdp || 0) * (s.gdpShare || 0.2),
+        pops: Math.round((c.effectiveWorkingPops || 0) * (s.popShare || 0.2)),
+        infra: c.infrastructureEfficiency || 0.8,
+        literacy: c.literacyRate || 0.85,
+        urban: c.urbanisationIndex || 0.75,
+      }));
+      const territories = (activeNation.unincorporatedTerritories || []).map((t) => ({
+        ...t,
+        status: territoryStatusMap[t.name] || t.status || "TERRITORY",
+        isCore: false,
+        gdp: ((c.aggregateGdp || 0) * 0.1) / Math.max(1, activeNation.unincorporatedTerritories.length),
+        pops: Math.round(((c.effectiveWorkingPops || 0) * 0.1) / Math.max(1, activeNation.unincorporatedTerritories.length)),
+        infra: (c.infrastructureEfficiency || 0.8) * 0.8,
+        literacy: (c.literacyRate || 0.85) * 0.85,
+        urban: (c.urbanisationIndex || 0.75) * 0.7,
+      }));
+      return [...states, ...territories];
     }
 
     const directTerritories = [];
