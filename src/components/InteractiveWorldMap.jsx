@@ -1167,8 +1167,9 @@ export default function InteractiveWorldMap({
                           fillOpacity={
                             isSelected ? 0.92 : ctrlNation ? 0.75 : 0.45
                           }
-                          stroke={isSelected ? "#ffffff" : "#0f172a"}
-                          strokeWidth={(isSelected ? 1.2 : 0.35) / zoom}
+                          stroke={isSelected ? "#38bdf8" : "#475569"}
+                          strokeOpacity={isSelected ? 1 : 0.75}
+                          strokeWidth={(isSelected ? 1.5 : 0.85) / zoom}
                           className="transition-colors duration-150 hover:brightness-125 cursor-pointer"
                           onMouseEnter={() =>
                             setHoveredTerritory({
@@ -1190,15 +1191,15 @@ export default function InteractiveWorldMap({
                       );
                     })}
 
-                    {/* Internal Provincial Borders (Same Controller, e.g. inside EU or Expanded Empires) */}
+                    {/* Internal Provincial Borders (Distinct Provincial Delineations across Nations) */}
                     {internalBorderPath && (
                       <path
                         d={internalBorderPath}
                         fill="none"
-                        stroke="#020617"
-                        strokeOpacity={0.35}
-                        strokeWidth={0.5 / zoom}
-                        strokeDasharray={`${2 / zoom},${2 / zoom}`}
+                        stroke="#38bdf8"
+                        strokeOpacity={0.7}
+                        strokeWidth={0.95 / zoom}
+                        strokeDasharray={`${3 / zoom},${2 / zoom}`}
                         pointerEvents="none"
                       />
                     )}
@@ -1208,9 +1209,9 @@ export default function InteractiveWorldMap({
                       <path
                         d={sovereignBorderPath}
                         fill="none"
-                        stroke="#e2e8f0"
-                        strokeOpacity={0.85}
-                        strokeWidth={1.1 / zoom}
+                        stroke="#f8fafc"
+                        strokeOpacity={0.95}
+                        strokeWidth={1.5 / zoom}
                         pointerEvents="none"
                       />
                     )}
@@ -1308,9 +1309,9 @@ export default function InteractiveWorldMap({
                             fillOpacity={
                               isSelected ? 0.9 : ctrlNation ? 0.72 : 0.45
                             }
-                            stroke={isSelected ? "#ffffff" : "#fdba74"}
-                            strokeOpacity={isSelected ? 1 : 0.45}
-                            strokeWidth={(isSelected ? 2.2 : 1) / zoom}
+                            stroke={isSelected ? "#ffffff" : "#fb923c"}
+                            strokeOpacity={isSelected ? 1 : 0.8}
+                            strokeWidth={(isSelected ? 2.4 : 1.35) / zoom}
                             className="transition duration-150 hover:brightness-125"
                           />
                           <circle
