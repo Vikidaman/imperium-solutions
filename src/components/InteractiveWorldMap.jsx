@@ -21,10 +21,14 @@ import {
   ShoppingBag,
   Sliders,
   ArrowRight,
+  ArrowLeft,
   Layers,
   Compass,
   RotateCcw,
   Trash2,
+  PlusCircle,
+  CheckCircle2,
+  Map,
 } from "lucide-react";
 import BufferedRangeSlider from "./BufferedRangeSlider";
 import {
