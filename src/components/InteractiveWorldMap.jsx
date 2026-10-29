@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useRef } from "react";
+import React, { useState, useMemo, useRef, forwardRef, useImperativeHandle } from "react";
 import { geoNaturalEarth1, geoPath } from "d3-geo";
 import * as topojson from "topojson-client";
 import worldAtlas from "world-atlas/countries-110m.json";
