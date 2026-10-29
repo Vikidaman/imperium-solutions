@@ -594,7 +594,7 @@ export default function App() {
             </h1>
           </div>
 
-          {/* Center: 4 Consolidated Navigation Tabs */}
+          {/* Center: Consolidated Navigation Tabs */}
           <nav className="flex flex-wrap items-center gap-1.5">
             {[
               {
@@ -607,6 +607,11 @@ export default function App() {
                 label: "Politics, Laws & Gazette",
                 icon: Scale,
                 badge: dilemmaCount,
+              },
+              {
+                id: "director",
+                label: "Planetary & Power Blocs",
+                icon: Sliders,
               },
               {
                 id: "markets",
