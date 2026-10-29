@@ -2,3 +2,4 @@
 // Defines territorial sovereignty and constituent internal divisions across major world eras.
 
 export { HISTORICAL_ERAS, getHistoricalEraForDate } from "../src/data/historicalEras.js";
+

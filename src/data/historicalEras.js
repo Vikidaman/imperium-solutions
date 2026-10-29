@@ -1072,3 +1072,4 @@ export function getHistoricalEraForDate(dateStrOrYear) {
   if (yr <= 1950) return HISTORICAL_ERAS[5]; // 1939
   return HISTORICAL_ERAS[6];                 // 2015 Modern
 }
+
