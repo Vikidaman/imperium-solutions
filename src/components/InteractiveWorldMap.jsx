@@ -1206,7 +1206,7 @@ export default function InteractiveWorldMap({
               </div>
 
               <div className="flex items-center gap-2">
-                {onVictoriaAction && (
+                {!isReadOnly && onVictoriaAction && (
                   <button
                     onClick={() =>
                       onVictoriaAction({
