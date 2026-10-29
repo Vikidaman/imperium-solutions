@@ -3,6 +3,7 @@ import {
   advanceSimulationTime,
   runBudgetAndDividendUpdater,
   transferTerritory,
+  applyHistoricalEra,
   setCustomStartDate,
   triggerElectionAction,
   triggerLawAction,
