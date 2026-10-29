@@ -41,7 +41,33 @@ db.exec(`
     details TEXT,
     created_at TEXT NOT NULL
   );
+
+  CREATE TABLE IF NOT EXISTS director_auth (
+    key TEXT PRIMARY KEY,
+    value TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+  );
 `);
+
+export function getAuthValue(key, fallback = null) {
+  const row = db
+    .prepare("SELECT value FROM director_auth WHERE key = ?")
+    .get(key);
+  if (!row) return fallback;
+  try {
+    return JSON.parse(row.value);
+  } catch {
+    return fallback;
+  }
+}
+
+export function setAuthValue(key, value) {
+  const now = new Date().toISOString();
+  db.prepare(
+    `INSERT OR REPLACE INTO director_auth (key, value, updated_at)
+     VALUES (?, ?, ?)`
+  ).run(key, JSON.stringify(value), now);
+}
 
 export function extractLedgerSnapshot(state) {
   const tm = state.timeManager || {};
