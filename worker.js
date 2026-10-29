@@ -1308,17 +1308,29 @@ export default {
           }
         }
 
+        let toastMessage = "Updated Director Configuration";
+
+        // Helper action: apply historical era borders (500 BC to 2026)
+        if (actionType === "APPLY_HISTORICAL_ERA" || body.eraId || body.historicalDate) {
+          const eraResult = applyHistoricalEra(
+            sess.state,
+            body.eraId || body.historicalDate
+          );
+          toastMessage = eraResult.toastMessage || eraResult.action;
+        }
+
         evaluateSimulation(sess.state);
         await saveStateToD1(db, sess);
         await logActivity(
           db,
           sessionId,
           actor || "Director",
-          "Updated Director Configuration",
+          toastMessage,
           `Planets: ${sess.state.planetsConfig?.length || 0}, Blocs: ${sess.state.powerBlocs?.length || 0}`
         );
         return jsonResponse({
           session: sess,
+          toastMessage,
           activityLog: await getActivityLog(db, sessionId, 60),
         });
       }
