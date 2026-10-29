@@ -1191,6 +1191,72 @@ export default {
         }
       }
 
+      // PATCH /api/sessions/:id/director-config
+      if (parts[3] === "director-config" && request.method === "PATCH") {
+        const body = await request.json().catch(() => ({}));
+        const { actor, planetsConfig, powerBlocs, actionType, blocData, planetData } = body;
+
+        if (planetsConfig) sess.state.planetsConfig = planetsConfig;
+        if (powerBlocs) sess.state.powerBlocs = powerBlocs;
+
+        if (actionType === "SAVE_BLOC" && blocData) {
+          sess.state.powerBlocs = sess.state.powerBlocs || [];
+          const idx = sess.state.powerBlocs.findIndex((b) => b.id === blocData.id);
+          if (idx >= 0) {
+            sess.state.powerBlocs[idx] = { ...sess.state.powerBlocs[idx], ...blocData };
+          } else {
+            sess.state.powerBlocs.push({
+              id: blocData.id || `bloc_${Date.now().toString(36)}`,
+              name: blocData.name || "New Power Bloc",
+              type: blocData.type || "TRADE_LEAGUE",
+              leaderNationId: blocData.leaderNationId || "usa",
+              memberNationIds: blocData.memberNationIds || ["usa"],
+              cohesion: Number(blocData.cohesion) || 80,
+              customsUnion: Boolean(blocData.customsUnion),
+              defensivePact: Boolean(blocData.defensivePact),
+              mandate: blocData.mandate || "Mutual economic growth and defense.",
+              federalContributionRate: Number(blocData.federalContributionRate) || 0.08,
+            });
+          }
+        }
+
+        if (actionType === "DELETE_BLOC" && blocData?.id) {
+          sess.state.powerBlocs = (sess.state.powerBlocs || []).filter((b) => b.id !== blocData.id);
+        }
+
+        if (actionType === "SAVE_PLANET" && planetData) {
+          sess.state.planetsConfig = sess.state.planetsConfig || [];
+          const idx = sess.state.planetsConfig.findIndex((p) => p.id === planetData.id || p.name === planetData.name);
+          if (idx >= 0) {
+            sess.state.planetsConfig[idx] = { ...sess.state.planetsConfig[idx], ...planetData };
+          } else {
+            sess.state.planetsConfig.push({
+              id: planetData.id || planetData.name,
+              name: planetData.name || "New Planet",
+              description: planetData.description || "Orbital or planetary territory.",
+              freightTariffRate: Number(planetData.freightTariffRate) || 0.1,
+              transitDays: Number(planetData.transitDays) || 30,
+              habitability: Number(planetData.habitability) || 0.5,
+              independenceDesire: Number(planetData.independenceDesire) || 25,
+            });
+          }
+        }
+
+        evaluateSimulation(sess.state);
+        await saveStateToD1(db, sess);
+        await logActivity(
+          db,
+          sessionId,
+          actor || "Director",
+          "Updated Director Configuration",
+          `Planets: ${sess.state.planetsConfig?.length || 0}, Blocs: ${sess.state.powerBlocs?.length || 0}`
+        );
+        return jsonResponse({
+          session: sess,
+          activityLog: await getActivityLog(db, sessionId, 60),
+        });
+      }
+
       // PATCH /api/sessions/:id/companion
       if (parts[3] === "companion" && request.method === "PATCH") {
         const { techEraName, unlocked, sectorName, sentiment, kFactorBonus, actor } =
