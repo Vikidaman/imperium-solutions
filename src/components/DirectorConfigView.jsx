@@ -63,6 +63,19 @@ export default function DirectorConfigView({
     setEditingPlanet(null);
   };
 
+  const handleDeletePlanet = (planetId, planetName) => {
+    if (
+      window.confirm(
+        `Disband and delete planetary system "${planetName}"?\n\nMember nations and colonies will be repatriated.`
+      )
+    ) {
+      onUpdateDirectorConfig({
+        actionType: "DELETE_PLANET",
+        planetId,
+      });
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Top Selector Nav */}
@@ -215,12 +228,20 @@ export default function DirectorConfigView({
                   </div>
 
                   {!isReadOnly && (
-                    <div className="pt-3 border-t border-slate-800 flex items-center justify-end gap-2">
+                    <div className="pt-3 border-t border-slate-800 flex items-center justify-between gap-2">
+                      <button
+                        onClick={() => handleDeletePlanet(planet.id || planet.name, planet.name)}
+                        className="px-2.5 py-1.5 rounded-lg bg-rose-500/15 hover:bg-rose-500/25 text-rose-300 border border-rose-500/30 text-xs font-semibold flex items-center gap-1.5 cursor-pointer transition"
+                        title={`Delete ${planet.name} planetary system`}
+                      >
+                        <Trash2 className="w-3.5 h-3.5" /> Delete System
+                      </button>
+
                       <button
                         onClick={() => setEditingPlanet({ ...planet })}
-                        className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-cyan-300 text-xs font-semibold cursor-pointer"
+                        className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-cyan-300 text-xs font-semibold flex items-center gap-1.5 cursor-pointer"
                       >
-                        Configure Physics & Tariffs
+                        <Sliders className="w-3.5 h-3.5" /> Configure Physics & Tariffs
                       </button>
                     </div>
                   )}
