@@ -53,8 +53,11 @@ function runSync(reason = "File change detected") {
     });
     execSync("git push origin main", { cwd: ROOT, stdio: "inherit" });
 
-    console.log("[Auto-Sync] 3/3 Deploying to Cloudflare Workers (wrangler deploy)...");
-    execSync("npx wrangler deploy", { cwd: ROOT, stdio: "inherit" });
+    console.log("[Auto-Sync] 3/3 Deploying to Cloudflare Pages (wrangler pages deploy)...");
+    execSync(
+      "npx wrangler pages deploy dist --project-name imperium-solutions-simulator --branch main --commit-dirty=true --force",
+      { cwd: ROOT, stdio: "inherit" }
+    );
 
     console.log(
       "[Auto-Sync] ✅ Successfully synced workspace to GitHub & Cloudflare!"

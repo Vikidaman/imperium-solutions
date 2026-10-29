@@ -26,6 +26,6 @@ jobs:
           npm install
           npm run build
 
-      - name: Deploy to Cloudflare Workers (when CLOUDFLARE_API_TOKEN secret is set)
+      - name: Deploy to Cloudflare Pages (when CLOUDFLARE_API_TOKEN secret is set)
         if: env.CLOUDFLARE_API_TOKEN != ''
-        run: npx wrangler deploy
+        run: npx wrangler pages deploy dist --project-name imperium-solutions-simulator --branch main --commit-dirty=true --force
