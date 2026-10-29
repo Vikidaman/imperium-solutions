@@ -876,75 +876,77 @@ export default function App() {
           isReadOnly ? "read-only-spectator" : ""
         }`}
       >
-        <Suspense
-          fallback={
-            <div className="py-20 text-center text-xs text-slate-400 font-mono-num">
-              Loading module...
-            </div>
-          }
-        >
-          {activeTab === "map" && (
-            <InteractiveWorldMap
-              state={state}
-              selectedNationId={selectedNationId}
-              onSelectNation={setSelectedNationId}
-              onUpdateNation={handleUpdateNation}
-              onDeleteNation={handleDeleteNation}
-              onTransferTerritory={handleTransferTerritory}
-              onCreateNation={handleCreateNation}
-              onJumpToTab={handleJumpToTab}
-              onVictoriaAction={handleVictoriaAction}
-              isReadOnly={isReadOnly}
-            />
-          )}
+        <ErrorBoundary>
+          <Suspense
+            fallback={
+              <div className="py-20 text-center text-xs text-slate-400 font-mono-num">
+                Loading module...
+              </div>
+            }
+          >
+            {activeTab === "map" && (
+              <InteractiveWorldMap
+                state={state}
+                selectedNationId={selectedNationId}
+                onSelectNation={setSelectedNationId}
+                onUpdateNation={handleUpdateNation}
+                onDeleteNation={handleDeleteNation}
+                onTransferTerritory={handleTransferTerritory}
+                onCreateNation={handleCreateNation}
+                onJumpToTab={handleJumpToTab}
+                onVictoriaAction={handleVictoriaAction}
+                isReadOnly={isReadOnly}
+              />
+            )}
 
-          {activeTab === "victoria" && (
-            <VictoriaStatecraftAndNewsView
-              state={state}
-              selectedNationId={selectedNationId}
-              onSelectNation={setSelectedNationId}
-              onVictoriaAction={handleVictoriaAction}
-              isReadOnly={isReadOnly}
-            />
-          )}
+            {activeTab === "victoria" && (
+              <VictoriaStatecraftAndNewsView
+                state={state}
+                selectedNationId={selectedNationId}
+                onSelectNation={setSelectedNationId}
+                onVictoriaAction={handleVictoriaAction}
+                isReadOnly={isReadOnly}
+              />
+            )}
 
-          {activeTab === "director" && (
-            <DirectorConfigView
-              state={state}
-              onUpdateDirectorConfig={handleUpdateDirectorConfig}
-              onSelectNation={setSelectedNationId}
-              isReadOnly={isReadOnly}
-            />
-          )}
+            {activeTab === "director" && (
+              <DirectorConfigView
+                state={state}
+                onUpdateDirectorConfig={handleUpdateDirectorConfig}
+                onSelectNation={setSelectedNationId}
+                isReadOnly={isReadOnly}
+              />
+            )}
 
-          {activeTab === "markets" && (
-            <MarketsAndTechView
-              state={state}
-              selectedNationId={selectedNationId}
-              onSelectNation={setSelectedNationId}
-              onUpdateMarket={handleUpdateMarket}
-              onUpdateCompanion={handleUpdateCompanion}
-              onCreateCompany={handleCreateCompany}
-              onUpdateCompany={handleUpdateCompany}
-              onDeleteCompany={handleDeleteCompany}
-              onSaveParty={handleSaveParty}
-              onCreateStockAccount={handleCreateStockAccount}
-              onExecuteTrade={handleExecuteTrade}
-              initialSubTab={marketsSubTab}
-            />
-          )}
+            {activeTab === "markets" && (
+              <MarketsAndTechView
+                state={state}
+                selectedNationId={selectedNationId}
+                onSelectNation={setSelectedNationId}
+                onUpdateMarket={handleUpdateMarket}
+                onUpdateCompanion={handleUpdateCompanion}
+                onCreateCompany={handleCreateCompany}
+                onUpdateCompany={handleUpdateCompany}
+                onDeleteCompany={handleDeleteCompany}
+                onSaveParty={handleSaveParty}
+                onCreateStockAccount={handleCreateStockAccount}
+                onExecuteTrade={handleExecuteTrade}
+                initialSubTab={marketsSubTab}
+              />
+            )}
 
-          {activeTab === "ledger" && (
-            <LedgerAndTimeView
-              session={sessionData}
-              ledgerHistory={ledgerHistory}
-              activityLog={activityLog}
-              onTimeAction={handleTimeAction}
-              onResetScenario={handleResetScenario}
-              onCreateNewScenario={handleCreateNewScenario}
-            />
-          )}
-        </Suspense>
+            {activeTab === "ledger" && (
+              <LedgerAndTimeView
+                session={sessionData}
+                ledgerHistory={ledgerHistory}
+                activityLog={activityLog}
+                onTimeAction={handleTimeAction}
+                onResetScenario={handleResetScenario}
+                onCreateNewScenario={handleCreateNewScenario}
+              />
+            )}
+          </Suspense>
+        </ErrorBoundary>
       </main>
     </div>
   );
