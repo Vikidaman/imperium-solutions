@@ -421,7 +421,7 @@ export default function VictoriaStatecraftAndNewsView({
                         {st.name}
                       </h3>
                       <div className="text-xl font-bold font-mono-num text-slate-100 mt-2">
-                        {formatNumber(st.pops)} Pops
+                        {formatCompactNumber(st.pops)} Pops
                       </div>
                     </div>
                     <div className="mt-4 pt-3 border-t border-slate-800/80 flex items-center justify-between text-xs text-slate-400">
