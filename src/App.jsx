@@ -865,6 +865,15 @@ export default function App() {
             />
           )}
 
+          {activeTab === "director" && (
+            <DirectorConfigView
+              state={state}
+              onUpdateDirectorConfig={handleUpdateDirectorConfig}
+              onSelectNation={setSelectedNationId}
+              isReadOnly={isReadOnly}
+            />
+          )}
+
           {activeTab === "markets" && (
             <MarketsAndTechView
               state={state}
