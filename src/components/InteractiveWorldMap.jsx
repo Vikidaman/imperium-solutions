@@ -22,6 +22,7 @@ import {
   Sliders,
   ArrowRight,
   Layers,
+  Compass,
   RotateCcw,
   Trash2,
 } from "lucide-react";
