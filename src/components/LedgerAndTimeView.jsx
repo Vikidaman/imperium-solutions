@@ -263,14 +263,18 @@ export default function LedgerAndTimeView({
             </div>
 
             <div className="bg-slate-950/70 border border-slate-800 rounded-xl p-3">
-              <div className="text-[10px] text-slate-400">
-                Scenario Start Date
+              <div className="text-[10px] text-amber-400 font-semibold">
+                Custom Campaign Start Date
               </div>
               <input
                 type="date"
                 value={tm.crisisStartDate || "2025-01-01"}
                 onChange={(e) =>
-                  onTimeAction({ crisisStartDate: e.target.value })
+                  onTimeAction({
+                    command: "SET_START_DATE",
+                    startDate: e.target.value,
+                    resetCurrentDate: true,
+                  })
                 }
                 className="mt-1 w-full px-2 py-1 rounded bg-slate-900 border border-slate-700 font-mono-num text-white"
               />

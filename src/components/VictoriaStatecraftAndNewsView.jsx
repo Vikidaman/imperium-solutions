@@ -19,7 +19,7 @@ import {
   Crown,
   TrendingUp,
 } from "lucide-react";
-import { formatCurrency, formatNumber } from "../utils/formatters";
+import { formatCurrency, formatCompactNumber } from "../utils/formatters";
 
 const LAW_CATALOG_UI = {
   governance: {

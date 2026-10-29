@@ -10,6 +10,9 @@ import {
   Play,
   Pause,
   Radio,
+  Scale,
+  Newspaper,
+  Calendar,
 } from "lucide-react";
 import InteractiveWorldMap from "./components/InteractiveWorldMap";
 import NationSimulatorDesk from "./components/NationSimulatorDesk";
@@ -17,6 +20,7 @@ import CompaniesRegistry from "./components/CompaniesRegistry";
 import MarketsAndTechView from "./components/MarketsAndTechView";
 import PoliticalPartiesAndStockView from "./components/PoliticalPartiesAndStockView";
 import LedgerAndTimeView from "./components/LedgerAndTimeView";
+import VictoriaStatecraftAndNewsView from "./components/VictoriaStatecraftAndNewsView";
 import { formatCurrency } from "./utils/formatters";
 
 export default function App() {
@@ -31,6 +35,8 @@ export default function App() {
   const [actorName, setActorName] = useState("World Director");
   const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState(null);
+  const [showStartDatePicker, setShowStartDatePicker] = useState(false);
+  const [customStartDateInput, setCustomStartDateInput] = useState("1836-01-01");
 
   const showToast = useCallback((msg) => {
     setToast(msg);
@@ -335,6 +341,22 @@ export default function App() {
     }
   };
 
+  const handleVictoriaAction = async (payload) => {
+    const res = await fetch(`/api/sessions/${activeSessionId}/victoria`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ...payload, actor: actorName }),
+    });
+    if (res.ok) {
+      const data = await res.json();
+      setSessionData(data.session);
+      setActivityLog(data.activityLog || []);
+      if (data.toastMessage) {
+        showToast(data.toastMessage);
+      }
+    }
+  };
+
   if (loading || !sessionData) {
     return (
       <div className="min-h-screen bg-slate-950 flex items-center justify-center text-slate-300">
@@ -362,6 +384,8 @@ export default function App() {
   );
   const currentNationName =
     state.nations?.find((n) => n.id === selectedNationId)?.name || "Select";
+  const latestNews = state.newsFeed?.[0];
+  const dilemmaCount = state.activeDilemmas?.length || 0;
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col">
@@ -379,12 +403,12 @@ export default function App() {
                   <h1 className="text-base font-bold font-display tracking-tight text-white">
                     IMPERIUM WORLD SIMULATOR
                   </h1>
-                  <span className="text-[10px] font-mono-num uppercase px-2 py-0.5 rounded bg-cyan-500/15 text-cyan-300 border border-cyan-500/30">
-                    Geopolitics & Macroeconomics
+                  <span className="text-[10px] font-mono-num uppercase px-2 py-0.5 rounded bg-amber-500/15 text-amber-300 border border-amber-500/30">
+                    Victoria 3 Rules & Dynamic Elections
                   </span>
                 </div>
                 <p className="text-[11px] text-slate-400">
-                  Interactive Planetary Borders, Supply Chains & Sovereign Statecraft
+                  Custom Start Date, Pops & Interest Groups, Laws, Dynamic Elections & Global Gazette
                 </p>
               </div>
             </div>
@@ -402,14 +426,21 @@ export default function App() {
             </select>
           </div>
 
-          {/* Right World Clock, Quick Quarter Advance & Multiplayer Callsign */}
-          <div className="flex flex-wrap items-center gap-3 text-xs">
+          {/* Right World Clock, Custom Start Date Picker, Quick Quarter Advance & Multiplayer Callsign */}
+          <div className="flex flex-wrap items-center gap-3 text-xs relative">
             <div className="bg-slate-900 border border-slate-800 rounded-xl px-3.5 py-1.5 flex items-center gap-3">
-              <div>
-                <span className="text-[10px] text-slate-400 block">
-                  World Date
+              <div
+                onClick={() => {
+                  setCustomStartDateInput(tm.crisisStartDate || "1836-01-01");
+                  setShowStartDatePicker(!showStartDatePicker);
+                }}
+                className="cursor-pointer group"
+                title="Click to set your custom campaign start date"
+              >
+                <span className="text-[10px] text-amber-400 flex items-center gap-1 font-semibold">
+                  <Calendar className="w-3 h-3" /> World Date (Set Start)
                 </span>
-                <span className="font-mono-num font-bold text-white">
+                <span className="font-mono-num font-bold text-white group-hover:text-amber-300 transition">
                   {tm.crisisDate}
                 </span>
               </div>
@@ -430,6 +461,63 @@ export default function App() {
                 </span>
               </div>
             </div>
+
+            {/* Custom Start Date Popover */}
+            {showStartDatePicker && (
+              <div className="absolute top-14 left-0 z-50 w-80 bg-slate-900 border border-amber-500/50 rounded-2xl p-4 shadow-2xl space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold uppercase text-amber-300">
+                    Set Custom Campaign Start Date
+                  </span>
+                  <button
+                    onClick={() => setShowStartDatePicker(false)}
+                    className="text-slate-400 hover:text-white text-xs cursor-pointer"
+                  >
+                    ✕
+                  </button>
+                </div>
+                <p className="text-[11px] text-slate-400">
+                  Anchor the simulation clock, quarterly settlements, and national election schedules to any historical or future date:
+                </p>
+                <input
+                  type="date"
+                  value={customStartDateInput}
+                  onChange={(e) => setCustomStartDateInput(e.target.value)}
+                  className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-xs font-mono-num text-white"
+                />
+                <div className="flex flex-wrap gap-1.5">
+                  {[
+                    { label: "1836 Victorian", date: "1836-01-01" },
+                    { label: "1914 Great War", date: "1914-01-01" },
+                    { label: "1977 Cold War", date: "1977-01-01" },
+                    { label: "2026 Modern", date: "2026-01-01" },
+                    { label: "2150 Interstellar", date: "2150-01-01" },
+                  ].map((preset) => (
+                    <button
+                      key={preset.date}
+                      type="button"
+                      onClick={() => setCustomStartDateInput(preset.date)}
+                      className="px-2 py-1 rounded-lg bg-slate-800 hover:bg-amber-500/20 text-slate-300 hover:text-amber-300 text-[10px] font-mono-num cursor-pointer"
+                    >
+                      {preset.label}
+                    </button>
+                  ))}
+                </div>
+                <button
+                  onClick={() => {
+                    handleTimeAction({
+                      command: "SET_START_DATE",
+                      startDate: customStartDateInput,
+                      resetCurrentDate: true,
+                    });
+                    setShowStartDatePicker(false);
+                  }}
+                  className="w-full py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs cursor-pointer"
+                >
+                  Apply Start Date ({customStartDateInput})
+                </button>
+              </div>
+            )}
 
             <button
               onClick={() =>
@@ -482,12 +570,18 @@ export default function App() {
             {[
               {
                 id: "map",
-                label: "Interactive World & Planetary Map",
+                label: "Interactive World Map",
                 icon: Globe2,
               },
               {
+                id: "victoria",
+                label: "Laws, Dynamic Elections & Gazette",
+                icon: Scale,
+                badge: dilemmaCount,
+              },
+              {
                 id: "desk",
-                label: `Cabinet & Statecraft (${currentNationName})`,
+                label: `Cabinet & Fiscal (${currentNationName})`,
                 icon: Landmark,
               },
               {
@@ -525,6 +619,11 @@ export default function App() {
                 >
                   <Icon className="w-3.5 h-3.5" />
                   {tab.label}
+                  {tab.badge > 0 && (
+                    <span className="px-1.5 py-0.5 rounded-full bg-amber-500 text-slate-950 text-[10px] font-bold">
+                      {tab.badge}
+                    </span>
+                  )}
                 </button>
               );
             })}
@@ -537,6 +636,34 @@ export default function App() {
             </div>
           )}
         </div>
+
+        {/* Live Breaking World Gazette Ticker */}
+        {latestNews && (
+          <div
+            onClick={() => setActiveTab("victoria")}
+            className="max-w-[1650px] mx-auto mt-2 px-3 py-1.5 rounded-xl bg-amber-500/10 hover:bg-amber-500/15 border border-amber-500/30 flex flex-wrap items-center justify-between gap-2 text-xs cursor-pointer transition"
+          >
+            <div className="flex items-center gap-2 truncate">
+              <span className="px-2 py-0.5 rounded bg-amber-500 text-slate-950 font-bold text-[10px] uppercase flex items-center gap-1 shrink-0">
+                <Newspaper className="w-3 h-3" /> {latestNews.category || "GAZETTE"}
+              </span>
+              <span className="font-mono-num text-amber-300 text-[11px] shrink-0">
+                [{latestNews.date}]
+              </span>
+              <span className="font-bold text-white truncate">
+                {latestNews.headline}
+              </span>
+              <span className="text-slate-400 hidden xl:inline truncate">
+                — {latestNews.summary}
+              </span>
+            </div>
+            <span className="text-[11px] font-semibold text-amber-300 shrink-0">
+              {dilemmaCount > 0
+                ? `${dilemmaCount} Policy Dispatch Pending →`
+                : "Read Full Gazette →"}
+            </span>
+          </div>
+        )}
       </header>
 
       {/* Main Content Area */}
@@ -550,6 +677,16 @@ export default function App() {
             onTransferTerritory={handleTransferTerritory}
             onCreateNation={handleCreateNation}
             onJumpToTab={setActiveTab}
+            onVictoriaAction={handleVictoriaAction}
+          />
+        )}
+
+        {activeTab === "victoria" && (
+          <VictoriaStatecraftAndNewsView
+            state={state}
+            selectedNationId={selectedNationId}
+            onSelectNation={setSelectedNationId}
+            onVictoriaAction={handleVictoriaAction}
           />
         )}
 
