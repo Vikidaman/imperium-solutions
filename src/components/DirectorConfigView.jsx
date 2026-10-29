@@ -10,23 +10,35 @@ import {
   Users,
   Compass,
   ArrowRight,
+  ArrowRightLeft,
   Landmark,
   Scale,
   Sparkles,
   Building,
   CheckCircle2,
   Percent,
+  History,
+  Star,
+  Calendar,
 } from "lucide-react";
+import { HISTORICAL_ERAS, getHistoricalEraForDate } from "../data/historicalEras";
+import { formatCurrency, formatCompactNumber } from "../utils/formatters";
 
 export default function DirectorConfigView({
   state,
   onUpdateDirectorConfig,
   onSelectNation,
+  onTransferTerritory,
   isReadOnly,
 }) {
-  const [activeSubTab, setActiveSubTab] = useState("planets"); // "planets" | "powerblocs" | "provinces"
+  const [activeSubTab, setActiveSubTab] = useState("planets"); // "planets" | "powerblocs" | "historical_borders"
   const [editingBloc, setEditingBloc] = useState(null);
   const [editingPlanet, setEditingPlanet] = useState(null);
+  const [selectedEraId, setSelectedEraId] = useState(state.currentEraId || "era_2015");
+  const [customYearInput, setCustomYearInput] = useState(2015);
+  const [inspectedNationId, setInspectedNationId] = useState(state.nations?.[0]?.id || "usa");
+  const [transferModalTerritory, setTransferModalTerritory] = useState(null);
+  const [transferTargetNationId, setTransferTargetNationId] = useState("");
 
   const nations = state.nations || [];
   const powerBlocs = state.powerBlocs || [];
@@ -103,6 +115,18 @@ export default function DirectorConfigView({
           >
             <ShieldCheck className="w-4 h-4" />
             Power Blocs & Federal Diplomacy ({powerBlocs.length})
+          </button>
+
+          <button
+            onClick={() => setActiveSubTab("historical_borders")}
+            className={`px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition cursor-pointer ${
+              activeSubTab === "historical_borders"
+                ? "bg-emerald-500 text-slate-950 shadow-md shadow-emerald-500/20"
+                : "bg-slate-800 text-slate-300 hover:bg-slate-700"
+            }`}
+          >
+            <History className="w-4 h-4" />
+            Historical Eras & Internal Borders (500 BC – Present)
           </button>
         </div>
 
