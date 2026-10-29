@@ -850,6 +850,78 @@ app.delete("/api/sessions/:id/nations/:nationId/companies/:companyId", (req, res
   res.json({ session: sess, activityLog: getActivityLog(id, 60) });
 });
 
+// 12b. Update Director Configuration (Planets & Power Blocs)
+app.patch("/api/sessions/:id/director-config", (req, res) => {
+  const { id } = req.params;
+  const sess = getCachedSession(id);
+  if (!sess) return res.status(404).json({ error: "Session not found" });
+
+  const { actor, planetsConfig, powerBlocs, actionType, blocData, planetData } = req.body || {};
+
+  if (planetsConfig) {
+    sess.state.planetsConfig = planetsConfig;
+  }
+  if (powerBlocs) {
+    sess.state.powerBlocs = powerBlocs;
+  }
+
+  // Helper action: add or update power bloc
+  if (actionType === "SAVE_BLOC" && blocData) {
+    sess.state.powerBlocs = sess.state.powerBlocs || [];
+    const idx = sess.state.powerBlocs.findIndex((b) => b.id === blocData.id);
+    if (idx >= 0) {
+      sess.state.powerBlocs[idx] = { ...sess.state.powerBlocs[idx], ...blocData };
+    } else {
+      sess.state.powerBlocs.push({
+        id: blocData.id || `bloc_${Date.now().toString(36)}`,
+        name: blocData.name || "New Power Bloc",
+        type: blocData.type || "TRADE_LEAGUE",
+        leaderNationId: blocData.leaderNationId || "usa",
+        memberNationIds: blocData.memberNationIds || ["usa"],
+        cohesion: Number(blocData.cohesion) || 80,
+        customsUnion: Boolean(blocData.customsUnion),
+        defensivePact: Boolean(blocData.defensivePact),
+        mandate: blocData.mandate || "Mutual economic growth and defense.",
+        federalContributionRate: Number(blocData.federalContributionRate) || 0.08,
+      });
+    }
+  }
+
+  // Helper action: delete power bloc
+  if (actionType === "DELETE_BLOC" && blocData?.id) {
+    sess.state.powerBlocs = (sess.state.powerBlocs || []).filter((b) => b.id !== blocData.id);
+  }
+
+  // Helper action: add or update planet
+  if (actionType === "SAVE_PLANET" && planetData) {
+    sess.state.planetsConfig = sess.state.planetsConfig || [];
+    const idx = sess.state.planetsConfig.findIndex((p) => p.id === planetData.id || p.name === planetData.name);
+    if (idx >= 0) {
+      sess.state.planetsConfig[idx] = { ...sess.state.planetsConfig[idx], ...planetData };
+    } else {
+      sess.state.planetsConfig.push({
+        id: planetData.id || planetData.name,
+        name: planetData.name || "New Planet",
+        description: planetData.description || "Orbital or planetary territory.",
+        freightTariffRate: Number(planetData.freightTariffRate) || 0.1,
+        transitDays: Number(planetData.transitDays) || 30,
+        habitability: Number(planetData.habitability) || 0.5,
+        independenceDesire: Number(planetData.independenceDesire) || 25,
+      });
+    }
+  }
+
+  evaluateSimulation(sess.state);
+  persistAndBroadcast(
+    id,
+    actor || "Director",
+    "Updated Director Configuration (Planets / Power Blocs)",
+    `Planets: ${sess.state.planetsConfig?.length || 0}, Blocs: ${sess.state.powerBlocs?.length || 0}`
+  );
+
+  res.json({ session: sess, activityLog: getActivityLog(id, 60) });
+});
+
 // 13. Update Nation Local Market (Single Good or Bulk Tariff/DD)
 app.patch("/api/sessions/:id/nations/:nationId/market", (req, res) => {
   const { id, nationId } = req.params;
