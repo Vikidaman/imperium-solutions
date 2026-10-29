@@ -1263,8 +1263,8 @@ app.post("/api/sessions/:id/territories", (req, res) => {
   });
 });
 
-// 18. Victoria 3 Mechanics: Elections, Laws, Construction Queue, Gazette Dispatches & Dilemmas
-app.post("/api/sessions/:id/victoria", (req, res) => {
+// 18. National Statecraft: Elections, Laws, Construction Queue, Gazette Dispatches & Dilemmas
+const handleStatecraftRequest = (req, res) => {
   const { id } = req.params;
   const sess = getCachedSession(id);
   if (!sess) return res.status(404).json({ error: "Session not found" });
@@ -1292,7 +1292,10 @@ app.post("/api/sessions/:id/victoria", (req, res) => {
     toastMessage: result.toastMessage || result.action,
     activityLog: getActivityLog(id, 60),
   });
-});
+};
+
+app.post("/api/sessions/:id/statecraft", handleStatecraftRequest);
+app.post("/api/sessions/:id/victoria", handleStatecraftRequest);
 
 // Mount Vite in development or static dist in production
 async function startServer() {
