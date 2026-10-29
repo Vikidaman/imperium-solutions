@@ -668,45 +668,128 @@ export default function InteractiveWorldMap({
   const c = activeNation?.computed || {};
   const parties = state.politicalParties || [];
 
+  // Victoria 3-style Constituent States & Provinces Breakdown
+  const nationalStatesList = useMemo(() => {
+    if (!activeNation) return [];
+    const directTerritories = [];
+    for (const [terr, cid] of Object.entries(territoryMap)) {
+      if (cid === activeNation.id) {
+        directTerritories.push(terr);
+      }
+    }
+    // If the nation has multiple sovereign territories in territoryMap (e.g. EU or expanded empires)
+    if (directTerritories.length > 1) {
+      const gdpPerTerr = (c.aggregateGdp || 0) / directTerritories.length;
+      const popPerTerr = (c.effectiveWorkingPops || 0) / directTerritories.length;
+      return directTerritories.map((name) => ({
+        name,
+        role: "Incorporated Sovereign Territory",
+        isCore: name.toLowerCase() === activeNation.name.toLowerCase(),
+        gdp: gdpPerTerr,
+        pops: Math.round(popPerTerr),
+        infra: c.infrastructureEfficiency || 0.8,
+        literacy: c.literacyRate || 0.85,
+        urban: c.urbanisationIndex || 0.75,
+      }));
+    }
+
+    // Single territory nation: expand using constituent regional states
+    const regional = CONSTITUENT_REGIONAL_STATES[activeNation.id.toLowerCase()] || [];
+    if (regional.length > 0) {
+      return regional.map((r) => ({
+        name: r.name,
+        role: r.role,
+        isCore: true,
+        gdp: (c.aggregateGdp || 0) * r.gdpShare,
+        pops: Math.round((c.effectiveWorkingPops || 0) * r.popShare),
+        infra: (c.infrastructureEfficiency || 0.8) * (0.9 + r.gdpShare * 0.4),
+        literacy: c.literacyRate || 0.85,
+        urban: (c.urbanisationIndex || 0.75) * (0.85 + r.popShare * 0.6),
+      }));
+    }
+
+    // Fallback constituent states
+    const basePops = Math.round((c.effectiveWorkingPops || 0) / 4);
+    const baseGdp = (c.aggregateGdp || 0) / 4;
+    return [
+      {
+        name: `${activeNation.name} Capital District`,
+        role: "Metropolitan Administration & Financial Core",
+        isCore: true,
+        gdp: baseGdp * 1.5,
+        pops: Math.round(basePops * 1.3),
+        infra: c.infrastructureEfficiency || 0.85,
+        literacy: c.literacyRate || 0.9,
+        urban: c.urbanisationIndex || 0.8,
+      },
+      {
+        name: `${activeNation.name} Industrial Basin`,
+        role: "Heavy Manufacturing & Energy Infrastructure",
+        isCore: true,
+        gdp: baseGdp * 1.2,
+        pops: Math.round(basePops * 1.1),
+        infra: c.infrastructureEfficiency || 0.8,
+        literacy: c.literacyRate || 0.82,
+        urban: c.urbanisationIndex || 0.75,
+      },
+      {
+        name: `${activeNation.name} Agro-Resource Belt`,
+        role: "Primary Commodities & Food Security",
+        isCore: true,
+        gdp: baseGdp * 0.7,
+        pops: Math.round(basePops * 0.8),
+        infra: (c.infrastructureEfficiency || 0.8) * 0.85,
+        literacy: c.literacyRate || 0.8,
+        urban: (c.urbanisationIndex || 0.75) * 0.6,
+      },
+      {
+        name: `${activeNation.name} Maritime/Orbital Gateway`,
+        role: "Interstellar Freight & Trade Logistics Hub",
+        isCore: true,
+        gdp: baseGdp * 0.6,
+        pops: Math.round(basePops * 0.8),
+        infra: c.infrastructureEfficiency || 0.85,
+        literacy: c.literacyRate || 0.85,
+        urban: c.urbanisationIndex || 0.78,
+      },
+    ];
+  }, [activeNation, territoryMap, c]);
+
   return (
     <div className="space-y-5">
       {/* Top Map Command Bar: Theater Switcher, Map Lenses & Border Redraw Tools */}
       <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-3.5 flex flex-wrap items-center justify-between gap-3 shadow-lg">
         {/* Left: Planetary Theater Selector */}
         <div className="flex flex-wrap items-center gap-2">
-          <button
-            onClick={() => {
-              setTheater("Earth");
-              resetCamera();
-            }}
-            className={`px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition cursor-pointer ${
-              theater === "Earth"
-                ? "bg-cyan-500 text-slate-950 shadow-md shadow-cyan-500/25"
-                : "bg-slate-800/90 text-slate-300 hover:bg-slate-700"
-            }`}
-          >
-            <Globe2 className="w-4 h-4" />
-            Earth Theater
-          </button>
+          {planetsConfig.map((planet) => {
+            const isEarth = planet.name.toLowerCase() === "earth";
+            const active = theater.toLowerCase() === planet.name.toLowerCase();
+            const Icon = isEarth ? Globe2 : Rocket;
 
-          <button
-            onClick={() => {
-              setTheater("Mars");
-              resetCamera();
-              const marsNation = nations.find((n) =>
-                (n.planet || "").toLowerCase().includes("mars")
-              );
-              if (marsNation) onSelectNation(marsNation.id);
-            }}
-            className={`px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition cursor-pointer ${
-              theater === "Mars"
-                ? "bg-orange-500 text-slate-950 shadow-md shadow-orange-500/25"
-                : "bg-slate-800/90 text-slate-300 hover:bg-slate-700"
-            }`}
-          >
-            <Rocket className="w-4 h-4" />
-            Mars Planetary Grid
-          </button>
+            return (
+              <button
+                key={planet.id || planet.name}
+                onClick={() => {
+                  setTheater(planet.name);
+                  resetCamera();
+                  const planetNation = nations.find(
+                    (n) => (n.planet || "").toLowerCase() === planet.name.toLowerCase()
+                  );
+                  if (planetNation) onSelectNation(planetNation.id);
+                }}
+                className={`px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition cursor-pointer ${
+                  active
+                    ? isEarth
+                      ? "bg-cyan-500 text-slate-950 shadow-md shadow-cyan-500/25"
+                      : "bg-orange-500 text-slate-950 shadow-md shadow-orange-500/25"
+                    : "bg-slate-800/90 text-slate-300 hover:bg-slate-700"
+                }`}
+              >
+                <Icon className="w-4 h-4" />
+                {planet.name} Theater
+              </button>
+            );
+          })}
         </div>
 
         {/* Center: Choropleth Map Lenses */}
