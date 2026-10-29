@@ -954,15 +954,26 @@ app.patch("/api/sessions/:id/director-config", (req, res) => {
     }
   }
 
+  let toastMessage = "Updated Director Configuration";
+
+  // Helper action: apply historical era borders (500 BC to 2026)
+  if (actionType === "APPLY_HISTORICAL_ERA" || req.body.eraId || req.body.historicalDate) {
+    const eraResult = applyHistoricalEra(
+      sess.state,
+      req.body.eraId || req.body.historicalDate
+    );
+    toastMessage = eraResult.toastMessage || eraResult.action;
+  }
+
   evaluateSimulation(sess.state);
   persistAndBroadcast(
     id,
     actor || "Director",
-    "Updated Director Configuration (Planets / Power Blocs)",
+    toastMessage,
     `Planets: ${sess.state.planetsConfig?.length || 0}, Blocs: ${sess.state.powerBlocs?.length || 0}`
   );
 
-  res.json({ session: sess, activityLog: getActivityLog(id, 60) });
+  res.json({ session: sess, toastMessage, activityLog: getActivityLog(id, 60) });
 });
 
 // 13. Update Nation Local Market (Single Good or Bulk Tariff/DD)
