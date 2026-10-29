@@ -1042,6 +1042,7 @@ export function evaluateSimulation(state) {
 
   state.globalMarket = globalMarket;
   state.planetsSummary = planetsSummary;
+  evaluateVictoriaMechanics(state);
   return state;
 }
 
@@ -1125,9 +1126,9 @@ export function advanceSimulationTime(state, daysToAdd = 90, randomizeHype = fal
   evaluateSimulation(state);
 
   const tm = state.timeManager;
-  const startDt = new Date(tm.crisisStartDate || "2025-01-01T00:00:00Z");
-  const curDt = new Date(tm.crisisDate || tm.crisisStartDate || "2025-01-01T00:00:00Z");
-  let nextPayDt = new Date(tm.nextPaymentDate || "2025-04-01T00:00:00Z");
+  const prevDateStr = tm.crisisDate || tm.crisisStartDate || "2025-01-01";
+  const curDt = new Date(`${prevDateStr.split("T")[0]}T00:00:00Z`);
+  let nextPayDt = new Date(`${(tm.nextPaymentDate || "2025-04-01").split("T")[0]}T00:00:00Z`);
 
   const targetDt = new Date(curDt.getTime() + daysToAdd * 86400000);
   tm.crisisDate = targetDt.toISOString().split("T")[0];
@@ -1144,6 +1145,7 @@ export function advanceSimulationTime(state, daysToAdd = 90, randomizeHype = fal
     dateDiff = (nextPayDt.getTime() - targetDt.getTime()) / 86400000;
   }
 
+  processTimeTickVictoria(state, daysToAdd, prevDateStr, tm.crisisDate, quartersCrossed);
   evaluateSimulation(state);
   return { state, quartersCrossed };
 }
