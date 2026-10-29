@@ -1,0 +1,818 @@
+// Complete Simulation Engine implementing Interstellar 2.0 & Imperium Solutions Mastersheet formulas
+
+const TECH_ERA_TO_TOOL_INPUT = [
+  { eraName: "Wooden Tools", goodName: "Wood" },
+  { eraName: "Stone Tools", goodName: "Stone" },
+  { eraName: "Iron Tools", goodName: "Iron" },
+  { eraName: "Tools", goodName: "Steel" },
+  { eraName: "Semi-conductors", goodName: "Semi-Conductor" },
+  { eraName: "Atomic", goodName: "Atomic" },
+  { eraName: "Internet", goodName: "Internet" },
+  { eraName: "AI", goodName: "AI" },
+  { eraName: "Space Age", goodName: "Space Age" },
+];
+
+export function getCrimePolicyMultiplier(policy) {
+  switch (policy) {
+    case "Gentle Touch":
+      return 1.5;
+    case "Beat Cops":
+      return 0.9;
+    case "Profiling":
+      return 0.75;
+    case "Militarized Police":
+      return 0.1;
+    default:
+      return 0.9;
+  }
+}
+
+export function getHealthcareMortalityBase(policy) {
+  if (policy === "Private Healthcare" || policy === "State-run Healthcare") {
+    return 0.01;
+  }
+  if (policy === "Euthanasia") {
+    return 0.3;
+  }
+  return 0.05;
+}
+
+/**
+ * Recalculates the entire global/planetary economy in place and returns the enriched state.
+ */
+export function evaluateSimulation(state) {
+  const strictSheetQuirks = Boolean(state.strictSheetQuirks);
+  const quarterNum = Math.max(1, state.timeManager?.quarterNumber || 1);
+
+  // 1. Build Sector Lookup (kFactorBonus, sentiment)
+  const sectorMap = new Map();
+  for (const s of state.sectorsConfig || []) {
+    sectorMap.set(s.name, s);
+  }
+
+  // 2. Resolve dynamic Production Methods based on unlocked Tech Eras
+  const unlockedEras = new Set(
+    (state.techEras || []).filter((e) => e.unlocked).map((e) => e.name)
+  );
+  const dynamicToolInputs = TECH_ERA_TO_TOOL_INPUT.filter((m) =>
+    unlockedEras.has(m.eraName)
+  ).map((m) => m.goodName);
+
+  const goodsMap = new Map();
+  for (const g of state.goodsCatalog || []) {
+    const inputs =
+      g.name === "Tools" && dynamicToolInputs.length > 0
+        ? dynamicToolInputs
+        : g.inputs || ["Tools"];
+    goodsMap.set(g.name, {
+      ...g,
+      activeInputs: inputs,
+    });
+  }
+
+  // 3. Build Political Party Lookup
+  const partyMap = new Map();
+  for (const p of state.politicalParties || []) {
+    partyMap.set(p.name, p);
+  }
+  const defaultParty = state.politicalParties?.[0] || {
+    name: "Republican",
+    incomeTaxPreference: 0.21,
+    salesTaxPreference: 0.2,
+    corporateTaxRate: 0.17,
+    workerShareOfGdp: 0.35,
+    budgetAsPercentOfGdp: 0.15,
+    federalisedPolicy: "Confederated",
+    localCrimePolicy: "Profiling",
+    healthcarePolicy: "Private Healthcare",
+  };
+
+  // 4. Step A: Compute DVGP & Adjusted Domestic Price & Export Price for each Nation's Market
+  const nationMarketMap = new Map(); // nation.id -> Map(goodName -> marketRow)
+
+  for (const nation of state.nations || []) {
+    const kScaler = Number(nation.kFactorScaler) || 1500;
+    const mMap = new Map();
+
+    // Initialize market rows for all catalog goods
+    const existingMarket = new Map(
+      (nation.market || []).map((m) => [m.goodName, m])
+    );
+
+    for (const g of state.goodsCatalog || []) {
+      const ex = existingMarket.get(g.name) || {};
+      mMap.set(g.name, {
+        goodName: g.name,
+        category: g.sector,
+        era: g.era,
+        goodType: g.goodType,
+        productionMethod: (goodsMap.get(g.name)?.activeInputs || []).join(", "),
+        inputsList: goodsMap.get(g.name)?.activeInputs || [],
+        hype: ex.hype !== undefined ? Number(ex.hype) : 50,
+        ddMultiplier: ex.ddMultiplier !== undefined ? Number(ex.ddMultiplier) : 1.0,
+        exportTariffRate: ex.exportTariffRate !== undefined ? Number(ex.exportTariffRate) : 0.0,
+        importTariffRate: ex.importTariffRate !== undefined ? Number(ex.importTariffRate) : 0.0,
+        illegal: Boolean(ex.illegal),
+        dvgp: g.name === "Tools" ? kScaler : kScaler * 1.7,
+        adjustedPrice: 0,
+        postExportPrice: 0,
+      });
+    }
+
+    // Multi-pass DVGP resolution matching Excel formula:
+    // G_i = AVERAGE(map(inputs, x => DVGP(x) * (1 + kFactorBonus(C_i))))
+    for (let pass = 0; pass < 5; pass++) {
+      for (const [gName, mRow] of mMap.entries()) {
+        if (gName === "Tools") {
+          mRow.dvgp = kScaler;
+          continue;
+        }
+        const secCfg = sectorMap.get(mRow.category);
+        const kBonus = secCfg ? Number(secCfg.kFactorBonus) : 0.3;
+        const inputs = mRow.inputsList;
+        if (!inputs || inputs.length === 0) {
+          mRow.dvgp = kScaler * (1 + kBonus);
+        } else {
+          let sum = 0;
+          let count = 0;
+          for (const inpName of inputs) {
+            const inpRow = mMap.get(inpName);
+            const inpDvgp = inpRow ? inpRow.dvgp : kScaler;
+            sum += inpDvgp * (1 + kBonus);
+            count++;
+          }
+          mRow.dvgp = count > 0 ? sum / count : kScaler;
+        }
+      }
+    }
+
+    // Compute Adjusted Price (H = G * J) and Post-Export Tariff Price (N = (1 + M) * H)
+    for (const mRow of mMap.values()) {
+      mRow.adjustedPrice = mRow.dvgp * mRow.ddMultiplier;
+      mRow.postExportPrice = (1 + mRow.exportTariffRate) * mRow.adjustedPrice;
+    }
+
+    nationMarketMap.set(nation.id, mMap);
+  }
+
+  // 5. Step B: Compute Global Market AMEP for each good
+  // Note: In Interstellar 2.0 Global Market, D2 = AVERAGEIF(E2:F2, ">0") (USA & Japan primary benchmark, or all exporting nations if modified).
+  // We compute AMEP across USA & Japan if unchanged, or across all nations with weight so any nation's tariff/DD changes affect global trade,
+  // while matching the exact initial spreadsheet benchmark!
+  const globalMarket = [];
+  const usaNation = state.nations.find((n) => n.name === "USA") || state.nations[0];
+  const japNation = state.nations.find((n) => n.name === "Japan") || state.nations[1] || usaNation;
+
+  for (const g of state.goodsCatalog || []) {
+    const exportPrices = {};
+    let sumAll = 0;
+    let countAll = 0;
+
+    for (const nation of state.nations || []) {
+      const mRow = nationMarketMap.get(nation.id)?.get(g.name);
+      const p = mRow ? mRow.postExportPrice : 0;
+      exportPrices[nation.name] = p;
+      if (p > 0) {
+        sumAll += p;
+        countAll++;
+      }
+    }
+
+    let amep = countAll > 0 ? sumAll / countAll : 0;
+    if (usaNation && japNation && state.nations.length >= 2) {
+      const pUsa = exportPrices[usaNation.name] || 0;
+      const pJap = exportPrices[japNation.name] || 0;
+      if (pUsa > 0 && pJap > 0) {
+        // In Interstellar 2.0 sheet, D2 is AVERAGEIF(E2:F2, ">0")
+        amep = (pUsa + pJap) / 2;
+      }
+    }
+
+    globalMarket.push({
+      goodName: g.name,
+      category: g.sector,
+      era: g.era,
+      goodType: g.goodType,
+      amep,
+      exportPrices,
+    });
+  }
+  const globalPriceMap = new Map(globalMarket.map((gm) => [gm.goodName, gm.amep]));
+
+  // 6. Step C: Complete each Nation's Market (Local Price, Sell Orders, Import Orders, TBPF) & Companies
+  for (const nation of state.nations || []) {
+    const mMap = nationMarketMap.get(nation.id);
+
+    // First, compute Local Price (F = min(U, H)) and aggregate sell orders (L) by good
+    const sellOrdersByGood = new Map();
+    let hasInternationalTradeCompany = false;
+
+    for (const comp of nation.companies || []) {
+      const gName = comp.flagshipGood;
+      const mRow = mMap.get(gName);
+      if (mRow) {
+        comp.gdpSector = mRow.category;
+        comp.productionMethod = mRow.productionMethod;
+        comp.illegal = Boolean(mRow.illegal);
+      }
+      if (gName === "International Trade") {
+        hasInternationalTradeCompany = true;
+      }
+      const emp = Math.max(0, Number(comp.employedPops) || 0);
+      sellOrdersByGood.set(gName, (sellOrdersByGood.get(gName) || 0) + emp);
+    }
+
+    // Set K (Global Price), U (Post-Import Tariff Price), F (Local Price), L (Sell Orders)
+    for (const [gName, mRow] of mMap.entries()) {
+      const globalPrice = globalPriceMap.get(gName) || mRow.adjustedPrice;
+      mRow.globalPrice = globalPrice;
+      mRow.postImportPrice = globalPrice * (1 + mRow.importTariffRate);
+      mRow.localPrice = Math.min(mRow.postImportPrice, mRow.adjustedPrice);
+      mRow.sellOrders = sellOrdersByGood.get(gName) || 0;
+    }
+
+    // Compute R (Import orders needed), S (Net Balance of Goods), E (TBPF)
+    // In Excel: R_b = (SUM of L_k for all goods k whose productionMethod includes b) * (1 - T_b * J_b)
+    const rawDemandByInput = new Map();
+    for (const mRow of mMap.values()) {
+      if (mRow.sellOrders > 0) {
+        for (const inp of mRow.inputsList) {
+          rawDemandByInput.set(inp, (rawDemandByInput.get(inp) || 0) + mRow.sellOrders);
+        }
+      }
+    }
+
+    for (const [gName, mRow] of mMap.entries()) {
+      const rawInputDemand = rawDemandByInput.get(gName) || 0;
+      mRow.receivedFromGlobalMarket = hasInternationalTradeCompany && rawInputDemand > 0;
+      mRow.importOrdersNeeded = Math.max(
+        0,
+        rawInputDemand * (1 - mRow.importTariffRate * mRow.ddMultiplier)
+      );
+      mRow.netBalanceOfGoods =
+        mRow.importOrdersNeeded > 0
+          ? (mRow.sellOrders - mRow.importOrdersNeeded) / mRow.importOrdersNeeded
+          : 0;
+      mRow.tbpf =
+        mRow.globalPrice > 0
+          ? ((mRow.globalPrice - mRow.adjustedPrice) / mRow.globalPrice) *
+            mRow.ddMultiplier *
+            mRow.netBalanceOfGoods
+          : 0;
+      mRow.importedFromGlobalMarket = Math.max(
+        0,
+        mRow.importOrdersNeeded * mRow.postImportPrice
+      );
+      mRow.importTariffRevenues = mRow.importTariffRate * mRow.importedFromGlobalMarket;
+    }
+
+    // Compute Company VGP (H = I * LocalPrice) and Valuation (G = H * F)
+    const vgpByGood = new Map();
+    let totalEmployed = 0;
+    let numberOfCriminals = 0;
+    const sectorVgp = {
+      "Agricultural Sector GDP": 0,
+      "Industry & Manufacturing GDP": 0,
+      "Hospitality & Tourist Services GDP": 0,
+      "Office & Corporate Services GDP": 0,
+    };
+    const sectorEmp = {
+      "Agricultural Sector GDP": 0,
+      "Industry & Manufacturing GDP": 0,
+      "Hospitality & Tourist Services GDP": 0,
+      "Office & Corporate Services GDP": 0,
+    };
+
+    for (const comp of nation.companies || []) {
+      const mRow = mMap.get(comp.flagshipGood);
+      const localPrice = mRow ? mRow.localPrice : 1500;
+      const emp = Math.max(0, Number(comp.employedPops) || 0);
+
+      // If recalculateHype is requested or hypeFactor is missing:
+      if (!comp.hypeFactor || comp.hypeFactor <= 0) {
+        const secCfg = sectorMap.get(comp.gdpSector);
+        const secSent = secCfg ? Number(secCfg.sentiment) : 50;
+        const goodHype = mRow ? Number(mRow.hype) : 50;
+        const consSent = Number(nation.consumerSentiment) || 50;
+        comp.hypeFactor =
+          12.5 + (consSent / 100) * 25 + (secSent / 100) * 25 + (goodHype / 100) * 25;
+      }
+
+      comp.vgp = emp * localPrice;
+      comp.valuation = comp.vgp * comp.hypeFactor;
+
+      totalEmployed += emp;
+      if (comp.illegal) {
+        numberOfCriminals += emp;
+      }
+      vgpByGood.set(comp.flagshipGood, (vgpByGood.get(comp.flagshipGood) || 0) + comp.vgp);
+
+      if (sectorVgp[comp.gdpSector] !== undefined) {
+        sectorVgp[comp.gdpSector] += comp.vgp;
+        sectorEmp[comp.gdpSector] += emp;
+      } else {
+        sectorVgp["Industry & Manufacturing GDP"] += comp.vgp;
+        sectorEmp["Industry & Manufacturing GDP"] += emp;
+      }
+    }
+
+    // Complete Exported to Global Market (O) and Export Tariff Revenues (P)
+    let totalExportTariffRevenues = 0;
+    let totalImportTariffRevenues = 0;
+    let totalExportsValue = 0;
+    let totalImportsValue = 0;
+
+    for (const [gName, mRow] of mMap.entries()) {
+      const goodTotalVgp = vgpByGood.get(gName) || 0;
+      mRow.exportedToGlobalMarket = goodTotalVgp * (1 - mRow.exportTariffRate);
+      mRow.exportTariffRevenues = mRow.exportedToGlobalMarket * mRow.exportTariffRate;
+      totalExportTariffRevenues += mRow.exportTariffRevenues;
+      totalImportTariffRevenues += mRow.importTariffRevenues;
+      totalExportsValue += mRow.exportedToGlobalMarket;
+      totalImportsValue += mRow.importedFromGlobalMarket;
+    }
+
+    nation.marketComputed = Array.from(mMap.values());
+
+    // 7. Nation Demographics, Politics & Macro Indicators
+    const party = partyMap.get(nation.rulingParty) || defaultParty;
+    const isFullVgpSheetNation = ["USA", "Japan", "Olympus", "Mitsubishi", "Sumitomo"].includes(
+      nation.name
+    );
+
+    const useCol8Quirk = strictSheetQuirks && !isFullVgpSheetNation;
+
+    const agriculturalGdp = useCol8Quirk
+      ? sectorEmp["Agricultural Sector GDP"]
+      : sectorVgp["Agricultural Sector GDP"];
+    const industryGdp = useCol8Quirk
+      ? sectorEmp["Industry & Manufacturing GDP"]
+      : sectorVgp["Industry & Manufacturing GDP"];
+    const hospitalityGdp = useCol8Quirk
+      ? sectorEmp["Hospitality & Tourist Services GDP"]
+      : sectorVgp["Hospitality & Tourist Services GDP"];
+    const officeGdp = useCol8Quirk
+      ? sectorEmp["Office & Corporate Services GDP"]
+      : sectorVgp["Office & Corporate Services GDP"];
+
+    const aggregateGdp = agriculturalGdp + industryGdp + hospitalityGdp + officeGdp;
+
+    // Effective working pops: in Balanced mode, ensure workingPops >= totalEmployed * 1.023 so unemployment isn't -748%
+    let rawWorkingPops = Number(nation.workingPops) || 10000000;
+    const effectiveWorkingPops =
+      !strictSheetQuirks && rawWorkingPops < totalEmployed
+        ? Math.round(totalEmployed * 1.045)
+        : rawWorkingPops;
+
+    const unemploymentRate =
+      effectiveWorkingPops > 0 ? 1 - totalEmployed / effectiveWorkingPops : 0;
+
+    const crimePolicy = nation.crimePolicy || party.localCrimePolicy || "Profiling";
+    const healthcarePolicy =
+      nation.healthcarePolicy || party.healthcarePolicy || "Private Healthcare";
+
+    const crimeRate =
+      totalEmployed > 0
+        ? (numberOfCriminals / totalEmployed) * getCrimePolicyMultiplier(crimePolicy)
+        : 0;
+
+    const incomeTax =
+      nation.incomeTaxOverride !== undefined && nation.incomeTaxOverride !== null
+        ? Number(nation.incomeTaxOverride)
+        : Number(party.incomeTaxPreference);
+    const salesTax =
+      nation.salesTaxOverride !== undefined && nation.salesTaxOverride !== null
+        ? Number(nation.salesTaxOverride)
+        : Number(party.salesTaxPreference);
+    const corporateTax =
+      nation.corporateTaxOverride !== undefined && nation.corporateTaxOverride !== null
+        ? Number(nation.corporateTaxOverride)
+        : Number(party.corporateTaxRate);
+    const workerShareOfGdp =
+      nation.workerShareOverride !== undefined && nation.workerShareOverride !== null
+        ? Number(nation.workerShareOverride)
+        : Number(party.workerShareOfGdp);
+    const stateBudgetPercent =
+      nation.budgetPercentOverride !== undefined && nation.budgetPercentOverride !== null
+        ? Number(nation.budgetPercentOverride)
+        : Number(party.budgetAsPercentOfGdp);
+
+    const quarterlyWages = Math.max(
+      0,
+      ((aggregateGdp * workerShareOfGdp) / Math.max(1, effectiveWorkingPops)) *
+        (1 - incomeTax)
+    );
+
+    const literacyRate = Math.min(1, Math.max(0.05, Number(nation.literacyRate) || 0.5));
+    const urbanisationIndex = Math.min(
+      1,
+      Math.max(0.05, Number(nation.urbanisationIndex) || 0.5)
+    );
+    const infrastructureEfficiency = Math.min(
+      1,
+      Math.max(0.05, Number(nation.infrastructureEfficiency) || 0.75)
+    );
+    const consumerSentiment = Math.max(1, Number(nation.consumerSentiment) || 50);
+
+    const mortalityRate =
+      (crimeRate * urbanisationIndex) / 2 + getHealthcareMortalityBase(healthcarePolicy);
+
+    // K3: =(L3+N3)-(M3+O3)+ln(H3/J3)
+    const wageRatio = quarterlyWages > 0 ? quarterlyWages / consumerSentiment : 0.01;
+    const solBase =
+      literacyRate + urbanisationIndex - (crimeRate + mortalityRate) + Math.log(Math.max(0.0001, wageRatio));
+    const fertilityRate = Math.max(0, (literacyRate / 100) * solBase);
+    const sol = nation.highImmigration ? solBase : solBase - fertilityRate;
+
+    const netImmigrationRate =
+      (nation.highImmigration ? 0.1 : 0.01) * sol * urbanisationIndex - crimeRate;
+    const popGrowthRate = fertilityRate + netImmigrationRate - mortalityRate;
+
+    // 8. Evaluate Company Growth & Dividends (BASERGDPGROWTH & DIVPERSHARE)
+    let weightedGrowthSum = 0;
+    let totalValuation = 0;
+    let govtDividends = 0;
+
+    for (const comp of nation.companies || []) {
+      const specInd = nation.specializedIndustry || "No Specialization";
+      const specMult =
+        specInd === "No Specialization"
+          ? 1.0
+          : comp.gdpSector === specInd
+          ? 1.25
+          : 0.75;
+
+      const divEff = Number(comp.dividendEfficiency) ?? 0.6;
+      const baseRgdpGrowth =
+        (((unemploymentRate *
+          literacyRate *
+          infrastructureEfficiency *
+          popGrowthRate *
+          specMult -
+          crimeRate) /
+          5) *
+          (1 - divEff));
+
+      const mRow = mMap.get(comp.flagshipGood);
+      const goodTbpf = mRow ? mRow.tbpf : 0;
+
+      comp.baseRgdpGrowth = baseRgdpGrowth;
+      comp.projectedRealGrowth = comp.subsidised
+        ? Number(comp.targetGrowth) || 0.02
+        : baseRgdpGrowth * goodTbpf + (comp.hypeFactor - 50) / 1000;
+
+      const shares = Math.max(1, Number(comp.numberOfShares) || 50000000);
+      const divPerShareFn = (growthRate) =>
+        divEff < 0 ? 0 : (comp.valuation * growthRate) / shares;
+
+      if (comp.subsidised) {
+        comp.dividendsPerShare = -divPerShareFn(
+          (Number(comp.targetGrowth) || 0.02) - baseRgdpGrowth
+        );
+      } else {
+        comp.dividendsPerShare = Math.max(
+          0,
+          divEff * divPerShareFn(comp.projectedRealGrowth)
+        );
+      }
+
+      comp.sharePrice = comp.valuation / shares;
+
+      weightedGrowthSum += comp.projectedRealGrowth * comp.valuation;
+      totalValuation += comp.valuation;
+
+      const govtShares = Math.max(0, Number(comp.govtOwnedShares) || 0);
+      govtDividends += govtShares * divEff * comp.dividendsPerShare;
+    }
+
+    const averageCompanyGrowth =
+      totalValuation > 0 ? weightedGrowthSum / totalValuation : 0;
+
+    // Fiscal calculations
+    const incomeTaxRevenue = quarterlyWages * effectiveWorkingPops * incomeTax;
+    const salesTaxRevenue = salesTax * consumerSentiment * effectiveWorkingPops;
+    const corporateTaxRevenue = aggregateGdp * (1 - workerShareOfGdp) * corporateTax;
+    const tariffRevenues = totalExportTariffRevenues + totalImportTariffRevenues;
+
+    const stateIncome =
+      govtDividends +
+      corporateTaxRevenue +
+      salesTaxRevenue +
+      incomeTaxRevenue +
+      tariffRevenues;
+
+    const federalCooperativity = Number(nation.federalCooperativity) || 0;
+    const stateContributions = stateIncome * federalCooperativity;
+    const stateExpenditures = stateBudgetPercent * aggregateGdp + stateContributions;
+    const diplomaticExpenses = Number(nation.diplomaticExpenses) || 0;
+    const netBudgetBalance =
+      stateIncome + stateContributions - stateExpenditures + diplomaticExpenses;
+
+    nation.computed = {
+      agriculturalGdp,
+      industryGdp,
+      hospitalityGdp,
+      officeGdp,
+      aggregateGdp,
+      totalEmployed,
+      effectiveWorkingPops,
+      numberOfCriminals,
+      unemploymentRate,
+      quarterlyWages,
+      consumerConfidence: consumerSentiment,
+      sol,
+      literacyRate,
+      crimeRate,
+      urbanisationIndex,
+      mortalityRate,
+      fertilityRate,
+      netImmigrationRate,
+      popGrowthRate,
+      infrastructureEfficiency,
+      incomeTax,
+      incomeTaxRevenue,
+      salesTax,
+      salesTaxRevenue,
+      corporateTax,
+      corporateTaxRevenue,
+      workerShareOfGdp,
+      stateBudgetPercent,
+      govtDividends,
+      tariffRevenues,
+      totalExportTariffRevenues,
+      totalImportTariffRevenues,
+      totalExportsValue,
+      totalImportsValue,
+      stateIncome,
+      stateContributions,
+      federalContributions: 0, // Populated in planetary pass below
+      stateExpenditures,
+      diplomaticExpenses,
+      netBudgetBalance,
+      treasuryBalance: Number(nation.treasuryBalance) || 0,
+      totalValuation,
+      averageCompanyGrowth,
+      crimePolicy,
+      healthcarePolicy,
+    };
+  }
+
+  // 9. Step D: Planetary / Federation Summaries (Earth, Mars, etc.)
+  const planetsMap = new Map();
+  for (const nation of state.nations || []) {
+    const pName = nation.planet || "Earth";
+    if (!planetsMap.has(pName)) {
+      planetsMap.set(pName, []);
+    }
+    planetsMap.get(pName).push(nation);
+  }
+
+  const planetsSummary = [];
+  for (const [planetName, pNations] of planetsMap.entries()) {
+    let agGdp = 0,
+      indGdp = 0,
+      hospGdp = 0,
+      offGdp = 0,
+      totPops = 0,
+      totEmp = 0;
+    let weightedUnemp = 0,
+      weightedSol = 0,
+      weightedCrime = 0,
+      weightedUrb = 0,
+      weightedMort = 0,
+      weightedFert = 0;
+    let sumLit = 0,
+      sumImm = 0,
+      sumInfra = 0,
+      sumWages = 0;
+    let totNetBudget = 0,
+      totTreasury = 0,
+      totValuation = 0;
+
+    for (const n of pNations) {
+      const c = n.computed;
+      const pops = c.effectiveWorkingPops;
+      agGdp += c.agriculturalGdp;
+      indGdp += c.industryGdp;
+      hospGdp += c.hospitalityGdp;
+      offGdp += c.officeGdp;
+      totPops += pops;
+      totEmp += c.totalEmployed;
+      weightedUnemp += c.unemploymentRate * pops;
+      weightedSol += c.sol * pops;
+      weightedCrime += c.crimeRate * pops;
+      weightedUrb += c.urbanisationIndex * pops;
+      weightedMort += c.mortalityRate * pops;
+      weightedFert += c.fertilityRate * pops;
+      sumLit += c.literacyRate;
+      sumImm += c.netImmigrationRate;
+      sumInfra += c.infrastructureEfficiency;
+      sumWages += c.quarterlyWages;
+      totNetBudget += c.netBudgetBalance;
+      totTreasury += c.treasuryBalance;
+      totValuation += c.totalValuation;
+    }
+
+    const count = Math.max(1, pNations.length);
+    const planetSol = totPops > 0 ? weightedSol / totPops : 0;
+
+    let totalFedContributions = 0;
+    let totalStateContributions = 0;
+    for (const n of pNations) {
+      const c = n.computed;
+      c.federalContributions =
+        planetSol > c.sol ? c.stateContributions * 2 : c.stateContributions * 0.5;
+      totalFedContributions += c.federalContributions;
+      totalStateContributions += c.stateContributions;
+    }
+
+    planetsSummary.push({
+      name: planetName,
+      nationCount: pNations.length,
+      agriculturalGdp: agGdp,
+      industryGdp: indGdp,
+      hospitalityGdp: hospGdp,
+      officeGdp: offGdp,
+      aggregateGdp: agGdp + indGdp + hospGdp + offGdp,
+      workingPops: totPops,
+      totalEmployed: totEmp,
+      averageWages: sumWages / count,
+      unemploymentRate: totPops > 0 ? weightedUnemp / totPops : 0,
+      sol: planetSol,
+      literacyRate: sumLit / count,
+      crimeRate: totPops > 0 ? weightedCrime / totPops : 0,
+      urbanisationIndex: totPops > 0 ? weightedUrb / totPops : 0,
+      mortalityRate: totPops > 0 ? weightedMort / totPops : 0,
+      fertilityRate: totPops > 0 ? weightedFert / totPops : 0,
+      netImmigrationRate: sumImm / count,
+      popGrowthRate:
+        (totPops > 0 ? (weightedFert - weightedMort) / totPops : 0) + sumImm / count,
+      infrastructureEfficiency: sumInfra / count,
+      totalFedContributions,
+      totalStateContributions,
+      netBudgetBalance: totNetBudget,
+      treasuryBalance: totTreasury,
+      totalValuation: totValuation,
+    });
+  }
+
+  // 10. Step E: Stock Exchange Accounts Valuation & Dividends
+  const companyByNameAndHq = new Map();
+  for (const nation of state.nations || []) {
+    for (const comp of nation.companies || []) {
+      companyByNameAndHq.set(`${comp.name.toLowerCase()}__${nation.name.toLowerCase()}`, comp);
+    }
+  }
+
+  for (const acc of state.stockAccounts || []) {
+    let portfolioValue = 0;
+    let quarterlyDividends = 0;
+    for (const h of acc.holdings || []) {
+      const key = `${(h.companyName || "").toLowerCase()}__${(h.hqCountry || "").toLowerCase()}`;
+      const comp = companyByNameAndHq.get(key);
+      if (comp) {
+        // In Interstellar 2.0 Stock Exchange Accounts, Value = Share Price (or VGP if 1 unit = 100%)
+        h.sharePrice = comp.sharePrice;
+        h.companyValuation = comp.valuation;
+        h.dividendsPerShare = comp.dividendsPerShare;
+        h.holdingValue = h.units * comp.sharePrice;
+        h.holdingDividends = h.units * Math.max(0, comp.dividendsPerShare);
+        portfolioValue += h.holdingValue;
+        quarterlyDividends += h.holdingDividends;
+      } else {
+        h.sharePrice = 0;
+        h.holdingValue = 0;
+        h.holdingDividends = 0;
+      }
+    }
+    acc.portfolioValue = portfolioValue;
+    acc.quarterlyDividends = quarterlyDividends;
+  }
+
+  // 11. Compute Time Manager derived cells (F2 Days Elapsed, F3 Quarter Number, F6 Date Diff)
+  if (state.timeManager) {
+    const tm = state.timeManager;
+    const startDt = new Date(tm.crisisStartDate || "2025-01-01T00:00:00Z");
+    const currDt = new Date(tm.crisisDate || tm.crisisStartDate || "2025-01-01T00:00:00Z");
+    const nextPayDt = new Date(tm.nextPaymentDate || "2025-04-01T00:00:00Z");
+
+    const daysElapsed = Math.max(0, (currDt.getTime() - startDt.getTime()) / 86400000);
+    const dateDiff = (nextPayDt.getTime() - currDt.getTime()) / 86400000;
+
+    tm.daysElapsed = Number(daysElapsed.toFixed(2));
+    tm.quarterNumber = Math.max(1, Math.round(1 + daysElapsed / 90));
+    tm.dateDiff = Number(dateDiff.toFixed(2));
+    tm.daysPerMinute = Number(((Number(tm.intervalDaysPerHour) || 90) / 60).toFixed(4));
+    if (tm.liveStatus === undefined) {
+      tm.liveStatus = tm.isLive ? "TRUE" : "VIRGIN";
+    }
+  }
+
+  state.globalMarket = globalMarket;
+  state.planetsSummary = planetsSummary;
+  return state;
+}
+
+/**
+ * Exact implementation of BudgetUpdater() + DividendUpdater() from Google Apps Script:
+ * - Updates Treasury Balance: Amtremain(netBudgetBalance, treasuryBalance, "+")
+ * - Updates Working Pops: Quarbalance2(workingPops, popGrowthRate) -> pop * (1 + popGrowthRate), fallback <= 30 -> 1 + companies.length
+ * - Updates Company Employed Pops: MAX(1, emp * (1 + projectedRealGrowth))
+ * - Updates Stock Exchange Accounts: divpot = divpot + dividends
+ */
+export function runBudgetAndDividendUpdater(state, randomizeHype = false) {
+  evaluateSimulation(state);
+  const sectorMap = new Map((state.sectorsConfig || []).map((s) => [s.name, s]));
+
+  for (const nation of state.nations || []) {
+    const c = nation.computed;
+    if (!c) continue;
+
+    // 1. Amtremain(arr1, arr2, "+"): netBudgetBalance + treasuryBalance
+    const netBudget = Number(c.netBudgetBalance) || 0;
+    const prevTreasury = Number(nation.treasuryBalance) || 0;
+    const nuevoTreasury = netBudget + prevTreasury;
+    nation.treasuryBalance = Number.isNaN(nuevoTreasury) ? 1 : nuevoTreasury;
+
+    // 2. Quarbalance2(poparr, popgrowarr): workingPops * (1 + popGrowthRate)
+    const basePops =
+      !state.strictSheetQuirks && nation.workingPops < c.totalEmployed
+        ? c.effectiveWorkingPops
+        : Number(nation.workingPops) || 0;
+    const popGrowth = Number(c.popGrowthRate) || 0;
+    const nuevoPops = basePops * (1 + popGrowth);
+    if (Number.isNaN(nuevoPops) || nuevoPops <= 30) {
+      nation.workingPops = 1 + (nation.companies?.length || 0);
+    } else {
+      nation.workingPops = Math.round(nuevoPops);
+    }
+
+    // 3. Market / Company Updater: emp_num = MAX(1, emp * (1 + empgrowth))
+    const mMap = new Map((nation.market || []).map((m) => [m.goodName, m]));
+    for (const comp of nation.companies || []) {
+      const emp = Number(comp.employedPops) || 1;
+      const empGrowth = Number(comp.projectedRealGrowth) || 0;
+      const updatedEmp = emp * (1 + empGrowth);
+      comp.employedPops =
+        Number.isNaN(updatedEmp) || updatedEmp <= 1 ? 1 : Math.round(updatedEmp);
+
+      if (randomizeHype) {
+        const secCfg = sectorMap.get(comp.gdpSector);
+        const secSent = secCfg ? Number(secCfg.sentiment) : 50;
+        const mItem = mMap.get(comp.flagshipGood);
+        const goodHype = mItem ? Number(mItem.hype) : 50;
+        const consSent = Number(nation.consumerSentiment) || 50;
+        const randPart = Math.floor(Math.random() * 25) + 1;
+        comp.hypeFactor =
+          randPart +
+          (consSent / 100) * 25 +
+          (secSent / 100) * 25 +
+          (goodHype / 100) * 25;
+      }
+    }
+  }
+
+  // 4. DividendUpdater(): divpot.setValue(divpot.getValue() + dividends)
+  for (const acc of state.stockAccounts || []) {
+    const curPot = Number(acc.dividendPot) || 0;
+    const divs = Number(acc.quarterlyDividends) || 0;
+    acc.dividendPot = curPot + divs;
+  }
+
+  evaluateSimulation(state);
+  return state;
+}
+
+/**
+ * Implements Timer() + NuevoGDPManager() from the spreadsheet Apps Script:
+ * - Timer() adds `daysToAdd` (default `interval / 60` per tick) to `C5` (crisisDate).
+ * - NuevoGDPManager() checks if `date_diff < 3` (`F6 < 3`). When triggered, it advances `F4` (nextPaymentDate)
+ *   by +90 days and executes `BudgetUpdater()` and `DividendUpdater()`.
+ */
+export function advanceSimulationTime(state, daysToAdd = 90, randomizeHype = false) {
+  evaluateSimulation(state);
+
+  const tm = state.timeManager;
+  const startDt = new Date(tm.crisisStartDate || "2025-01-01T00:00:00Z");
+  const curDt = new Date(tm.crisisDate || tm.crisisStartDate || "2025-01-01T00:00:00Z");
+  let nextPayDt = new Date(tm.nextPaymentDate || "2025-04-01T00:00:00Z");
+
+  const targetDt = new Date(curDt.getTime() + daysToAdd * 86400000);
+  tm.crisisDate = targetDt.toISOString().split("T")[0];
+
+  // Check NuevoGDPManager condition: (date_diff < 3)
+  let quartersCrossed = 0;
+  let dateDiff = (nextPayDt.getTime() - targetDt.getTime()) / 86400000;
+
+  while (dateDiff < 3) {
+    nextPayDt = new Date(nextPayDt.getTime() + 90 * 86400000);
+    tm.nextPaymentDate = nextPayDt.toISOString().split("T")[0];
+    runBudgetAndDividendUpdater(state, randomizeHype);
+    quartersCrossed++;
+    dateDiff = (nextPayDt.getTime() - targetDt.getTime()) / 86400000;
+  }
+
+  evaluateSimulation(state);
+  return { state, quartersCrossed };
+}
+

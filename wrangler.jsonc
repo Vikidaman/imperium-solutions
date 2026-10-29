@@ -1,0 +1,17 @@
+{
+  "name": "imperium-solutions",
+  "main": "worker.js",
+  "compatibility_date": "2025-03-01",
+  "assets": {
+    "directory": "./dist",
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application"
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "imperium-db",
+      "database_id": "69eeef71-1e8b-43a5-865a-29169c0c04a0"
+    }
+  ]
+}
