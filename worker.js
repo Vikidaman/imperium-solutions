@@ -15,6 +15,7 @@ const CHUNK_SIZE = 350000; // 350 KB per D1 row (well below D1's 1 MB limit)
 
 // In-memory edge cache per isolate
 const memorySessions = new Map();
+const memoryAuth = new Map();
 let schemaInitialized = false;
 
 async function ensureSchema(db) {
@@ -59,9 +60,56 @@ async function ensureSchema(db) {
           created_at TEXT NOT NULL
         )
       `),
+      db.prepare(`
+        CREATE TABLE IF NOT EXISTS director_auth (
+          key TEXT PRIMARY KEY,
+          value TEXT NOT NULL,
+          updated_at TEXT NOT NULL
+        )
+      `),
     ])
     .catch(() => {});
   schemaInitialized = true;
+}
+
+async function getD1AuthValue(db, key, fallback = null) {
+  await ensureSchema(db);
+  if (db) {
+    try {
+      const row = await db
+        .prepare("SELECT value FROM director_auth WHERE key = ?")
+        .bind(key)
+        .first();
+      if (row && row.value) {
+        return JSON.parse(row.value);
+      }
+    } catch {
+      // fallback to memory
+    }
+  }
+  return memoryAuth.has(key) ? memoryAuth.get(key) : fallback;
+}
+
+async function setD1AuthValue(db, key, value) {
+  await ensureSchema(db);
+  memoryAuth.set(key, value);
+  if (db) {
+    const now = new Date().toISOString();
+    await db
+      .prepare(
+        `INSERT OR REPLACE INTO director_auth (key, value, updated_at)
+         VALUES (?, ?, ?)`
+      )
+      .bind(key, JSON.stringify(value), now)
+      .run()
+      .catch(() => {});
+  }
+}
+
+function maskChatId(chatId) {
+  const s = String(chatId || "");
+  if (s.length <= 4) return s;
+  return `***${s.slice(-4)}`;
 }
 
 function extractLedgerSnapshot(state) {
