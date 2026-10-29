@@ -219,14 +219,24 @@ async function ensureDefaultSessions(env, requestUrl) {
   await ensureSchema(db);
 
   if (db) {
-    const existing = await loadSession(env, "interstellar-default");
-    if (existing?.state) {
-      const hasOldCompanies = (existing.state.nations || []).some(
-        (n) => (n.companies || []).length > 0
-      );
-      const hasOldGoods = (existing.state.goodsCatalog || []).length > 60;
-      if (!hasOldCompanies && !hasOldGoods && existing.state.powerBlocs?.length > 0) {
-        return;
+    const chunkRows = await db
+      .prepare(
+        "SELECT data FROM session_chunks WHERE session_id = 'interstellar-default' ORDER BY chunk_idx ASC"
+      )
+      .all();
+    if (chunkRows?.results?.length > 0) {
+      try {
+        const rawJson = chunkRows.results.map((r) => r.data).join("");
+        const parsed = JSON.parse(rawJson);
+        const hasOldCompanies = (parsed.nations || []).some(
+          (n) => (n.companies || []).length > 0
+        );
+        const hasOldGoods = (parsed.goodsCatalog || []).length > 60;
+        if (!hasOldCompanies && !hasOldGoods && parsed.powerBlocs?.length > 0) {
+          return;
+        }
+      } catch {
+        // reseed if corrupted
       }
     }
   } else if (memorySessions.size > 0) {
