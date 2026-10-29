@@ -149,7 +149,7 @@ const SUBCONTINENT_PRESETS = [
   { id: "oc", name: "Oceania", zoom: 2.4, pan: { x: -470, y: -180 } },
 ];
 
-// Constituent Regional States for Victoria 3-style state-level deep dive
+// Constituent Regional States for deep macroeconomic statecraft
 const CONSTITUENT_REGIONAL_STATES = {
   usa: [
     { name: "California & Pacific Coast", gdpShare: 0.22, popShare: 0.20, role: "High-Tech, Silicon Valley & Aerospace Core" },
