@@ -516,6 +516,17 @@ export default {
         }
 
         if (botToken && chatId) {
+          const alreadyPaired = Boolean(cfg.botToken && cfg.chatId);
+          const providedToken = request.headers.get("x-director-key");
+          if (alreadyPaired && !(await isValidDirectorToken(db, providedToken))) {
+            return jsonResponse(
+              {
+                error:
+                  "Telegram 2FA pairing is locked. Unlock with an active 2FA session to change it.",
+              },
+              403
+            );
+          }
           cfg.botToken = String(botToken).trim();
           cfg.chatId = String(chatId).trim();
           await setD1AuthValue(db, "config", cfg);

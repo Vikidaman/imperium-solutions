@@ -108,6 +108,13 @@ app.post("/api/auth/login", async (req, res) => {
   }
 
   if (botToken && chatId) {
+    const alreadyPaired = Boolean(cfg.botToken && cfg.chatId);
+    const providedToken = req.headers["x-director-key"];
+    if (alreadyPaired && !isValidDirectorSessionToken(providedToken)) {
+      return res.status(403).json({
+        error: "Telegram 2FA pairing is locked. Unlock with an active 2FA session to change it.",
+      });
+    }
     cfg.botToken = String(botToken).trim();
     cfg.chatId = String(chatId).trim();
     setAuthValue("config", cfg);
