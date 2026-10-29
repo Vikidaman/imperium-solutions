@@ -660,33 +660,12 @@ export default function InteractiveWorldMap({
             </div>
           </div>
 
-          {/* Floating Hovered Territory Tooltip (Top-Right inside Map) */}
-          {hoveredTerritory && (
-            <div className="absolute top-14 right-4 z-20 bg-slate-950/90 backdrop-blur-md border border-slate-700 rounded-xl px-3.5 py-2.5 shadow-xl pointer-events-none text-xs">
-              <div className="font-bold text-white flex items-center gap-2">
-                <span>{hoveredTerritory.name}</span>
-                <span className="text-[10px] px-2 py-0.5 rounded bg-slate-800 text-cyan-300">
-                  {hoveredTerritory.controllerName}
-                </span>
-              </div>
-              {hoveredTerritory.gdp !== undefined && (
-                <div className="text-[11px] text-slate-300 font-mono-num mt-1 flex items-center gap-3">
-                  <span>GDP: {formatCurrency(hoveredTerritory.gdp)}</span>
-                  <span>SOL: {hoveredTerritory.sol?.toFixed(2)}</span>
-                  <span>Pops: {formatCompactNumber(hoveredTerritory.pops)}</span>
-                </div>
-              )}
-              <div className="text-[10px] text-amber-300 mt-1">
-                {interactionMode === "annex"
-                  ? `Click to Annex into ${activeNation?.name}`
-                  : interactionMode === "release"
-                  ? `Click to Release ${hoveredTerritory.name} as Independent State`
-                  : hoveredTerritory.isControlled
-                  ? "Click to Inspect & Govern"
-                  : "Click to Awaken as Playable Nation or Annex"}
-              </div>
-            </div>
-          )}
+          {/* Floating Hovered Territory Tooltip (Isolated from Map Re-renders) */}
+          <MapHoverTooltip
+            ref={tooltipRef}
+            interactionMode={interactionMode}
+            activeNationName={activeNation?.name}
+          />
 
           {/* SVG Interactive Map Viewport */}
           <div
