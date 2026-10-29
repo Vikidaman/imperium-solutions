@@ -7,10 +7,13 @@ export default defineConfig({
   build: {
     rollupOptions: {
       output: {
-        manualChunks: {
-          "vendor-react": ["react", "react-dom"],
-          "vendor-geo": ["d3-geo", "topojson-client", "world-atlas/countries-110m.json"],
-          "vendor-charts": ["recharts"],
+        manualChunks(id) {
+          if (id.includes("node_modules/recharts")) {
+            return "vendor-charts";
+          }
+          if (id.includes("node_modules/d3-geo") || id.includes("node_modules/topojson-client") || id.includes("world-atlas")) {
+            return "vendor-geo";
+          }
         },
       },
     },
