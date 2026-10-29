@@ -271,6 +271,17 @@ export function transferTerritory(state, { territoryName, targetNationId, mode =
 
     state.nations.push(newNation);
     state.territoryMap[territoryName] = newId;
+    ensureVictoriaState(state);
+    state.newsFeed.unshift({
+      id: `news_ind_${Date.now().toString(36)}`,
+      date: state.timeManager?.crisisDate || "2025-01-01",
+      quarter: state.timeManager?.quarterNumber || 1,
+      category: "DIPLOMATIC PLAY",
+      headline: `Sovereignty Proclaimed: ${territoryName} Declares Independence!`,
+      summary: `A new sovereign flag rises over ${territoryName} (${planet}), establishing the ${territoryName} National Bourse and mobilizing ${(newPops / 1e6).toFixed(1)}M citizens.`,
+      nationName: territoryName,
+      impact: `New Sovereign State: ${territoryName}`,
+    });
     evaluateSimulation(state);
     return {
       state,
@@ -333,6 +344,19 @@ export function transferTerritory(state, { territoryName, targetNationId, mode =
   }
 
   state.territoryMap[territoryName] = targetNation.id;
+  ensureVictoriaState(state);
+  state.newsFeed.unshift({
+    id: `news_annex_${Date.now().toString(36)}`,
+    date: state.timeManager?.crisisDate || "2025-01-01",
+    quarter: state.timeManager?.quarterNumber || 1,
+    category: "DIPLOMATIC PLAY",
+    headline: `Borders Redrawn: ${targetNation.name} Annexes ${territoryName}!`,
+    summary: `Sovereign jurisdiction over ${territoryName} has been integrated into ${targetNation.name}${
+      prevNation ? ` following territorial transfer from ${prevNation.name}` : ""
+    }, expanding ${targetNation.name}'s industrial base and workforce.`,
+    nationName: targetNation.name,
+    impact: `${territoryName} → ${targetNation.name}`,
+  });
   evaluateSimulation(state);
   return {
     state,
@@ -348,6 +372,7 @@ export function transferTerritory(state, { territoryName, targetNationId, mode =
  */
 export function evaluateSimulation(state) {
   ensureTerritoryMap(state);
+  ensureVictoriaState(state);
   const strictSheetQuirks = Boolean(state.strictSheetQuirks);
   const quarterNum = Math.max(1, state.timeManager?.quarterNumber || 1);
 
