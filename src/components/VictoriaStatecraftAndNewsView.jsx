@@ -914,119 +914,203 @@ export default function VictoriaStatecraftAndNewsView({
       )}
 
       {/* SUBTAB 3: STATE CONSTRUCTION SECTOR QUEUE */}
-      {subTab === "construction" && (
-        <div className="space-y-6">
-          <div className="glass-panel rounded-2xl p-6 border border-slate-800/80 space-y-4">
-            <div className="flex flex-wrap items-center justify-between gap-4">
-              <div>
-                <span className="text-xs font-bold uppercase tracking-wider text-amber-400">
-                  Victoria 3 National Construction Sector
-                </span>
-                <h3 className="text-lg font-bold text-white mt-0.5">
-                  State-Funded Industrial & Infrastructure Expansion ({nation.name})
-                </h3>
-                <p className="text-xs text-slate-400">
-                  Construction Capacity:{" "}
-                  <strong className="text-amber-300 font-mono-num">
-                    {capacities.constructionCapacity} Points
-                  </strong>{" "}
-                  • Sovereign Treasury:{" "}
-                  <strong className="text-emerald-400 font-mono-num">
-                    {formatCurrency(nation.computed?.treasuryBalance || 0)}
-                  </strong>
-                </p>
-              </div>
-            </div>
+      {subTab === "construction" && (() => {
+        const availableStatesForBuild = [
+          ...(nation.constituentStates || []).map((s) => ({ name: s.name, type: "State" })),
+          ...(nation.unincorporatedTerritories || []).map((t) => ({ name: t.name, type: "Territory" })),
+        ];
+        if (availableStatesForBuild.length === 0) {
+          availableStatesForBuild.push({ name: `${nation.name} Capital Core`, type: "State" });
+        }
+        const activeBuildStateName = selectedBuildState || availableStatesForBuild[0]?.name || nation.name;
+        const currentTreasuryBalance = Number(nation.computed?.treasuryBalance ?? nation.treasuryBalance ?? 0);
+        const isTreasuryNegative = currentTreasuryBalance <= 0;
 
-            {/* Active Construction Queue */}
-            {(nation.constructionQueue || []).length > 0 ? (
-              <div className="space-y-2.5">
-                <div className="text-xs font-semibold text-slate-300">
-                  Active Construction Queue ({nation.constructionQueue.length})
-                </div>
-                {nation.constructionQueue.map((item, idx) => (
-                  <div
-                    key={item.queueId || idx}
-                    className="p-3.5 rounded-xl bg-slate-900 border border-amber-500/30 flex flex-wrap items-center justify-between gap-3"
-                  >
-                    <div>
-                      <div className="text-xs font-bold text-white">
-                        {idx + 1}. {item.name} ({item.good})
-                      </div>
-                      <div className="text-[11px] text-slate-400">
-                        {item.desc}
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <span className="px-2.5 py-1 rounded-lg bg-amber-500/20 text-amber-300 font-mono-num text-xs font-bold">
-                        {item.daysRemaining}d remaining
-                      </span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="p-4 rounded-xl bg-slate-900/60 border border-slate-800 text-xs text-slate-400">
-                No buildings currently queued.
-              </div>
-            )}
-
-            {/* Buildable Projects Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pt-2">
-              {BUILDINGS_CATALOG_UI.map((b) => (
-                <div
-                  key={b.id}
-                  className="p-4 rounded-2xl bg-slate-900/80 border border-slate-800 hover:border-amber-500/40 flex flex-col justify-between space-y-3 transition"
-                >
-                  <div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-[10px] font-mono-num uppercase px-2 py-0.5 rounded bg-cyan-500/15 text-cyan-300">
-                        {b.good}
-                      </span>
-                      <span className="text-xs font-mono-num font-bold text-amber-400">
-                        {formatCurrency(b.cost)} • {b.daysRequired}d
-                      </span>
-                    </div>
-                    <h4 className="text-sm font-bold text-white mt-2">
-                      {b.name}
-                    </h4>
-                    <p className="text-xs text-slate-400 mt-1">{b.desc}</p>
-                  </div>
-
-                  {!isReadOnly && (
-                    <button
-                      disabled={queuingBuildingId === b.id}
-                      onClick={async () => {
-                        setQueuingBuildingId(b.id);
-                        try {
-                          await onVictoriaAction({
-                            type: "QUEUE_CONSTRUCTION",
-                            nationId: nation.id,
-                            buildingId: b.id,
-                          });
-                        } finally {
-                          setQueuingBuildingId(null);
-                        }
-                      }}
-                      className="w-full py-2 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed transition"
+        return (
+          <div className="space-y-6">
+            <div className="glass-panel rounded-2xl p-6 border border-slate-800/80 space-y-4">
+              <div className="flex flex-wrap items-center justify-between gap-4">
+                <div>
+                  <span className="text-xs font-bold uppercase tracking-wider text-amber-400">
+                    National Construction & Development Sector
+                  </span>
+                  <h3 className="text-lg font-bold text-white mt-0.5">
+                    State-Funded Industrial & Infrastructure Expansion ({nation.name})
+                  </h3>
+                  <p className="text-xs text-slate-400">
+                    Construction Capacity:{" "}
+                    <strong className="text-amber-300 font-mono-num">
+                      {capacities.constructionCapacity || 50} Points
+                    </strong>{" "}
+                    • Sovereign Treasury:{" "}
+                    <strong
+                      className={`font-mono-num font-bold ${
+                        isTreasuryNegative ? "text-rose-400" : "text-emerald-400"
+                      }`}
                     >
-                      {queuingBuildingId === b.id ? (
-                        <>
-                          <Loader2 className="w-3.5 h-3.5 animate-spin" /> Queuing Project...
-                        </>
-                      ) : (
-                        <>
-                          <Hammer className="w-3.5 h-3.5" /> Construct in {nation.name}
-                        </>
-                      )}
-                    </button>
-                  )}
+                      {formatCurrency(currentTreasuryBalance)}
+                    </strong>
+                  </p>
                 </div>
-              ))}
+              </div>
+
+              {/* State / Province Target Selector & Treasury Deficit Banner */}
+              <div className="bg-slate-900/90 border border-slate-800 rounded-xl p-3.5 flex flex-wrap items-center justify-between gap-3 text-xs">
+                <div className="flex items-center gap-2.5">
+                  <span className="text-slate-400 font-semibold">
+                    Build In Constituent State / Territory:
+                  </span>
+                  <select
+                    value={activeBuildStateName}
+                    onChange={(e) => setSelectedBuildState(e.target.value)}
+                    className="bg-slate-950 border border-slate-700 rounded-lg px-3 py-1.5 text-cyan-300 font-bold focus:outline-none focus:border-cyan-400"
+                  >
+                    {availableStatesForBuild.map((st) => (
+                      <option key={st.name} value={st.name}>
+                        {st.name} ({st.type})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {isTreasuryNegative ? (
+                  <div className="px-3 py-1.5 rounded-lg bg-rose-500/20 text-rose-300 border border-rose-500/40 text-xs font-bold flex items-center gap-1.5">
+                    <XCircle className="w-4 h-4 text-rose-400" />
+                    Treasury in Deficit — All Construction Prohibited
+                  </div>
+                ) : (
+                  <div className="text-slate-400 text-xs">
+                    Available Funds:{" "}
+                    <span className="text-emerald-400 font-bold font-mono-num">
+                      {formatCurrency(currentTreasuryBalance)}
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              {/* Active Construction Queue */}
+              {(nation.constructionQueue || []).length > 0 ? (
+                <div className="space-y-2.5">
+                  <div className="text-xs font-semibold text-slate-300">
+                    Active Construction Queue ({nation.constructionQueue.length})
+                  </div>
+                  {nation.constructionQueue.map((item, idx) => (
+                    <div
+                      key={item.queueId || idx}
+                      className="p-3.5 rounded-xl bg-slate-900 border border-amber-500/30 flex flex-wrap items-center justify-between gap-3"
+                    >
+                      <div>
+                        <div className="text-xs font-bold text-white flex items-center gap-2">
+                          <span>{idx + 1}. {item.name} ({item.good})</span>
+                          {item.targetState && (
+                            <span className="px-2 py-0.5 rounded bg-cyan-500/15 text-cyan-300 text-[10px] font-semibold border border-cyan-500/30">
+                              {item.targetState}
+                            </span>
+                          )}
+                        </div>
+                        <div className="text-[11px] text-slate-400 mt-0.5">
+                          {item.desc}
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <span className="px-2.5 py-1 rounded-lg bg-amber-500/20 text-amber-300 font-mono-num text-xs font-bold">
+                          {item.daysRemaining}d remaining
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="p-4 rounded-xl bg-slate-900/60 border border-slate-800 text-xs text-slate-400">
+                  No buildings currently queued. Select a constituent state and project below to begin construction.
+                </div>
+              )}
+
+              {/* Buildable Projects Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pt-2">
+                {BUILDINGS_CATALOG_UI.map((b) => {
+                  const insufficient = currentTreasuryBalance < b.cost;
+                  const cannotBuild = isTreasuryNegative || insufficient;
+
+                  return (
+                    <div
+                      key={b.id}
+                      className="p-4 rounded-2xl bg-slate-900/80 border border-slate-800 hover:border-amber-500/40 flex flex-col justify-between space-y-3 transition"
+                    >
+                      <div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-[10px] font-mono-num uppercase px-2 py-0.5 rounded bg-cyan-500/15 text-cyan-300">
+                            {b.good}
+                          </span>
+                          <span className="text-xs font-mono-num font-bold text-amber-400">
+                            {formatCurrency(b.cost)} • {b.daysRequired}d
+                          </span>
+                        </div>
+                        <h4 className="text-sm font-bold text-white mt-2">
+                          {b.name}
+                        </h4>
+                        <p className="text-xs text-slate-400 mt-1">{b.desc}</p>
+                      </div>
+
+                      {!isReadOnly && (
+                        <button
+                          disabled={queuingBuildingId === b.id || cannotBuild}
+                          onClick={async () => {
+                            if (cannotBuild) return;
+                            setQueuingBuildingId(b.id);
+                            try {
+                              await onVictoriaAction({
+                                type: "QUEUE_CONSTRUCTION",
+                                nationId: nation.id,
+                                buildingId: b.id,
+                                targetState: activeBuildStateName,
+                              });
+                            } finally {
+                              setQueuingBuildingId(null);
+                            }
+                          }}
+                          className={`w-full py-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition ${
+                            isTreasuryNegative
+                              ? "bg-rose-500/15 text-rose-300 border border-rose-500/30 opacity-60 cursor-not-allowed"
+                              : insufficient
+                              ? "bg-slate-800 text-slate-400 border border-slate-700 opacity-60 cursor-not-allowed"
+                              : "bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 cursor-pointer"
+                          }`}
+                          title={
+                            isTreasuryNegative
+                              ? "Sovereign Treasury is negative: Construction prohibited"
+                              : insufficient
+                              ? `Insufficient treasury balance: requires ${formatCurrency(b.cost)}`
+                              : `Construct in ${activeBuildStateName}`
+                          }
+                        >
+                          {queuingBuildingId === b.id ? (
+                            <>
+                              <Loader2 className="w-3.5 h-3.5 animate-spin" /> Queuing Project...
+                            </>
+                          ) : isTreasuryNegative ? (
+                            <>
+                              <XCircle className="w-3.5 h-3.5 text-rose-400" /> Deficit: Treasury Negative
+                            </>
+                          ) : insufficient ? (
+                            <>
+                              <Coins className="w-3.5 h-3.5" /> Insufficient Funds
+                            </>
+                          ) : (
+                            <>
+                              <Hammer className="w-3.5 h-3.5" /> Construct in {activeBuildStateName}
+                            </>
+                          )}
+                        </button>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* SUBTAB 4: THE IMPERIAL GAZETTE & REGULAR WORLD NEWS */}
       {subTab === "gazette" && (
