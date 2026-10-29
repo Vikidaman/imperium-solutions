@@ -960,7 +960,7 @@ export default function InteractiveWorldMap({
         urban: c.urbanisationIndex || 0.78,
       },
     ];
-  }, [activeNation, territoryMap, state.territoryStatusMap, c]);
+  }, [activeNation, territoryMap, state.territoryStatusMap, c, usaDivisionMode]);
 
   return (
     <div className="space-y-5">
