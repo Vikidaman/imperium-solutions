@@ -856,49 +856,51 @@ export default function VictoriaStatecraftAndNewsView({
                       )}
                     </div>
 
-                    <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-slate-800/80">
-                      <button
-                        onClick={() =>
-                          onVictoriaAction({
-                            type: "ELECTION_ACTION",
-                            nationId: nation.id,
-                            actionType: "RALLY_PARTY",
-                            partyName: poll.partyName,
-                          })
-                        }
-                        className="flex-1 px-2.5 py-2 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 border border-amber-500/30 text-xs font-semibold flex items-center justify-center gap-1 cursor-pointer"
-                      >
-                        <Megaphone className="w-3.5 h-3.5" /> Rally (+12)
-                      </button>
-                      <button
-                        onClick={() =>
-                          onVictoriaAction({
-                            type: "ELECTION_ACTION",
-                            nationId: nation.id,
-                            actionType: "FUND_PARTY",
-                            partyName: poll.partyName,
-                          })
-                        }
-                        className="flex-1 px-2.5 py-2 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300 border border-emerald-500/30 text-xs font-semibold flex items-center justify-center gap-1 cursor-pointer"
-                      >
-                        <Coins className="w-3.5 h-3.5" /> Fund ($2B)
-                      </button>
-                      {!poll.isRuling && (
+                    {!isReadOnly && (
+                      <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-slate-800/80">
                         <button
                           onClick={() =>
                             onVictoriaAction({
                               type: "ELECTION_ACTION",
                               nationId: nation.id,
-                              actionType: "REFORM_GOVERNMENT",
-                              coalitionParties: [poll.partyName, nation.rulingParty],
+                              actionType: "RALLY_PARTY",
+                              partyName: poll.partyName,
                             })
                           }
-                          className="w-full px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-cyan-500/20 text-slate-300 hover:text-cyan-300 border border-slate-700 text-xs font-semibold cursor-pointer"
+                          className="flex-1 px-2.5 py-2 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 border border-amber-500/30 text-xs font-semibold flex items-center justify-center gap-1 cursor-pointer"
                         >
-                          Appoint {poll.partyName} to Lead Coalition
+                          <Megaphone className="w-3.5 h-3.5" /> Rally (+12)
                         </button>
-                      )}
-                    </div>
+                        <button
+                          onClick={() =>
+                            onVictoriaAction({
+                              type: "ELECTION_ACTION",
+                              nationId: nation.id,
+                              actionType: "FUND_PARTY",
+                              partyName: poll.partyName,
+                            })
+                          }
+                          className="flex-1 px-2.5 py-2 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300 border border-emerald-500/30 text-xs font-semibold flex items-center justify-center gap-1 cursor-pointer"
+                        >
+                          <Coins className="w-3.5 h-3.5" /> Fund ($2B)
+                        </button>
+                        {!poll.isRuling && (
+                          <button
+                            onClick={() =>
+                              onVictoriaAction({
+                                type: "ELECTION_ACTION",
+                                nationId: nation.id,
+                                actionType: "REFORM_GOVERNMENT",
+                                coalitionParties: [poll.partyName, nation.rulingParty],
+                              })
+                            }
+                            className="w-full px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-cyan-500/20 text-slate-300 hover:text-cyan-300 border border-slate-700 text-xs font-semibold cursor-pointer"
+                          >
+                            Appoint {poll.partyName} to Lead Coalition
+                          </button>
+                        )}
+                      </div>
+                    )}
                   </div>
                 );
               })}
@@ -961,7 +963,7 @@ export default function VictoriaStatecraftAndNewsView({
               </div>
             ) : (
               <div className="p-4 rounded-xl bg-slate-900/60 border border-slate-800 text-xs text-slate-400">
-                No buildings currently queued. Select a project below to expand {nation.name}&apos;s industrial base or infrastructure.
+                No buildings currently queued.
               </div>
             )}
 
@@ -987,18 +989,20 @@ export default function VictoriaStatecraftAndNewsView({
                     <p className="text-xs text-slate-400 mt-1">{b.desc}</p>
                   </div>
 
-                  <button
-                    onClick={() =>
-                      onVictoriaAction({
-                        type: "QUEUE_CONSTRUCTION",
-                        nationId: nation.id,
-                        buildingId: b.id,
-                      })
-                    }
-                    className="w-full py-2 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer"
-                  >
-                    <Hammer className="w-3.5 h-3.5" /> Construct in {nation.name}
-                  </button>
+                  {!isReadOnly && (
+                    <button
+                      onClick={() =>
+                        onVictoriaAction({
+                          type: "QUEUE_CONSTRUCTION",
+                          nationId: nation.id,
+                          buildingId: b.id,
+                        })
+                      }
+                      className="w-full py-2 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer"
+                    >
+                      <Hammer className="w-3.5 h-3.5" /> Construct in {nation.name}
+                    </button>
+                  )}
                 </div>
               ))}
             </div>
@@ -1040,12 +1044,14 @@ export default function VictoriaStatecraftAndNewsView({
                     </button>
                   )
                 )}
-                <button
-                  onClick={() => setShowPublishForm(!showPublishForm)}
-                  className="px-3.5 py-1.5 rounded-xl bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 border border-cyan-500/40 text-xs font-bold flex items-center gap-1.5 cursor-pointer"
-                >
-                  <Plus className="w-3.5 h-3.5" /> Publish Press Dispatch
-                </button>
+                {!isReadOnly && (
+                  <button
+                    onClick={() => setShowPublishForm(!showPublishForm)}
+                    className="px-3.5 py-1.5 rounded-xl bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 border border-cyan-500/40 text-xs font-bold flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <Plus className="w-3.5 h-3.5" /> Publish Press Dispatch
+                  </button>
+                )}
               </div>
             </div>
 
