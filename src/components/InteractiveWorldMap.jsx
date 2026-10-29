@@ -1393,9 +1393,8 @@ export default function InteractiveWorldMap({
                       const isUsa = feat.name === "United States of America";
                       const shouldRenderUsStates =
                         isUsa &&
-                        (viewTier === "country" ||
-                          zoom >= 1.6 ||
-                          activeNation?.id === "usa");
+                        viewTier === "country" &&
+                        activeNation?.id === "usa";
 
                       // Render Individual 50 US States & Territories
                       if (shouldRenderUsStates) {
@@ -1514,15 +1513,13 @@ export default function InteractiveWorldMap({
                     })}
 
                     {/* United States Crisp Internal State Boundaries Mesh */}
-                    {(viewTier === "country" ||
-                      zoom >= 1.6 ||
-                      activeNation?.id === "usa") && (
+                    {viewTier === "country" && activeNation?.id === "usa" && (
                       <path
                         d={STATIC_US_STATES_MESH}
                         fill="none"
                         stroke="#f8fafc"
-                        strokeOpacity={0.75}
-                        strokeWidth={0.9 / zoom}
+                        strokeOpacity={0.85}
+                        strokeWidth={1.0 / zoom}
                         strokeDasharray={`${3 / zoom},${1.8 / zoom}`}
                         pointerEvents="none"
                       />
