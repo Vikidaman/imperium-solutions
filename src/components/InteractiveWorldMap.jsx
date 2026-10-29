@@ -896,68 +896,6 @@ export default function InteractiveWorldMap({
                     })}
                   </>
                 )}
-
-                {/* THEATER 3: VIETNAM 1977 REGIONAL MAP */}
-                {theater === "Vietnam" && (
-                  <>
-                    {VIETNAM_REGION_POLYGONS.map((reg) => {
-                      const ctrlId =
-                        territoryMap[reg.name] ||
-                        reg.name.toLowerCase().replace(/\s+/g, "_");
-                      const ctrlNation = nationById.get(ctrlId);
-                      const isSelected =
-                        ctrlNation && ctrlNation.id === activeNation?.id;
-                      const fill = ctrlNation
-                        ? nationColorMap.get(ctrlNation.id)
-                        : "#1e293b";
-
-                      return (
-                        <g
-                          key={reg.name}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleTerritoryClick(
-                              reg.name,
-                              "Vietnam (1977 Regions)"
-                            );
-                          }}
-                          onMouseEnter={() =>
-                            setHoveredTerritory({
-                              name: reg.name,
-                              isControlled: Boolean(ctrlNation),
-                              controllerName: ctrlNation?.name || reg.name,
-                              gdp: ctrlNation?.computed?.aggregateGdp,
-                              sol: ctrlNation?.computed?.sol,
-                              pops: ctrlNation?.computed?.effectiveWorkingPops,
-                            })
-                          }
-                          onMouseLeave={() => setHoveredTerritory(null)}
-                          className="cursor-pointer"
-                        >
-                          <polygon
-                            points={reg.points}
-                            fill={fill}
-                            fillOpacity={isSelected ? 0.92 : 0.72}
-                            stroke={isSelected ? "#ffffff" : "#e2e8f0"}
-                            strokeWidth={(isSelected ? 2.4 : 1.1) / zoom}
-                            className="transition duration-150 hover:brightness-125"
-                          />
-                          <text
-                            x={reg.cx}
-                            y={reg.cy}
-                            textAnchor="middle"
-                            fill="#ffffff"
-                            fontSize={10 / Math.sqrt(zoom)}
-                            fontWeight="700"
-                            style={{ textShadow: "0 1px 4px #000" }}
-                          >
-                            {reg.name}
-                          </text>
-                        </g>
-                      );
-                    })}
-                  </>
-                )}
               </g>
             </svg>
           </div>
