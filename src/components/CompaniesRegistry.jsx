@@ -18,6 +18,7 @@ import {
   getSectorBadgeClass,
   getShortSectorName,
 } from "../utils/formatters";
+import BufferedRangeSlider from "./BufferedRangeSlider";
 
 export default function CompaniesRegistry({
   state,
@@ -353,14 +354,13 @@ export default function CompaniesRegistry({
                     <label className="block text-[10px] text-slate-400 mb-1">
                       Brand Hype ({Math.round(comp.hypeFactor)})
                     </label>
-                    <input
-                      type="range"
+                    <BufferedRangeSlider
                       min="5"
                       max="120"
                       value={Math.round(comp.hypeFactor)}
-                      onChange={(e) =>
+                      onChangeCommitted={(val) =>
                         onUpdateCompany(nation.id, comp.id, {
-                          hypeFactor: Number(e.target.value),
+                          hypeFactor: val,
                         })
                       }
                       className="w-full accent-amber-400 mt-1.5 cursor-pointer"
@@ -378,8 +378,7 @@ export default function CompaniesRegistry({
                       Div/Sh: {formatExactCurrency(comp.dividendsPerShare, 2)}
                     </span>
                   </div>
-                  <input
-                    type="range"
+                  <BufferedRangeSlider
                     min="0"
                     max={comp.numberOfShares || 50000000}
                     step={Math.max(
@@ -387,9 +386,9 @@ export default function CompaniesRegistry({
                       Math.round((comp.numberOfShares || 50000000) / 20)
                     )}
                     value={comp.govtOwnedShares || 0}
-                    onChange={(e) =>
+                    onChangeCommitted={(val) =>
                       onUpdateCompany(nation.id, comp.id, {
-                        govtOwnedShares: Number(e.target.value),
+                        govtOwnedShares: val,
                       })
                     }
                     className="w-full accent-emerald-400 cursor-pointer"

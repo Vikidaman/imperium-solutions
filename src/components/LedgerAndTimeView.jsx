@@ -359,42 +359,6 @@ export default function LedgerAndTimeView({
             </label>
           </div>
 
-          <div className="pt-2 border-t border-slate-800 space-y-2">
-            <div className="text-slate-400 text-[11px]">
-              Launch Parallel World Room:
-            </div>
-            <div className="flex gap-2">
-              <input
-                type="text"
-                placeholder="New World Name..."
-                value={newScenarioName}
-                onChange={(e) => setNewScenarioName(e.target.value)}
-                className="flex-1 px-2.5 py-1.5 rounded bg-slate-900 border border-slate-700 text-white"
-              />
-              <select
-                value={newScenarioType}
-                onChange={(e) => setNewScenarioType(e.target.value)}
-                className="px-2 py-1.5 rounded bg-slate-900 border border-slate-700 text-slate-200"
-              >
-                <option value="interstellar">Earth & Mars</option>
-                <option value="vietnam">Vietnam 1977</option>
-              </select>
-              <button
-                onClick={() => {
-                  if (!newScenarioName.trim()) return;
-                  onCreateNewScenario({
-                    name: newScenarioName.trim(),
-                    scenarioType: newScenarioType,
-                  });
-                  setNewScenarioName("");
-                }}
-                className="px-3 py-1.5 rounded bg-cyan-500 text-slate-950 font-bold cursor-pointer"
-              >
-                Create
-              </button>
-            </div>
-          </div>
-
           <div className="pt-2 border-t border-slate-800">
             <button
               onClick={() => {
