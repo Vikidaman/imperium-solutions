@@ -144,6 +144,7 @@ export default function VictoriaStatecraftAndNewsView({
   onSelectNation,
   onVictoriaAction,
   initialSubTab = "overview",
+  isReadOnly = false,
 }) {
   const [subTab, setSubTab] = useState(initialSubTab);
   const [newsCategoryFilter, setNewsCategoryFilter] = useState("ALL");
