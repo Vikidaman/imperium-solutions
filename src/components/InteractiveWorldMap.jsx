@@ -1687,6 +1687,177 @@ export default function InteractiveWorldMap({
           </div>
         )}
       </div>
+
+      {/* COUNTRY PROVINCE MANAGER MODAL */}
+      {showProvinceManager && (
+        <div className="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="bg-slate-900 border border-slate-700 rounded-3xl max-w-4xl w-full p-6 shadow-2xl space-y-4 text-xs max-h-[90vh] flex flex-col">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-xl bg-cyan-500/20 text-cyan-400 flex items-center justify-center font-bold">
+                  <Layers className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-white">
+                    Country Province Manager — {activeNation?.name}
+                  </h3>
+                  <p className="text-[11px] text-slate-400">
+                    Add, transfer, or release territories and provinces from around Earth & Mars into {activeNation?.name}'s sovereign control.
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowProvinceManager(false)}
+                className="text-slate-400 hover:text-white text-base cursor-pointer px-2"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Target Country Selector & Search */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <div>
+                <label className="block text-[11px] text-slate-400 mb-1 font-semibold">
+                  Controlling Country:
+                </label>
+                <select
+                  value={activeNation?.id || ""}
+                  onChange={(e) => onSelectNation(e.target.value)}
+                  className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-cyan-300 font-bold"
+                >
+                  {nations.map((n) => (
+                    <option key={n.id} value={n.id}>
+                      {n.name} ({n.planet} • {n.territoryCount || 1} territories)
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="md:col-span-2">
+                <label className="block text-[11px] text-slate-400 mb-1 font-semibold">
+                  Search Global Provinces & Territories:
+                </label>
+                <input
+                  type="text"
+                  placeholder="Filter 177 Earth nations & Mars sectors (e.g. Canada, Germany, Olympus)..."
+                  value={provinceSearchQuery}
+                  onChange={(e) => setProvinceSearchQuery(e.target.value)}
+                  className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-white"
+                />
+              </div>
+            </div>
+
+            {/* Territory Lists: Current Controlled Territories vs Global Available */}
+            <div className="flex-1 overflow-y-auto space-y-4 pr-1">
+              {/* Current Territories */}
+              <div className="bg-slate-950/70 border border-slate-800 rounded-2xl p-4">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="font-bold uppercase text-amber-400 text-[11px] tracking-wider">
+                    Currently Annexed / Controlled by {activeNation?.name} ({
+                      Object.entries(territoryMap).filter(([, cid]) => cid === activeNation?.id).length
+                    })
+                  </span>
+                  <span className="text-[11px] text-slate-500">
+                    Click 'Release' to restore independent sovereignty
+                  </span>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {Object.entries(territoryMap)
+                    .filter(([, cid]) => cid === activeNation?.id)
+                    .map(([terrName]) => (
+                      <div
+                        key={terrName}
+                        className="px-3 py-1.5 rounded-xl bg-slate-900 border border-cyan-500/40 text-cyan-200 text-xs flex items-center gap-2 shadow-sm"
+                      >
+                        <span className="font-semibold">{terrName}</span>
+                        {!isReadOnly && (
+                          <button
+                            onClick={() =>
+                              onTransferTerritory({
+                                territoryName: terrName,
+                                mode: "RELEASE",
+                                planet: activeNation?.planet || "Earth",
+                              })
+                            }
+                            className="text-slate-400 hover:text-rose-400 cursor-pointer text-[10px] uppercase font-bold"
+                            title="Release as Independent Nation"
+                          >
+                            Release
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                </div>
+              </div>
+
+              {/* Global Provinces & Territories Catalog */}
+              <div className="bg-slate-950/70 border border-slate-800 rounded-2xl p-4">
+                <span className="font-bold uppercase text-slate-300 text-[11px] tracking-wider block mb-3">
+                  All Global Territories & Outer Space Sectors (Click 'Annex' to add to {activeNation?.name}):
+                </span>
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
+                  {STATIC_EARTH_FEATURES.filter((f) =>
+                    !provinceSearchQuery.trim() ||
+                    f.name.toLowerCase().includes(provinceSearchQuery.trim().toLowerCase())
+                  ).map((f) => {
+                    const currentControllerId = territoryMap[f.name];
+                    const currentController = nationById.get(currentControllerId);
+                    const isControlledByActive = currentControllerId === activeNation?.id;
+
+                    return (
+                      <div
+                        key={f.name}
+                        className={`p-2.5 rounded-xl border flex items-center justify-between gap-2 text-xs transition ${
+                          isControlledByActive
+                            ? "bg-cyan-950/30 border-cyan-500/50"
+                            : "bg-slate-900/80 border-slate-800 hover:border-slate-700"
+                        }`}
+                      >
+                        <div className="min-w-0">
+                          <div className="font-bold text-white truncate">{f.name}</div>
+                          <div className="text-[10px] text-slate-400 truncate">
+                            {currentController ? currentController.name : "Non-Aligned"}
+                          </div>
+                        </div>
+
+                        {!isReadOnly && !isControlledByActive && (
+                          <button
+                            onClick={() =>
+                              onTransferTerritory({
+                                territoryName: f.name,
+                                targetNationId: activeNation.id,
+                                mode: "ANNEX",
+                                planet: "Earth",
+                              })
+                            }
+                            className="px-2.5 py-1 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 text-[10px] font-bold cursor-pointer shrink-0"
+                          >
+                            + Annex
+                          </button>
+                        )}
+                        {isControlledByActive && (
+                          <span className="text-[10px] font-mono-num text-cyan-400 font-bold px-1.5 py-0.5 rounded bg-cyan-500/10">
+                            Core
+                          </span>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+
+            <div className="pt-3 border-t border-slate-800 flex items-center justify-end">
+              <button
+                onClick={() => setShowProvinceManager(false)}
+                className="px-5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold cursor-pointer"
+              >
+                Close Province Manager
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
