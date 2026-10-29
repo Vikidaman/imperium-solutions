@@ -600,37 +600,41 @@ export default function InteractiveWorldMap({
                 ? "bg-cyan-500 text-slate-950"
                 : "text-slate-300 hover:bg-slate-800"
             }`}
-            title="Click any territory to inspect and govern its controlling nation"
+            title="Click any territory to inspect its controlling nation"
           >
             <MousePointer className="w-3.5 h-3.5" />
             Inspect Nation
           </button>
 
-          <button
-            onClick={() => setInteractionMode("annex")}
-            className={`px-3 py-1.5 rounded-lg font-semibold flex items-center gap-1.5 transition cursor-pointer ${
-              interactionMode === "annex"
-                ? "bg-amber-500 text-slate-950 shadow-sm shadow-amber-500/30"
-                : "text-amber-300 hover:bg-slate-800"
-            }`}
-            title={`Click any territory on the map to annex it into ${activeNation?.name} and redraw borders`}
-          >
-            <Sword className="w-3.5 h-3.5" />
-            Annex for {activeNation?.name}
-          </button>
+          {!isReadOnly && (
+            <>
+              <button
+                onClick={() => setInteractionMode("annex")}
+                className={`px-3 py-1.5 rounded-lg font-semibold flex items-center gap-1.5 transition cursor-pointer ${
+                  interactionMode === "annex"
+                    ? "bg-amber-500 text-slate-950 shadow-sm shadow-amber-500/30"
+                    : "text-amber-300 hover:bg-slate-800"
+                }`}
+                title={`Click any territory on the map to annex it into ${activeNation?.name} and redraw borders`}
+              >
+                <Sword className="w-3.5 h-3.5" />
+                Annex for {activeNation?.name}
+              </button>
 
-          <button
-            onClick={() => setInteractionMode("release")}
-            className={`px-3 py-1.5 rounded-lg font-semibold flex items-center gap-1.5 transition cursor-pointer ${
-              interactionMode === "release"
-                ? "bg-purple-500 text-slate-950 shadow-sm shadow-purple-500/30"
-                : "text-purple-300 hover:bg-slate-800"
-            }`}
-            title="Click any territory to release or awaken it as an independent sovereign nation"
-          >
-            <Flag className="w-3.5 h-3.5" />
-            Release / Awaken State
-          </button>
+              <button
+                onClick={() => setInteractionMode("release")}
+                className={`px-3 py-1.5 rounded-lg font-semibold flex items-center gap-1.5 transition cursor-pointer ${
+                  interactionMode === "release"
+                    ? "bg-purple-500 text-slate-950 shadow-sm shadow-purple-500/30"
+                    : "text-purple-300 hover:bg-slate-800"
+                }`}
+                title="Click any territory to release or awaken it as an independent sovereign nation"
+              >
+                <Flag className="w-3.5 h-3.5" />
+                Release / Awaken State
+              </button>
+            </>
+          )}
         </div>
       </div>
 
