@@ -284,7 +284,9 @@ async function getSession(env, requestUrl, sessionId) {
   await ensureDefaultSessions(env, requestUrl);
   if (memorySessions.has(sessionId)) {
     const cached = memorySessions.get(sessionId);
-    evaluateSimulation(cached.state);
+    if (!cached.state.planetsSummary) {
+      evaluateSimulation(cached.state);
+    }
     return cached;
   }
 
