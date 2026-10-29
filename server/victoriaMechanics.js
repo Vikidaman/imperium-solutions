@@ -945,13 +945,8 @@ export function evaluateVictoriaMechanics(state) {
       legitimacyTier,
     };
 
-    // National Capacities (Bureaucracy, Authority, Influence, Construction)
+    // National Sovereign Capacities (Construction & Sovereign Prestige)
     const territories = nation.territoryCount || 1;
-    const bureaucracyProduced = Math.round(
-      150 + (c.literacyRate || 0.7) * 450 + (c.urbanisationIndex || 0.6) * 300
-    );
-    const bureaucracyUsed = Math.round(80 + territories * 14 + (pops / 10000000) * 18);
-    const authorityProduced = Math.round(100 + lawMods.authorityBonus);
     const constructionCapacity = Math.round(
       25 + ((c.industryGdp || 0) / 1e11) * 18 + (c.infrastructureEfficiency || 0.75) * 35
     );
@@ -963,10 +958,6 @@ export function evaluateVictoriaMechanics(state) {
     );
 
     nation.capacities = {
-      bureaucracyProduced,
-      bureaucracyUsed,
-      bureaucracyBalance: bureaucracyProduced - bureaucracyUsed,
-      authority: authorityProduced,
       constructionCapacity,
       prestige,
       rankTitle: "Minor Power",
