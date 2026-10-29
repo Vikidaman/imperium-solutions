@@ -312,6 +312,14 @@ app.post("/api/sessions/:id/time", (req, res) => {
     toastMessage =
       "NuevoGDPManager executed: BudgetUpdater & DividendUpdater completed!";
     actionDesc = "NuevoGDPManager(): Updated Budgets, Pops, Employment & Dividends";
+  } else if (command === "SET_START_DATE") {
+    const resStart = setCustomStartDate(sess.state, {
+      startDate: crisisStartDate || req.body.startDate || "2025-01-01",
+      resetCurrentDate: req.body.resetCurrentDate !== false,
+      electionIntervalDays: req.body.electionIntervalDays,
+    });
+    toastMessage = resStart.toastMessage;
+    actionDesc = resStart.action;
   }
 
   if (strictSheetQuirks !== undefined) {
@@ -321,7 +329,7 @@ app.post("/api/sessions/:id/time", (req, res) => {
     }`;
   }
 
-  if (crisisStartDate !== undefined) {
+  if (crisisStartDate !== undefined && command !== "SET_START_DATE") {
     tm.crisisStartDate = crisisStartDate;
   }
 
