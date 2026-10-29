@@ -153,6 +153,7 @@ export default function VictoriaStatecraftAndNewsView({
   const [customSummary, setCustomSummary] = useState("");
   const [showPublishForm, setShowPublishForm] = useState(false);
   const [queuingBuildingId, setQueuingBuildingId] = useState(null);
+  const [selectedBuildState, setSelectedBuildState] = useState("");
 
   const nations = state.nations || [];
   const nation = nations.find((n) => n.id === selectedNationId) || nations[0];
