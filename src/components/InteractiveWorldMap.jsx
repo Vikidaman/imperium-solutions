@@ -569,11 +569,29 @@ export default function InteractiveWorldMap({
 
   // Focus camera on a specific territory / state
   const focusOnTerritory = (territoryName) => {
+    setSelectedStateName(territoryName);
+
+    // 1. Check US individual states first
+    const usFeat = STATIC_US_STATE_FEATURES.find(
+      (f) => f.name.toLowerCase() === territoryName.toLowerCase()
+    );
+    if (usFeat && usFeat.centroid && usFeat.centroid[0] > 0) {
+      const [cx, cy] = usFeat.centroid;
+      setTheater("Earth");
+      setViewTier("country");
+      setZoom(3.8);
+      setPan({ x: Math.round(480 - cx), y: Math.round(250 - cy) });
+      return;
+    }
+
+    // 2. Check general Earth country & territory features
     const feat = STATIC_EARTH_FEATURES.find(
       (f) => f.name.toLowerCase() === territoryName.toLowerCase()
     );
-    if (feat && feat.centroid) {
+    if (feat && feat.centroid && feat.centroid[0] > 0) {
       const [cx, cy] = feat.centroid;
+      setTheater("Earth");
+      setViewTier("country");
       setZoom(3.8);
       setPan({ x: Math.round(480 - cx), y: Math.round(250 - cy) });
     }
