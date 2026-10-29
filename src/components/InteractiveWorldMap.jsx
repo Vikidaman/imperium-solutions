@@ -22,6 +22,7 @@ import {
   Sliders,
   ArrowRight,
   ArrowLeft,
+  ArrowRightLeft,
   Layers,
   Compass,
   RotateCcw,
