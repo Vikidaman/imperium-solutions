@@ -918,25 +918,37 @@ app.patch("/api/sessions/:id/director-config", (req, res) => {
   if (actionType === "DELETE_PLANET") {
     const targetId = req.body.planetId || planetData?.id || planetData?.name;
     if (targetId) {
+      const lowerTarget = String(targetId).toLowerCase().trim();
       const existing = (sess.state.planetsConfig || []).find(
-        (p) => p.id === targetId || p.name?.toLowerCase() === String(targetId).toLowerCase()
+        (p) =>
+          String(p.id).toLowerCase() === lowerTarget ||
+          p.name?.toLowerCase() === lowerTarget ||
+          p.name?.toLowerCase().includes(lowerTarget)
       );
       const planetName = existing?.name || targetId;
 
       sess.state.planetsConfig = (sess.state.planetsConfig || []).filter(
-        (p) => p.id !== targetId && p.name?.toLowerCase() !== String(targetId).toLowerCase()
+        (p) =>
+          String(p.id).toLowerCase() !== lowerTarget &&
+          p.name?.toLowerCase() !== lowerTarget &&
+          !p.name?.toLowerCase().includes(lowerTarget)
       );
 
       // Reassign any colonized nations to Earth or the first remaining planet
       const fallbackPlanet = sess.state.planetsConfig[0]?.name || "Earth";
       (sess.state.nations || []).forEach((n) => {
-        if ((n.planet || "").toLowerCase() === String(planetName).toLowerCase()) {
+        if (
+          (n.planet || "").toLowerCase() === String(planetName).toLowerCase() ||
+          (n.planet || "").toLowerCase().includes(lowerTarget)
+        ) {
           n.planet = fallbackPlanet;
         }
       });
 
       sess.state.planetsSummary = (sess.state.planetsSummary || []).filter(
-        (p) => p.name?.toLowerCase() !== String(planetName).toLowerCase()
+        (p) =>
+          p.name?.toLowerCase() !== String(planetName).toLowerCase() &&
+          !p.name?.toLowerCase().includes(lowerTarget)
       );
     }
   }
