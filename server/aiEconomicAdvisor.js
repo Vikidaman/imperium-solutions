@@ -6,30 +6,15 @@
  * with state-level geographic natural endowments to generate real-time economic intelligence.
  */
 
-import fs from "fs";
-import path from "path";
-import { fileURLToPath } from "url";
 import "dotenv/config";
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const BENCHMARK_PATH = path.join(__dirname, "..", "public", "models", "commodity_price_benchmark_v1.json");
+import { COMMODITY_PRICE_BENCHMARKS } from "./empiricalPriceCatalog.js";
 
 const GROQ_API_KEY = process.env.GROQ_API_KEY || "";
 const PRIMARY_MODEL = "openai/gpt-oss-120b";
 const FALLBACK_MODEL = "qwen/qwen3.8-27b";
 
-let cachedBenchmarks = null;
 function getPriceBenchmarks() {
-  if (cachedBenchmarks) return cachedBenchmarks;
-  try {
-    if (fs.existsSync(BENCHMARK_PATH)) {
-      cachedBenchmarks = JSON.parse(fs.readFileSync(BENCHMARK_PATH, "utf8"));
-      return cachedBenchmarks;
-    }
-  } catch (e) {
-    console.warn("Could not load price benchmarks:", e.message);
-  }
-  return { benchmarks: {} };
+  return { benchmarks: COMMODITY_PRICE_BENCHMARKS };
 }
 
 /**

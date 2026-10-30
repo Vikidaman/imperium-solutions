@@ -1,7 +1,4 @@
 // Complete Simulation Engine implementing Interstellar 2.0 & Imperium Solutions Mastersheet formulas + Statecraft & Election Rules
-import fs from "fs";
-import path from "path";
-import { fileURLToPath } from "url";
 import {
   ensureVictoriaState,
   evaluateVictoriaMechanics,
@@ -23,23 +20,7 @@ import {
 import { HISTORICAL_ERAS, getHistoricalEraForDate } from "./historicalEras.js";
 import { ALL_SOVEREIGN_NATIONS, ALL_NATIONS_BY_ID, ALL_NATIONS_BY_NAME } from "../src/data/nationsCatalog.js";
 import { computeGdpForecast, applyForecastGrowth } from "./forecastingEngine.js";
-
-const __engineDir = path.dirname(fileURLToPath(import.meta.url));
-const BENCHMARK_PATH = path.join(__engineDir, "..", "public", "models", "commodity_price_benchmark_v1.json");
-
-let cachedCommodityBenchmarks = null;
-function getCommodityBenchmarks() {
-  if (cachedCommodityBenchmarks) return cachedCommodityBenchmarks;
-  try {
-    if (fs.existsSync(BENCHMARK_PATH)) {
-      cachedCommodityBenchmarks = JSON.parse(fs.readFileSync(BENCHMARK_PATH, "utf8"))?.benchmarks || {};
-      return cachedCommodityBenchmarks;
-    }
-  } catch (e) {
-    console.warn("Could not load commodity_price_benchmark_v1.json:", e.message);
-  }
-  return {};
-}
+import { COMMODITY_PRICE_BENCHMARKS } from "./empiricalPriceCatalog.js";
 
 export {
   computeGdpForecast,
@@ -649,7 +630,7 @@ export function evaluateSimulation(state) {
   // 4. Step A: Precompute Unit DVGP multipliers once across the goods catalog
   // Grounded in empirical World Bank Pink Sheet, IMF, and BLS commodity price benchmarks
   // using a convergent Leontief input-output cost matrix (intermediate share ~45%, value-added ~55%).
-  const commodityBenchmarks = getCommodityBenchmarks();
+  const commodityBenchmarks = COMMODITY_PRICE_BENCHMARKS;
   const intermediateShare = 0.45;
   const unitDvgpMap = new Map();
   for (const g of state.goodsCatalog || []) {
