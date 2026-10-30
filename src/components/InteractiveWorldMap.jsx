@@ -499,6 +499,7 @@ export default function InteractiveWorldMap({
   const [showStatesTableModal, setShowStatesTableModal] = useState(false);
   const [statesModalFilter, setStatesModalFilter] = useState("all"); // "all" | "state" | "territory"
   const [statesModalSort, setStatesModalSort] = useState("gdp"); // "gdp" | "name" | "pops" | "infra"
+  const [hoveredModalState, setHoveredModalState] = useState(null);
   const tooltipRef = useRef(null);
   const setHoveredTerritory = (val) => tooltipRef.current?.setHover(val);
 
