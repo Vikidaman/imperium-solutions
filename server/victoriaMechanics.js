@@ -812,6 +812,58 @@ export function ensureVictoriaState(state) {
     if (nation.activeLawEnactment === undefined) {
       nation.activeLawEnactment = null;
     }
+
+    // Initialize Monetary & Sovereign Debt Profile
+    if (!nation.monetary) {
+      const gdp = nation.computed?.aggregateGdp || nation.aggregateGdp || 1e11;
+      const defaultDebt = Math.round(gdp * 0.48);
+      const debtRatio = defaultDebt / Math.max(1e9, gdp);
+      const rating = getSovereignCreditRating(debtRatio);
+      const policyRate = 0.035;
+      const bondYield = Number((policyRate + rating.spread).toFixed(4));
+
+      nation.monetary = {
+        policyRate,
+        inflationRate: 0.024,
+        neutralRate: 0.030,
+        centralBankModel: "INDEPENDENT_TECHNOCRACY",
+        totalSovereignDebt: defaultDebt,
+        debtToGdp: Number(debtRatio.toFixed(3)),
+        creditRating: rating.rating,
+        ratingLabel: rating.label,
+        ratingColor: rating.color,
+        sovereignSpread: rating.spread,
+        bondYield,
+        quarterlyDebtService: Math.round((defaultDebt * bondYield) / 4),
+        activeBonds: [
+          {
+            id: `bond_${nation.id}_init`,
+            series: "Sovereign Development Treasury Note",
+            principal: defaultDebt,
+            couponRate: bondYield,
+            issuedDate: curDate,
+            maturityDate: addDaysToIso(curDate, 1800),
+            purpose: "National Infrastructure & Defense Reserve",
+            holder: "Domestic Banks & Sovereign Funds",
+          },
+        ],
+      };
+    }
+
+    // Initialize Commercial Banking Balance Sheet
+    if (!nation.banking) {
+      const gdp = nation.computed?.aggregateGdp || nation.aggregateGdp || 1e11;
+      nation.banking = {
+        totalDeposits: Math.round(gdp * 0.85),
+        totalCommercialLoans: Math.round(gdp * 0.62),
+        reserveRatio: 0.10,
+        bankCapitalAdequacy: 0.145,
+        corporateLendingRate: Number(((nation.monetary?.policyRate || 0.035) + 0.024).toFixed(4)),
+        depositRate: Number(Math.max(0.002, (nation.monetary?.policyRate || 0.035) - 0.015).toFixed(4)),
+        nonPerformingLoansRatio: 0.016,
+        systemicHealth: "STABLE",
+      };
+    }
   }
 }
 
