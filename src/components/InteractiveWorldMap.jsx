@@ -2954,24 +2954,115 @@ export default function InteractiveWorldMap({
                     })}
                   </svg>
                 ) : (
-                  /* Silhouette & Regional States for Other Sovereign Nations */
-                  <div className="w-full h-44 sm:h-56 flex flex-col items-center justify-center p-4 text-center">
-                    <div
-                      className="w-16 h-16 rounded-2xl flex items-center justify-center text-slate-950 font-black text-2xl shadow-lg mb-2"
-                      style={{
-                        backgroundColor: nationColorMap.get(activeNation.id) || "#06b6d4",
-                      }}
-                    >
-                      {activeNation.name.slice(0, 2).toUpperCase()}
-                    </div>
-                    <h4 className="text-base font-bold text-white">{activeNation.name}</h4>
-                    <span className="text-xs px-2.5 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 font-bold mt-1">
-                      {activeNation.governmentSystem || "Sovereign Republic"}
-                    </span>
-                    <p className="text-xs text-slate-400 mt-2 max-w-sm">
-                      Capital: {activeNation.capital || "Metropolis"} • {nationalStatesList.length} Constituent Internal Divisions
-                    </p>
-                  </div>
+                  /* Interactive Silhouette & Regional States for Other Sovereign Nations */
+                  (() => {
+                    const countryFeat = STATIC_EARTH_FEATURES.find(
+                      (f) =>
+                        f.name.toLowerCase() === activeNation.name.toLowerCase() ||
+                        territoryMap[f.name] === activeNation.id ||
+                        f.id === activeNation.id ||
+                        (activeNation.name.toLowerCase().includes("russia") && f.name === "Russia") ||
+                        (activeNation.name.toLowerCase().includes("united kingdom") && f.name === "United Kingdom") ||
+                        (activeNation.name.toLowerCase().includes("korea") && f.name.includes("Korea"))
+                    );
+
+                    let vb = "0 0 960 500";
+                    let x0 = 0, y0 = 0, x1 = 960, y1 = 500, w = 960, h = 500, padX = 20, padY = 20;
+                    if (countryFeat && countryFeat.bounds) {
+                      [[x0, y0], [x1, y1]] = countryFeat.bounds;
+                      w = Math.max(x1 - x0, 8);
+                      h = Math.max(y1 - y0, 8);
+                      padX = Math.max(w * 0.22, 5);
+                      padY = Math.max(h * 0.22, 5);
+                      vb = `${x0 - padX} ${y0 - padY} ${w + padX * 2} ${h + padY * 2}`;
+                    }
+
+                    const markerRadius = Math.max(w, h) * 0.04;
+                    const nationColor = nationColorMap.get(activeNation.id) || activeNation.color || "#06b6d4";
+
+                    return (
+                      <svg viewBox={vb} className="w-full h-44 sm:h-56">
+                        {countryFeat && (
+                          <path
+                            d={countryFeat.d}
+                            fill={nationColor}
+                            fillOpacity={0.92}
+                            stroke="#ffffff"
+                            strokeWidth={Math.max(w, h) * 0.009}
+                            strokeOpacity={0.9}
+                            className="transition-colors hover:brightness-110 cursor-pointer"
+                            onClick={() => setSelectedStateName(null)}
+                          />
+                        )}
+
+                        {/* Interactive Constituent Regions / States Pins */}
+                        {nationalStatesList.map((st, idx) => {
+                          const regCoords = (GLOBAL_REGIONAL_CENTROIDS[activeNation.id.toLowerCase()] || [])[idx]?.coords;
+                          let pt = regCoords ? (STATIC_PATH_GEN.projection()(regCoords) || null) : null;
+
+                          if (!pt || !pt[0] || pt[0] < x0 - padX || pt[0] > x1 + padX) {
+                            const total = Math.max(1, nationalStatesList.length);
+                            const angle = (idx / total) * 2 * Math.PI;
+                            const cx = (x0 + x1) / 2;
+                            const cy = (y0 + y1) / 2;
+                            const rx = (x1 - x0) * 0.28;
+                            const ry = (y1 - y0) * 0.28;
+                            pt = [cx + Math.cos(angle) * rx, cy + Math.sin(angle) * ry];
+                          }
+
+                          const [sx, sy] = pt;
+                          const isStSelected = selectedStateName === st.name;
+                          const isSeceded =
+                            st.status === "SECEDED" ||
+                            (territoryMap[st.name] && territoryMap[st.name] !== activeNation.id);
+
+                          return (
+                            <g
+                              key={`global_modal_st_${st.name}_${idx}`}
+                              transform={`translate(${sx}, ${sy})`}
+                              className="cursor-pointer group"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setSelectedStateName(st.name);
+                              }}
+                              onMouseEnter={() => {
+                                setHoveredModalState({
+                                  name: st.name,
+                                  capital: st.capital || `${st.name} City`,
+                                  region: st.region || st.role || "Constituent Division",
+                                  isSeceded: Boolean(isSeceded),
+                                  sovereignName: activeNation.name,
+                                  gdp: st.gdp,
+                                  pops: st.pops,
+                                });
+                              }}
+                              onMouseLeave={() => setHoveredModalState(null)}
+                            >
+                              <circle
+                                r={isStSelected ? markerRadius * 1.4 : markerRadius}
+                                fill={isStSelected ? "#ffffff" : isSeceded ? "#f59e0b" : "#38bdf8"}
+                                stroke="#020617"
+                                strokeWidth={markerRadius * 0.25}
+                                className="transition-transform group-hover:scale-125"
+                              />
+                              <circle r={markerRadius * 0.35} fill="#020617" />
+                              <text
+                                y={-markerRadius * 1.35}
+                                textAnchor="middle"
+                                fill="#ffffff"
+                                fontSize={Math.max(2.8, Math.min(8.0, markerRadius * 1.5))}
+                                fontWeight="bold"
+                                fontFamily="sans-serif"
+                                className="pointer-events-none drop-shadow-[0_1px_3px_rgba(0,0,0,0.95)]"
+                              >
+                                {st.name.split(" ")[0]}
+                              </text>
+                            </g>
+                          );
+                        })}
+                      </svg>
+                    );
+                  })()
                 )}
               </div>
 
