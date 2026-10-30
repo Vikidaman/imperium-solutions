@@ -313,7 +313,7 @@ export function applyHistoricalEra(state, eraIdOrDate) {
  * - mode === "INTEGRATE": Integrates an unincorporated territory into full Constituent Statehood
  * - mode === "RELEASE": Releases a state as a unitary sovereign nation with NO internal sub-provinces
  */
-export function transferTerritory(state, { territoryName, targetNationId, mode = "ANNEX", planet = "Earth" }) {
+export function transferTerritory(state, { territoryName, targetNationId, mode = "ANNEX", planet = "Earth", capital }) {
   ensureTerritoryMap(state);
   if (!state.territoryStatusMap) state.territoryStatusMap = {};
   const prevControllerId = state.territoryMap[territoryName];
@@ -322,41 +322,65 @@ export function transferTerritory(state, { territoryName, targetNationId, mode =
   // 1. SECESSION / RELEASE:
   // "When one state within a country secedes, it should not have any more state and provinces since it is a state itself."
   if (mode === "RELEASE") {
+    const isGeorgia = territoryName.toLowerCase() === "georgia";
+    const isUsaGeorgia = isGeorgia && (prevControllerId === "usa" || prevNation?.id === "usa" || territoryName.includes("USA"));
     const isCalifornia = territoryName.toLowerCase().includes("california");
     const isTexas = territoryName.toLowerCase().includes("texas");
-    const nationName = isCalifornia
-      ? "California Republic"
-      : isTexas
-      ? "Republic of Texas"
-      : territoryName.toLowerCase().includes("republic")
-      ? territoryName
-      : `${territoryName} Republic`;
-    const capitalName = isCalifornia
-      ? "Sacramento"
-      : isTexas
-      ? "Austin"
-      : `${territoryName} City`;
+
+    let capitalName = capital;
+    if (!capitalName) {
+      if (isUsaGeorgia) capitalName = "Atlanta";
+      else if (isGeorgia) capitalName = "Tbilisi";
+      else if (isCalifornia) capitalName = "Sacramento";
+      else if (isTexas) capitalName = "Austin";
+      else capitalName = `${territoryName} City`;
+    }
+
+    let nationName = territoryName;
+    if (isCalifornia) nationName = "California Republic";
+    else if (isTexas) nationName = "Republic of Texas";
+    else if (isUsaGeorgia) nationName = "Georgia Republic";
+    else if (
+      !nationName.toLowerCase().includes("republic") &&
+      !nationName.toLowerCase().includes("commonwealth") &&
+      !nationName.toLowerCase().includes("state")
+    ) {
+      nationName = `${territoryName} Republic`;
+    }
+
     const sovereignColor = isCalifornia
       ? "#f59e0b"
       : isTexas
       ? "#ef4444"
+      : isUsaGeorgia
+      ? "#3b82f6"
       : "#10b981";
+
+    const clean = (s) => (s || "").toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "");
+    const countryTag = isUsaGeorgia
+      ? "georgia_atlanta"
+      : isGeorgia
+      ? "georgia_tbilisi"
+      : `${clean(territoryName)}_${clean(capitalName)}`;
 
     const existing = (state.nations || []).find(
       (n) =>
+        n.id === countryTag ||
         n.name.toLowerCase() === territoryName.toLowerCase() ||
         n.name.toLowerCase() === nationName.toLowerCase()
     );
     if (existing) {
       state.territoryMap[territoryName] = existing.id;
+      if (isUsaGeorgia) {
+        state.territoryMap["Georgia (USA)"] = existing.id;
+        state.territoryMap["Georgia:Atlanta"] = existing.id;
+      }
       state.territoryStatusMap[territoryName] = "STATE";
       evaluateSimulation(state);
       return { state, nationId: existing.id, action: `Restored sovereignty to ${existing.name}` };
     }
 
-    const newId = `${nationName.toLowerCase().replace(/[^a-z0-9]+/g, "_")}_${Date.now()
-      .toString(36)
-      .slice(-3)}`;
+    const newId = countryTag;
     const templateNation = prevNation || state.nations[0];
     let transferredCompanies = [];
     let newPops = planet === "Mars" ? 4500000 : 18000000;
@@ -414,6 +438,10 @@ export function transferTerritory(state, { territoryName, targetNationId, mode =
 
     state.nations.push(newNation);
     state.territoryMap[territoryName] = newId;
+    if (isUsaGeorgia) {
+      state.territoryMap["Georgia (USA)"] = newId;
+      state.territoryMap["Georgia:Atlanta"] = newId;
+    }
     state.territoryStatusMap[territoryName] = "STATE";
     ensureVictoriaState(state);
     state.newsFeed.unshift({
