@@ -1241,7 +1241,7 @@ app.post("/api/sessions/:id/territories", (req, res) => {
   const sess = getCachedSession(id);
   if (!sess) return res.status(404).json({ error: "Session not found" });
 
-  const { territoryName, targetNationId, mode = "ANNEX", planet = "Earth", actor } =
+  const { territoryName, targetNationId, mode = "ANNEX", planet = "Earth", capital, actor } =
     req.body;
   if (!territoryName) {
     return res.status(400).json({ error: "territoryName is required" });
@@ -1252,6 +1252,7 @@ app.post("/api/sessions/:id/territories", (req, res) => {
     targetNationId,
     mode,
     planet,
+    capital,
   });
 
   persistAndBroadcast(id, actor, result.action, `Territory: ${territoryName}`);
