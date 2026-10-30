@@ -1182,6 +1182,369 @@ export default function VictoriaStatecraftAndNewsView({
         );
       })()}
 
+      {/* SUBTAB: CENTRAL BANK, SOVEREIGN BONDS & COMMERCIAL BANKING */}
+      {subTab === "bonds" && (() => {
+        const m = nation.monetary || {
+          policyRate: 0.035,
+          inflationRate: 0.024,
+          neutralRate: 0.030,
+          centralBankModel: "INDEPENDENT_TECHNOCRACY",
+          totalSovereignDebt: Math.round((nation.computed?.aggregateGdp || 1e11) * 0.45),
+          debtToGdp: 0.45,
+          creditRating: "AA",
+          ratingLabel: "High Grade Sovereign",
+          ratingColor: "text-cyan-400",
+          sovereignSpread: 0.0085,
+          bondYield: 0.0435,
+          quarterlyDebtService: Math.round(((nation.computed?.aggregateGdp || 1e11) * 0.45 * 0.0435) / 4),
+          debtServiceRatio: 0.095,
+          taylorRuleRate: 0.0335,
+          activeBonds: [],
+        };
+
+        const b = nation.banking || {
+          corporateLendingRate: 0.059,
+          depositRate: 0.020,
+          totalDeposits: Math.round((nation.computed?.aggregateGdp || 1e11) * 0.85),
+          totalCommercialLoans: Math.round((nation.computed?.aggregateGdp || 1e11) * 0.62),
+          reserveRatio: 0.10,
+          bankCapitalAdequacy: 0.145,
+          nonPerformingLoansRatio: 0.025,
+          systemicHealth: "STABLE",
+        };
+
+        const currentDebt = Number(m.totalSovereignDebt) || 0;
+        const currentTreasury = Number(nation.computed?.treasuryBalance ?? nation.treasuryBalance ?? 0);
+        const policyPct = ((Number(m.policyRate) || 0.035) * 100).toFixed(2);
+        const taylorPct = ((Number(m.taylorRuleRate) || 0.0335) * 100).toFixed(2);
+        const bondYieldPct = ((Number(m.bondYield) || 0.0435) * 100).toFixed(2);
+        const corpRatePct = ((Number(b.corporateLendingRate) || 0.059) * 100).toFixed(2);
+        const depositRatePct = ((Number(b.depositRate) || 0.020) * 100).toFixed(2);
+
+        return (
+          <div className="space-y-6">
+            {/* 1. Macro-Prudential Header & Central Bank Rate Control */}
+            <div className="glass-panel rounded-2xl p-6 border border-slate-800/80 space-y-5">
+              <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-800 pb-4">
+                <div className="flex items-center gap-3.5">
+                  <div className="w-12 h-12 rounded-2xl bg-amber-500/20 text-amber-300 flex items-center justify-center font-black shadow-lg">
+                    <Landmark className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] font-mono-num uppercase tracking-wider text-amber-400 font-bold">
+                        Central Bank & Sovereign Debt Desk
+                      </span>
+                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 border border-slate-700">
+                        {m.centralBankModel || "Independent Technocracy"}
+                      </span>
+                    </div>
+                    <h3 className="text-xl font-bold text-white mt-0.5">
+                      Central Bank of {nation.name} & Sovereign Bond Syndicate
+                    </h3>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <div className="px-3.5 py-1.5 rounded-xl bg-slate-900 border border-slate-800 text-right">
+                    <div className="text-[10px] text-slate-400 uppercase">Sovereign Credit Rating</div>
+                    <div className={`text-base font-black font-mono-num ${m.ratingColor || "text-cyan-400"}`}>
+                      {m.creditRating} <span className="text-xs font-normal text-slate-300">({m.ratingLabel})</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Central Bank Policy Rate Slider & Taylor Rule Target */}
+              <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 space-y-4">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <span className="text-xs font-bold uppercase tracking-wider text-cyan-400 flex items-center gap-1.5">
+                      <Sliders className="w-4 h-4" /> Benchmark Policy Rate Setting
+                    </span>
+                    <p className="text-xs text-slate-400 mt-0.5">
+                      Directly controls bank funding costs, interest group approval (Industrialists vs Financiers), and sovereign bond yields.
+                    </p>
+                  </div>
+
+                  <div className="flex items-center gap-3">
+                    <div className="text-right">
+                      <div className="text-[10px] text-slate-400 uppercase">Current Rate</div>
+                      <div className="text-2xl font-black font-mono-num text-cyan-300">{policyPct}%</div>
+                    </div>
+
+                    {!isReadOnly && (
+                      <button
+                        onClick={() => {
+                          onVictoriaAction({
+                            type: "SET_POLICY_RATE",
+                            nationId: nation.id,
+                            policyRate: m.taylorRuleRate || 0.035,
+                          });
+                        }}
+                        className="px-3 py-2 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 text-xs font-bold cursor-pointer transition flex items-center gap-1.5"
+                        title="Set benchmark rate exactly to Taylor Rule optimal macroeconomic target"
+                      >
+                        <Sparkles className="w-3.5 h-3.5" />
+                        Apply Taylor Target ({taylorPct}%)
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {/* Slider */}
+                {!isReadOnly && (
+                  <div className="space-y-1.5">
+                    <input
+                      type="range"
+                      min="0.5"
+                      max="16.0"
+                      step="0.25"
+                      value={policyPct}
+                      onChange={(e) => {
+                        const newRate = Number(e.target.value) / 100;
+                        onVictoriaAction({
+                          type: "SET_POLICY_RATE",
+                          nationId: nation.id,
+                          policyRate: newRate,
+                        });
+                      }}
+                      className="w-full accent-cyan-400 cursor-pointer h-2 bg-slate-950 rounded-lg appearance-none"
+                    />
+                    <div className="flex justify-between text-[10px] font-mono-num text-slate-500 px-1">
+                      <span>0.50% (Accommodative)</span>
+                      <span>Neutral: {((m.neutralRate || 0.03) * 100).toFixed(2)}%</span>
+                      <span>Taylor Target: {taylorPct}%</span>
+                      <span>16.00% (Hyper-Contractionary)</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* 2. Key Monetary & Debt Metrics Grid */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <div className="p-3.5 rounded-xl bg-slate-900 border border-slate-800">
+                  <div className="text-[10px] text-slate-400 uppercase font-semibold">Total Sovereign Debt</div>
+                  <div className="text-base font-bold font-mono-num text-white mt-0.5">
+                    {formatCurrency(currentDebt)}
+                  </div>
+                  <div className="text-[10px] text-slate-500 mt-0.5">
+                    Debt-to-GDP: <strong className="text-cyan-300 font-mono-num">{((m.debtToGdp || 0) * 100).toFixed(1)}%</strong>
+                  </div>
+                </div>
+
+                <div className="p-3.5 rounded-xl bg-slate-900 border border-slate-800">
+                  <div className="text-[10px] text-slate-400 uppercase font-semibold">5-Yr Sovereign Benchmark Yield</div>
+                  <div className="text-base font-bold font-mono-num text-amber-300 mt-0.5">
+                    {bondYieldPct}%
+                  </div>
+                  <div className="text-[10px] text-slate-500 mt-0.5">
+                    Spread: <span className="font-mono-num text-slate-300">+{Math.round((m.sovereignSpread || 0) * 10000)} bps</span>
+                  </div>
+                </div>
+
+                <div className="p-3.5 rounded-xl bg-slate-900 border border-slate-800">
+                  <div className="text-[10px] text-slate-400 uppercase font-semibold">Quarterly Debt Service</div>
+                  <div className="text-base font-bold font-mono-num text-rose-300 mt-0.5">
+                    {formatCurrency(m.quarterlyDebtService || 0)}
+                  </div>
+                  <div className="text-[10px] text-slate-500 mt-0.5">
+                    Fiscal Burden: <strong className="text-amber-400 font-mono-num">{((m.debtServiceRatio || 0) * 100).toFixed(1)}%</strong> of tax rev
+                  </div>
+                </div>
+
+                <div className="p-3.5 rounded-xl bg-slate-900 border border-slate-800">
+                  <div className="text-[10px] text-slate-400 uppercase font-semibold">Commercial Banking Health</div>
+                  <div className="text-base font-bold font-mono-num mt-0.5 flex items-center gap-1.5">
+                    <span
+                      className={
+                        b.systemicHealth === "STABLE"
+                          ? "text-emerald-400"
+                          : b.systemicHealth === "STRESSED"
+                          ? "text-amber-400"
+                          : "text-rose-400"
+                      }
+                    >
+                      {b.systemicHealth}
+                    </span>
+                    <span className="text-[10px] font-normal text-slate-400">
+                      (NPL {((b.nonPerformingLoansRatio || 0) * 100).toFixed(1)}%)
+                    </span>
+                  </div>
+                  <div className="text-[10px] text-slate-500 mt-0.5">
+                    Deposits: {formatCurrency(b.totalDeposits || 0)}
+                  </div>
+                </div>
+              </div>
+
+              {/* 3. Interest Rate Transmission Architecture */}
+              <div className="bg-slate-900/60 border border-slate-800 rounded-2xl p-4 space-y-3">
+                <span className="text-xs font-bold uppercase tracking-wider text-slate-300 block">
+                  Yield Curve & Interest Rate Transmission
+                </span>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-center">
+                  <div className="p-3 rounded-xl bg-slate-950 border border-slate-800">
+                    <div className="text-[10px] text-slate-400">Central Bank Policy Rate</div>
+                    <div className="text-lg font-black font-mono-num text-cyan-400 mt-1">{policyPct}%</div>
+                    <div className="text-[10px] text-slate-500 mt-0.5">Interbank Benchmark</div>
+                  </div>
+
+                  <div className="p-3 rounded-xl bg-slate-950 border border-slate-800">
+                    <div className="text-[10px] text-slate-400">5-Yr Sovereign Bond Yield</div>
+                    <div className="text-lg font-black font-mono-num text-amber-400 mt-1">{bondYieldPct}%</div>
+                    <div className="text-[10px] text-slate-500 mt-0.5">Government Auction Cost</div>
+                  </div>
+
+                  <div className="p-3 rounded-xl bg-slate-950 border border-slate-800">
+                    <div className="text-[10px] text-slate-400">Corporate Lending Rate</div>
+                    <div className="text-lg font-black font-mono-num text-indigo-400 mt-1">{corpRatePct}%</div>
+                    <div className="text-[10px] text-slate-500 mt-0.5">Commercial Prime Rate</div>
+                  </div>
+
+                  <div className="p-3 rounded-xl bg-slate-950 border border-slate-800">
+                    <div className="text-[10px] text-slate-400">Commercial Deposit Rate</div>
+                    <div className="text-lg font-black font-mono-num text-emerald-400 mt-1">{depositRatePct}%</div>
+                    <div className="text-[10px] text-slate-500 mt-0.5">Household Savings APY</div>
+                  </div>
+                </div>
+              </div>
+
+              {/* 4. Sovereign Bond Auction Desk & Early Debt Retirement */}
+              {!isReadOnly && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* Auction Desk */}
+                  <div className="p-4 rounded-2xl bg-cyan-950/20 border border-cyan-500/30 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold uppercase tracking-wider text-cyan-300 flex items-center gap-1.5">
+                        <CreditCard className="w-3.5 h-3.5" /> Float Sovereign Bonds (Raise Cash)
+                      </span>
+                      <span className="text-[10px] text-slate-400">Deposits directly to Treasury</span>
+                    </div>
+                    <p className="text-[11px] text-slate-400">
+                      Auction sovereign debt into global syndicate capital markets at prevailing yield ({bondYieldPct}%):
+                    </p>
+                    <div className="grid grid-cols-3 gap-2">
+                      {[10e9, 25e9, 50e9].map((amt) => (
+                        <button
+                          key={amt}
+                          disabled={m.creditRating === "D"}
+                          onClick={() => {
+                            onVictoriaAction({
+                              type: "ISSUE_SOVEREIGN_BOND",
+                              nationId: nation.id,
+                              principal: amt,
+                              seriesName: `5-Year Sovereign Development Note ($${(amt / 1e9).toFixed(0)}B)`,
+                              maturityYears: 5,
+                            });
+                          }}
+                          className={`py-2 px-1 rounded-xl text-xs font-bold flex flex-col items-center justify-center transition cursor-pointer ${
+                            m.creditRating === "D"
+                              ? "bg-slate-800 text-slate-500 border border-slate-700 cursor-not-allowed"
+                              : "bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-200 border border-cyan-500/40"
+                          }`}
+                        >
+                          <span>+${(amt / 1e9).toFixed(0)}B Bonds</span>
+                          <span className="text-[9px] font-mono-num text-slate-400">@{bondYieldPct}%</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Early Debt Retirement */}
+                  <div className="p-4 rounded-2xl bg-emerald-950/20 border border-emerald-500/30 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold uppercase tracking-wider text-emerald-300 flex items-center gap-1.5">
+                        <ShieldCheck className="w-3.5 h-3.5" /> Early Debt Retirement
+                      </span>
+                      <span className="text-[10px] text-slate-400">
+                        Treasury: <strong className="text-emerald-400 font-mono-num">{formatCurrency(currentTreasury)}</strong>
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-slate-400">
+                      Use sovereign fiscal surplus cash to buy back and cancel outstanding sovereign debt:
+                    </p>
+                    <div className="grid grid-cols-2 gap-2">
+                      {[10e9, 25e9].map((amt) => {
+                        const canRepay = currentTreasury >= amt && currentDebt > 0;
+                        return (
+                          <button
+                            key={amt}
+                            disabled={!canRepay}
+                            onClick={() => {
+                              onVictoriaAction({
+                                type: "REPAY_SOVEREIGN_BOND",
+                                nationId: nation.id,
+                                amount: amt,
+                              });
+                            }}
+                            className={`py-2 px-2 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition ${
+                              canRepay
+                                ? "bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-200 border border-emerald-500/40 cursor-pointer"
+                                : "bg-slate-800 text-slate-500 border border-slate-700 cursor-not-allowed"
+                            }`}
+                          >
+                            <DollarSign className="w-3.5 h-3.5" />
+                            Retire ${(amt / 1e9).toFixed(0)}B Debt
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* 5. Active Sovereign Bonds Ledger */}
+              <div className="space-y-3 pt-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold uppercase tracking-wider text-white">
+                    Active Sovereign Debt Securities Ledger ({(m.activeBonds || []).length})
+                  </span>
+                  <span className="text-[11px] font-mono-num text-slate-400">
+                    Cumulative Principal: {formatCurrency(currentDebt)}
+                  </span>
+                </div>
+
+                {(m.activeBonds || []).length > 0 ? (
+                  <div className="overflow-x-auto rounded-xl border border-slate-800">
+                    <table className="w-full text-left text-xs">
+                      <thead className="bg-slate-950 text-slate-400 font-mono-num text-[11px] uppercase border-b border-slate-800">
+                        <tr>
+                          <th className="p-3">Series & Purpose</th>
+                          <th className="p-3">Principal</th>
+                          <th className="p-3">Coupon Rate</th>
+                          <th className="p-3">Issue Date</th>
+                          <th className="p-3">Maturity Date</th>
+                          <th className="p-3">Primary Holder</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-800/80 bg-slate-900/60 font-mono-num">
+                        {m.activeBonds.map((bond, idx) => (
+                          <tr key={bond.id || idx} className="hover:bg-slate-800/40">
+                            <td className="p-3 font-bold text-white font-sans">
+                              {bond.series}
+                              <div className="text-[10px] text-slate-400 font-normal">{bond.purpose}</div>
+                            </td>
+                            <td className="p-3 text-cyan-300 font-bold">{formatCurrency(bond.principal)}</td>
+                            <td className="p-3 text-amber-300 font-bold">{((bond.couponRate || 0.045) * 100).toFixed(2)}%</td>
+                            <td className="p-3 text-slate-400">{bond.issuedDate || state.timeManager?.crisisDate}</td>
+                            <td className="p-3 text-slate-300">{bond.maturityDate || "2030-01-01"}</td>
+                            <td className="p-3 text-slate-400 font-sans">{bond.holder || "Capital Syndicate"}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <div className="p-4 rounded-xl bg-slate-900/60 border border-slate-800 text-xs text-slate-400">
+                    No individual bond tranches recorded in active ledger. Issue new bonds above or fund infrastructure to float new series.
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
       {/* SUBTAB 4: THE IMPERIAL GAZETTE & REGULAR WORLD NEWS */}
       {subTab === "gazette" && (
         <div className="space-y-6">
