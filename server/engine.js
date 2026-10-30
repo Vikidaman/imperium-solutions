@@ -8,10 +8,14 @@ import {
   triggerElectionAction,
   triggerLawAction,
   queueConstruction,
+  setNationPolicyRate,
+  issueSovereignBond,
+  repaySovereignBond,
   resolveNewsDilemma,
   publishCustomNews,
   LAW_CATALOG,
   CONSTRUCTION_BUILDINGS,
+  SOVEREIGN_CREDIT_RATINGS,
 } from "./victoriaMechanics.js";
 import { HISTORICAL_ERAS, getHistoricalEraForDate } from "./historicalEras.js";
 import { ALL_SOVEREIGN_NATIONS, ALL_NATIONS_BY_ID, ALL_NATIONS_BY_NAME } from "../src/data/nationsCatalog.js";
@@ -21,10 +25,14 @@ export {
   triggerElectionAction,
   triggerLawAction,
   queueConstruction,
+  setNationPolicyRate,
+  issueSovereignBond,
+  repaySovereignBond,
   resolveNewsDilemma,
   publishCustomNews,
   LAW_CATALOG,
   CONSTRUCTION_BUILDINGS,
+  SOVEREIGN_CREDIT_RATINGS,
   HISTORICAL_ERAS,
   getHistoricalEraForDate,
 };
