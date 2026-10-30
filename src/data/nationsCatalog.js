@@ -4168,6 +4168,48 @@ export const ALL_SOVEREIGN_NATIONS = [
 export const ALL_NATIONS_BY_ID = new Map(ALL_SOVEREIGN_NATIONS.map(n => [n.id, n]));
 export const ALL_NATIONS_BY_NAME = new Map(ALL_SOVEREIGN_NATIONS.map(n => [n.name.toLowerCase(), n]));
 
+// Common global aliases and alternate naming conventions
+const NATION_ALIASES = {
+  "united states of america": "usa",
+  "united states": "usa",
+  "usa": "usa",
+  "us": "usa",
+  "democratic republic of the congo": "dem_rep_congo",
+  "dem. rep. congo": "dem_rep_congo",
+  "dr congo": "dem_rep_congo",
+  "drc": "dem_rep_congo",
+  "cod": "dem_rep_congo",
+  "republic of the congo": "congo",
+  "congo brazzaville": "congo",
+  "cog": "congo",
+  "russian federation": "russia",
+  "united kingdom of great britain and northern ireland": "united_kingdom",
+  "great britain": "united_kingdom",
+  "britain": "united_kingdom",
+  "uk": "united_kingdom",
+  "south korea": "south_korea",
+  "republic of korea": "south_korea",
+  "korea, republic of": "south_korea",
+  "north korea": "north_korea",
+  "dprk": "north_korea",
+  "peoples republic of china": "china",
+  "prc": "china",
+  "iran, islamic republic of": "iran",
+  "syrian arab republic": "syria",
+  "tanzania, united republic of": "tanzania",
+  "venezuela, bolivarian republic of": "venezuela",
+  "bolivia, plurinational state of": "bolivia",
+  "viet nam": "vietnam",
+  "lao pdr": "laos",
+};
+
+for (const [alias, targetId] of Object.entries(NATION_ALIASES)) {
+  const targetNation = ALL_NATIONS_BY_ID.get(targetId);
+  if (targetNation) {
+    ALL_NATIONS_BY_NAME.set(alias.toLowerCase(), targetNation);
+  }
+}
+
 export function getSovereignNation(idOrName) {
   if (!idOrName) return null;
   const clean = String(idOrName).toLowerCase().trim();

@@ -43,7 +43,7 @@ import {
 } from "lucide-react";
 import BufferedRangeSlider from "./BufferedRangeSlider";
 import CountryAdm1Map from "./CountryAdm1Map";
-import { ALL_NATIONS_BY_ID, ALL_NATIONS_BY_NAME } from "../data/nationsCatalog";
+import { ALL_NATIONS_BY_ID, ALL_NATIONS_BY_NAME, ALL_SOVEREIGN_NATIONS, getSovereignNation } from "../data/nationsCatalog";
 import { getUsStateEndowment } from "../data/usGeographicEndowments";
 import {
   formatCurrency,
@@ -604,13 +604,14 @@ export default function InteractiveWorldMap({
   };
 
   // Focus camera on a specific nation (geometry-based fit)
-  const navigateToCountry = (targetNation, openModal = true) => {
+  const navigateToCountry = (targetNation, openModal = false) => {
     if (!targetNation) return;
-    const subId = getSubcontinentForCountry(targetNation.id);
+    const targetId = targetNation.id || targetNation.name?.toLowerCase() || "usa";
+    const subId = getSubcontinentForCountry(targetId);
     setSelectedSubcontinent(subId);
-    setMapLocation({ level: "country", countryId: targetNation.id, subcontinentId: subId });
+    setMapLocation({ level: "country", countryId: targetId, subcontinentId: subId });
     setViewTier("country");
-    onSelectNation(targetNation.id);
+    onSelectNation(targetId);
     setSelectedStateName(null);
     setRightPanelTab("states");
     if (openModal) {
@@ -627,9 +628,9 @@ export default function InteractiveWorldMap({
     setTheater("Earth");
     const matchedFeatures = STATIC_EARTH_FEATURES.filter(
       (f) =>
-        f.name.toLowerCase() === targetNation.name.toLowerCase() ||
-        (targetNation.id === "usa" && f.name === "United States of America") ||
-        territoryMap[f.name] === targetNation.id
+        f.name.toLowerCase() === (targetNation.name || "").toLowerCase() ||
+        (targetId === "usa" && f.name === "United States of America") ||
+        territoryMap[f.name] === targetId
     );
     if (matchedFeatures.length > 0) {
       const { zoom: fitZ, pan: fitP } = getFeatureFitTransform(matchedFeatures, 960, 500, 60);
@@ -642,26 +643,12 @@ export default function InteractiveWorldMap({
   };
 
   const focusOnCountry = (targetNation) => {
-    navigateToCountry(targetNation);
+    navigateToCountry(targetNation, false);
   };
 
   // Close the country cartography / subdivisions modal and cleanly return to the regional subcontinent view
   const closeStatesModal = () => {
     setShowStatesTableModal(false);
-    setSelectedStateName(null);
-    const subId = getSubcontinentForCountry(activeNation?.id);
-    if (subId && subId !== "all") {
-      setViewTier("subcontinent");
-      setMapLocation({ level: "subcontinent", subcontinentId: subId });
-      const preset = SUBCONTINENT_PRESETS.find((p) => p.id === subId) || SUBCONTINENT_PRESETS[1];
-      setZoom(preset.zoom);
-      setPan(preset.pan);
-    } else {
-      setViewTier("worldwide");
-      setMapLocation({ level: "world" });
-      setZoom(1);
-      setPan({ x: 0, y: 0 });
-    }
   };
 
   // Focus camera on a specific territory / state
@@ -703,14 +690,29 @@ export default function InteractiveWorldMap({
     return { nationById: byId, nationColorMap: colorMap };
   }, [nations]);
 
-  const activeNation =
-    nationById.get(selectedNationId) ||
-    nations.find((n) =>
-      theater === "Mars"
-        ? (n.planet || "").toLowerCase().includes("mars")
-        : !(n.planet || "").toLowerCase().includes("mars")
-    ) ||
-    nations[0];
+  const activeNation = useMemo(() => {
+    const raw =
+      nationById.get(selectedNationId) ||
+      getSovereignNation(selectedNationId) ||
+      nations.find((n) =>
+        theater === "Mars"
+          ? (n.planet || "").toLowerCase().includes("mars")
+          : !(n.planet || "").toLowerCase().includes("mars")
+      ) ||
+      nations[0];
+    if (!raw) return nations[0] || null;
+    return {
+      ...raw,
+      computed: raw.computed || {
+        aggregateGdp: raw.gdp || 250e9,
+        effectiveWorkingPops: raw.population || 15e6,
+        treasury: raw.treasuryBalance || 10e9,
+        sol: 15.0,
+        unemploymentRate: 0.045,
+        inflationRate: 0.02,
+      },
+    };
+  }, [selectedNationId, nationById, nations, theater]);
 
   // Dynamic merged border paths (uses precomputed STATIC_EARTH_FEATURES & STATIC_PATH_GEN)
   const { earthFeatures, sovereignBorderPath, internalBorderPath } =
@@ -1058,6 +1060,24 @@ export default function InteractiveWorldMap({
       },
     ];
   }, [activeNation, territoryMap, state.territoryStatusMap, c]);
+
+  const subcontinentNations = useMemo(() => {
+    const list = [];
+    const seen = new Set();
+    for (const n of nations) {
+      if (getSubcontinentForCountry(n.id) === selectedSubcontinent && !seen.has(n.id)) {
+        seen.add(n.id);
+        list.push(n);
+      }
+    }
+    for (const n of ALL_SOVEREIGN_NATIONS) {
+      if (getSubcontinentForCountry(n.id) === selectedSubcontinent && !seen.has(n.id)) {
+        seen.add(n.id);
+        list.push(n);
+      }
+    }
+    return list.slice(0, 10);
+  }, [nations, selectedSubcontinent]);
 
   // Filtered & Sorted constituent states for the Country & States Table Pop Up Modal
   const modalFilteredStates = useMemo(() => {
@@ -1524,19 +1544,16 @@ export default function InteractiveWorldMap({
             </div>
 
             <div className="flex items-center gap-2 flex-wrap">
-              {nations
-                .filter((n) => getSubcontinentForCountry(n.id) === selectedSubcontinent)
-                .slice(0, 8)
-                .map((n) => (
-                  <button
-                    key={n.id}
-                    onClick={() => navigateToCountry(n)}
-                    className="px-2.5 py-1 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-200 border border-slate-800 text-[11px] font-semibold flex items-center gap-1.5 transition cursor-pointer"
-                  >
-                    <span className="w-2 h-2 rounded-full" style={{ backgroundColor: nationColorMap.get(n.id) || "#06b6d4" }} />
-                    {n.name}
-                  </button>
-                ))}
+              {subcontinentNations.map((n) => (
+                <button
+                  key={n.id}
+                  onClick={() => navigateToCountry(n)}
+                  className="px-2.5 py-1 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-200 border border-slate-800 text-[11px] font-semibold flex items-center gap-1.5 transition cursor-pointer"
+                >
+                  <span className="w-2 h-2 rounded-full" style={{ backgroundColor: nationColorMap.get(n.id) || n.color || "#06b6d4" }} />
+                  {n.name}
+                </button>
+              ))}
             </div>
           </div>
         )}
@@ -1589,6 +1606,504 @@ export default function InteractiveWorldMap({
       </div>
 
       {/* Main Split View: Interactive Map Canvas (Left 7 Cols) + Nation Command Drawer (Right 5 Cols) */}
+      {viewTier === "country" && activeNation ? (
+        /* TIER 3: COUNTRY & CONSTITUENT STATES DEDICATED IN-PAGE VIEW */
+        <div className="space-y-5 animate-in fade-in duration-200">
+          <div className="grid grid-cols-1 xl:grid-cols-12 gap-5 items-start">
+            {/* 1. Interactive ADM1 Leaflet Cartography (Left 7 Cols) */}
+            <div className="xl:col-span-7 bg-slate-900/90 border border-slate-800 rounded-2xl overflow-hidden shadow-2xl p-4">
+              <CountryAdm1Map
+                nation={activeNation}
+                selectedSubdivision={selectedStateName}
+                onSelectSubdivision={(name) => setSelectedStateName(name)}
+                territoryMap={territoryMap}
+                nationColor={nationColorMap.get(activeNation.id) || activeNation.color || "#06b6d4"}
+                economicSubdivisions={nationalStatesList}
+              />
+            </div>
+
+            {/* 2. State & Natural Resources Dossier Panel (Right 5 Cols) */}
+            <div className="xl:col-span-5 glass-panel rounded-2xl p-5 border border-slate-800 text-xs shadow-2xl space-y-3">
+              {(() => {
+                const isUsa = activeNation.id === "usa" || activeNation.name?.toLowerCase().includes("united states");
+                const activeDossier = (selectedStateName
+                  ? nationalStatesList.find((s) => s.name === selectedStateName)
+                  : (hoveredModalState || nationalStatesList[0])) || (selectedStateName ? {
+                      name: selectedStateName,
+                      role: "Constituent Sovereign State",
+                      status: "STATE",
+                    } : null);
+
+                if (activeDossier) {
+                  const stateMeta = isUsa ? getUsaStateData(activeDossier.name) : null;
+                  const stateGdp = activeDossier.gdp || (stateMeta ? (c.aggregateGdp || 0) * stateMeta.gdpShare : 0);
+                  const statePops = activeDossier.pops || (stateMeta ? Math.round((c.effectiveWorkingPops || 0) * stateMeta.popShare) : 0);
+                  const gdpSharePercent = stateMeta ? (stateMeta.gdpShare * 100).toFixed(1) : (c.aggregateGdp > 0 ? ((stateGdp / c.aggregateGdp) * 100).toFixed(1) : "0.0");
+                  const popSharePercent = stateMeta ? (stateMeta.popShare * 100).toFixed(1) : (c.effectiveWorkingPops > 0 ? ((statePops / c.effectiveWorkingPops) * 100).toFixed(1) : "0.0");
+                  const capital = activeDossier.capital || stateMeta?.capital || (activeDossier.name === "Georgia" ? "Atlanta" : "");
+
+                  return (
+                    <div className="space-y-3 animate-in fade-in duration-100">
+                      <div className="flex items-center justify-between pb-2 border-b border-slate-800">
+                        <div>
+                          <span className="font-bold text-white text-base flex items-center gap-1.5 flex-wrap">
+                            {activeDossier.name}
+                            {(activeDossier.code || stateMeta?.code) && (
+                              <span className="px-1.5 py-0.5 rounded bg-cyan-500/20 text-cyan-300 font-mono-num text-xs font-bold">
+                                {activeDossier.code || stateMeta?.code}
+                              </span>
+                            )}
+                          </span>
+                          {capital && (
+                            <span className="text-xs text-slate-400 font-normal block mt-0.5">
+                              Capital: <strong className="text-slate-200">{capital}</strong>
+                            </span>
+                          )}
+                        </div>
+                        {activeDossier.isSeceded ? (
+                          <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40 text-[10px] font-bold">
+                            ★ Seceded Sovereign
+                          </span>
+                        ) : (
+                          <span className="px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 text-[10px] font-bold">
+                            {activeDossier.status || "STATE"}
+                          </span>
+                        )}
+                      </div>
+
+                      <p className="text-xs text-slate-400">
+                        {activeDossier.region || activeDossier.role || "Constituent Sovereign State"}
+                      </p>
+
+                      <div className="grid grid-cols-2 gap-2 pt-1 font-mono-num text-xs">
+                        <div className="bg-slate-900/80 p-3 rounded-xl border border-slate-800">
+                          <span className="text-slate-400 block text-[10px]">State GDP & National Share:</span>
+                          <strong className="text-emerald-400 text-sm">
+                            {formatCurrency(stateGdp)}
+                          </strong>
+                          <span className="text-cyan-400 font-bold block text-[10px] mt-0.5">
+                            {gdpSharePercent}% of {activeNation.name} GDP
+                          </span>
+                        </div>
+                        <div className="bg-slate-900/80 p-3 rounded-xl border border-slate-800">
+                          <span className="text-slate-400 block text-[10px]">Constituent Workforce:</span>
+                          <strong className="text-white text-sm">
+                            {formatCompactNumber(statePops)}
+                          </strong>
+                          <span className="text-slate-400 block text-[10px] mt-0.5">
+                            {popSharePercent}% of Workforce
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Geographic Resource Endowments Breakdown (USGS, EIA, USDA) */}
+                      {isUsa && (() => {
+                        const endow = getUsStateEndowment(activeDossier.name);
+                        if (!endow) return null;
+                        return (
+                          <div className="mt-2 pt-2 border-t border-slate-800/90 space-y-1.5">
+                            <div className="flex items-center justify-between text-[10px] text-slate-400 font-bold uppercase tracking-wider">
+                              <span className="text-cyan-400 flex items-center gap-1">
+                                <Sparkles className="w-3 h-3 text-cyan-400" />
+                                Geographic Resource Endowments:
+                              </span>
+                              <span className="text-slate-500 font-mono-num">USGS / EIA / USDA</span>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-1.5 text-[10px] font-mono-num">
+                              <div className="p-2 rounded-lg bg-amber-500/10 border border-amber-500/25 text-amber-200">
+                                <span className="text-[9px] text-amber-400 block font-bold flex items-center gap-1">
+                                  <Fuel className="w-3 h-3" /> 🛢️ Oil & Gas:
+                                </span>
+                                <strong>{endow.hydrocarbonIndex}%</strong> ({endow.hydrocarbonIndex > 60 ? "Abundant Reserves" : endow.hydrocarbonIndex > 25 ? "Moderate Play" : "Low"})
+                              </div>
+                              <div className="p-2 rounded-lg bg-purple-500/10 border border-purple-500/25 text-purple-200">
+                                <span className="text-[9px] text-purple-400 block font-bold flex items-center gap-1">
+                                  <Pickaxe className="w-3 h-3" /> ⛏️ Minerals:
+                                </span>
+                                <strong>{endow.mineralIndex}%</strong> ({endow.mineralIndex > 60 ? "Rich Deposits" : endow.mineralIndex > 30 ? "Standard" : "Aggregates"})
+                              </div>
+                              <div className="p-2 rounded-lg bg-emerald-500/10 border border-emerald-500/25 text-emerald-200">
+                                <span className="text-[9px] text-emerald-400 block font-bold flex items-center gap-1">
+                                  <Wheat className="w-3 h-3" /> 🌾 Arable Land:
+                                </span>
+                                <strong>{endow.arableLandIndex}%</strong> ({endow.arableLandIndex > 70 ? "Prime Breadbasket" : "Arable Soil"})
+                              </div>
+                              <div className="p-2 rounded-lg bg-cyan-500/10 border border-cyan-500/25 text-cyan-200">
+                                <span className="text-[9px] text-cyan-400 block font-bold flex items-center gap-1">
+                                  <Anchor className="w-3 h-3" /> ⚓ Logistics & Ports:
+                                </span>
+                                <strong>{endow.logisticsWaterwayIndex}%</strong> ({endow.logisticsWaterwayIndex > 80 ? "Super-Hub Gateway" : "Regional Artery"})
+                              </div>
+                            </div>
+
+                            <div className="p-2.5 rounded-xl bg-slate-950/80 border border-slate-800 text-[10px] space-y-1">
+                              <p className="text-slate-300">
+                                <strong className="text-amber-300">Hydrocarbons:</strong> {endow.resources?.hydrocarbons || "Regional distribution"}
+                              </p>
+                              <p className="text-slate-300">
+                                <strong className="text-purple-300">Critical Minerals:</strong> {endow.resources?.criticalMinerals || "Aggregates & stone"}
+                              </p>
+                              <p className="text-slate-300">
+                                <strong className="text-emerald-300">Agriculture:</strong> {endow.resources?.agriculture || "Diversified farming"}
+                              </p>
+                              <div className="pt-1 mt-1 border-t border-slate-800/80 flex items-center justify-between text-[9px] text-slate-400">
+                                <span>Modeled Industrial: <strong className="text-cyan-300">{endow.modeledIndustrialOutput}</strong></span>
+                                <span>Agri: <strong className="text-emerald-300">{endow.modeledAgriculturalOutput}</strong></span>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })()}
+                    </div>
+                  );
+                }
+
+                return (
+                  <div className="p-6 text-center text-slate-400 space-y-2">
+                    <Compass className="w-8 h-8 mx-auto text-cyan-400/80" />
+                    <p className="font-bold text-slate-200 text-sm">Interactive Cartography Overview</p>
+                    <p className="text-xs text-slate-400">
+                      Click on any real administrative polygon or table row below to inspect its natural resources and state economic contribution.
+                    </p>
+                  </div>
+                );
+              })()}
+            </div>
+          </div>
+
+          {/* 3. Full Constituent States & Natural Resources Table */}
+          <div className="bg-slate-900/90 border border-slate-800 rounded-2xl overflow-hidden shadow-2xl flex flex-col">
+            {/* Toolbar */}
+            <div className="px-5 py-3.5 bg-slate-950/80 border-b border-slate-800 flex flex-wrap items-center justify-between gap-3 text-xs">
+              <div className="flex items-center gap-2 flex-wrap flex-1">
+                {/* Status & Natural Resource Filter Pills */}
+                <div className="flex items-center gap-1 bg-slate-900 p-1 rounded-xl border border-slate-800 text-[11px] overflow-x-auto">
+                  <button
+                    onClick={() => setStatesModalFilter("all")}
+                    className={`px-2.5 py-1 rounded-lg font-semibold transition cursor-pointer ${
+                      statesModalFilter === "all"
+                        ? "bg-slate-800 text-white font-bold"
+                        : "text-slate-400 hover:text-white"
+                    }`}
+                  >
+                    All Subdivisions ({nationalStatesList.length})
+                  </button>
+                  <button
+                    onClick={() => setStatesModalFilter("state")}
+                    className={`px-2.5 py-1 rounded-lg font-semibold transition cursor-pointer ${
+                      statesModalFilter === "state"
+                        ? "bg-slate-800 text-cyan-300 font-bold"
+                        : "text-slate-400 hover:text-white"
+                    }`}
+                  >
+                    Core States
+                  </button>
+                  <button
+                    onClick={() => setStatesModalFilter("territory")}
+                    className={`px-2.5 py-1 rounded-lg font-semibold transition cursor-pointer ${
+                      statesModalFilter === "territory"
+                        ? "bg-slate-800 text-amber-300 font-bold"
+                        : "text-slate-400 hover:text-white"
+                    }`}
+                  >
+                    Territories
+                  </button>
+
+                  {activeNation.id === "usa" && (
+                    <>
+                      <button
+                        onClick={() => setStatesModalFilter("energy")}
+                        className={`px-2 py-1 rounded-lg font-semibold transition cursor-pointer flex items-center gap-1 ${
+                          statesModalFilter === "energy"
+                            ? "bg-amber-500/25 border border-amber-500/50 text-amber-300 font-bold"
+                            : "text-amber-400 hover:text-amber-200"
+                        }`}
+                      >
+                        <Fuel className="w-3 h-3" /> 🛢️ Energy
+                      </button>
+                      <button
+                        onClick={() => setStatesModalFilter("minerals")}
+                        className={`px-2 py-1 rounded-lg font-semibold transition cursor-pointer flex items-center gap-1 ${
+                          statesModalFilter === "minerals"
+                            ? "bg-purple-500/25 border border-purple-500/50 text-purple-300 font-bold"
+                            : "text-purple-400 hover:text-purple-200"
+                        }`}
+                      >
+                        <Pickaxe className="w-3 h-3" /> ⛏️ Minerals
+                      </button>
+                      <button
+                        onClick={() => setStatesModalFilter("agri")}
+                        className={`px-2 py-1 rounded-lg font-semibold transition cursor-pointer flex items-center gap-1 ${
+                          statesModalFilter === "agri"
+                            ? "bg-emerald-500/25 border border-emerald-500/50 text-emerald-300 font-bold"
+                            : "text-emerald-400 hover:text-emerald-200"
+                        }`}
+                      >
+                        <Wheat className="w-3 h-3" /> 🌾 Agriculture
+                      </button>
+                    </>
+                  )}
+                </div>
+
+                {/* Search Box */}
+                <div className="relative min-w-[200px] max-w-xs flex-1">
+                  <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="text"
+                    placeholder={
+                      activeNation.id === "usa"
+                        ? "Search 56 states, capitals, minerals, basins..."
+                        : "Search states or subdivisions..."
+                    }
+                    value={stateSearchQuery}
+                    onChange={(e) => setStateSearchQuery(e.target.value)}
+                    className="w-full pl-8 pr-3 py-1.5 rounded-xl bg-slate-900 border border-slate-800 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 font-medium"
+                  />
+                </div>
+              </div>
+
+              {/* Sorting Dropdown */}
+              <div className="flex items-center gap-1.5 text-slate-400">
+                <span>Sort By:</span>
+                <select
+                  value={statesModalSort}
+                  onChange={(e) => setStatesModalSort(e.target.value)}
+                  className="px-2.5 py-1 rounded-lg bg-slate-900 border border-slate-800 text-slate-200 text-xs font-semibold focus:outline-none focus:border-cyan-500 cursor-pointer"
+                >
+                  <option value="gdp">State GDP (% of National Economy)</option>
+                  <option value="pops">Working Population</option>
+                  <option value="name">State Name (A → Z)</option>
+                  {activeNation.id === "usa" && (
+                    <>
+                      <option value="energy">🛢️ Oil & Gas Endowments</option>
+                      <option value="minerals">⛏️ Critical Minerals Endowments</option>
+                      <option value="agri">🌾 Agricultural Endowments</option>
+                    </>
+                  )}
+                  <option value="infra">Infrastructure Efficiency</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Table Container */}
+            <div className="overflow-x-auto max-h-[500px] overflow-y-auto">
+              {modalFilteredStates.length === 0 ? (
+                <div className="p-12 text-center space-y-2">
+                  <div className="w-10 h-10 rounded-full bg-slate-800 text-slate-400 flex items-center justify-center mx-auto text-sm font-bold">
+                    ∅
+                  </div>
+                  <h4 className="text-sm font-bold text-white">No States or Territories Found</h4>
+                  <p className="text-xs text-slate-400">
+                    Try adjusting your search query or filter settings.
+                  </p>
+                </div>
+              ) : (
+                <table className="w-full text-left text-xs text-slate-200">
+                  <thead className="bg-slate-950/90 text-[10px] uppercase tracking-wider text-slate-400 font-mono-num border-b border-slate-800 sticky top-0 z-10 backdrop-blur-sm">
+                    <tr>
+                      <th className="py-3 px-3 w-10 text-center">#</th>
+                      <th className="py-3 px-3">State & Capital</th>
+                      <th className="py-3 px-2">Status</th>
+                      <th className="py-3 px-3">Primary Natural Resources & Role</th>
+                      <th className="py-3 px-3 text-right">State GDP & Share</th>
+                      <th className="py-3 px-3 text-right">Workforce</th>
+                      <th className="py-3 px-3 text-right">Modeled Production</th>
+                      <th className="py-3 px-4 text-center">Statecraft Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-800/60 font-mono-num">
+                    {modalFilteredStates.map((st, idx) => {
+                      const isTerritory = st.status === "TERRITORY";
+                      const isSelectedState = selectedStateName === st.name;
+                      const gdpPercent =
+                        c.aggregateGdp > 0 ? (st.gdp / c.aggregateGdp) * 100 : 0;
+                      const popPercent =
+                        c.effectiveWorkingPops > 0
+                          ? (st.pops / c.effectiveWorkingPops) * 100
+                          : 0;
+
+                      return (
+                        <tr
+                          key={st.name || idx}
+                          onClick={() => setSelectedStateName(st.name)}
+                          className={`transition cursor-pointer ${
+                            isSelectedState
+                              ? "bg-cyan-950/60 ring-2 ring-cyan-500 shadow-md"
+                              : "hover:bg-slate-800/50"
+                          }`}
+                        >
+                          <td className="py-3 px-3 text-center text-slate-500 font-bold text-[11px]">
+                            {idx + 1}
+                          </td>
+                          <td className="py-3 px-3">
+                            <div className="flex items-center gap-2">
+                              <span
+                                className={`w-2 h-2 rounded-full shrink-0 ${
+                                  isTerritory ? "bg-amber-400" : "bg-cyan-400"
+                                }`}
+                              />
+                              <div>
+                                <div className="flex items-center gap-1.5">
+                                  <span className="font-bold text-white text-xs">
+                                    {st.name}
+                                  </span>
+                                  {st.code && (
+                                    <span className="text-[10px] px-1 py-0.2 rounded bg-cyan-500/20 text-cyan-300 font-mono font-bold">
+                                      {st.code}
+                                    </span>
+                                  )}
+                                </div>
+                                {st.capital && (
+                                  <span className="text-[10px] text-slate-400 block mt-0.5">
+                                    Capital: <strong className="text-slate-300">{st.capital}</strong>
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          </td>
+                          <td className="py-3 px-2">
+                            <span
+                              className={`text-[10px] font-bold px-2 py-0.5 rounded-full font-mono-num ${
+                                isTerritory
+                                  ? "bg-amber-500/20 text-amber-300 border border-amber-500/30"
+                                  : "bg-cyan-500/20 text-cyan-300 border border-cyan-500/30"
+                              }`}
+                            >
+                              {st.status || "STATE"}
+                            </span>
+                          </td>
+                          <td className="py-3 px-3 max-w-xs">
+                            <span className="text-slate-300 block truncate font-medium">
+                              {st.role || "Constituent Sovereign State"}
+                            </span>
+                            {activeNation.id === "usa" && (() => {
+                              const endow = getUsStateEndowment(st.name);
+                              if (!endow) return null;
+                              return (
+                                <div className="flex items-center gap-1.5 text-[10px] text-slate-400 mt-0.5">
+                                  {endow.hydrocarbonIndex > 30 && (
+                                    <span className="text-amber-400 flex items-center gap-0.5 font-bold">
+                                      <Fuel className="w-2.5 h-2.5" /> 🛢️ {endow.hydrocarbonIndex}%
+                                    </span>
+                                  )}
+                                  {endow.mineralIndex > 40 && (
+                                    <span className="text-purple-400 flex items-center gap-0.5 font-bold">
+                                      <Pickaxe className="w-2.5 h-2.5" /> ⛏️ {endow.mineralIndex}%
+                                    </span>
+                                  )}
+                                  {endow.arableLandIndex > 50 && (
+                                    <span className="text-emerald-400 flex items-center gap-0.5 font-bold">
+                                      <Wheat className="w-2.5 h-2.5" /> 🌾 {endow.arableLandIndex}%
+                                    </span>
+                                  )}
+                                </div>
+                              );
+                            })()}
+                          </td>
+                          <td className="py-3 px-3 text-right">
+                            <span className="font-bold text-emerald-400 text-xs block">
+                              {formatCurrency(st.gdp)}
+                            </span>
+                            <span className="text-[10px] text-slate-400 block font-bold">
+                              {gdpPercent.toFixed(1)}% of {activeNation.name} GDP
+                            </span>
+                          </td>
+                          <td className="py-3 px-3 text-right">
+                            <span className="text-white text-xs block">
+                              {formatCompactNumber(st.pops)}
+                            </span>
+                            <span className="text-[10px] text-slate-500 block">
+                              ({popPercent.toFixed(1)}%)
+                            </span>
+                          </td>
+                          <td className="py-3 px-3 text-right text-[11px]">
+                            {activeNation.id === "usa" ? (() => {
+                              const endow = getUsStateEndowment(st.name);
+                              return (
+                                <div className="text-right font-mono-num">
+                                  <span className="text-slate-300 block text-[10px]">
+                                    Ind: <strong className="text-cyan-300">{endow.modeledIndustrialOutput?.split(' ')[0] || '-'}</strong>
+                                  </span>
+                                  <span className="text-slate-400 block text-[10px]">
+                                    Agri: <strong className="text-emerald-300">{endow.modeledAgriculturalOutput?.split(' ')[0] || '-'}</strong>
+                                  </span>
+                                </div>
+                              );
+                            })() : (
+                              <span className="text-amber-300 font-bold">{formatPercent(st.infra, 0)}</span>
+                            )}
+                          </td>
+                          <td className="py-3 px-4 text-center">
+                            <div className="flex items-center justify-center gap-1.5 flex-wrap">
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setSelectedStateName(st.name);
+                                }}
+                                className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold flex items-center gap-1 cursor-pointer transition ${
+                                  isSelectedState
+                                    ? "bg-cyan-500 text-slate-950 font-bold shadow-sm"
+                                    : "bg-slate-800 hover:bg-slate-700 text-cyan-300"
+                                }`}
+                                title="Display complete state details and natural resources on the side panel"
+                              >
+                                <Sparkles className="w-3 h-3" /> Inspect Details
+                              </button>
+
+                              {isTerritory && !isReadOnly && (
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    onTransferTerritory({
+                                      territoryName: st.name,
+                                      targetNationId: activeNation.id,
+                                      mode: "INTEGRATE",
+                                      planet: activeNation.planet || "Earth",
+                                    });
+                                  }}
+                                  className="px-2.5 py-1 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40 text-[11px] font-bold flex items-center gap-1 cursor-pointer transition"
+                                  title="Elevate this territory into full Constituent Statehood"
+                                >
+                                  ★ Integrate
+                                </button>
+                              )}
+
+                              {!isReadOnly && nations.length > 1 && (
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setTransferringState(st);
+                                    setTransferTargetNationId("");
+                                  }}
+                                  className="px-2.5 py-1 rounded-lg bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 border border-amber-500/30 text-[11px] font-semibold flex items-center gap-1 cursor-pointer transition"
+                                  title="Transfer this state/territory to another country"
+                                >
+                                  <ArrowRightLeft className="w-3 h-3" /> Transfer
+                                </button>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              )}
+            </div>
+
+            {/* Table Footer */}
+            <div className="px-5 py-3 bg-slate-950/90 border-t border-slate-800 flex items-center justify-between text-xs text-slate-400 font-mono-num">
+              <span>
+                Showing <strong className="text-white">{modalFilteredStates.length}</strong> of{" "}
+                <strong className="text-white">{nationalStatesList.length}</strong> subdivisions in{" "}
+                <strong className="text-cyan-300">{activeNation.name}</strong>
+              </span>
+            </div>
+          </div>
+        </div>
+      ) : (
+      /* Main Split View: Interactive Map Canvas (Left 7 Cols) + Nation Command Drawer (Right 5 Cols) */
       <div className="grid grid-cols-1 xl:grid-cols-12 gap-5 items-start">
         {/* INTERACTIVE VECTOR MAP CANVAS */}
         <div className="xl:col-span-7 bg-slate-900/90 border border-slate-800 rounded-2xl overflow-hidden relative shadow-2xl">
@@ -1744,9 +2259,14 @@ export default function InteractiveWorldMap({
                                 onMouseLeave={() => setHoveredTerritory(null)}
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  const target = ctrlNation || (feat.name === "United States of America" ? (nationById.get("usa") || nations.find((n) => n.id === "usa")) : null) || ALL_NATIONS_BY_NAME.get(feat.name.toLowerCase());
+                                  const target =
+                                    ctrlNation ||
+                                    getSovereignNation(feat.name) ||
+                                    nationById.get(feat.name) ||
+                                    ALL_NATIONS_BY_NAME.get(feat.name.toLowerCase()) ||
+                                    ALL_NATIONS_BY_ID.get(feat.name.toLowerCase());
                                   if (target) {
-                                    navigateToCountry(target, true);
+                                    navigateToCountry(target);
                                   } else {
                                     handleTerritoryClick(feat.name, "Earth");
                                   }
@@ -2909,6 +3429,7 @@ export default function InteractiveWorldMap({
       </div>
     )}
       </div>
+    )}
 
       {/* CONSTITUENT STATE TRANSFER MODAL */}
       {transferringState && (

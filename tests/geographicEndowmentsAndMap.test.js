@@ -5,6 +5,7 @@ import { MAP_PROVIDERS } from "../src/data/mapProviders.js";
 import { evaluateGeographicProduction } from "../server/geographicProductionEngine.js";
 import { US_STATES_CATALOG, getUsaStateData } from "../src/data/usStatesData.js";
 import { resolveIso3, getContinentalBounds } from "../src/services/boundaryService.js";
+import { getSovereignNation } from "../src/data/nationsCatalog.js";
 
 describe("Geographic Endowments & Multi-Provider Cartography", () => {
   test("US geographic endowments contain authoritative USGS/EIA/USDA data for key anchor states", () => {
@@ -123,5 +124,27 @@ describe("Geographic Endowments & Multi-Provider Cartography", () => {
     assert.equal(resolveIso3("c_te_d_ivoire"), "CIV");
     assert.equal(resolveIso3("central_african_rep"), "CAF");
     assert.equal(resolveIso3("falkland_is"), "FLK");
+  });
+
+  test("Sovereign nation click resolution handles all aliases and global nations", () => {
+    const usa = getSovereignNation("United States of America");
+    assert.ok(usa, "USA must resolve from United States of America");
+    assert.equal(usa.id, "usa");
+
+    const usaAlias = getSovereignNation("United States");
+    assert.ok(usaAlias, "USA must resolve from United States alias");
+    assert.equal(usaAlias.id, "usa");
+
+    const drc = getSovereignNation("Democratic Republic of the Congo");
+    assert.ok(drc, "DRC must resolve from Democratic Republic of the Congo");
+    assert.equal(drc.id, "dem_rep_congo");
+
+    const canada = getSovereignNation("Canada");
+    assert.ok(canada, "Canada must resolve");
+    assert.equal(canada.id, "canada");
+
+    const mexico = getSovereignNation("Mexico");
+    assert.ok(mexico, "Mexico must resolve");
+    assert.equal(mexico.id, "mexico");
   });
 });
