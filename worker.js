@@ -1495,13 +1495,14 @@ export default {
 
       // POST /api/sessions/:id/territories (Dynamic Border Changes)
       if (parts[3] === "territories" && request.method === "POST") {
-        const { territoryName, targetNationId, mode = "ANNEX", planet = "Earth", actor } =
+        const { territoryName, targetNationId, mode = "ANNEX", planet = "Earth", capital, actor } =
           await request.json();
         const result = transferTerritory(sess.state, {
           territoryName,
           targetNationId,
           mode,
           planet,
+          capital,
         });
         await saveStateToD1(db, sess);
         await logActivity(
