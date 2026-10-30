@@ -1627,25 +1627,31 @@ export default function InteractiveWorldMap({
                               stroke="#020617"
                               strokeWidth={1 / Math.sqrt(zoom)}
                             />
-                            <text
-                              y={-6 / Math.sqrt(zoom)}
-                              textAnchor="middle"
-                              fill="#ffffff"
-                              fontSize={10 / Math.sqrt(zoom)}
-                              fontWeight="700"
-                              style={{
-                                textShadow: "0 1px 4px rgba(0,0,0,0.95)",
-                              }}
-                            >
-                              {n.name}
-                            </text>
+                            {/* Only show country name text at subcontinent level */}
+                            {viewTier === "subcontinent" && (
+                              <text
+                                y={-6 / Math.sqrt(zoom)}
+                                textAnchor="middle"
+                                fill="#ffffff"
+                                fontSize={10 / Math.sqrt(zoom)}
+                                fontWeight="700"
+                                style={{
+                                  textShadow: "0 1px 4px rgba(0,0,0,0.95)",
+                                }}
+                              >
+                                {n.name}
+                              </text>
+                            )}
                           </g>
                         );
                       })}
 
                     {/* Seceded Nation Capital Pins & Labels on Earth */}
                     {STATIC_US_STATE_FEATURES.map((stFeat) => {
-                      const directOwnerId = territoryMap[stFeat.name];
+                      const directOwnerId =
+                        stFeat.name === "Georgia"
+                          ? territoryMap["Georgia (USA)"] || territoryMap["Georgia:Atlanta"] || (territoryMap["Georgia"] === "usa" ? "usa" : territoryMap["Georgia"])
+                          : territoryMap[stFeat.name];
                       const usaOwnerId = territoryMap["United States of America"] || "usa";
                       if (!directOwnerId || directOwnerId === usaOwnerId) return null;
 
@@ -1673,17 +1679,20 @@ export default function InteractiveWorldMap({
                             strokeWidth={1.2 / Math.sqrt(zoom)}
                           />
                           <circle r={1.6 / Math.sqrt(zoom)} fill="#020617" />
-                          <text
-                            y={-6 / Math.sqrt(zoom)}
-                            textAnchor="middle"
-                            fill="#ffffff"
-                            fontSize={9 / Math.sqrt(zoom)}
-                            fontWeight="bold"
-                            fontFamily="sans-serif"
-                            className="pointer-events-none drop-shadow-[0_1px_4px_rgba(0,0,0,0.95)]"
-                          >
-                            {stNation.name}
-                          </text>
+                          {/* Only show text label at subcontinent level */}
+                          {viewTier === "subcontinent" && (
+                            <text
+                              y={-6 / Math.sqrt(zoom)}
+                              textAnchor="middle"
+                              fill="#ffffff"
+                              fontSize={9 / Math.sqrt(zoom)}
+                              fontWeight="bold"
+                              fontFamily="sans-serif"
+                              className="pointer-events-none drop-shadow-[0_1px_4px_rgba(0,0,0,0.95)]"
+                            >
+                              {stNation.name}
+                            </text>
+                          )}
                         </g>
                       );
                     })}
