@@ -327,6 +327,11 @@ export default function VictoriaStatecraftAndNewsView({
             icon: Scale,
           },
           {
+            id: "bonds",
+            label: `Central Bank & Bonds (${nation.monetary?.creditRating || "AA"})`,
+            icon: Landmark,
+          },
+          {
             id: "elections",
             label: `Dynamic Elections (${es.daysUntilElection ?? 180}d)`,
             icon: Vote,
@@ -1071,55 +1076,102 @@ export default function VictoriaStatecraftAndNewsView({
                       </div>
 
                       {!isReadOnly && (
-                        <button
-                          disabled={queuingBuildingId === b.id || cannotBuild}
-                          onClick={async () => {
-                            if (cannotBuild) return;
-                            setQueuingBuildingId(b.id);
-                            try {
-                              await onVictoriaAction({
-                                type: "QUEUE_CONSTRUCTION",
-                                nationId: nation.id,
-                                buildingId: b.id,
-                                targetState: activeBuildStateName,
-                              });
-                            } finally {
-                              setQueuingBuildingId(null);
+                        <div className="space-y-2 pt-1 border-t border-slate-800">
+                          {/* Option 1: Cash from Sovereign Treasury */}
+                          <button
+                            disabled={queuingBuildingId === `${b.id}_cash` || cannotBuild}
+                            onClick={async () => {
+                              if (cannotBuild) return;
+                              setQueuingBuildingId(`${b.id}_cash`);
+                              try {
+                                await onVictoriaAction({
+                                  type: "QUEUE_CONSTRUCTION",
+                                  nationId: nation.id,
+                                  buildingId: b.id,
+                                  targetState: activeBuildStateName,
+                                  financingMethod: "TREASURY",
+                                });
+                              } finally {
+                                setQueuingBuildingId(null);
+                              }
+                            }}
+                            className={`w-full py-2 rounded-xl text-[11px] font-bold flex items-center justify-center gap-1.5 transition ${
+                              cannotBuild
+                                ? "bg-slate-800/60 text-slate-500 border border-slate-800 cursor-not-allowed"
+                                : "bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40 cursor-pointer"
+                            }`}
+                            title={
+                              cannotBuild
+                                ? `Cash build blocked: requires ${formatCurrency(b.cost)} in positive treasury reserves`
+                                : `Pay ${formatCurrency(b.cost)} cash directly from treasury`
                             }
-                          }}
-                          className={`w-full py-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition ${
-                            isTreasuryNegative
-                              ? "bg-rose-500/15 text-rose-300 border border-rose-500/30 opacity-60 cursor-not-allowed"
-                              : insufficient
-                              ? "bg-slate-800 text-slate-400 border border-slate-700 opacity-60 cursor-not-allowed"
-                              : "bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 cursor-pointer"
-                          }`}
-                          title={
-                            isTreasuryNegative
-                              ? "Sovereign Treasury is negative: Construction prohibited"
-                              : insufficient
-                              ? `Insufficient treasury balance: requires ${formatCurrency(b.cost)}`
-                              : `Construct in ${activeBuildStateName}`
-                          }
-                        >
-                          {queuingBuildingId === b.id ? (
-                            <>
-                              <Loader2 className="w-3.5 h-3.5 animate-spin" /> Queuing Project...
-                            </>
-                          ) : isTreasuryNegative ? (
-                            <>
-                              <XCircle className="w-3.5 h-3.5 text-rose-400" /> Deficit: Treasury Negative
-                            </>
-                          ) : insufficient ? (
-                            <>
-                              <Coins className="w-3.5 h-3.5" /> Insufficient Funds
-                            </>
-                          ) : (
-                            <>
-                              <Hammer className="w-3.5 h-3.5" /> Construct in {activeBuildStateName}
-                            </>
-                          )}
-                        </button>
+                          >
+                            {queuingBuildingId === `${b.id}_cash` ? (
+                              <>
+                                <Loader2 className="w-3 h-3 animate-spin" /> Queuing Cash Build...
+                              </>
+                            ) : (
+                              <>
+                                <DollarSign className="w-3.5 h-3.5 text-emerald-400" />
+                                Pay Cash: {formatCurrency(b.cost)}
+                              </>
+                            )}
+                          </button>
+
+                          {/* Option 2: 5-Year Sovereign Infrastructure Bond */}
+                          {(() => {
+                            const isDefault = nation.monetary?.creditRating === "D";
+                            const bondYieldPct = (
+                              (Number(nation.monetary?.bondYield) || 0.0435) * 100
+                            ).toFixed(2);
+
+                            return (
+                              <button
+                                disabled={queuingBuildingId === `${b.id}_bonds` || isDefault}
+                                onClick={async () => {
+                                  if (isDefault) return;
+                                  setQueuingBuildingId(`${b.id}_bonds`);
+                                  try {
+                                    await onVictoriaAction({
+                                      type: "QUEUE_CONSTRUCTION",
+                                      nationId: nation.id,
+                                      buildingId: b.id,
+                                      targetState: activeBuildStateName,
+                                      financingMethod: "BONDS",
+                                    });
+                                  } finally {
+                                    setQueuingBuildingId(null);
+                                  }
+                                }}
+                                className={`w-full py-2 rounded-xl text-[11px] font-bold flex items-center justify-center gap-1.5 transition ${
+                                  isDefault
+                                    ? "bg-rose-500/15 text-rose-300 border border-rose-500/30 cursor-not-allowed"
+                                    : "bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-200 border border-cyan-500/40 cursor-pointer shadow-sm shadow-cyan-500/10"
+                                }`}
+                                title={
+                                  isDefault
+                                    ? "Sovereign default: bond market syndicate closed!"
+                                    : `Float 5-Yr Infrastructure Bond at ${bondYieldPct}% yield (operates even during treasury deficit)`
+                                }
+                              >
+                                {queuingBuildingId === `${b.id}_bonds` ? (
+                                  <>
+                                    <Loader2 className="w-3 h-3 animate-spin" /> Floating Bond...
+                                  </>
+                                ) : isDefault ? (
+                                  <>
+                                    <ShieldAlert className="w-3.5 h-3.5 text-rose-400" /> Debt Frozen (Default D)
+                                  </>
+                                ) : (
+                                  <>
+                                    <Landmark className="w-3.5 h-3.5 text-cyan-400" />
+                                    Issue 5-Yr Bond ({bondYieldPct}% Yield)
+                                  </>
+                                )}
+                              </button>
+                            );
+                          })()}
+                        </div>
                       )}
                     </div>
                   );
