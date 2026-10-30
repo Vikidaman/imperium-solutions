@@ -1,8 +1,13 @@
 import React, { useState, useEffect, useMemo, useRef } from "react";
-import { geoMercator, geoNaturalEarth1, geoAlbersUsa, geoPath } from "d3-geo";
 import * as topojson from "topojson-client";
 import usAtlas from "us-atlas/states-10m.json";
 import { US_STATES_CATALOG, REGION_TINTS, getUsaStateData } from "../data/usStatesData";
+import {
+  US_GEOGRAPHIC_ENDOWMENTS,
+  getUsStateEndowment,
+  ALL_US_RESOURCE_MARKERS,
+} from "../data/usGeographicEndowments";
+import { MAP_PROVIDERS } from "../data/mapProviders";
 import {
   Layers,
   MapPin,
@@ -12,18 +17,24 @@ import {
   CheckCircle2,
   AlertCircle,
   Landmark,
+  Globe2,
+  Pickaxe,
+  Fuel,
+  Wheat,
+  Anchor,
+  Sparkles,
 } from "lucide-react";
 import { loadCountryAdm1, resolveIso3 } from "../services/boundaryService";
 import { getLinkedSubdivision } from "../data/adm1Mapping";
 
 // Pre-extract US states GeoJSON feature collection and mesh
 const US_STATES_GEO = topojson.feature(usAtlas, usAtlas.objects.states);
-const US_STATES_MESH = topojson.mesh(usAtlas, usAtlas.objects.states, (a, b) => a !== b);
 
 /**
  * CountryAdm1Map
- * Authoritative country-level cartography rendering true first-level administrative
- * units (states, provinces, prefectures, governorates) as interactive selectable polygons.
+ * High-performance interactive cartography for Country & Constituent States.
+ * Powered by multi-provider tile basemaps (CartoDB, Esri Satellite, OSM)
+ * and interactive administrative & natural resource endowment overlays.
  */
 export default function CountryAdm1Map({
   nation,
@@ -33,38 +44,35 @@ export default function CountryAdm1Map({
   nationColor = "#06b6d4",
   economicSubdivisions = [],
 }) {
+  const mapContainerRef = useRef(null);
+  const leafletMapRef = useRef(null);
+  const geojsonLayerRef = useRef(null);
+  const tileLayerRef = useRef(null);
+  const markersLayerRef = useRef(null);
+
+  const [mapProvider, setMapProvider] = useState("carto_dark");
+  const [layerMode, setLayerMode] = useState("administrative"); // "administrative" | "economic" | "resources"
+  const [resourceCategory, setResourceCategory] = useState("all"); // "all" | "oil_gas" | "mineral" | "agri" | "port"
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [geoData, setGeoData] = useState(null);
-  const [layerMode, setLayerMode] = useState("administrative"); // "administrative" | "economic"
   const [hoveredFeature, setHoveredFeature] = useState(null);
-  const [zoom, setZoom] = useState(1);
-  const [pan, setPan] = useState({ x: 0, y: 0 });
-  const [isDragging, setIsDragging] = useState(false);
-  const dragStartRef = useRef({ x: 0, y: 0, panX: 0, panY: 0 });
 
   const iso3 = useMemo(() => resolveIso3(nation?.id || nation?.name), [nation]);
   const isUsa = iso3 === "USA";
 
-  // Map Dimensions
-  const width = 640;
-  const height = 400;
-
-  // Load country ADM1 GeoJSON when active nation changes (for non-US nations)
+  // Load country boundary GeoJSON
   useEffect(() => {
     let active = true;
     setHoveredFeature(null);
-    setZoom(1);
-    setPan({ x: 0, y: 0 });
 
     if (!nation) {
-      setLoading(false);
+      setGeoData(null);
       return;
     }
 
     if (isUsa) {
       setGeoData(US_STATES_GEO);
-      setLoading(false);
       setError(null);
       return;
     }
@@ -89,378 +97,515 @@ export default function CountryAdm1Map({
     };
   }, [nation, isUsa]);
 
-  // D3 Projection and Path Generator fitted to the country bounds
-  const { pathGenerator, computedFeatures, meshPath } = useMemo(() => {
-    if (isUsa) {
-      // Official Albers USA composite projection: lower 48 large & centered, Alaska/Hawaii neatly in corner
-      const proj = geoAlbersUsa().fitExtent(
-        [
-          [20, 20],
-          [width - 20, height - 20],
-        ],
-        US_STATES_GEO
-      );
-      const pathGen = geoPath(proj);
-      const mesh = pathGen(US_STATES_MESH);
+  // Initialize or update Leaflet Map
+  useEffect(() => {
+    if (typeof window === "undefined" || !mapContainerRef.current) return;
+    let active = true;
 
-      const featuresWithSvg = US_STATES_GEO.features.map((f) => {
-        const d = pathGen(f);
-        const centroid = pathGen.centroid(f);
-        const bounds = pathGen.bounds(f);
-        const name = f.properties.name;
-        const meta = getUsaStateData(name);
-        return {
-          id: f.id || name,
-          properties: {
-            name,
-            code: meta?.code || "",
-            region: meta?.region || "State",
-            type: "State",
-            iso: `US-${meta?.code || ""}`,
+    import("leaflet").then((LModule) => {
+      if (!active || !mapContainerRef.current) return;
+      const L = LModule.default || LModule;
+
+      // 1. Initialize Leaflet Map Instance if not created
+      if (!leafletMapRef.current) {
+        const map = L.map(mapContainerRef.current, {
+          zoomControl: false,
+          attributionControl: true,
+          fadeAnimation: true,
+          markerZoomAnimation: true,
+        });
+
+        // Set initial world view
+        map.setView([38, -96], 4);
+        leafletMapRef.current = map;
+      }
+
+      const map = leafletMapRef.current;
+
+      // 2. Update Basemap Tile Layer
+      if (tileLayerRef.current) {
+        map.removeLayer(tileLayerRef.current);
+      }
+
+      const provider = MAP_PROVIDERS[mapProvider] || MAP_PROVIDERS.carto_dark;
+      const tileLayer = L.tileLayer(provider.url, {
+        subdomains: provider.subdomains,
+        maxZoom: provider.maxZoom,
+        attribution: provider.attribution,
+      }).addTo(map);
+      tileLayerRef.current = tileLayer;
+
+      // 3. Render GeoJSON Boundaries Layer
+      if (geojsonLayerRef.current) {
+        map.removeLayer(geojsonLayerRef.current);
+        geojsonLayerRef.current = null;
+      }
+
+      if (geoData && geoData.features && geoData.features.length > 0) {
+        const geoLayer = L.geoJSON(geoData, {
+          style: (feature) => {
+            const name = feature.properties?.name || "";
+            const isSelected = selectedSubdivision === name;
+            const region = feature.properties?.region;
+            const regionTint = isUsa ? REGION_TINTS[region] : null;
+
+            // Secession check
+            const directOwner =
+              name === "Georgia"
+                ? territoryMap["Georgia (USA)"] || territoryMap["Georgia:Atlanta"] || territoryMap["Georgia"]
+                : territoryMap[name];
+            const isSeceded = directOwner && directOwner !== nation?.id && directOwner !== "usa";
+
+            // Color based on layer mode
+            let fillColor = nationColor;
+            let fillOpacity = 0.28;
+
+            if (isSeceded) {
+              fillColor = "#f59e0b";
+              fillOpacity = 0.65;
+            } else if (layerMode === "resources" && isUsa) {
+              const endow = getUsStateEndowment(name);
+              if (resourceCategory === "oil_gas") {
+                const ratio = (endow.hydrocarbonIndex || 0) / 100;
+                fillColor = `hsl(38, 92%, ${Math.round(20 + ratio * 35)}%)`;
+                fillOpacity = Math.max(0.2, ratio * 0.75);
+              } else if (resourceCategory === "mineral") {
+                const ratio = (endow.mineralIndex || 0) / 100;
+                fillColor = `hsl(275, 85%, ${Math.round(25 + ratio * 35)}%)`;
+                fillOpacity = Math.max(0.2, ratio * 0.75);
+              } else if (resourceCategory === "agri") {
+                const ratio = (endow.arableLandIndex || 0) / 100;
+                fillColor = `hsl(142, 75%, ${Math.round(22 + ratio * 35)}%)`;
+                fillOpacity = Math.max(0.2, ratio * 0.75);
+              } else if (resourceCategory === "port") {
+                const ratio = (endow.logisticsWaterwayIndex || 0) / 100;
+                fillColor = `hsl(199, 89%, ${Math.round(25 + ratio * 35)}%)`;
+                fillOpacity = Math.max(0.2, ratio * 0.75);
+              } else {
+                const totalEndow = ((endow.hydrocarbonIndex || 0) + (endow.mineralIndex || 0) + (endow.arableLandIndex || 0)) / 300;
+                fillColor = `hsl(180, 85%, ${Math.round(25 + totalEndow * 35)}%)`;
+                fillOpacity = Math.max(0.25, totalEndow * 0.7);
+              }
+            } else if (layerMode === "economic") {
+              const linked = getLinkedSubdivision(iso3, name);
+              fillColor = linked ? "#0284c7" : nationColor;
+              fillOpacity = 0.38;
+            } else if (isUsa && regionTint) {
+              fillColor = regionTint;
+              fillOpacity = 0.32;
+            }
+
+            if (isSelected) {
+              fillColor = "#38bdf8";
+              fillOpacity = 0.68;
+            }
+
+            return {
+              fillColor,
+              fillOpacity,
+              color: isSelected ? "#ffffff" : isSeceded ? "#fef08a" : "#38bdf8",
+              weight: isSelected ? 2.5 : 1.2,
+              opacity: 0.85,
+              dashArray: isSeceded ? "4, 3" : "",
+            };
           },
-          svgPath: d,
-          centroid: Number.isFinite(centroid[0]) ? centroid : [width / 2, height / 2],
-          bounds,
-        };
-      }).filter((f) => Boolean(f.svgPath));
 
-      return { pathGenerator: pathGen, computedFeatures: featuresWithSvg, meshPath: mesh };
-    }
+          onEachFeature: (feature, layer) => {
+            const name = feature.properties?.name || "Constituent Unit";
 
-    if (!geoData || !geoData.features || geoData.features.length === 0) {
-      return { pathGenerator: null, computedFeatures: [], meshPath: null };
-    }
+            // Click to select subdivision
+            layer.on("click", (e) => {
+              L.DomEvent.stopPropagation(e);
+              if (onSelectSubdivision) {
+                onSelectSubdivision(name);
+              }
+            });
 
-    // For sovereign nations (COD, DEU, GBR, FRA, JPN, BRA, etc.), fit Mercator to bounds
-    const projection = geoMercator().fitExtent(
-      [
-        [24, 24],
-        [width - 24, height - 24],
-      ],
-      geoData
-    );
+            // Hover effects
+            layer.on("mouseover", (e) => {
+              setHoveredFeature(feature);
+              const target = e.target;
+              target.setStyle({
+                weight: 2.5,
+                color: "#22d3ee",
+                fillOpacity: 0.55,
+              });
+              if (!L.Browser.ie && !L.Browser.opera && !L.Browser.edge) {
+                target.bringToFront();
+              }
+            });
 
-    const pathGen = geoPath(projection);
+            layer.on("mouseout", () => {
+              setHoveredFeature(null);
+              geoLayer.resetStyle(layer);
+            });
 
-    const featuresWithSvg = geoData.features.map((f, i) => {
-      const d = pathGen(f);
-      const centroid = pathGen.centroid(f);
-      const bounds = pathGen.bounds(f);
-      return {
-        ...f,
-        id: f.id || `${iso3}_${i}`,
-        svgPath: d,
-        centroid: Number.isFinite(centroid[0]) ? centroid : [width / 2, height / 2],
-        bounds,
-      };
-    }).filter((f) => Boolean(f.svgPath));
+            // Clean Tooltip
+            const endow = isUsa ? getUsStateEndowment(name) : null;
+            let tooltipContent = `<div class="px-2 py-1 text-xs">
+              <strong class="text-white block font-bold">${name}</strong>`;
+            if (endow && layerMode === "resources") {
+              tooltipContent += `<div class="text-[10px] text-amber-300 mt-0.5">
+                🛢️ Oil/Gas: ${endow.hydrocarbonIndex}% | ⛏️ Minerals: ${endow.mineralIndex}%
+              </div>
+              <div class="text-[10px] text-emerald-300">
+                🌾 Arable: ${endow.arableLandIndex}% | ⚓ Ports: ${endow.logisticsWaterwayIndex}%
+              </div>`;
+            } else {
+              tooltipContent += `<span class="text-[10px] text-slate-300">Click to inspect constituent unit</span>`;
+            }
+            tooltipContent += `</div>`;
 
-    return { pathGenerator: pathGen, computedFeatures: featuresWithSvg, meshPath: null };
-  }, [geoData, isUsa, iso3]);
+            layer.bindTooltip(tooltipContent, {
+              sticky: true,
+              className: "custom-leaflet-tooltip",
+            });
+          },
+        }).addTo(map);
 
-  // Mouse Wheel Zoom & Pan handlers
-  const handleWheel = (e) => {
-    e.preventDefault();
-    const factor = e.deltaY < 0 ? 1.15 : 0.87;
-    setZoom((z) => Math.min(6, Math.max(0.8, Number((z * factor).toFixed(2)))));
-  };
+        geojsonLayerRef.current = geoLayer;
 
-  const handleMouseDown = (e) => {
-    if (e.button !== 0) return;
-    setIsDragging(true);
-    dragStartRef.current = {
-      x: e.clientX,
-      y: e.clientY,
-      panX: pan.x,
-      panY: pan.y,
-    };
-  };
+        // Auto-fit bounds to the country
+        try {
+          const bounds = geoLayer.getBounds();
+          if (bounds.isValid()) {
+            map.fitBounds(bounds, {
+              padding: [20, 20],
+              maxZoom: isUsa ? 5 : 7,
+              animate: false,
+            });
+          }
+        } catch {
+          // fallback bounds
+        }
+      }
 
-  const handleMouseMove = (e) => {
-    if (!isDragging) return;
-    const dx = (e.clientX - dragStartRef.current.x) / zoom;
-    const dy = (e.clientY - dragStartRef.current.y) / zoom;
-    setPan({
-      x: Math.max(-280, Math.min(280, dragStartRef.current.panX + dx)),
-      y: Math.max(-200, Math.min(200, dragStartRef.current.panY + dy)),
+      // 4. Render Natural Resource Basin Markers in "resources" mode
+      if (markersLayerRef.current) {
+        map.removeLayer(markersLayerRef.current);
+        markersLayerRef.current = null;
+      }
+
+      if (layerMode === "resources" && isUsa) {
+        const markerGroup = L.layerGroup();
+
+        const filteredMarkers = ALL_US_RESOURCE_MARKERS.filter((m) => {
+          if (resourceCategory === "all") return true;
+          return m.type === resourceCategory;
+        });
+
+        filteredMarkers.forEach((marker) => {
+          const [lng, lat] = marker.coords;
+          if (!lng || !lat) return;
+
+          let iconEmoji = "⛏️";
+          let badgeColor = "bg-purple-500/80 border-purple-300 text-purple-100";
+          if (marker.type === "oil_gas") {
+            iconEmoji = "🛢️";
+            badgeColor = "bg-amber-500/80 border-amber-300 text-amber-100";
+          } else if (marker.type === "agri") {
+            iconEmoji = "🌾";
+            badgeColor = "bg-emerald-500/80 border-emerald-300 text-emerald-100";
+          } else if (marker.type === "port") {
+            iconEmoji = "⚓";
+            badgeColor = "bg-cyan-500/80 border-cyan-300 text-cyan-100";
+          }
+
+          const customIcon = L.divIcon({
+            className: "custom-resource-marker",
+            html: `
+              <div class="flex items-center justify-center w-7 h-7 rounded-full ${badgeColor} border-2 shadow-lg backdrop-blur-sm cursor-pointer hover:scale-125 transition-transform duration-150 animate-pulse">
+                <span class="text-xs">${iconEmoji}</span>
+              </div>
+            `,
+            iconSize: [28, 28],
+            iconAnchor: [14, 14],
+          });
+
+          const mLayer = L.marker([lat, lng], { icon: customIcon });
+
+          mLayer.bindPopup(`
+            <div class="p-2 space-y-1.5 text-xs max-w-xs font-sans">
+              <div class="flex items-center gap-1.5 font-bold text-white text-sm">
+                <span>${iconEmoji}</span>
+                <span>${marker.name}</span>
+              </div>
+              <span class="text-[10px] font-mono-num uppercase px-1.5 py-0.5 rounded bg-slate-800 text-cyan-300 border border-slate-700">
+                ${marker.state} (${marker.stateCode})
+              </span>
+              <p class="text-[11px] text-slate-300 leading-relaxed mt-1">
+                ${marker.desc}
+              </p>
+            </div>
+          `, { className: "custom-leaflet-popup" });
+
+          mLayer.on("click", (e) => {
+            L.DomEvent.stopPropagation(e);
+            if (onSelectSubdivision) {
+              onSelectSubdivision(marker.state);
+            }
+          });
+
+          markerGroup.addLayer(mLayer);
+        });
+
+        markerGroup.addTo(map);
+        markersLayerRef.current = markerGroup;
+      }
     });
+
+    return () => {
+      active = false;
+    };
+  }, [geoData, mapProvider, layerMode, resourceCategory, isUsa, nation, selectedSubdivision, nationColor]);
+
+  // Clean-up on unmount
+  useEffect(() => {
+    return () => {
+      if (leafletMapRef.current) {
+        leafletMapRef.current.remove();
+        leafletMapRef.current = null;
+      }
+    };
+  }, []);
+
+  const handleZoomIn = () => {
+    if (leafletMapRef.current) leafletMapRef.current.zoomIn();
   };
 
-  const handleMouseUp = () => setIsDragging(false);
+  const handleZoomOut = () => {
+    if (leafletMapRef.current) leafletMapRef.current.zoomOut();
+  };
 
-  const resetCamera = () => {
-    setZoom(1);
-    setPan({ x: 0, y: 0 });
+  const handleResetBounds = () => {
+    if (leafletMapRef.current && geojsonLayerRef.current) {
+      try {
+        const bounds = geojsonLayerRef.current.getBounds();
+        if (bounds.isValid()) {
+          leafletMapRef.current.fitBounds(bounds, { padding: [20, 20], maxZoom: isUsa ? 5 : 7 });
+        }
+      } catch {
+        leafletMapRef.current.setView([38, -96], 4);
+      }
+    }
   };
 
   return (
     <div className="w-full flex flex-col bg-slate-950 rounded-2xl border border-slate-800 overflow-hidden shadow-2xl relative select-none">
       {/* Top Controls Toolbar */}
-      <div className="px-4 py-2.5 bg-slate-900/90 border-b border-slate-800 flex flex-wrap items-center justify-between gap-3 z-10">
+      <div className="px-3.5 py-2.5 bg-slate-900/95 border-b border-slate-800 flex flex-wrap items-center justify-between gap-2.5 z-10 text-xs">
         <div className="flex items-center gap-2">
-          <span className="text-xs font-bold text-slate-300 flex items-center gap-1.5 uppercase tracking-wider">
+          <span className="font-bold text-white flex items-center gap-1.5 uppercase tracking-wider text-xs">
             <MapPin className="w-3.5 h-3.5 text-cyan-400" />
             {nation?.name}
           </span>
-          {computedFeatures.length > 0 && (
-            <span className="text-[11px] px-2 py-0.5 rounded-full bg-cyan-500/10 text-cyan-300 border border-cyan-500/30 font-mono-num font-bold">
-              {computedFeatures.length} First-Level Units (ADM1)
+          {geoData?.features && (
+            <span className="text-[10px] px-2 py-0.5 rounded-full bg-cyan-500/15 text-cyan-300 border border-cyan-500/30 font-mono-num font-bold">
+              {geoData.features.length} ADM1 Units
             </span>
           )}
         </div>
 
-        {/* Layer Mode Toggle (Administrative vs Economic) */}
+        {/* Map Provider Selector */}
+        <div className="flex items-center gap-1.5 bg-slate-950 px-2 py-1 rounded-xl border border-slate-800">
+          <Globe2 className="w-3.5 h-3.5 text-cyan-400" />
+          <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Provider:</span>
+          <select
+            value={mapProvider}
+            onChange={(e) => setMapProvider(e.target.value)}
+            className="bg-transparent text-white font-semibold text-[11px] focus:outline-none cursor-pointer pr-1"
+          >
+            {Object.values(MAP_PROVIDERS).map((p) => (
+              <option key={p.id} value={p.id} className="bg-slate-900 text-white">
+                {p.name}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {/* Layer Mode Toggle (Administrative vs Economic vs Natural Endowments) */}
         <div className="flex items-center gap-1 bg-slate-950 p-1 rounded-xl border border-slate-800">
           <button
             onClick={() => setLayerMode("administrative")}
-            className={`px-2.5 py-1 rounded-lg text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
+            className={`px-2 py-0.5 rounded-lg text-[11px] font-bold transition flex items-center gap-1 cursor-pointer ${
               layerMode === "administrative"
-                ? "bg-cyan-500 text-slate-950 shadow-sm shadow-cyan-500/20"
+                ? "bg-cyan-500 text-slate-950 shadow-sm"
                 : "text-slate-400 hover:text-slate-200"
             }`}
+            title="Real constitutional administrative boundaries"
           >
             <Layers className="w-3 h-3" />
-            Administrative (Real)
+            Administrative
           </button>
+
           <button
             onClick={() => setLayerMode("economic")}
-            className={`px-2.5 py-1 rounded-lg text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
+            className={`px-2 py-0.5 rounded-lg text-[11px] font-bold transition flex items-center gap-1 cursor-pointer ${
               layerMode === "economic"
-                ? "bg-amber-500 text-slate-950 shadow-sm shadow-amber-500/20"
+                ? "bg-amber-500 text-slate-950 shadow-sm"
                 : "text-slate-400 hover:text-slate-200"
             }`}
+            title="Macroeconomic simulator zones"
           >
             <Landmark className="w-3 h-3" />
-            Economic Zones
+            Economic
           </button>
+
+          {isUsa && (
+            <button
+              onClick={() => setLayerMode("resources")}
+              className={`px-2 py-0.5 rounded-lg text-[11px] font-bold transition flex items-center gap-1 cursor-pointer ${
+                layerMode === "resources"
+                  ? "bg-emerald-500 text-slate-950 shadow-sm shadow-emerald-500/20"
+                  : "text-emerald-400 hover:text-emerald-200"
+              }`}
+              title="USGS & EIA naturally occurring geological resource overlay"
+            >
+              <Sparkles className="w-3 h-3 text-emerald-300" />
+              Resources
+            </button>
+          )}
         </div>
 
-        {/* Camera Zoom & Reset Controls */}
+        {/* Camera Reset & Zoom Controls */}
         <div className="flex items-center gap-1 bg-slate-950 px-1 py-0.5 rounded-xl border border-slate-800">
           <button
-            onClick={() => setZoom((z) => Math.min(6, Number((z * 1.2).toFixed(2))))}
-            className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition cursor-pointer"
+            onClick={handleZoomIn}
+            className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition cursor-pointer"
             title="Zoom In"
           >
             <ZoomIn className="w-3.5 h-3.5" />
           </button>
           <button
-            onClick={() => setZoom((z) => Math.max(0.8, Number((z * 0.8).toFixed(2))))}
-            className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition cursor-pointer"
+            onClick={handleZoomOut}
+            className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition cursor-pointer"
             title="Zoom Out"
           >
             <ZoomOut className="w-3.5 h-3.5" />
           </button>
           <button
-            onClick={resetCamera}
-            className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition cursor-pointer"
-            title="Reset Zoom"
+            onClick={handleResetBounds}
+            className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition cursor-pointer"
+            title="Reset to Country Bounds"
           >
             <RotateCcw className="w-3.5 h-3.5" />
           </button>
-          <span className="text-[10px] text-slate-500 font-mono px-1">
-            {zoom.toFixed(1)}x
-          </span>
         </div>
       </div>
 
-      {/* Main Cartographic Viewport */}
-      <div
-        className="relative w-full h-80 sm:h-96 bg-gradient-to-b from-slate-950 via-slate-900/60 to-slate-950 flex items-center justify-center overflow-hidden cursor-grab active:cursor-grabbing"
-        onWheel={handleWheel}
-        onMouseDown={handleMouseDown}
-        onMouseMove={handleMouseMove}
-        onMouseUp={handleMouseUp}
-      >
+      {/* Sub-bar for Resource Category Filters (Active when layerMode === "resources") */}
+      {layerMode === "resources" && isUsa && (
+        <div className="px-3.5 py-1.5 bg-slate-950/90 border-b border-emerald-500/30 flex items-center justify-between gap-2 z-10 text-[11px] overflow-x-auto">
+          <span className="text-slate-400 font-bold uppercase tracking-wider text-[10px] flex items-center gap-1">
+            <Sparkles className="w-3 h-3 text-emerald-400" />
+            Endowments:
+          </span>
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => setResourceCategory("all")}
+              className={`px-2 py-0.5 rounded-md font-semibold cursor-pointer transition ${
+                resourceCategory === "all" ? "bg-emerald-500 text-slate-950 font-bold" : "text-slate-300 hover:bg-slate-800"
+              }`}
+            >
+              All Types
+            </button>
+            <button
+              onClick={() => setResourceCategory("oil_gas")}
+              className={`px-2 py-0.5 rounded-md font-semibold cursor-pointer transition flex items-center gap-1 ${
+                resourceCategory === "oil_gas" ? "bg-amber-500 text-slate-950 font-bold" : "text-amber-400 hover:bg-slate-800"
+              }`}
+            >
+              <Fuel className="w-3 h-3" /> 🛢️ Oil & Gas
+            </button>
+            <button
+              onClick={() => setResourceCategory("mineral")}
+              className={`px-2 py-0.5 rounded-md font-semibold cursor-pointer transition flex items-center gap-1 ${
+                resourceCategory === "mineral" ? "bg-purple-500 text-white font-bold" : "text-purple-400 hover:bg-slate-800"
+              }`}
+            >
+              <Pickaxe className="w-3 h-3" /> ⛏️ Critical Minerals
+            </button>
+            <button
+              onClick={() => setResourceCategory("agri")}
+              className={`px-2 py-0.5 rounded-md font-semibold cursor-pointer transition flex items-center gap-1 ${
+                resourceCategory === "agri" ? "bg-emerald-500 text-slate-950 font-bold" : "text-emerald-400 hover:bg-slate-800"
+              }`}
+            >
+              <Wheat className="w-3 h-3" /> 🌾 Agriculture
+            </button>
+            <button
+              onClick={() => setResourceCategory("port")}
+              className={`px-2 py-0.5 rounded-md font-semibold cursor-pointer transition flex items-center gap-1 ${
+                resourceCategory === "port" ? "bg-cyan-500 text-slate-950 font-bold" : "text-cyan-400 hover:bg-slate-800"
+              }`}
+            >
+              <Anchor className="w-3 h-3" /> ⚓ Waterways & Ports
+            </button>
+          </div>
+          <span className="text-[10px] text-slate-400 font-mono-num">
+            {ALL_US_RESOURCE_MARKERS.filter((m) => resourceCategory === "all" || m.type === resourceCategory).length} Key Formations
+          </span>
+        </div>
+      )}
+
+      {/* Main Interactive Map Viewport (Leaflet Container) */}
+      <div className="relative w-full h-[400px] bg-slate-950 overflow-hidden">
+        {/* Leaflet DOM mounting target */}
+        <div ref={mapContainerRef} className="w-full h-full z-0" />
+
+        {/* Loading Overlay */}
         {loading && (
-          <div className="flex flex-col items-center gap-2 text-cyan-400 animate-pulse">
-            <div className="w-8 h-8 rounded-full border-2 border-cyan-400 border-t-transparent animate-spin" />
-            <span className="text-xs font-bold uppercase tracking-wider">
-              Loading ADM1 Boundaries...
+          <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center gap-3 z-20">
+            <div className="w-5 h-5 rounded-full border-2 border-cyan-400 border-t-transparent animate-spin" />
+            <span className="text-xs font-semibold text-slate-300">
+              Loading cartographic boundaries...
             </span>
           </div>
         )}
 
-        {!loading && error && (
-          <div className="flex flex-col items-center max-w-sm text-center p-4 text-slate-400 bg-slate-900/80 rounded-2xl border border-slate-800">
-            <AlertCircle className="w-8 h-8 text-amber-400 mb-2" />
-            <h4 className="text-sm font-bold text-white mb-1">
-              Geographic Boundary Unavailable
-            </h4>
-            <p className="text-xs text-slate-400 mb-3">{error}</p>
-            <span className="text-[11px] text-cyan-400 font-medium">
-              Simulation continues with aggregated national accounts.
-            </span>
+        {/* Error Fallback */}
+        {error && !loading && (
+          <div className="absolute inset-0 bg-slate-950/90 flex flex-col items-center justify-center p-6 text-center z-20 space-y-2">
+            <AlertCircle className="w-8 h-8 text-amber-400" />
+            <h4 className="text-sm font-bold text-white">Geographic Data Unavailable</h4>
+            <p className="text-xs text-slate-400 max-w-sm leading-relaxed">{error}</p>
           </div>
-        )}
-
-        {!loading && !error && computedFeatures.length > 0 && (
-          <svg
-            viewBox={`0 0 ${width} ${height}`}
-            className="w-full h-full"
-            style={{
-              transform: `scale(${zoom}) translate(${pan.x}px, ${pan.y}px)`,
-              transformOrigin: "center center",
-              transition: isDragging ? "none" : "transform 0.15s ease-out",
-            }}
-          >
-            {/* Background Subdivisions */}
-            <g>
-              {computedFeatures.map((feat, index) => {
-                const name = feat.properties.name || `Subdivision ${index + 1}`;
-                const isSelected = selectedSubdivision === name;
-                const isHovered = hoveredFeature?.properties?.name === name;
-
-                // Check for secession
-                const directOwner =
-                  name === "Georgia"
-                    ? territoryMap["Georgia (USA)"] || territoryMap["Georgia:Atlanta"] || territoryMap["Georgia"]
-                    : territoryMap[name];
-                const isSeceded = directOwner && directOwner !== nation?.id && directOwner !== "usa";
-
-                const linkedEcon = getLinkedSubdivision(iso3, name);
-                const regionTint = isUsa ? REGION_TINTS[feat.properties.region] : null;
-
-                const fillColor = isSeceded
-                  ? "#f59e0b"
-                  : isSelected
-                  ? "#38bdf8"
-                  : isHovered
-                  ? "#22d3ee"
-                  : isUsa && regionTint
-                  ? regionTint
-                  : layerMode === "economic" && linkedEcon
-                  ? "#0284c7"
-                  : nationColor;
-
-                return (
-                  <path
-                    key={feat.id || `adm1_${index}`}
-                    d={feat.svgPath}
-                    fill={fillColor}
-                    fillOpacity={
-                      isSelected ? 0.98 : isHovered ? 0.92 : isSeceded ? 0.95 : 0.82
-                    }
-                    stroke={isSelected ? "#ffffff" : isHovered ? "#38bdf8" : isSeceded ? "#fef08a" : "#0f172a"}
-                    strokeWidth={isSelected ? 2.0 / zoom : 0.85 / zoom}
-                    className="transition-colors duration-150 hover:brightness-125 cursor-pointer"
-                    onMouseEnter={() => setHoveredFeature(feat)}
-                    onMouseLeave={() => setHoveredFeature(null)}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      if (onSelectSubdivision) {
-                        onSelectSubdivision(name);
-                      }
-                    }}
-                  />
-                );
-              })}
-            </g>
-
-            {/* Mesh Boundaries Overlay */}
-            {meshPath ? (
-              <path
-                d={meshPath}
-                fill="none"
-                stroke="#ffffff"
-                strokeOpacity={0.65}
-                strokeWidth={0.8 / zoom}
-                strokeDasharray={`${2.5 / zoom},${1.5 / zoom}`}
-                pointerEvents="none"
-              />
-            ) : (
-              <g className="pointer-events-none">
-                {computedFeatures.map((feat, index) => (
-                  <path
-                    key={`mesh_${feat.id || index}`}
-                    d={feat.svgPath}
-                    fill="none"
-                    stroke="#ffffff"
-                    strokeOpacity={0.4}
-                    strokeWidth={0.6 / zoom}
-                  />
-                ))}
-              </g>
-            )}
-
-            {/* Postal Codes for USA or Clean Labels for Selected / Zoomed in Provinces */}
-            <g className="pointer-events-none select-none">
-              {computedFeatures.map((feat, index) => {
-                const [cx, cy] = feat.centroid;
-                const name = feat.properties.name;
-                const isSelected = selectedSubdivision === name;
-                if (!cx || !cy || isNaN(cx) || isNaN(cy) || cx <= 0) return null;
-
-                // For USA: Clean, un-overlapping 2-letter postal code
-                if (isUsa && feat.properties.code) {
-                  return (
-                    <text
-                      key={`lbl_${feat.id || index}`}
-                      x={cx}
-                      y={cy + 3.5}
-                      textAnchor="middle"
-                      fill={isSelected ? "#ffffff" : "#f1f5f9"}
-                      fontSize={Math.max(6.5, 9 / Math.sqrt(zoom))}
-                      fontWeight="bold"
-                      fontFamily="monospace"
-                      className="drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]"
-                    >
-                      {feat.properties.code}
-                    </text>
-                  );
-                }
-
-                // For other countries: Only show label if selected, hovered, or user zooms in
-                if (isSelected || (zoom >= 1.8 && name.length <= 15)) {
-                  return (
-                    <text
-                      key={`lbl_${feat.id || index}`}
-                      x={cx}
-                      y={cy + 3}
-                      textAnchor="middle"
-                      fill={isSelected ? "#ffffff" : "#f1f5f9"}
-                      fontSize={Math.max(6, 8.5 / Math.sqrt(zoom))}
-                      fontWeight={isSelected ? "bold" : "600"}
-                      fontFamily="sans-serif"
-                      className="drop-shadow-[0_1px_3px_rgba(0,0,0,0.95)]"
-                    >
-                      {name}
-                    </text>
-                  );
-                }
-
-                return null;
-              })}
-            </g>
-          </svg>
         )}
 
         {/* Hover / Selection Context Badge at bottom-left */}
         {hoveredFeature && (
-          <div className="absolute bottom-3 left-3 bg-slate-900/90 backdrop-blur-md px-3.5 py-2.5 rounded-xl border border-slate-700 shadow-xl pointer-events-none flex flex-col gap-0.5 z-20 animate-in fade-in duration-100">
+          <div className="absolute bottom-3 left-3 bg-slate-900/90 backdrop-blur-md px-3.5 py-2.5 rounded-xl border border-slate-700 shadow-xl pointer-events-none flex flex-col gap-0.5 z-20 animate-in fade-in duration-100 max-w-xs">
             <span className="text-xs font-bold text-white flex items-center gap-1.5">
               <CheckCircle2 className="w-3.5 h-3.5 text-cyan-400" />
-              {hoveredFeature.properties.name}
+              {hoveredFeature.properties?.name}
+              {hoveredFeature.properties?.code && (
+                <span className="text-[10px] font-mono-num font-bold text-cyan-300 bg-cyan-500/20 px-1 py-0.2 rounded">
+                  {hoveredFeature.properties.code}
+                </span>
+              )}
             </span>
-            <div className="text-[11px] text-slate-400 flex items-center gap-2">
-              <span>Type: <strong className="text-slate-200">{hoveredFeature.properties.type || "Province"}</strong></span>
-              <span>•</span>
-              <span>ISO: <strong className="text-cyan-300 font-mono">{hoveredFeature.properties.iso || "N/A"}</strong></span>
-            </div>
-            {(() => {
-              const linked = getLinkedSubdivision(iso3, hoveredFeature.properties.name);
-              return linked ? (
-                <div className="text-[10px] text-amber-300 bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/30 mt-1">
-                  Simulation Zone: <strong>{linked.zoneName}</strong> ({linked.role})
-                </div>
-              ) : null;
-            })()}
+
+            {isUsa && (
+              (() => {
+                const endow = getUsStateEndowment(hoveredFeature.properties?.name);
+                return (
+                  <div className="mt-1 pt-1 border-t border-slate-800 text-[10px] space-y-0.5">
+                    <div className="text-slate-300 font-mono-num">
+                      🛢️ Oil/Gas: <strong className="text-amber-400">{endow.hydrocarbonIndex}%</strong> | ⛏️ Minerals: <strong className="text-purple-400">{endow.mineralIndex}%</strong>
+                    </div>
+                    <div className="text-slate-300 font-mono-num">
+                      🌾 Arable: <strong className="text-emerald-400">{endow.arableLandIndex}%</strong> | ⚓ Ports: <strong className="text-cyan-400">{endow.logisticsWaterwayIndex}%</strong>
+                    </div>
+                  </div>
+                );
+              })()
+            )}
           </div>
         )}
 
         {/* Metadata Source Footer */}
-        <div className="absolute bottom-1 right-2 text-[9px] text-slate-500 pointer-events-none">
-          Cartography: {isUsa ? "US Census / Natural Earth" : "geoBoundaries gbOpen (CC-BY 4.0)"}
+        <div className="absolute bottom-1 right-2 text-[9px] text-slate-400 pointer-events-none z-10 bg-slate-950/75 px-1.5 py-0.5 rounded border border-slate-800">
+          Map: {MAP_PROVIDERS[mapProvider]?.name} • USGS / EIA / USDA
         </div>
       </div>
     </div>

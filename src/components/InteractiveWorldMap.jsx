@@ -40,6 +40,7 @@ import {
 import BufferedRangeSlider from "./BufferedRangeSlider";
 import CountryAdm1Map from "./CountryAdm1Map";
 import { ALL_NATIONS_BY_ID, ALL_NATIONS_BY_NAME } from "../data/nationsCatalog";
+import { getUsStateEndowment } from "../data/usGeographicEndowments";
 import {
   formatCurrency,
   formatExactCurrency,
@@ -3109,19 +3110,71 @@ export default function InteractiveWorldMap({
                           {activeDossier.region || activeDossier.role || "Administrative Division"}
                         </p>
                         <div className="grid grid-cols-2 gap-2 pt-1 font-mono-num text-[11px]">
-                          <div className="bg-slate-900/80 p-2.5 rounded-xl border border-slate-800">
+                          <div className="bg-slate-900/80 p-2 rounded-xl border border-slate-800">
                             <span className="text-slate-400 block text-[10px]">Estimated GDP:</span>
                             <strong className="text-emerald-400">
                               {activeDossier.gdp ? formatCurrency(activeDossier.gdp) : "Aggregated in Zone"}
                             </strong>
                           </div>
-                          <div className="bg-slate-900/80 p-2.5 rounded-xl border border-slate-800">
+                          <div className="bg-slate-900/80 p-2 rounded-xl border border-slate-800">
                             <span className="text-slate-400 block text-[10px]">Working Population:</span>
                             <strong className="text-white">
                               {activeDossier.pops ? formatCompactNumber(activeDossier.pops) : "National Pool"}
                             </strong>
                           </div>
                         </div>
+
+                        {/* Geographic Resource Endowments Breakdown (USGS, EIA, USDA) */}
+                        {activeNation.id === "usa" && (() => {
+                          const endow = getUsStateEndowment(activeDossier.name);
+                          if (!endow) return null;
+                          return (
+                            <div className="mt-2 pt-2 border-t border-slate-800/90 space-y-1.5">
+                              <div className="flex items-center justify-between text-[10px] text-slate-400 font-bold uppercase tracking-wider">
+                                <span className="text-cyan-400 flex items-center gap-1">
+                                  <Sparkles className="w-3 h-3 text-cyan-400" />
+                                  Geographic Resource Endowments:
+                                </span>
+                                <span className="text-slate-500 font-mono-num">USGS / EIA / USDA</span>
+                              </div>
+
+                              <div className="grid grid-cols-2 gap-1.5 text-[10px] font-mono-num">
+                                <div className="p-1.5 rounded-lg bg-amber-500/10 border border-amber-500/25 text-amber-200">
+                                  <span className="text-[9px] text-amber-400 block font-bold">🛢️ Oil & Gas:</span>
+                                  <strong>{endow.hydrocarbonIndex}%</strong> ({endow.hydrocarbonIndex > 60 ? "Abundant" : endow.hydrocarbonIndex > 25 ? "Moderate" : "Low"})
+                                </div>
+                                <div className="p-1.5 rounded-lg bg-purple-500/10 border border-purple-500/25 text-purple-200">
+                                  <span className="text-[9px] text-purple-400 block font-bold">⛏️ Minerals:</span>
+                                  <strong>{endow.mineralIndex}%</strong> ({endow.mineralIndex > 60 ? "Rich Deposits" : endow.mineralIndex > 30 ? "Standard" : "Aggregates"})
+                                </div>
+                                <div className="p-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/25 text-emerald-200">
+                                  <span className="text-[9px] text-emerald-400 block font-bold">🌾 Arable Soil:</span>
+                                  <strong>{endow.arableLandIndex}%</strong> ({endow.arableLandIndex > 70 ? "Prime Breadbasket" : "Arable"})
+                                </div>
+                                <div className="p-1.5 rounded-lg bg-cyan-500/10 border border-cyan-500/25 text-cyan-200">
+                                  <span className="text-[9px] text-cyan-400 block font-bold">⚓ Logistics/Ports:</span>
+                                  <strong>{endow.logisticsWaterwayIndex}%</strong> ({endow.logisticsWaterwayIndex > 80 ? "Super-Hub" : "Regional"})
+                                </div>
+                              </div>
+
+                              <div className="p-2 rounded-xl bg-slate-950/80 border border-slate-800 text-[10px] space-y-1">
+                                <p className="text-slate-300">
+                                  <strong className="text-amber-300">Hydrocarbons:</strong> {endow.resources?.hydrocarbons || "Regional distribution"}
+                                </p>
+                                <p className="text-slate-300">
+                                  <strong className="text-purple-300">Critical Minerals:</strong> {endow.resources?.criticalMinerals || "Aggregates & stone"}
+                                </p>
+                                <p className="text-slate-300">
+                                  <strong className="text-emerald-300">Agriculture:</strong> {endow.resources?.agriculture || "Diversified farming"}
+                                </p>
+                                <div className="pt-1 mt-1 border-t border-slate-800/80 flex items-center justify-between text-[9px] text-slate-400">
+                                  <span>Modeled Industrial: <strong className="text-cyan-300">{endow.modeledIndustrialOutput}</strong></span>
+                                  <span>Agri: <strong className="text-emerald-300">{endow.modeledAgriculturalOutput}</strong></span>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })()}
                       </div>
                     );
                   }
