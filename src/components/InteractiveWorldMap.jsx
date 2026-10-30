@@ -1461,6 +1461,9 @@ export default function InteractiveWorldMap({
 
                     {/* Country Territory Polygons on Earth */}
                     {earthFeatures.map((feat) => {
+                      // United States rendered as individual 50 constituent states below
+                      if (feat.name === "United States of America") return null;
+
                       const ctrlId = territoryMap[feat.name];
                       const ctrlNation = nationById.get(ctrlId);
                       const isSelected =
@@ -1499,64 +1502,62 @@ export default function InteractiveWorldMap({
                       );
                     })}
 
-                    {/* Seceded Constituent States & Transferred Territories Overlay (e.g. California Republic, Republic of Texas) */}
+                    {/* United States 50 Individual Constituent States & Seceded Sovereign Republics */}
                     {STATIC_US_STATE_FEATURES.map((stFeat) => {
                       const directOwnerId =
                         stFeat.name === "Georgia"
-                          ? territoryMap["Georgia (USA)"] || territoryMap["Georgia:Atlanta"] || (territoryMap["Georgia"] === "usa" ? "usa" : territoryMap["Georgia"])
-                          : territoryMap[stFeat.name];
-                      const usaOwnerId = territoryMap["United States of America"] || "usa";
-                      if (!directOwnerId || directOwnerId === usaOwnerId) return null;
+                          ? territoryMap["Georgia (USA)"] || territoryMap["Georgia:Atlanta"] || (territoryMap["Georgia"] === "usa" ? "usa" : territoryMap["Georgia"] || "usa")
+                          : territoryMap[stFeat.name] || territoryMap["United States of America"] || "usa";
 
-                      const stNation = nationById.get(directOwnerId);
-                      const secededColor = stNation?.color || "#f59e0b";
-                      const isSelected = stNation && stNation.id === activeNation?.id;
+                      const isSeceded = directOwnerId !== "usa" && directOwnerId !== territoryMap["United States of America"];
+                      const stNation = nationById.get(directOwnerId) || nationById.get("usa");
+                      const isSelected = (stNation && stNation.id === activeNation?.id) || (!isSeceded && activeNation?.id === "usa");
+                      const meta = getUsaStateData(stFeat.name);
+
+                      const fillColor = isSeceded
+                        ? (stNation?.color || "#f59e0b")
+                        : (REGION_TINTS[meta.region] || "#0284c7");
 
                       return (
                         <path
-                          key={`seceded_overlay_${stFeat.name}`}
+                          key={`us_state_${stFeat.name}`}
                           d={stFeat.d}
-                          fill={secededColor}
-                          fillOpacity={0.96}
-                          stroke={isSelected ? "#38bdf8" : "#ffffff"}
-                          strokeOpacity={1.0}
-                          strokeWidth={(isSelected ? 2.4 : 1.4) / zoom}
-                          className="transition-colors duration-150 hover:brightness-135 cursor-pointer"
+                          fill={fillColor}
+                          fillOpacity={isSelected ? 0.96 : isSeceded ? 0.94 : 0.84}
+                          stroke={isSelected ? "#38bdf8" : isSeceded ? "#ffffff" : "#0f172a"}
+                          strokeOpacity={0.95}
+                          strokeWidth={(isSelected ? 1.8 : 0.8) / zoom}
+                          className="transition-colors duration-150 hover:brightness-125 cursor-pointer"
                           onMouseEnter={() => {
                             setHoveredTerritory({
-                              name: stNation?.name || stFeat.name,
+                              name: stFeat.name,
                               isControlled: true,
-                              controllerName: stNation?.name || "Seceded Sovereign State",
-                              gdp: stNation?.computed?.aggregateGdp,
-                              sol: stNation?.computed?.sol,
-                              pops: stNation?.computed?.effectiveWorkingPops,
-                              status: "SECEDED SOVEREIGN STATE",
+                              controllerName: isSeceded ? (stNation?.name || "Seceded Sovereign State") : "United States of America",
+                              gdp: isSeceded ? stNation?.computed?.aggregateGdp : (c.aggregateGdp || 25e12) * meta.gdpShare,
+                              sol: isSeceded ? stNation?.computed?.sol : c.sol,
+                              pops: isSeceded ? stNation?.computed?.effectiveWorkingPops : Math.round((c.effectiveWorkingPops || 165e6) * meta.popShare),
+                              status: isSeceded ? "SECEDED SOVEREIGN STATE" : "CONSTITUENT STATE",
                             });
                           }}
                           onMouseLeave={() => setHoveredTerritory(null)}
                           onClick={(e) => {
                             e.stopPropagation();
-                            if (stNation) {
-                              focusOnCountry(stNation);
-                              setShowStatesTableModal(true);
-                            }
+                            handleTerritoryClick(stFeat.name, "Earth");
                           }}
                         />
                       );
                     })}
 
                     {/* United States Crisp Internal State Boundaries Mesh */}
-                    {viewTier === "country" && activeNation?.id === "usa" && (
-                      <path
-                        d={STATIC_US_STATES_MESH}
-                        fill="none"
-                        stroke="#f8fafc"
-                        strokeOpacity={0.85}
-                        strokeWidth={1.0 / zoom}
-                        strokeDasharray={`${3 / zoom},${1.8 / zoom}`}
-                        pointerEvents="none"
-                      />
-                    )}
+                    <path
+                      d={STATIC_US_STATES_MESH}
+                      fill="none"
+                      stroke="#ffffff"
+                      strokeOpacity={0.75}
+                      strokeWidth={0.8 / zoom}
+                      strokeDasharray={`${3 / zoom},${1.6 / zoom}`}
+                      pointerEvents="none"
+                    />
 
                     {/* Internal Provincial Borders (Distinct Provincial Delineations across Nations) */}
                     {internalBorderPath && (
