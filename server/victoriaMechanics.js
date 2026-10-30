@@ -1137,6 +1137,91 @@ export function evaluateVictoriaMechanics(state) {
       constructionCapacity,
     };
 
+    // 2. Evaluate Monetary Policy, Sovereign Debt & Yield Curve
+    if (!nation.monetary) {
+      nation.monetary = {
+        policyRate: 0.035,
+        inflationRate: 0.024,
+        neutralRate: 0.030,
+        centralBankModel: "INDEPENDENT_TECHNOCRACY",
+        totalSovereignDebt: Math.round((c.aggregateGdp || 1e11) * 0.45),
+        debtToGdp: 0.45,
+        creditRating: "AA",
+        ratingLabel: "High Grade Sovereign",
+        ratingColor: "text-cyan-400",
+        sovereignSpread: 0.0085,
+        bondYield: 0.0435,
+        quarterlyDebtService: Math.round(((c.aggregateGdp || 1e11) * 0.45 * 0.0435) / 4),
+        activeBonds: [],
+      };
+    }
+
+    const m = nation.monetary;
+    const gdpVal = Math.max(1e9, c.aggregateGdp || nation.aggregateGdp || 1e11);
+    m.totalSovereignDebt = Math.max(0, Number(m.totalSovereignDebt) || 0);
+    m.debtToGdp = Number((m.totalSovereignDebt / gdpVal).toFixed(3));
+
+    const creditInfo = getSovereignCreditRating(m.debtToGdp);
+    m.creditRating = creditInfo.rating;
+    m.ratingLabel = creditInfo.label;
+    m.ratingColor = creditInfo.color;
+    m.sovereignSpread = creditInfo.spread;
+    m.bondYield = Number(((Number(m.policyRate) || 0.035) + m.sovereignSpread).toFixed(4));
+    m.quarterlyDebtService = Math.round((m.totalSovereignDebt * m.bondYield) / 4);
+
+    const unempVal = Number(c.unemploymentRate) || 0.045;
+    m.taylorRuleRate = calculateTaylorRuleRate(m.inflationRate || 0.024, unempVal, m.neutralRate || 0.030);
+
+    // 3. Evaluate Commercial Banking Sector Balance Sheet
+    if (!nation.banking) nation.banking = {};
+    const b = nation.banking;
+    b.corporateLendingRate = Number(((Number(m.policyRate) || 0.035) + 0.024).toFixed(4));
+    b.depositRate = Number(Math.max(0.002, (Number(m.policyRate) || 0.035) - 0.015).toFixed(4));
+    b.totalDeposits = Math.round(gdpVal * 0.85 + Math.max(0, nation.treasuryBalance || 0) * 0.35);
+    b.totalCommercialLoans = Math.round(gdpVal * 0.62 + m.totalSovereignDebt * 0.18);
+    b.reserveRatio = 0.10;
+    b.bankCapitalAdequacy = 0.145;
+
+    b.nonPerformingLoansRatio = Number(
+      Math.min(
+        0.28,
+        Math.max(0.01, 0.015 + Math.max(0, (m.policyRate || 0.035) - 0.05) * 0.75 + Math.max(0, unempVal - 0.05) * 0.6)
+      ).toFixed(3)
+    );
+    b.systemicHealth =
+      b.nonPerformingLoansRatio > 0.08 || m.creditRating === "D"
+        ? "CRISIS"
+        : b.nonPerformingLoansRatio > 0.04 || m.creditRating === "CCC"
+        ? "STRESSED"
+        : "STABLE";
+
+    // Debt service fiscal pressure & political impact
+    const annualTaxRevenue = Math.max(1e8, Number(c.totalTaxRevenue) || gdpVal * 0.22);
+    m.debtServiceRatio = Number(((m.quarterlyDebtService * 4) / annualTaxRevenue).toFixed(3));
+
+    if (m.debtServiceRatio > 0.28) {
+      const penalty = Math.round((m.debtServiceRatio - 0.28) * 35);
+      legitimacy = Math.max(8, legitimacy - penalty);
+      if (nation.radicals) {
+        nation.radicals.turmoil = Math.min(100, (nation.radicals.turmoil || 10) + penalty * 0.7);
+        nation.radicals.legitimacy = legitimacy;
+      }
+    }
+
+    // Rate impact on Interest Groups
+    for (const ig of nation.interestGroups || []) {
+      if (ig.id === "industrialists") {
+        if (m.policyRate > 0.065) ig.approval = Math.max(-10, ig.approval - 2);
+        else if (m.policyRate < 0.025) ig.approval = Math.min(10, ig.approval + 2);
+      }
+      if (ig.id === "trade_unions" && m.debtServiceRatio > 0.30) {
+        ig.approval = Math.max(-10, ig.approval - 2);
+      }
+      if (ig.id === "petite_bourgeoisie" && b.corporateLendingRate > 0.08) {
+        ig.approval = Math.max(-10, ig.approval - 1);
+      }
+    }
+
     // Dynamic Election Projections & Countdown
     const es = nation.electionState;
     es.daysUntilElection = Math.max(0, diffDaysIso(es.nextElectionDate, curDate));
