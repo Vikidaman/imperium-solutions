@@ -1,0 +1,27 @@
+{
+  "feature_names": [
+    "hydrocarbon_endowment",
+    "mineral_endowment",
+    "arable_land_endowment",
+    "waterway_logistics_endowment",
+    "industrial_capital_stock",
+    "extractive_labor_share",
+    "agricultural_labor_share",
+    "infrastructure_efficiency"
+  ],
+  "feature_descriptions": {
+    "hydrocarbon_endowment": "Proven oil, natural gas, and coal reserves and extraction capacity (0-100)",
+    "mineral_endowment": "Critical mineral, iron ore, copper, lithium, and rare earth deposits (0-100)",
+    "arable_land_endowment": "Prime soil fertility, water resources, and crop heat units (0-100)",
+    "waterway_logistics_endowment": "Navigable inland river miles, deepwater ports, and rail junctions (0-100)",
+    "industrial_capital_stock": "Gross fixed manufacturing and extraction machinery capital ($ Billions)",
+    "extractive_labor_share": "Percentage of workforce in mining, drilling, quarrying and refining (%)",
+    "agricultural_labor_share": "Percentage of workforce in farming, ranching, and agro-forestry (%)",
+    "infrastructure_efficiency": "State transport and utility efficiency multiplier (0.0 - 1.0)"
+  },
+  "targets": {
+    "mining_extractive_gdp": "Mining, quarrying, and oil/gas extraction GDP ($ Billions)",
+    "heavy_manufacturing_gdp": "Heavy machinery, automotive, chemicals, and metallurgy GDP ($ Billions)",
+    "agricultural_production_gdp": "Crops, livestock, forestry, and aquaculture cash output ($ Billions)"
+  }
+}
