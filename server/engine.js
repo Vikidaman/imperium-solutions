@@ -14,6 +14,7 @@ import {
   CONSTRUCTION_BUILDINGS,
 } from "./victoriaMechanics.js";
 import { HISTORICAL_ERAS, getHistoricalEraForDate } from "./historicalEras.js";
+import { ALL_SOVEREIGN_NATIONS, ALL_NATIONS_BY_ID, ALL_NATIONS_BY_NAME } from "../src/data/nationsCatalog.js";
 
 export {
   setCustomStartDate,
