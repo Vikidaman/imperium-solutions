@@ -4,6 +4,7 @@ import { US_GEOGRAPHIC_ENDOWMENTS, getUsStateEndowment, ALL_US_RESOURCE_MARKERS 
 import { MAP_PROVIDERS } from "../src/data/mapProviders.js";
 import { evaluateGeographicProduction } from "../server/geographicProductionEngine.js";
 import { US_STATES_CATALOG, getUsaStateData } from "../src/data/usStatesData.js";
+import { resolveIso3, getContinentalBounds } from "../src/services/boundaryService.js";
 
 describe("Geographic Endowments & Multi-Provider Cartography", () => {
   test("US geographic endowments contain authoritative USGS/EIA/USDA data for key anchor states", () => {
@@ -93,5 +94,34 @@ describe("Geographic Endowments & Multi-Provider Cartography", () => {
       totalGdpShare += meta.gdpShare;
     }
     assert.ok(totalGdpShare > 0.95 && totalGdpShare <= 1.05, "Total state GDP share must sum to ~100% of national economy");
+  });
+
+  test("Continental bounds framing correctly excludes far-flung overseas territories", () => {
+    const usaContinental = getContinentalBounds("USA");
+    assert.ok(usaContinental, "USA continental bounds must exist");
+    assert.deepEqual(usaContinental[0], [24.3963, -125.0], "Must frame lower 48 Southwest origin");
+    assert.deepEqual(usaContinental[1], [49.3844, -66.9346], "Must frame lower 48 Northeast extent");
+
+    const fraContinental = getContinentalBounds("FRA");
+    assert.ok(fraContinental, "France metropolitan bounds must exist");
+    assert.deepEqual(fraContinental[0], [41.3, -5.5], "Must frame metropolitan France");
+
+    const gbrContinental = getContinentalBounds("GBR");
+    assert.ok(gbrContinental, "Great Britain continental bounds must exist");
+  });
+
+  test("Comprehensive ISO-3 resolution database covers all simulator Earth countries", () => {
+    assert.equal(resolveIso3("dem_rep_congo"), "COD");
+    assert.equal(resolveIso3("Dem. Rep. Congo"), "COD");
+    assert.equal(resolveIso3("norway"), "NOR");
+    assert.equal(resolveIso3("chile"), "CHL");
+    assert.equal(resolveIso3("philippines"), "PHL");
+    assert.equal(resolveIso3("vietnam"), "VNM");
+    assert.equal(resolveIso3("s_sudan"), "SSD");
+    assert.equal(resolveIso3("w_sahara"), "ESH");
+    assert.equal(resolveIso3("bosnia_and_herz"), "BIH");
+    assert.equal(resolveIso3("c_te_d_ivoire"), "CIV");
+    assert.equal(resolveIso3("central_african_rep"), "CAF");
+    assert.equal(resolveIso3("falkland_is"), "FLK");
   });
 });

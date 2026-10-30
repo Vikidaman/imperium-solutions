@@ -3082,13 +3082,13 @@ export default function InteractiveWorldMap({
               <div className="w-full md:w-2/5 glass-panel rounded-2xl p-4 border border-slate-800 text-xs space-y-2">
                 {(() => {
                   const isUsa = activeNation.id === "usa" || activeNation.name?.toLowerCase().includes("united states");
-                  const activeDossier = selectedStateName
-                    ? (nationalStatesList.find((s) => s.name === selectedStateName) || {
+                  const activeDossier = (selectedStateName
+                    ? nationalStatesList.find((s) => s.name === selectedStateName)
+                    : (hoveredModalState || nationalStatesList[0])) || (selectedStateName ? {
                         name: selectedStateName,
                         role: "Constituent Sovereign State",
                         status: "STATE",
-                      })
-                    : hoveredModalState;
+                      } : null);
 
                   if (activeDossier) {
                     const stateMeta = isUsa ? getUsaStateData(activeDossier.name) : null;
@@ -3372,10 +3372,11 @@ export default function InteractiveWorldMap({
                       return (
                         <tr
                           key={st.name || idx}
-                          className={`transition hover:bg-slate-800/40 ${
+                          onClick={() => setSelectedStateName(st.name)}
+                          className={`transition cursor-pointer ${
                             isSelectedState
-                              ? "bg-cyan-950/40 ring-1 ring-cyan-500/50"
-                              : ""
+                              ? "bg-cyan-950/60 ring-2 ring-cyan-500 shadow-md"
+                              : "hover:bg-slate-800/50"
                           }`}
                         >
                           <td className="py-3 px-3 text-center text-slate-500 font-bold text-[11px]">
@@ -3490,7 +3491,23 @@ export default function InteractiveWorldMap({
                           <td className="py-3 px-4 text-center">
                             <div className="flex items-center justify-center gap-1.5 flex-wrap">
                               <button
-                                onClick={() => {
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setSelectedStateName(st.name);
+                                }}
+                                className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold flex items-center gap-1 cursor-pointer transition ${
+                                  isSelectedState
+                                    ? "bg-cyan-500 text-slate-950 font-bold shadow-sm"
+                                    : "bg-slate-800 hover:bg-slate-700 text-cyan-300"
+                                }`}
+                                title="Display complete state details and natural resources on the side panel"
+                              >
+                                <Sparkles className="w-3 h-3" /> Inspect Details
+                              </button>
+
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
                                   focusOnTerritory(st.name);
                                   setShowStatesTableModal(false);
                                 }}

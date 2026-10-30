@@ -24,7 +24,7 @@ import {
   Anchor,
   Sparkles,
 } from "lucide-react";
-import { loadCountryAdm1, resolveIso3 } from "../services/boundaryService";
+import { loadCountryAdm1, resolveIso3, getContinentalBounds } from "../services/boundaryService";
 import { getLinkedSubdivision } from "../data/adm1Mapping";
 
 // Pre-extract US states GeoJSON feature collection and mesh
@@ -49,8 +49,9 @@ export default function CountryAdm1Map({
   const geojsonLayerRef = useRef(null);
   const tileLayerRef = useRef(null);
   const markersLayerRef = useRef(null);
+  const prevNationIdRef = useRef(null);
 
-  const [mapProvider, setMapProvider] = useState("carto_dark");
+  const [mapProvider, setMapProvider] = useState("osm"); // Default to OpenStreetMap as requested
   const [layerMode, setLayerMode] = useState("administrative"); // "administrative" | "resources"
   const [resourceCategory, setResourceCategory] = useState("all"); // "all" | "oil_gas" | "mineral" | "agri" | "port"
   const [loading, setLoading] = useState(false);
@@ -273,18 +274,32 @@ export default function CountryAdm1Map({
 
         geojsonLayerRef.current = geoLayer;
 
-        // Auto-fit bounds to the country
-        try {
-          const bounds = geoLayer.getBounds();
-          if (bounds.isValid()) {
-            map.fitBounds(bounds, {
-              padding: [20, 20],
-              maxZoom: isUsa ? 5 : 7,
+        // Auto-fit bounds ONLY when switching countries or on initial mount.
+        // Clicking a state while zoomed in keeps the view fixed without auto-zooming out!
+        const isNationChange = prevNationIdRef.current !== (nation?.id || nation?.name);
+        if (isNationChange) {
+          prevNationIdRef.current = nation?.id || nation?.name;
+          const continental = getContinentalBounds(iso3);
+          if (continental) {
+            map.fitBounds(continental, {
+              padding: [15, 15],
+              maxZoom: 6,
               animate: false,
             });
+          } else {
+            try {
+              const bounds = geoLayer.getBounds();
+              if (bounds.isValid()) {
+                map.fitBounds(bounds, {
+                  padding: [20, 20],
+                  maxZoom: 7,
+                  animate: false,
+                });
+              }
+            } catch {
+              // fallback bounds
+            }
           }
-        } catch {
-          // fallback bounds
         }
       }
 
@@ -386,14 +401,19 @@ export default function CountryAdm1Map({
   };
 
   const handleResetBounds = () => {
-    if (leafletMapRef.current && geojsonLayerRef.current) {
-      try {
-        const bounds = geojsonLayerRef.current.getBounds();
-        if (bounds.isValid()) {
-          leafletMapRef.current.fitBounds(bounds, { padding: [20, 20], maxZoom: isUsa ? 5 : 7 });
+    if (leafletMapRef.current) {
+      const continental = getContinentalBounds(iso3);
+      if (continental) {
+        leafletMapRef.current.fitBounds(continental, { padding: [15, 15], maxZoom: 6 });
+      } else if (geojsonLayerRef.current) {
+        try {
+          const bounds = geojsonLayerRef.current.getBounds();
+          if (bounds.isValid()) {
+            leafletMapRef.current.fitBounds(bounds, { padding: [20, 20], maxZoom: 7 });
+          }
+        } catch {
+          leafletMapRef.current.setView([38, -96], 4);
         }
-      } catch {
-        leafletMapRef.current.setView([38, -96], 4);
       }
     }
   };
