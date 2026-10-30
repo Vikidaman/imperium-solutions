@@ -128,3 +128,4 @@ export function evaluateGeographicProduction(endowments, capitalStock = 65, extr
     }
   };
 }
+

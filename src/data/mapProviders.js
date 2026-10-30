@@ -45,3 +45,4 @@ export const MAP_PROVIDERS = {
     theme: "osm",
   },
 };
+
