@@ -1149,22 +1149,6 @@ export default function InteractiveWorldMap({
               <Compass className="w-3.5 h-3.5" />
               2. Subcontinent Focus
             </button>
-
-            <button
-              onClick={() => {
-                setViewTier("country");
-                focusOnCountry(activeNation);
-                setShowStatesTableModal(true);
-              }}
-              className={`px-3 py-1.5 rounded-lg font-bold transition cursor-pointer flex items-center gap-1.5 ${
-                viewTier === "country"
-                  ? "bg-emerald-500 text-slate-950 shadow-sm shadow-emerald-500/20"
-                  : "text-slate-400 hover:text-slate-200"
-              }`}
-            >
-              <Flag className="w-3.5 h-3.5" />
-              3. Country & States ({activeNation?.name})
-            </button>
           </div>
         </div>
 
