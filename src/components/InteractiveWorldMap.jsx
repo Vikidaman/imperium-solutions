@@ -995,13 +995,24 @@ export default function InteractiveWorldMap({
     return list;
   }, [nationalStatesList, statesModalFilter, stateSearchQuery, statesModalSort]);
 
-  // Comprehensive Global Provinces, Seceded Lands & Outer Space Sectors Catalog
+  // Comprehensive Global Available Provinces & Outer Space Sectors Catalog (Seceded Lands Filtered Out)
   const allGlobalProvinces = useMemo(() => {
     const list = [];
     const seen = new Set();
 
+    // Helper to check if a territory has seceded as an independent sovereign state
+    const isSecededTerritory = (name) => {
+      const ownerId =
+        name === "Georgia"
+          ? territoryMap["Georgia (USA)"] || territoryMap["Georgia:Atlanta"] || territoryMap["Georgia"]
+          : territoryMap[name];
+      const ownerNation = nationById.get(ownerId);
+      return Boolean(ownerNation?.isSeceded);
+    };
+
     // 1. All base Earth nations from STATIC_EARTH_FEATURES
     STATIC_EARTH_FEATURES.forEach((f) => {
+      if (isSecededTerritory(f.name)) return;
       seen.add(f.name);
       list.push({
         name: f.name,
@@ -1013,6 +1024,7 @@ export default function InteractiveWorldMap({
 
     // 2. All US 50 States & Territories
     Object.entries(US_STATES_CATALOG).forEach(([name, meta]) => {
+      if (isSecededTerritory(name)) return;
       if (!seen.has(name)) {
         seen.add(name);
         list.push({
@@ -1027,6 +1039,7 @@ export default function InteractiveWorldMap({
 
     // 3. All constituent regional states from global catalog (e.g. Bavaria, Scotland, Guangdong)
     Object.values(CONSTITUENT_REGIONAL_STATES).flat().forEach((r) => {
+      if (isSecededTerritory(r.name)) return;
       if (!seen.has(r.name)) {
         seen.add(r.name);
         list.push({
@@ -1055,6 +1068,7 @@ export default function InteractiveWorldMap({
       "Vastitas Borealis",
     ];
     MARS_SECTORS.forEach((name) => {
+      if (isSecededTerritory(name)) return;
       if (!seen.has(name)) {
         seen.add(name);
         list.push({
@@ -1066,8 +1080,9 @@ export default function InteractiveWorldMap({
       }
     });
 
-    // 5. ANY entry in state.territoryMap (critically including seceded nations, custom tags, etc.)
+    // 5. Non-seceded entries in state.territoryMap
     Object.keys(territoryMap).forEach((name) => {
+      if (isSecededTerritory(name)) return;
       if (!seen.has(name)) {
         seen.add(name);
         const ownerId = territoryMap[name];
@@ -1075,7 +1090,7 @@ export default function InteractiveWorldMap({
         list.push({
           name,
           planet: ownerNation?.planet || "Earth",
-          type: ownerNation?.isSeceded ? "Seceded Sovereign State" : "Territory",
+          type: "Territory",
           capital: ownerNation?.capital || "",
         });
       }
