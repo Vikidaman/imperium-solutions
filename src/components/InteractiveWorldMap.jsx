@@ -3351,18 +3351,31 @@ export default function InteractiveWorldMap({
                                 </button>
                               )}
 
-                              {!isReadOnly && nationalStatesList.length > 1 && (
+                              {!isReadOnly && (
                                 <button
                                   onClick={() => {
+                                    let defaultCap =
+                                      st.capital ||
+                                      US_STATES_CATALOG[st.name]?.capital ||
+                                      (st.name === "Georgia" ? "Atlanta" : "");
+                                    let chosenCapital = defaultCap;
+                                    if (!chosenCapital) {
+                                      chosenCapital = window.prompt(
+                                        `Enter capital city for seceding nation "${st.name}" (creates unique Country-Capital tag):`,
+                                        `${st.name} City`
+                                      );
+                                      if (!chosenCapital) return;
+                                    }
                                     if (
                                       window.confirm(
-                                        `Release "${st.name}" as an independent sovereign nation? It will become a unitary state with its own borders and sovereignty.`
+                                        `Release "${st.name}" (Capital: ${chosenCapital}) as an independent sovereign nation? It will become a unitary state with its own borders and sovereignty.`
                                       )
                                     ) {
                                       onTransferTerritory({
                                         territoryName: st.name,
                                         mode: "RELEASE",
                                         planet: activeNation.planet || "Earth",
+                                        capital: chosenCapital,
                                       });
                                       setShowStatesTableModal(false);
                                     }
