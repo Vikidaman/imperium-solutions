@@ -38,6 +38,7 @@ import {
   PieChart,
 } from "lucide-react";
 import BufferedRangeSlider from "./BufferedRangeSlider";
+import CountryAdm1Map from "./CountryAdm1Map";
 import {
   formatCurrency,
   formatExactCurrency,
@@ -598,7 +599,7 @@ export default function InteractiveWorldMap({
   };
 
   // Focus camera on a specific nation (geometry-based fit)
-  const navigateToCountry = (targetNation) => {
+  const navigateToCountry = (targetNation, openModal = true) => {
     if (!targetNation) return;
     const subId = getSubcontinentForCountry(targetNation.id);
     setSelectedSubcontinent(subId);
@@ -607,6 +608,9 @@ export default function InteractiveWorldMap({
     onSelectNation(targetNation.id);
     setSelectedStateName(null);
     setRightPanelTab("states");
+    if (openModal) {
+      setShowStatesTableModal(true);
+    }
 
     const isMars = (targetNation.planet || "").toLowerCase().includes("mars");
     if (isMars) {
@@ -1651,111 +1655,128 @@ export default function InteractiveWorldMap({
                     ))}
 
                     {/* Country Territory Polygons on Earth */}
-                    {earthFeatures.map((feat) => {
-                      // United States rendered as individual 50 constituent states below
-                      if (feat.name === "United States of America") return null;
-
-                      const ctrlId = territoryMap[feat.name];
-                      const ctrlNation = nationById.get(ctrlId);
-                      const isSelected =
-                        ctrlNation && ctrlNation.id === activeNation?.id;
-                      const fill = getTerritoryFill(feat.name);
+                    {(() => {
+                      const isUsaCountryFocused =
+                        (mapLocation.level === "country" || viewTier === "country") &&
+                        (activeNation?.id === "usa" || activeNation?.name?.toLowerCase().includes("united states"));
 
                       return (
-                        <path
-                          key={feat.id || feat.name}
-                          d={feat.d}
-                          fill={fill}
-                          fillOpacity={
-                            isSelected ? 0.92 : ctrlNation ? 0.75 : 0.45
-                          }
-                          stroke={isSelected ? "#38bdf8" : "#475569"}
-                          strokeOpacity={isSelected ? 1 : 0.75}
-                          strokeWidth={(isSelected ? 1.5 : 0.85) / zoom}
-                          className="transition-colors duration-150 hover:brightness-125 cursor-pointer"
-                          onMouseEnter={() =>
-                            setHoveredTerritory({
-                              name: feat.name,
-                              isControlled: Boolean(ctrlNation),
-                              controllerName:
-                                ctrlNation?.name || "Non-Aligned Territory",
-                              gdp: ctrlNation?.computed?.aggregateGdp,
-                              sol: ctrlNation?.computed?.sol,
-                              pops: ctrlNation?.computed?.effectiveWorkingPops,
-                            })
-                          }
-                          onMouseLeave={() => setHoveredTerritory(null)}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            if (ctrlNation) {
-                              navigateToCountry(ctrlNation);
-                            } else {
-                              handleTerritoryClick(feat.name, "Earth");
+                        <>
+                          {earthFeatures.map((feat) => {
+                            // Only skip USA single polygon when user is actively focused on USA at country level
+                            if (feat.name === "United States of America" && isUsaCountryFocused) return null;
+
+                            const ctrlId = territoryMap[feat.name] || (feat.name === "United States of America" ? (territoryMap["United States of America"] || "usa") : null);
+                            const ctrlNation = nationById.get(ctrlId);
+                            const isSelected =
+                              ctrlNation && ctrlNation.id === activeNation?.id;
+                            const fill = getTerritoryFill(feat.name);
+
+                            return (
+                              <path
+                                key={feat.id || feat.name}
+                                d={feat.d}
+                                fill={fill}
+                                fillOpacity={
+                                  isSelected ? 0.92 : ctrlNation ? 0.75 : 0.45
+                                }
+                                stroke={isSelected ? "#38bdf8" : "#475569"}
+                                strokeOpacity={isSelected ? 1 : 0.75}
+                                strokeWidth={(isSelected ? 1.5 : 0.85) / zoom}
+                                className="transition-colors duration-150 hover:brightness-125 cursor-pointer"
+                                onMouseEnter={() =>
+                                  setHoveredTerritory({
+                                    name: feat.name,
+                                    isControlled: Boolean(ctrlNation),
+                                    controllerName:
+                                      ctrlNation?.name || "Non-Aligned Territory",
+                                    gdp: ctrlNation?.computed?.aggregateGdp,
+                                    sol: ctrlNation?.computed?.sol,
+                                    pops: ctrlNation?.computed?.effectiveWorkingPops,
+                                  })
+                                }
+                                onMouseLeave={() => setHoveredTerritory(null)}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  const target = ctrlNation || (feat.name === "United States of America" ? (nationById.get("usa") || nations.find((n) => n.id === "usa")) : null);
+                                  if (target) {
+                                    navigateToCountry(target, true);
+                                  } else {
+                                    handleTerritoryClick(feat.name, "Earth");
+                                  }
+                                }}
+                              />
+                            );
+                          })}
+
+                          {/* United States 50 Individual Constituent States & Seceded Sovereign Republics */}
+                          {STATIC_US_STATE_FEATURES.map((stFeat) => {
+                            const directOwnerId =
+                              stFeat.name === "Georgia"
+                                ? territoryMap["Georgia (USA)"] || territoryMap["Georgia:Atlanta"] || (territoryMap["Georgia"] === "usa" ? "usa" : territoryMap["Georgia"] || "usa")
+                                : territoryMap[stFeat.name] || territoryMap["United States of America"] || "usa";
+
+                            const isSeceded = directOwnerId !== "usa" && directOwnerId !== territoryMap["United States of America"];
+                            
+                            // If USA is NOT focused at country level, ONLY render seceded states so USA appears as one country on world map!
+                            if (!isUsaCountryFocused && !isSeceded) {
+                              return null;
                             }
-                          }}
-                        />
+
+                            const stNation = nationById.get(directOwnerId) || nationById.get("usa");
+                            const isSelected = (stNation && stNation.id === activeNation?.id) || (!isSeceded && activeNation?.id === "usa");
+                            const meta = getUsaStateData(stFeat.name);
+
+                            const fillColor = isSeceded
+                              ? (stNation?.color || "#f59e0b")
+                              : (REGION_TINTS[meta.region] || "#0284c7");
+
+                            return (
+                              <path
+                                key={`us_state_${stFeat.name}`}
+                                d={stFeat.d}
+                                fill={fillColor}
+                                fillOpacity={isSelected ? 0.96 : isSeceded ? 0.94 : 0.84}
+                                stroke={isSelected ? "#38bdf8" : isSeceded ? "#ffffff" : "#0f172a"}
+                                strokeOpacity={0.95}
+                                strokeWidth={(isSelected ? 1.8 : 0.8) / zoom}
+                                className="transition-colors duration-150 hover:brightness-125 cursor-pointer"
+                                onMouseEnter={() => {
+                                  setHoveredTerritory({
+                                    name: stFeat.name,
+                                    isControlled: true,
+                                    controllerName: isSeceded ? (stNation?.name || "Seceded Sovereign State") : "United States of America",
+                                    gdp: isSeceded ? stNation?.computed?.aggregateGdp : (c.aggregateGdp || 25e12) * meta.gdpShare,
+                                    sol: isSeceded ? stNation?.computed?.sol : c.sol,
+                                    pops: isSeceded ? stNation?.computed?.effectiveWorkingPops : Math.round((c.effectiveWorkingPops || 165e6) * meta.popShare),
+                                    status: isSeceded ? "SECEDED SOVEREIGN STATE" : "CONSTITUENT STATE",
+                                  });
+                                }}
+                                onMouseLeave={() => setHoveredTerritory(null)}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setSelectedStateName(stFeat.name);
+                                  navigateToCountry(stNation || activeNation, true);
+                                }}
+                              />
+                            );
+                          })}
+
+                          {/* United States Crisp Internal State Boundaries Mesh (Only shown when USA is focused at country level) */}
+                          {isUsaCountryFocused && (
+                            <path
+                              d={STATIC_US_STATES_MESH}
+                              fill="none"
+                              stroke="#ffffff"
+                              strokeOpacity={0.75}
+                              strokeWidth={0.8 / zoom}
+                              strokeDasharray={`${3 / zoom},${1.6 / zoom}`}
+                              pointerEvents="none"
+                            />
+                          )}
+                        </>
                       );
-                    })}
-
-                    {/* United States 50 Individual Constituent States & Seceded Sovereign Republics */}
-                    {STATIC_US_STATE_FEATURES.map((stFeat) => {
-                      const directOwnerId =
-                        stFeat.name === "Georgia"
-                          ? territoryMap["Georgia (USA)"] || territoryMap["Georgia:Atlanta"] || (territoryMap["Georgia"] === "usa" ? "usa" : territoryMap["Georgia"] || "usa")
-                          : territoryMap[stFeat.name] || territoryMap["United States of America"] || "usa";
-
-                      const isSeceded = directOwnerId !== "usa" && directOwnerId !== territoryMap["United States of America"];
-                      const stNation = nationById.get(directOwnerId) || nationById.get("usa");
-                      const isSelected = (stNation && stNation.id === activeNation?.id) || (!isSeceded && activeNation?.id === "usa");
-                      const meta = getUsaStateData(stFeat.name);
-
-                      const fillColor = isSeceded
-                        ? (stNation?.color || "#f59e0b")
-                        : (REGION_TINTS[meta.region] || "#0284c7");
-
-                      return (
-                        <path
-                          key={`us_state_${stFeat.name}`}
-                          d={stFeat.d}
-                          fill={fillColor}
-                          fillOpacity={isSelected ? 0.96 : isSeceded ? 0.94 : 0.84}
-                          stroke={isSelected ? "#38bdf8" : isSeceded ? "#ffffff" : "#0f172a"}
-                          strokeOpacity={0.95}
-                          strokeWidth={(isSelected ? 1.8 : 0.8) / zoom}
-                          className="transition-colors duration-150 hover:brightness-125 cursor-pointer"
-                          onMouseEnter={() => {
-                            setHoveredTerritory({
-                              name: stFeat.name,
-                              isControlled: true,
-                              controllerName: isSeceded ? (stNation?.name || "Seceded Sovereign State") : "United States of America",
-                              gdp: isSeceded ? stNation?.computed?.aggregateGdp : (c.aggregateGdp || 25e12) * meta.gdpShare,
-                              sol: isSeceded ? stNation?.computed?.sol : c.sol,
-                              pops: isSeceded ? stNation?.computed?.effectiveWorkingPops : Math.round((c.effectiveWorkingPops || 165e6) * meta.popShare),
-                              status: isSeceded ? "SECEDED SOVEREIGN STATE" : "CONSTITUENT STATE",
-                            });
-                          }}
-                          onMouseLeave={() => setHoveredTerritory(null)}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setSelectedStateName(stFeat.name);
-                            if (mapLocation.level !== "country") {
-                              navigateToCountry(stNation || activeNation);
-                            }
-                          }}
-                        />
-                      );
-                    })}
-
-                    {/* United States Crisp Internal State Boundaries Mesh */}
-                    <path
-                      d={STATIC_US_STATES_MESH}
-                      fill="none"
-                      stroke="#ffffff"
-                      strokeOpacity={0.75}
-                      strokeWidth={0.8 / zoom}
-                      strokeDasharray={`${3 / zoom},${1.6 / zoom}`}
-                      pointerEvents="none"
-                    />
+                    })()}
 
                     {/* Internal Provincial Borders (Distinct Provincial Delineations across Nations) */}
                     {internalBorderPath && (
@@ -1785,13 +1806,16 @@ export default function InteractiveWorldMap({
                     {/* Capital Markers & Nation Badges on Earth */}
                     {earthFeatures
                       .filter((f) => {
-                        // USA rendered via individual constituent state features
-                        if (f.name === "United States of America") return false;
-                        const ctrlId = territoryMap[f.name];
+                        const isUsaCountryFocused =
+                          (mapLocation.level === "country" || viewTier === "country") &&
+                          (activeNation?.id === "usa" || activeNation?.name?.toLowerCase().includes("united states"));
+
+                        if (f.name === "United States of America" && isUsaCountryFocused) return false;
+                        const ctrlId = territoryMap[f.name] || (f.name === "United States of America" ? "usa" : null);
                         const n = nationById.get(ctrlId);
                         if (!n) return false;
                         if (n.id === "european_union" && f.name === "France") return true;
-                        return n.name.toLowerCase() === f.name.toLowerCase();
+                        return n.name.toLowerCase() === f.name.toLowerCase() || (n.id === "usa" && f.name === "United States of America");
                       })
                       .map((f) => {
                         const ctrlId = territoryMap[f.name];
@@ -3047,260 +3071,79 @@ export default function InteractiveWorldMap({
               </div>
             </div>
 
-            {/* Interactive State-by-State Cartography Panel Inside Modal */}
+            {/* Interactive Country & ADM1 Administrative Boundaries Map inside Modal */}
             <div className="p-4 bg-slate-950/70 border-b border-slate-800 flex flex-col md:flex-row gap-4 items-center justify-between">
-              <div className="w-full md:w-3/5 relative bg-slate-950 rounded-2xl border border-slate-800/80 p-2 overflow-hidden shadow-inner flex flex-col items-center">
-                <div className="w-full flex items-center justify-between px-2 py-1 text-[11px] text-slate-400 border-b border-slate-800/60 mb-1.5">
-                  <span className="font-bold uppercase tracking-wider text-cyan-400 flex items-center gap-1.5">
-                    <MapPin className="w-3.5 h-3.5" />
-                    {activeNation.name} — Constituent Cartography
-                  </span>
-                  {selectedStateName && (
-                    <span className="text-[11px] font-bold text-amber-300 bg-amber-500/10 px-2 py-0.5 rounded-lg border border-amber-500/30">
-                      Selected: {selectedStateName}
-                    </span>
-                  )}
-                </div>
-
-                {/* State Map SVG */}
-                {(activeNation.id === "usa" || activeNation.name.toLowerCase().includes("united states") || activeNation.name.toLowerCase().includes("california") || activeNation.name.toLowerCase().includes("texas")) ? (
-                  <svg viewBox="170 110 152 82" className="w-full h-44 sm:h-56">
-                    {STATIC_US_STATE_FEATURES.map((stFeat) => {
-                      const directOwner = territoryMap[stFeat.name];
-                      const isSecededFromUsa = directOwner && directOwner !== "usa" && directOwner !== territoryMap["United States of America"];
-                      const stNation = directOwner ? nationById.get(directOwner) : null;
-                      const isStSelected = selectedStateName === stFeat.name;
-                      const stMeta = getUsaStateData(stFeat.name);
-
-                      const fillColor = isSecededFromUsa
-                        ? (stNation?.color || "#f59e0b")
-                        : isStSelected
-                        ? "#38bdf8"
-                        : (REGION_TINTS[stMeta.region] || "#0284c7");
-
-                      const strokeColor = isStSelected
-                        ? "#ffffff"
-                        : isSecededFromUsa
-                        ? "#fef08a"
-                        : "#0f172a";
-
-                      return (
-                        <path
-                          key={`modal_st_${stFeat.name}`}
-                          d={stFeat.d}
-                          fill={fillColor}
-                          fillOpacity={isSecededFromUsa ? 1.0 : isStSelected ? 1.0 : 0.85}
-                          stroke={strokeColor}
-                          strokeWidth={isStSelected ? 1.4 : isSecededFromUsa ? 1.0 : 0.6}
-                          className="transition-colors duration-150 hover:brightness-135 cursor-pointer"
-                          onClick={() => setSelectedStateName(stFeat.name)}
-                          onMouseEnter={() => {
-                            setHoveredModalState({
-                              name: stFeat.name,
-                              code: stMeta.code,
-                              region: stMeta.region,
-                              isSeceded: Boolean(isSecededFromUsa),
-                              sovereignName: stNation?.name || (isSecededFromUsa ? "Seceded Sovereign State" : activeNation.name),
-                              gdp: (c.aggregateGdp || 25e12) * stMeta.gdpShare,
-                              pops: Math.round((c.effectiveWorkingPops || 165e6) * stMeta.popShare),
-                            });
-                          }}
-                          onMouseLeave={() => setHoveredModalState(null)}
-                        />
-                      );
-                    })}
-
-                    {/* State Boundaries Mesh */}
-                    <path
-                      d={STATIC_US_STATES_MESH}
-                      fill="none"
-                      stroke="#ffffff"
-                      strokeOpacity={0.7}
-                      strokeWidth={0.5}
-                      strokeDasharray="1.5,1"
-                      pointerEvents="none"
-                    />
-
-                    {/* State Centroid Postal Labels */}
-                    {STATIC_US_STATE_FEATURES.map((stFeat) => {
-                      const meta = getUsaStateData(stFeat.name);
-                      if (!meta || !meta.code) return null;
-                      const [cx, cy] = stFeat.centroid;
-                      if (!cx || !cy || cx < 172 || cx > 320 || cy < 112 || cy > 190) return null;
-                      const isStSelected = selectedStateName === stFeat.name;
-                      const isSecededFromUsa = territoryMap[stFeat.name] && territoryMap[stFeat.name] !== "usa" && territoryMap[stFeat.name] !== territoryMap["United States of America"];
-
-                      return (
-                        <g key={`modal_lbl_${stFeat.name}`} transform={`translate(${cx}, ${cy})`} className="pointer-events-none">
-                          <text
-                            x={0}
-                            y={1.2}
-                            textAnchor="middle"
-                            fill={isSecededFromUsa ? "#fef08a" : isStSelected ? "#ffffff" : "#f1f5f9"}
-                            fontSize={3.2}
-                            fontWeight="bold"
-                            fontFamily="monospace"
-                            className="drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]"
-                          >
-                            {meta.code}
-                          </text>
-                        </g>
-                      );
-                    })}
-                  </svg>
-                ) : (
-                  /* Interactive Silhouette & Regional States for Other Sovereign Nations */
-                  (() => {
-                    const countryFeat = STATIC_EARTH_FEATURES.find(
-                      (f) =>
-                        f.name.toLowerCase() === activeNation.name.toLowerCase() ||
-                        territoryMap[f.name] === activeNation.id ||
-                        f.id === activeNation.id ||
-                        (activeNation.name.toLowerCase().includes("russia") && f.name === "Russia") ||
-                        (activeNation.name.toLowerCase().includes("united kingdom") && f.name === "United Kingdom") ||
-                        (activeNation.name.toLowerCase().includes("korea") && f.name.includes("Korea"))
-                    );
-
-                    let vb = "0 0 960 500";
-                    let x0 = 0, y0 = 0, x1 = 960, y1 = 500, w = 960, h = 500, padX = 20, padY = 20;
-                    if (countryFeat && countryFeat.bounds) {
-                      [[x0, y0], [x1, y1]] = countryFeat.bounds;
-                      w = Math.max(x1 - x0, 8);
-                      h = Math.max(y1 - y0, 8);
-                      padX = Math.max(w * 0.22, 5);
-                      padY = Math.max(h * 0.22, 5);
-                      vb = `${x0 - padX} ${y0 - padY} ${w + padX * 2} ${h + padY * 2}`;
-                    }
-
-                    const markerRadius = Math.max(w, h) * 0.04;
-                    const nationColor = nationColorMap.get(activeNation.id) || activeNation.color || "#06b6d4";
-
-                    return (
-                      <svg viewBox={vb} className="w-full h-44 sm:h-56">
-                        {countryFeat && (
-                          <path
-                            d={countryFeat.d}
-                            fill={nationColor}
-                            fillOpacity={0.92}
-                            stroke="#ffffff"
-                            strokeWidth={Math.max(w, h) * 0.009}
-                            strokeOpacity={0.9}
-                            className="transition-colors hover:brightness-110 cursor-pointer"
-                            onClick={() => setSelectedStateName(null)}
-                          />
-                        )}
-
-                        {/* Interactive Constituent Regions / States Pins */}
-                        {nationalStatesList.map((st, idx) => {
-                          const regCoords = (GLOBAL_REGIONAL_CENTROIDS[activeNation.id.toLowerCase()] || [])[idx]?.coords;
-                          let pt = regCoords ? (STATIC_PATH_GEN.projection()(regCoords) || null) : null;
-
-                          if (!pt || !pt[0] || pt[0] < x0 - padX || pt[0] > x1 + padX) {
-                            const total = Math.max(1, nationalStatesList.length);
-                            const angle = (idx / total) * 2 * Math.PI;
-                            const cx = (x0 + x1) / 2;
-                            const cy = (y0 + y1) / 2;
-                            const rx = (x1 - x0) * 0.28;
-                            const ry = (y1 - y0) * 0.28;
-                            pt = [cx + Math.cos(angle) * rx, cy + Math.sin(angle) * ry];
-                          }
-
-                          const [sx, sy] = pt;
-                          const isStSelected = selectedStateName === st.name;
-                          const isSeceded =
-                            st.status === "SECEDED" ||
-                            (territoryMap[st.name] && territoryMap[st.name] !== activeNation.id);
-
-                          return (
-                            <g
-                              key={`global_modal_st_${st.name}_${idx}`}
-                              transform={`translate(${sx}, ${sy})`}
-                              className="cursor-pointer group"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setSelectedStateName(st.name);
-                              }}
-                              onMouseEnter={() => {
-                                setHoveredModalState({
-                                  name: st.name,
-                                  capital: st.capital || `${st.name} City`,
-                                  region: st.region || st.role || "Constituent Division",
-                                  isSeceded: Boolean(isSeceded),
-                                  sovereignName: activeNation.name,
-                                  gdp: st.gdp,
-                                  pops: st.pops,
-                                });
-                              }}
-                              onMouseLeave={() => setHoveredModalState(null)}
-                            >
-                              <circle
-                                r={isStSelected ? markerRadius * 1.4 : markerRadius}
-                                fill={isStSelected ? "#ffffff" : isSeceded ? "#f59e0b" : "#38bdf8"}
-                                stroke="#020617"
-                                strokeWidth={markerRadius * 0.25}
-                                className="transition-transform group-hover:scale-125"
-                              />
-                              <circle r={markerRadius * 0.35} fill="#020617" />
-                              <text
-                                y={-markerRadius * 1.35}
-                                textAnchor="middle"
-                                fill="#ffffff"
-                                fontSize={Math.max(2.8, Math.min(8.0, markerRadius * 1.5))}
-                                fontWeight="bold"
-                                fontFamily="sans-serif"
-                                className="pointer-events-none drop-shadow-[0_1px_3px_rgba(0,0,0,0.95)]"
-                              >
-                                {st.name.split(" ")[0]}
-                              </text>
-                            </g>
-                          );
-                        })}
-                      </svg>
-                    );
-                  })()
-                )}
+              <div className="w-full md:w-3/5">
+                <CountryAdm1Map
+                  nation={activeNation}
+                  selectedSubdivision={selectedStateName}
+                  onSelectSubdivision={(name) => setSelectedStateName(name)}
+                  territoryMap={territoryMap}
+                  nationColor={nationColorMap.get(activeNation.id) || activeNation.color || "#06b6d4"}
+                  economicSubdivisions={nationalStatesList}
+                />
               </div>
 
-              {/* Hovered State or Country Quick Dossier Card */}
+              {/* Selected / Hovered State or Country Quick Dossier Card */}
               <div className="w-full md:w-2/5 glass-panel rounded-2xl p-4 border border-slate-800 text-xs space-y-2">
-                {hoveredModalState ? (
-                  <div className="space-y-2 animate-in fade-in duration-100">
-                    <div className="flex items-center justify-between">
-                      <span className="font-bold text-white text-sm flex items-center gap-1.5">
-                        {hoveredModalState.name}
-                        {hoveredModalState.code && (
-                          <span className="px-1.5 py-0.5 rounded bg-cyan-500/20 text-cyan-300 font-mono-num text-[10px] font-bold">
-                            {hoveredModalState.code}
+                {(() => {
+                  const activeDossier = selectedStateName
+                    ? (modalFilteredStates.find((s) => s.name === selectedStateName) || {
+                        name: selectedStateName,
+                        role: "First-Level Administrative Unit (ADM1)",
+                        status: "STATE",
+                      })
+                    : hoveredModalState;
+
+                  if (activeDossier) {
+                    return (
+                      <div className="space-y-2 animate-in fade-in duration-100">
+                        <div className="flex items-center justify-between">
+                          <span className="font-bold text-white text-sm flex items-center gap-1.5">
+                            {activeDossier.name}
+                            {activeDossier.code && (
+                              <span className="px-1.5 py-0.5 rounded bg-cyan-500/20 text-cyan-300 font-mono-num text-[10px] font-bold">
+                                {activeDossier.code}
+                              </span>
+                            )}
                           </span>
-                        )}
-                      </span>
-                      {hoveredModalState.isSeceded && (
-                        <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40 text-[10px] font-bold">
-                          ★ Seceded Sovereign
-                        </span>
-                      )}
-                    </div>
-                    <p className="text-[11px] text-slate-400">{hoveredModalState.region || "Economic Corridor"}</p>
-                    <div className="grid grid-cols-2 gap-2 pt-1 font-mono-num text-[11px]">
-                      <div className="bg-slate-900/80 p-2.5 rounded-xl border border-slate-800">
-                        <span className="text-slate-400 block text-[10px]">Estimated GDP:</span>
-                        <strong className="text-emerald-400">{formatCurrency(hoveredModalState.gdp)}</strong>
+                          {activeDossier.isSeceded && (
+                            <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40 text-[10px] font-bold">
+                              ★ Seceded Sovereign
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-[11px] text-slate-400">
+                          {activeDossier.region || activeDossier.role || "Administrative Division"}
+                        </p>
+                        <div className="grid grid-cols-2 gap-2 pt-1 font-mono-num text-[11px]">
+                          <div className="bg-slate-900/80 p-2.5 rounded-xl border border-slate-800">
+                            <span className="text-slate-400 block text-[10px]">Estimated GDP:</span>
+                            <strong className="text-emerald-400">
+                              {activeDossier.gdp ? formatCurrency(activeDossier.gdp) : "Aggregated in Zone"}
+                            </strong>
+                          </div>
+                          <div className="bg-slate-900/80 p-2.5 rounded-xl border border-slate-800">
+                            <span className="text-slate-400 block text-[10px]">Working Population:</span>
+                            <strong className="text-white">
+                              {activeDossier.pops ? formatCompactNumber(activeDossier.pops) : "National Pool"}
+                            </strong>
+                          </div>
+                        </div>
                       </div>
-                      <div className="bg-slate-900/80 p-2.5 rounded-xl border border-slate-800">
-                        <span className="text-slate-400 block text-[10px]">Working Population:</span>
-                        <strong className="text-white">{formatCompactNumber(hoveredModalState.pops)}</strong>
-                      </div>
+                    );
+                  }
+
+                  return (
+                    <div className="p-3 text-center text-slate-400 space-y-1">
+                      <Compass className="w-5 h-5 mx-auto text-cyan-400/80" />
+                      <p className="font-medium text-slate-300 text-xs">Interactive Cartography Overview</p>
+                      <p className="text-[11px] text-slate-500">
+                        Click on any real administrative polygon or table row to inspect and select its constituent unit.
+                      </p>
                     </div>
-                  </div>
-                ) : (
-                  <div className="p-3 text-center text-slate-400 space-y-1">
-                    <Compass className="w-5 h-5 mx-auto text-cyan-400/80" />
-                    <p className="font-medium text-slate-300 text-xs">Interactive Cartography Overview</p>
-                    <p className="text-[11px] text-slate-500">
-                      Hover over any constituent state on the map to preview its economic metrics, or click to select and manage in the table below.
-                    </p>
-                  </div>
-                )}
+                  );
+                })()}
               </div>
             </div>
 
