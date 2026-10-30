@@ -998,6 +998,95 @@ export default function InteractiveWorldMap({
     return list;
   }, [nationalStatesList, statesModalFilter, stateSearchQuery, statesModalSort]);
 
+  // Comprehensive Global Provinces, Seceded Lands & Outer Space Sectors Catalog
+  const allGlobalProvinces = useMemo(() => {
+    const list = [];
+    const seen = new Set();
+
+    // 1. All base Earth nations from STATIC_EARTH_FEATURES
+    STATIC_EARTH_FEATURES.forEach((f) => {
+      seen.add(f.name);
+      list.push({
+        name: f.name,
+        planet: "Earth",
+        type: "Nation",
+        capital: nations.find((n) => n.name.toLowerCase() === f.name.toLowerCase())?.capital || "",
+      });
+    });
+
+    // 2. All US 50 States & Territories
+    Object.entries(US_STATES_CATALOG).forEach(([name, meta]) => {
+      if (!seen.has(name)) {
+        seen.add(name);
+        list.push({
+          name,
+          planet: "Earth",
+          type: meta.status || "State",
+          capital: meta.capital || "City",
+          code: meta.code,
+        });
+      }
+    });
+
+    // 3. All constituent regional states from global catalog (e.g. Bavaria, Scotland, Guangdong)
+    Object.values(CONSTITUENT_REGIONAL_STATES).flat().forEach((r) => {
+      if (!seen.has(r.name)) {
+        seen.add(r.name);
+        list.push({
+          name: r.name,
+          planet: "Earth",
+          type: "Constituent State",
+          capital: "",
+        });
+      }
+    });
+
+    // 4. Mars Sectors
+    const MARS_SECTORS = [
+      "Olympus Mons",
+      "Valles Marineris",
+      "Elysium Planitia",
+      "Hellas Basin",
+      "Utopia Planitia",
+      "Isidis Planitia",
+      "Chryse Planitia",
+      "Noachis Terra",
+      "Argyre Basin",
+      "Syrtis Major",
+      "Sirenum Terra",
+      "Hesperia Planum",
+      "Vastitas Borealis",
+    ];
+    MARS_SECTORS.forEach((name) => {
+      if (!seen.has(name)) {
+        seen.add(name);
+        list.push({
+          name,
+          planet: "Mars",
+          type: "Orbital Sector",
+          capital: "",
+        });
+      }
+    });
+
+    // 5. ANY entry in state.territoryMap (critically including seceded nations, custom tags, etc.)
+    Object.keys(territoryMap).forEach((name) => {
+      if (!seen.has(name)) {
+        seen.add(name);
+        const ownerId = territoryMap[name];
+        const ownerNation = nationById.get(ownerId);
+        list.push({
+          name,
+          planet: ownerNation?.planet || "Earth",
+          type: ownerNation?.isSeceded ? "Seceded Sovereign State" : "Territory",
+          capital: ownerNation?.capital || "",
+        });
+      }
+    });
+
+    return list;
+  }, [territoryMap, nationById, nations]);
+
   return (
     <div className="space-y-5">
       {/* Top Map Command Bar: Theater Switcher, Map Lenses & Border Redraw Tools */}
