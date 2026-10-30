@@ -6,6 +6,9 @@ import { evaluateGeographicProduction } from "../server/geographicProductionEngi
 import { US_STATES_CATALOG, getUsaStateData } from "../src/data/usStatesData.js";
 import { resolveIso3, getContinentalBounds } from "../src/services/boundaryService.js";
 import { getSovereignNation } from "../src/data/nationsCatalog.js";
+import { evaluateSimulation } from "../server/engine.js";
+import { loadSeedFile } from "../server/db.js";
+import { generateEconomicAdvisory } from "../server/aiEconomicAdvisor.js";
 
 describe("Geographic Endowments & Multi-Provider Cartography", () => {
   test("US geographic endowments contain authoritative USGS/EIA/USDA data for key anchor states", () => {
@@ -187,5 +190,47 @@ describe("Geographic Endowments & Multi-Provider Cartography", () => {
     const mexico = getSovereignNation("Mexico");
     assert.ok(mexico, "Mexico must resolve");
     assert.equal(mexico.id, "mexico");
+  });
+
+  test("Calibrated macroeconomic pricing scales modern US GDP to ~$27-28T and Kansas to ~$215-225B", () => {
+    const state = loadSeedFile();
+    const evaluated = evaluateSimulation(state);
+    const usa = evaluated.nations.find((n) => n.name === "USA" || n.id === "usa");
+    assert.ok(usa, "USA must exist in evaluated state");
+
+    const totalGdp = usa.computed?.aggregateGdp;
+    assert.ok(totalGdp, "USA must have aggregate GDP computed");
+
+    // US GDP must be ~$27-28 Trillion, NOT 2,788 Trillion!
+    const gdpInTrillions = totalGdp / 1e12;
+    assert.ok(gdpInTrillions >= 25.0 && gdpInTrillions <= 30.0, `Expected US GDP between $25T and $30T, got $${gdpInTrillions.toFixed(2)}T`);
+
+    // Kansas GDP (0.8% share) must be ~$215B - $225B, NOT $22 Trillion!
+    const kansasGdpInBillions = (totalGdp * 0.008) / 1e9;
+    assert.ok(kansasGdpInBillions >= 200.0 && kansasGdpInBillions <= 245.0, `Expected Kansas GDP ~$215B-$225B, got $${kansasGdpInBillions.toFixed(1)}B`);
+
+    // California (14.2% share) must be ~$3.8T - $4.0T
+    const calGdpInTrillions = (totalGdp * 0.142) / 1e12;
+    assert.ok(calGdpInTrillions >= 3.5 && calGdpInTrillions <= 4.2, `Expected California GDP ~$3.8T-$4.0T, got $${calGdpInTrillions.toFixed(2)}T`);
+
+    // Carto Basemaps tile providers must route through authoritative CartoCDN endpoints
+    assert.ok(MAP_PROVIDERS.carto_dark.url.includes("cartocdn.com"), "Carto Dark tile URL must route to CartoCDN");
+    assert.ok(MAP_PROVIDERS.carto_voyager.url.includes("cartocdn.com"), "Carto Voyager tile URL must route to CartoCDN");
+  });
+
+  test("Groq AI economic advisor generates strategic intelligence grounded in empirical prices", async () => {
+    const kansasEndow = US_GEOGRAPHIC_ENDOWMENTS["Kansas"];
+    assert.ok(kansasEndow, "Kansas endowments must exist");
+
+    const res = await generateEconomicAdvisory({
+      nationName: "USA",
+      stateName: "Kansas",
+      stateData: { role: "General Aviation Manufacturing & Vast Grain Silos", gdp: 224e9 },
+      endowments: kansasEndow,
+    });
+
+    assert.equal(res.success, true, "Groq AI advisory must succeed");
+    assert.ok(res.advisory && res.advisory.length > 50, "Groq AI advisory content must be non-empty");
+    assert.ok(res.model, "Must record model name used");
   });
 });

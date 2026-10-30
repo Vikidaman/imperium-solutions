@@ -555,6 +555,34 @@ export default function InteractiveWorldMap({
   const tooltipRef = useRef(null);
   const setHoveredTerritory = (val) => tooltipRef.current?.setHover(val);
 
+  // Groq AI Economic Advisory state
+  const [aiAdvisory, setAiAdvisory] = useState(null);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiTarget, setAiTarget] = useState(null);
+
+  const requestAiAdvisory = async (stateName, stateData, endowments) => {
+    setAiLoading(true);
+    setAiTarget(stateName);
+    try {
+      const res = await fetch("/api/ai/economic-advisory", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          nationName: activeNation?.name || "USA",
+          stateName,
+          stateData,
+          endowments,
+        }),
+      });
+      const data = await res.json();
+      setAiAdvisory(data.advisory);
+    } catch (err) {
+      setAiAdvisory("Failed to generate AI advisory: " + err.message);
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
   const planetsConfig = state.planetsConfig || [
     { id: "earth", name: "Earth" },
     { id: "mars", name: "Mars" },
@@ -1752,6 +1780,25 @@ export default function InteractiveWorldMap({
                                 <span>Agri: <strong className="text-emerald-300">{endow.modeledAgriculturalOutput}</strong></span>
                               </div>
                             </div>
+
+                            {/* Groq AI Economic Advisory Trigger */}
+                            <button
+                              onClick={() => requestAiAdvisory(activeDossier.name, activeDossier, endow)}
+                              disabled={aiLoading}
+                              className="w-full mt-2 py-1.5 px-3 rounded-lg bg-gradient-to-r from-cyan-600/30 to-purple-600/30 hover:from-cyan-600/50 hover:to-purple-600/50 border border-cyan-500/40 text-cyan-200 text-[10.5px] font-bold flex items-center justify-center gap-1.5 transition cursor-pointer shadow-sm"
+                            >
+                              <Sparkles className="w-3.5 h-3.5 text-cyan-300" />
+                              {aiLoading && aiTarget === activeDossier.name ? "Generating Strategy with Groq AI..." : `Ask Groq AI: Strategy for ${activeDossier.name}`}
+                            </button>
+                            {aiAdvisory && aiTarget === activeDossier.name && (
+                              <div className="mt-2 p-2.5 rounded-xl bg-slate-950/95 border border-purple-500/40 text-[10px] text-slate-200 space-y-1.5 max-h-56 overflow-y-auto font-sans leading-relaxed">
+                                <div className="flex items-center justify-between font-bold text-purple-300 text-[10.5px] pb-1 border-b border-purple-500/20">
+                                  <span className="flex items-center gap-1"><Sparkles className="w-3 h-3 text-cyan-400" /> Groq AI Economic Intelligence</span>
+                                  <button onClick={() => setAiAdvisory(null)} className="text-slate-500 hover:text-white text-xs cursor-pointer">✕</button>
+                                </div>
+                                <div className="whitespace-pre-line text-slate-300 pt-0.5">{aiAdvisory}</div>
+                              </div>
+                            )}
                           </div>
                         );
                       })()}
@@ -3721,6 +3768,25 @@ export default function InteractiveWorldMap({
                                   <span>Agri: <strong className="text-emerald-300">{endow.modeledAgriculturalOutput}</strong></span>
                                 </div>
                               </div>
+
+                              {/* Groq AI Economic Advisory Trigger */}
+                              <button
+                                onClick={() => requestAiAdvisory(activeDossier.name, activeDossier, endow)}
+                                disabled={aiLoading}
+                                className="w-full mt-2 py-1.5 px-3 rounded-lg bg-gradient-to-r from-cyan-600/30 to-purple-600/30 hover:from-cyan-600/50 hover:to-purple-600/50 border border-cyan-500/40 text-cyan-200 text-[10.5px] font-bold flex items-center justify-center gap-1.5 transition cursor-pointer shadow-sm"
+                              >
+                                <Sparkles className="w-3.5 h-3.5 text-cyan-300" />
+                                {aiLoading && aiTarget === activeDossier.name ? "Generating Strategy with Groq AI..." : `Ask Groq AI: Strategy for ${activeDossier.name}`}
+                              </button>
+                              {aiAdvisory && aiTarget === activeDossier.name && (
+                                <div className="mt-2 p-2.5 rounded-xl bg-slate-950/95 border border-purple-500/40 text-[10px] text-slate-200 space-y-1.5 max-h-56 overflow-y-auto font-sans leading-relaxed">
+                                  <div className="flex items-center justify-between font-bold text-purple-300 text-[10.5px] pb-1 border-b border-purple-500/20">
+                                    <span className="flex items-center gap-1"><Sparkles className="w-3 h-3 text-cyan-400" /> Groq AI Economic Intelligence</span>
+                                    <button onClick={() => setAiAdvisory(null)} className="text-slate-500 hover:text-white text-xs cursor-pointer">✕</button>
+                                  </div>
+                                  <div className="whitespace-pre-line text-slate-300 pt-0.5">{aiAdvisory}</div>
+                                </div>
+                              )}
                             </div>
                           );
                         })()}

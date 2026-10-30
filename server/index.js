@@ -35,6 +35,7 @@ import {
   resolveNewsDilemma,
   publishCustomNews,
 } from "./engine.js";
+import { generateEconomicAdvisory } from "./aiEconomicAdvisor.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
@@ -222,7 +223,7 @@ app.post("/api/auth/logout", (req, res) => {
 
 // Enforce Read-Only Public Mode vs. Private Director Mode on all mutating API endpoints
 app.use("/api", (req, res, next) => {
-  if (req.path.startsWith("/auth/")) {
+  if (req.path.startsWith("/auth/") || req.path.startsWith("/ai/")) {
     return next();
   }
   if (["POST", "PATCH", "DELETE", "PUT"].includes(req.method)) {
@@ -1345,6 +1346,24 @@ const handleStatecraftRequest = (req, res) => {
 
 app.post("/api/sessions/:id/statecraft", handleStatecraftRequest);
 app.post("/api/sessions/:id/victoria", handleStatecraftRequest);
+
+// Real-Time Groq AI Economic Advisory Engine (openai/gpt-oss-120b & qwen/qwen3.8-27b)
+app.post("/api/ai/economic-advisory", async (req, res) => {
+  try {
+    const { nationName, stateName, stateData, endowments, topic } = req.body || {};
+    const result = await generateEconomicAdvisory({
+      nationName: nationName || "USA",
+      stateName,
+      stateData,
+      endowments,
+      topic,
+    });
+    res.json(result);
+  } catch (err) {
+    console.error("AI Economic Advisory failed:", err.message);
+    res.status(500).json({ error: err.message, success: false });
+  }
+});
 
 // Mount Vite in development or static dist in production
 async function startServer() {

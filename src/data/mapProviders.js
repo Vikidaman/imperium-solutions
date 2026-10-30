@@ -3,6 +3,19 @@
  * Authoritative global and regional tile providers supported in interactive cartography.
  */
 
+const CARTO_API_KEY =
+  (typeof import.meta !== "undefined" && import.meta.env?.VITE_CARTO_API_KEY) ||
+  (typeof process !== "undefined" && process.env?.VITE_CARTO_API_KEY) ||
+  "";
+
+const cartoDarkUrl = CARTO_API_KEY
+  ? `https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png?api_key=${CARTO_API_KEY}`
+  : "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png";
+
+const cartoVoyagerUrl = CARTO_API_KEY
+  ? `https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png?api_key=${CARTO_API_KEY}`
+  : "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png";
+
 export const MAP_PROVIDERS = {
   osm: {
     id: "osm",
@@ -18,7 +31,7 @@ export const MAP_PROVIDERS = {
     id: "carto_dark",
     name: "CartoDB Dark Matter",
     shortName: "Dark Matter",
-    url: "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",
+    url: cartoDarkUrl,
     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &copy; <a href="https://carto.com/">CARTO</a>',
     subdomains: "abcd",
     maxZoom: 19,
@@ -38,7 +51,7 @@ export const MAP_PROVIDERS = {
     id: "carto_voyager",
     name: "CartoDB Voyager",
     shortName: "Voyager",
-    url: "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png",
+    url: cartoVoyagerUrl,
     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &copy; <a href="https://carto.com/">CARTO</a>',
     subdomains: "abcd",
     maxZoom: 19,
