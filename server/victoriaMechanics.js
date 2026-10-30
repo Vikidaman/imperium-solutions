@@ -1817,7 +1817,7 @@ export function triggerLawAction(state, { nationId, category, lawId, actionType 
   return { action: "Law option not found" };
 }
 
-export function queueConstruction(state, { nationId, buildingId, targetState }) {
+export function queueConstruction(state, { nationId, buildingId, targetState, financingMethod = "TREASURY" }) {
   ensureVictoriaState(state);
   const nation = (state.nations || []).find((n) => n.id === nationId);
   if (!nation) return { action: "Nation not found" };
@@ -1825,18 +1825,79 @@ export function queueConstruction(state, { nationId, buildingId, targetState }) 
   if (!bldg) return { action: "Building template not found" };
 
   const currentTreasury = Number(nation.treasuryBalance) || 0;
+  const m = nation.monetary;
+
+  // 1. BOND-FINANCED INFRASTRUCTURE DEBT
+  if (financingMethod === "BONDS") {
+    if (m && m.creditRating === "D") {
+      return {
+        action: `Cannot issue bonds: ${nation.name} is in sovereign default (Rating D). International and domestic debt markets are frozen!`,
+        toastMessage: `Bond auction rejected: Nation in sovereign default!`,
+        error: true,
+      };
+    }
+
+    const curDate = state.timeManager?.crisisDate || "2025-01-01";
+    const bondId = `bond_const_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 5)}`;
+    const bondRate = m ? m.bondYield : 0.045;
+
+    if (m) {
+      m.totalSovereignDebt = (Number(m.totalSovereignDebt) || 0) + bldg.cost;
+      m.activeBonds = m.activeBonds || [];
+      m.activeBonds.unshift({
+        id: bondId,
+        series: `5-Yr Infrastructure Bond (${bldg.name})`,
+        principal: bldg.cost,
+        couponRate: bondRate,
+        issuedDate: curDate,
+        maturityDate: addDaysToIso(curDate, 1800),
+        purpose: `${bldg.name} in ${targetState || nation.name}`,
+        holder: "Capital Market Syndicate",
+      });
+    }
+
+    nation.constructionQueue = nation.constructionQueue || [];
+    nation.constructionQueue.push({
+      queueId: `q_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 5)}`,
+      ...bldg,
+      targetState: targetState || "Nationwide Infrastructure",
+      daysRemaining: bldg.daysRequired,
+      financingMethod: "BONDS",
+      bondId,
+      bondRate,
+    });
+
+    state.newsFeed.unshift({
+      id: `news_bond_const_${Date.now().toString(36)}`,
+      date: curDate,
+      quarter: state.timeManager?.quarterNumber || 1,
+      category: "SOVEREIGN DEBT & BONDS",
+      headline: `${nation.name} Issues $${(bldg.cost / 1e9).toFixed(1)}B 5-Year Bond to Finance ${bldg.name}!`,
+      summary: `The Ministry of Finance in ${nation.name} successfully auctioned 5-Year Infrastructure Bonds at ${(bondRate * 100).toFixed(2)}% yield to fund capital works in ${targetState || nation.name}.`,
+      nationName: nation.name,
+      impact: `Debt Issued: +$${(bldg.cost / 1e9).toFixed(1)}B at ${(bondRate * 100).toFixed(2)}%`,
+    });
+
+    evaluateVictoriaMechanics(state);
+    return {
+      action: `Issued $${(bldg.cost / 1e9).toFixed(1)}B in 5-Yr Sovereign Bonds (${(bondRate * 100).toFixed(2)}% yield) to fund ${bldg.name} in ${targetState || nation.name}`,
+      toastMessage: `Bond-Financed Construction Started: ${bldg.name} in ${targetState || nation.name}!`,
+    };
+  }
+
+  // 2. CASH TREASURY FINANCING
   if (currentTreasury <= 0) {
     return {
-      action: `Cannot build in ${nation.name}: Sovereign treasury is negative or depleted ($${(currentTreasury / 1e9).toFixed(2)}B). Deficit construction is prohibited.`,
-      toastMessage: `Cannot build: Sovereign Treasury is negative or empty!`,
+      action: `Cannot build with cash in ${nation.name}: Sovereign treasury is negative or depleted ($${(currentTreasury / 1e9).toFixed(2)}B). Switch to 'Issue 5-Yr Sovereign Bond' to finance via debt!`,
+      toastMessage: `Sovereign Treasury empty: Use Bond Financing instead!`,
       error: true,
     };
   }
 
   if (currentTreasury < bldg.cost) {
     return {
-      action: `Cannot build ${bldg.name}: Project cost ($${(bldg.cost / 1e9).toFixed(1)}B) exceeds available sovereign treasury ($${(currentTreasury / 1e9).toFixed(2)}B).`,
-      toastMessage: `Insufficient funds in sovereign treasury!`,
+      action: `Cannot build ${bldg.name} with cash: Cost ($${(bldg.cost / 1e9).toFixed(1)}B) exceeds treasury ($${(currentTreasury / 1e9).toFixed(2)}B). Switch to 'Issue 5-Yr Sovereign Bond' to finance!`,
+      toastMessage: `Insufficient cash: Use Bond Financing instead!`,
       error: true,
     };
   }
@@ -1848,12 +1909,113 @@ export function queueConstruction(state, { nationId, buildingId, targetState }) 
     ...bldg,
     targetState: targetState || "Nationwide Infrastructure",
     daysRemaining: bldg.daysRequired,
+    financingMethod: "TREASURY",
   });
 
   evaluateVictoriaMechanics(state);
   return {
-    action: `Queued ${bldg.name} in ${targetState ? `${targetState} (${nation.name})` : nation.name} ($${(bldg.cost / 1e9).toFixed(1)}B)`,
+    action: `Queued ${bldg.name} in ${targetState ? `${targetState} (${nation.name})` : nation.name} (Paid $${(bldg.cost / 1e9).toFixed(1)}B cash from treasury)`,
     toastMessage: `Construction started in ${targetState || nation.name}: ${bldg.name}!`,
+  };
+}
+
+export function setNationPolicyRate(state, { nationId, policyRate }) {
+  ensureVictoriaState(state);
+  const nation = (state.nations || []).find((n) => n.id === nationId);
+  if (!nation) return { action: "Nation not found" };
+
+  const rate = Number(Math.max(0.005, Math.min(0.20, Number(policyRate) || 0.035)).toFixed(4));
+  if (!nation.monetary) nation.monetary = {};
+  nation.monetary.policyRate = rate;
+
+  evaluateVictoriaMechanics(state);
+  return {
+    action: `Central Bank of ${nation.name} set Benchmark Policy Rate to ${(rate * 100).toFixed(2)}%`,
+    toastMessage: `Policy Rate adjusted to ${(rate * 100).toFixed(2)}%!`,
+  };
+}
+
+export function issueSovereignBond(state, { nationId, principal, seriesName, maturityYears = 5 }) {
+  ensureVictoriaState(state);
+  const nation = (state.nations || []).find((n) => n.id === nationId);
+  if (!nation) return { action: "Nation not found" };
+  const m = nation.monetary;
+
+  if (m && m.creditRating === "D") {
+    return {
+      action: `Cannot issue bonds: ${nation.name} is in sovereign default (Rating D). Debt markets are frozen!`,
+      toastMessage: `Auction rejected: Nation in sovereign default!`,
+      error: true,
+    };
+  }
+
+  const amt = Math.max(1e8, Number(principal) || 1e10);
+  const curDate = state.timeManager?.crisisDate || "2025-01-01";
+  const bondYield = m ? m.bondYield : 0.045;
+
+  nation.treasuryBalance = (Number(nation.treasuryBalance) || 0) + amt;
+  if (m) {
+    m.totalSovereignDebt = (Number(m.totalSovereignDebt) || 0) + amt;
+    m.activeBonds = m.activeBonds || [];
+    m.activeBonds.unshift({
+      id: `bond_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 5)}`,
+      series: seriesName || `${maturityYears}-Year Sovereign Treasury Series`,
+      principal: amt,
+      couponRate: bondYield,
+      issuedDate: curDate,
+      maturityDate: addDaysToIso(curDate, maturityYears * 360),
+      purpose: "Treasury Liquidity & Fiscal Reserves",
+      holder: "Global Bond Syndicate",
+    });
+  }
+
+  state.newsFeed.unshift({
+    id: `news_bond_auction_${Date.now().toString(36)}`,
+    date: curDate,
+    quarter: state.timeManager?.quarterNumber || 1,
+    category: "SOVEREIGN DEBT & BONDS",
+    headline: `${nation.name} Floats $${(amt / 1e9).toFixed(1)}B in ${maturityYears}-Year Sovereign Bonds!`,
+    summary: `Global bond markets absorb new sovereign issue at ${(bondYield * 100).toFixed(2)}% yield. Proceeds of $${(amt / 1e9).toFixed(1)}B deposited directly into national treasury reserves.`,
+    nationName: nation.name,
+    impact: `Treasury Reserves: +$${(amt / 1e9).toFixed(1)}B`,
+  });
+
+  evaluateVictoriaMechanics(state);
+  return {
+    action: `${nation.name} floated $${(amt / 1e9).toFixed(1)}B in ${maturityYears}-Year Sovereign Bonds at ${(bondYield * 100).toFixed(2)}% yield`,
+    toastMessage: `Auction successful: Raised $${(amt / 1e9).toFixed(1)}B into Treasury!`,
+  };
+}
+
+export function repaySovereignBond(state, { nationId, amount }) {
+  ensureVictoriaState(state);
+  const nation = (state.nations || []).find((n) => n.id === nationId);
+  if (!nation) return { action: "Nation not found" };
+  const m = nation.monetary;
+  const currentTreasury = Number(nation.treasuryBalance) || 0;
+  const amt = Math.min(Number(amount) || 1e10, m?.totalSovereignDebt || 0);
+
+  if (amt <= 0) return { action: "No debt to repay" };
+  if (currentTreasury < amt) {
+    return {
+      action: `Cannot retire debt: Treasury ($${(currentTreasury / 1e9).toFixed(2)}B) is less than repayment amount ($${(amt / 1e9).toFixed(2)}B).`,
+      toastMessage: `Insufficient treasury funds to retire debt!`,
+      error: true,
+    };
+  }
+
+  nation.treasuryBalance -= amt;
+  if (m) {
+    m.totalSovereignDebt = Math.max(0, m.totalSovereignDebt - amt);
+    if (m.activeBonds && m.activeBonds.length > 0) {
+      m.activeBonds.shift();
+    }
+  }
+
+  evaluateVictoriaMechanics(state);
+  return {
+    action: `${nation.name} retired $${(amt / 1e9).toFixed(1)}B of Sovereign Debt using Treasury Reserves`,
+    toastMessage: `Retired $${(amt / 1e9).toFixed(1)}B in sovereign bonds!`,
   };
 }
 
