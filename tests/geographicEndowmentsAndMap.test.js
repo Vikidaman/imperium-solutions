@@ -1,3 +1,4 @@
+import "dotenv/config";
 import { test, describe } from "node:test";
 import assert from "node:assert/strict";
 import { US_GEOGRAPHIC_ENDOWMENTS, getUsStateEndowment, ALL_US_RESOURCE_MARKERS } from "../src/data/usGeographicEndowments.js";

@@ -10,14 +10,6 @@ import { COMMODITY_PRICE_BENCHMARKS } from "./empiricalPriceCatalog.js";
 import { getUsStateServicesEndowment } from "../src/data/usServicesEndowments.js";
 import { evaluateSimulation } from "./engine.js";
 
-// Dynamically load dotenv in Node.js environments if GROQ_API_KEY isn't already set
-if (typeof process !== "undefined" && process?.env && !process.env.GROQ_API_KEY) {
-  try {
-    const dotenv = await import("dotenv");
-    dotenv.config();
-  } catch {}
-}
-
 const DEFAULT_GROQ_API_KEY =
   (typeof process !== "undefined" && process.env?.GROQ_API_KEY) || "";
 const PRIMARY_MODEL = "openai/gpt-oss-120b";
