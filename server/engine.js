@@ -127,37 +127,63 @@ export function ensureTerritoryMap(state) {
     state.territoryMap = {};
   }
   const tm = state.territoryMap;
-  const nationsById = new Map((state.nations || []).map((n) => [n.id, n]));
-  const nationsByName = new Map(
-    (state.nations || []).map((n) => [n.name.toLowerCase(), n])
-  );
 
-  // Seed default Earth mappings if empty
-  if (Object.keys(tm).length === 0) {
-    if (nationsById.has("usa")) tm["United States of America"] = "usa";
-    if (nationsById.has("china")) tm["China"] = "china";
-    if (nationsById.has("japan")) tm["Japan"] = "japan";
-    if (nationsById.has("india")) tm["India"] = "india";
-    if (nationsById.has("russia")) tm["Russia"] = "russia";
-    if (nationsById.has("botswana")) tm["Botswana"] = "botswana";
-    if (nationsById.has("brazil")) tm["Brazil"] = "brazil";
-    if (nationsById.has("australia")) tm["Australia"] = "australia";
-    if (nationsById.has("mexico")) tm["Mexico"] = "mexico";
-    if (nationsById.has("european_union")) {
-      for (const c of EU_MEMBER_COUNTRIES) {
-        tm[c] = "european_union";
-      }
+  // Ensure all sovereign nations exist in state.nations
+  if (!state.nations) state.nations = [];
+  const existingNationIds = new Set(state.nations.map((n) => n.id));
+  const existingNationNames = new Set(state.nations.map((n) => n.name.toLowerCase()));
+
+  // Merge full roster of sovereign nations
+  for (const catalogNation of ALL_SOVEREIGN_NATIONS) {
+    if (!existingNationIds.has(catalogNation.id) && !existingNationNames.has(catalogNation.name.toLowerCase())) {
+      state.nations.push({
+        ...catalogNation,
+        stockExchangeName: `${catalogNation.name} Bourse`,
+        consumerSentiment: 60,
+        kFactorScaler: 1500,
+        federalCooperativity: 0.1,
+        diplomaticExpenses: 0,
+        specializedIndustry: "Industry & Manufacturing GDP",
+        crimePolicy: catalogNation.laws?.policing || "Beat Cops",
+        healthcarePolicy: catalogNation.laws?.welfare || "State-run Healthcare",
+        highImmigration: false,
+        companies: [],
+        constituentStates: [],
+        unincorporatedTerritories: [],
+        market: [],
+      });
+      existingNationIds.add(catalogNation.id);
+      existingNationNames.add(catalogNation.name.toLowerCase());
     }
-    for (const [prov, controller] of Object.entries(DEFAULT_MARS_PROVINCES)) {
-      if (controller === "UNCLAIMED" || nationsById.has(controller)) {
-        tm[prov] = controller;
-      }
+  }
+
+  const nationsById = new Map((state.nations || []).map((n) => [n.id, n]));
+
+  // Ensure governmentSystem & laws are synced with real-world forms
+  for (const n of state.nations || []) {
+    const catalogMatch = ALL_NATIONS_BY_ID.get(n.id) || ALL_NATIONS_BY_NAME.get(n.name.toLowerCase());
+    if (catalogMatch) {
+      if (!n.governmentSystem) n.governmentSystem = catalogMatch.governmentSystem;
+      if (!n.capital) n.capital = catalogMatch.capital;
+      if (!n.rulingParty) n.rulingParty = catalogMatch.rulingParty;
+      if (!n.color) n.color = catalogMatch.color;
+      if (!n.laws) n.laws = { ...catalogMatch.laws };
+      if (!n.laws.governance) n.laws.governance = n.governmentSystem;
     }
-    // Also map any nation whose name matches a territory
-    for (const n of state.nations || []) {
-      if (!Object.values(tm).includes(n.id)) {
-        tm[n.name] = n.id;
-      }
+  }
+
+  // Seed / ensure Earth & Mars mappings
+  for (const n of state.nations || []) {
+    if (!tm[n.name]) {
+      tm[n.name] = n.id;
+    }
+  }
+  if (nationsById.has("usa")) tm["United States of America"] = "usa";
+
+  // Martian Provinces
+  for (const [prov, controller] of Object.entries(DEFAULT_MARS_PROVINCES)) {
+    if (!tm[prov]) {
+      tm[prov] = controller;
     }
   }
 
