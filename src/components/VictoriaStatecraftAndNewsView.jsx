@@ -24,13 +24,22 @@ import { formatCurrency, formatCompactNumber } from "../utils/formatters";
 
 const LAW_CATALOG_UI = {
   governance: {
-    label: "Governance & Suffrage",
+    label: "Governance & Political System",
     options: [
+      { id: "Presidential Republic", name: "Presidential Republic", desc: "Executive President elected separately from Congress. Strong separation of powers, judicial review, universal franchise." },
+      { id: "Parliamentary Republic", name: "Parliamentary Republic", desc: "Prime Minister / Chancellor formed from parliamentary majority. High legislative responsiveness & multi-party coalitions." },
+      { id: "Constitutional Monarchy", name: "Constitutional Monarchy", desc: "Hereditary monarch serves as non-partisan head of state; elected parliamentary cabinet exercises executive authority." },
+      { id: "Semi-Presidential Republic", name: "Semi-Presidential Republic", desc: "Dual executive power shared between directly elected President and Prime Minister responsible to National Assembly." },
+      { id: "One-Party Socialist Republic", name: "One-Party Socialist Republic", desc: "State governed under vanguard leadership of a revolutionary socialist party (+250 Authority, state economic direction)." },
+      { id: "Dominant-Party Federation", name: "Dominant-Party Federation", desc: "Centralized federal executive apparatus with managed legislative elections and strong state security." },
+      { id: "Direct Democracy", name: "Direct Democracy", desc: "Collegial federal council directory with binding citizen referendums and decentralized cantonal self-rule." },
+      { id: "Absolute Monarchy", name: "Absolute Monarchy", desc: "Sovereign monarch exercises supreme political and religious authority by royal decree." },
+      { id: "Corporate Technocracy", name: "Corporate Technocracy", desc: "Colonial charter administered by corporate board directors, chief engineers, and shareholder quotas." },
+      { id: "Universal Suffrage", name: "Universal Suffrage", desc: "Equal universal franchise. Empowers Trade Unions, Rural Folk & popular coalitions." },
       { id: "Autocracy", name: "Autocracy", desc: "Rule by decree (no elections, Upper Strata +200% weight, low popular legitimacy)." },
       { id: "Oligarchy", name: "Oligarchy", desc: "Plutocratic elite council (no elections, Capitalist & Gentry dominance)." },
       { id: "Wealth Voting", name: "Wealth Voting", desc: "Property & wealth threshold voting. Empowers Industrialists & Petite Bourgeoisie." },
       { id: "Census Suffrage", name: "Census Suffrage", desc: "Literacy & tax-weighted franchise. Empowers Middle Strata & Intelligentsia." },
-      { id: "Universal Suffrage", name: "Universal Suffrage", desc: "Equal universal franchise. Empowers Trade Unions, Rural Folk & popular coalitions." },
       { id: "Council Republic", name: "Council Republic", desc: "Worker syndicate assembly (+12% Worker GDP Share, strong Trade Unions clout)." },
     ],
   },
