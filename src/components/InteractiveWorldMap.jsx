@@ -534,11 +534,10 @@ export default function InteractiveWorldMap({
     setPan(preset.pan);
   };
 
-  // Focus camera on a specific nation (Tier 3: Country & States)
+  // Focus camera on a specific nation
   const focusOnCountry = (targetNation) => {
     if (!targetNation) return;
     onSelectNation(targetNation.id);
-    setViewTier("country");
     setRightPanelTab("states");
 
     const isMars = (targetNation.planet || "").toLowerCase().includes("mars");
@@ -582,7 +581,6 @@ export default function InteractiveWorldMap({
     if (usFeat && usFeat.centroid && usFeat.centroid[0] > 0) {
       const [cx, cy] = usFeat.centroid;
       setTheater("Earth");
-      setViewTier("country");
       setZoom(3.8);
       setPan({ x: Math.round(480 - cx), y: Math.round(250 - cy) });
       return;
@@ -595,7 +593,6 @@ export default function InteractiveWorldMap({
     if (feat && feat.centroid && feat.centroid[0] > 0) {
       const [cx, cy] = feat.centroid;
       setTheater("Earth");
-      setViewTier("country");
       setZoom(3.8);
       setPan({ x: Math.round(480 - cx), y: Math.round(250 - cy) });
     }
