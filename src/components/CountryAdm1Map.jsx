@@ -311,38 +311,79 @@ export default function CountryAdm1Map({
             const endow = isUsa ? getUsStateEndowment(name) : null;
             const srvEndow = isUsa ? getUsStateServicesEndowment(name) : null;
             const stateMeta = isUsa ? getUsaStateData(name) : null;
-            let tooltipContent = `<div class="px-2.5 py-1.5 text-xs font-sans">
-              <div class="flex items-center gap-1.5">
-                <strong class="text-white block font-bold">${name}</strong>
-                ${stateMeta?.code ? `<span class="text-[10px] bg-cyan-500/20 text-cyan-300 font-mono font-bold px-1 rounded">${stateMeta.code}</span>` : ""}
+            let tooltipContent = `<div style="background: #090e17; color: #f8fafc; border-radius: 10px;" class="p-2.5 min-w-[220px] max-w-[280px] font-sans text-xs">
+              <div class="flex items-center justify-between gap-2 pb-1 border-b border-slate-700/60">
+                <span class="font-bold text-white text-sm tracking-wide">${name}</span>
+                ${stateMeta?.code ? `<span class="text-[10px] bg-cyan-500/25 text-cyan-200 border border-cyan-400/50 font-mono font-bold px-1.5 py-0.5 rounded shadow-sm">${stateMeta.code}</span>` : ""}
               </div>`;
+
             if (stateMeta?.capital) {
-              tooltipContent += `<div class="text-[10px] text-slate-300">Capital: <strong class="text-white">${stateMeta.capital}</strong></div>`;
+              tooltipContent += `<div class="text-[11px] text-slate-300 mt-1 flex items-center justify-between">
+                <span class="text-slate-400">Capital:</span>
+                <strong class="text-white font-semibold">${stateMeta.capital}</strong>
+              </div>`;
             }
+
             if (srvEndow && layerMode === "services") {
-              tooltipContent += `<div class="text-[10px] text-cyan-300 mt-1 font-mono">
-                🧠 STEM/Talent: ${srvEndow.humanCapitalIndex}% | 🏙️ Density: ${srvEndow.urbanAgglomerationIndex}%
-              </div>
-              <div class="text-[10px] text-emerald-300 font-mono">
-                🏦 Finance: ${srvEndow.financialDepthIndex}% | ⚡ Digital: ${srvEndow.digitalConnectivityIndex}%
-              </div>
-              <div class="text-[10px] text-rose-300 font-mono">
-                🍸 Hospitality: ${srvEndow.consumerAmenityIndex}%
-              </div>
-              <div class="text-[9.5px] text-slate-400 border-t border-slate-800 pt-0.5 mt-0.5 font-mono">
-                ${srvEndow.modeledServicesOutput}
-              </div>`;
+              tooltipContent += `
+                <div class="grid grid-cols-2 gap-1.5 mt-2 font-mono-num text-[10.5px]">
+                  <div class="px-2 py-1 rounded-md bg-slate-900/90 border border-cyan-500/35 flex items-center justify-between">
+                    <span class="text-cyan-300 font-semibold">🧠 STEM</span>
+                    <strong class="text-white font-bold">${srvEndow.humanCapitalIndex}%</strong>
+                  </div>
+                  <div class="px-2 py-1 rounded-md bg-slate-900/90 border border-indigo-500/35 flex items-center justify-between">
+                    <span class="text-indigo-300 font-semibold">🏙️ Density</span>
+                    <strong class="text-white font-bold">${srvEndow.urbanAgglomerationIndex}%</strong>
+                  </div>
+                  <div class="px-2 py-1 rounded-md bg-slate-900/90 border border-emerald-500/35 flex items-center justify-between">
+                    <span class="text-emerald-300 font-semibold">🏦 Finance</span>
+                    <strong class="text-white font-bold">${srvEndow.financialDepthIndex}%</strong>
+                  </div>
+                  <div class="px-2 py-1 rounded-md bg-slate-900/90 border border-blue-500/35 flex items-center justify-between">
+                    <span class="text-blue-300 font-semibold">⚡ Digital</span>
+                    <strong class="text-white font-bold">${srvEndow.digitalConnectivityIndex}%</strong>
+                  </div>
+                </div>
+                <div class="px-2 py-1 mt-1.5 rounded-md bg-slate-900/90 border border-rose-500/35 flex items-center justify-between font-mono-num text-[10.5px]">
+                  <span class="text-rose-300 font-semibold">🍸 Hospitality</span>
+                  <strong class="text-white font-bold">${srvEndow.consumerAmenityIndex}%</strong>
+                </div>
+                <div class="mt-2 pt-1.5 border-t border-slate-700/60 flex items-center justify-between text-[11px] font-mono-num">
+                  <span class="text-slate-400">Services Output:</span>
+                  <strong class="text-cyan-300 font-bold bg-cyan-950/80 px-1.5 py-0.5 rounded border border-cyan-500/30">${srvEndow.modeledServicesOutput}</strong>
+                </div>`;
             } else if (endow && layerMode === "resources") {
-              tooltipContent += `<div class="text-[10px] text-amber-300 mt-1 font-mono">
-                🛢️ Oil/Gas: ${endow.hydrocarbonIndex}% | ⛏️ Minerals: ${endow.mineralIndex}%
-              </div>
-              <div class="text-[10px] text-emerald-300 font-mono">
-                🌾 Arable: ${endow.arableLandIndex}% | ⚓ Ports: ${endow.logisticsWaterwayIndex}%
-              </div>`;
+              tooltipContent += `
+                <div class="grid grid-cols-2 gap-1.5 mt-2 font-mono-num text-[10.5px]">
+                  <div class="px-2 py-1 rounded-md bg-slate-900/90 border border-amber-500/35 flex items-center justify-between">
+                    <span class="text-amber-300 font-semibold">🛢️ Oil/Gas</span>
+                    <strong class="text-white font-bold">${endow.hydrocarbonIndex}%</strong>
+                  </div>
+                  <div class="px-2 py-1 rounded-md bg-slate-900/90 border border-purple-500/35 flex items-center justify-between">
+                    <span class="text-purple-300 font-semibold">⛏️ Minerals</span>
+                    <strong class="text-white font-bold">${endow.mineralIndex}%</strong>
+                  </div>
+                  <div class="px-2 py-1 rounded-md bg-slate-900/90 border border-emerald-500/35 flex items-center justify-between">
+                    <span class="text-emerald-300 font-semibold">🌾 Arable</span>
+                    <strong class="text-white font-bold">${endow.arableLandIndex}%</strong>
+                  </div>
+                  <div class="px-2 py-1 rounded-md bg-slate-900/90 border border-cyan-500/35 flex items-center justify-between">
+                    <span class="text-cyan-300 font-semibold">⚓ Ports</span>
+                    <strong class="text-white font-bold">${endow.logisticsWaterwayIndex}%</strong>
+                  </div>
+                </div>
+                <div class="mt-2 pt-1.5 border-t border-slate-700/60 flex items-center justify-between text-[10.5px] font-mono-num">
+                  <span class="text-slate-400">Ind: <strong class="text-cyan-300">${endow.modeledIndustrialOutput?.split(' ')[0] || '-'}</strong></span>
+                  <span class="text-slate-400">Agri: <strong class="text-emerald-300">${endow.modeledAgriculturalOutput?.split(' ')[0] || '-'}</strong></span>
+                </div>`;
             } else if (stateMeta) {
-              tooltipContent += `<div class="text-[10px] text-emerald-400 font-mono mt-0.5">Share of US GDP: ${(stateMeta.gdpShare * 100).toFixed(1)}%</div>`;
+              tooltipContent += `
+                <div class="mt-2 pt-1.5 border-t border-slate-700/60 flex items-center justify-between text-[11px] font-mono-num">
+                  <span class="text-slate-400">Share of US GDP:</span>
+                  <strong class="text-emerald-300 font-bold bg-emerald-950/80 px-1.5 py-0.5 rounded border border-emerald-500/30">${(stateMeta.gdpShare * 100).toFixed(1)}%</strong>
+                </div>`;
             } else {
-              tooltipContent += `<span class="text-[10px] text-slate-400">Click to inspect constituent unit</span>`;
+              tooltipContent += `<div class="mt-1.5 text-[10.5px] text-slate-400">Click to inspect constituent unit</div>`;
             }
             tooltipContent += `</div>`;
 
@@ -429,15 +470,15 @@ export default function CountryAdm1Map({
           const mLayer = L.marker([lat, lng], { icon: customIcon });
 
           mLayer.bindPopup(`
-            <div class="p-2 space-y-1.5 text-xs max-w-xs font-sans">
+            <div style="background: #090e17; color: #f8fafc; border-radius: 10px;" class="p-2.5 space-y-1.5 text-xs max-w-xs font-sans">
               <div class="flex items-center gap-1.5 font-bold text-white text-sm">
                 <span>${iconEmoji}</span>
                 <span>${marker.name}</span>
               </div>
-              <span class="text-[10px] font-mono-num uppercase px-1.5 py-0.5 rounded bg-slate-800 text-cyan-300 border border-slate-700">
+              <span class="text-[10px] font-mono-num uppercase px-1.5 py-0.5 rounded bg-slate-800 text-cyan-300 border border-slate-700 inline-block font-semibold">
                 ${marker.state} (${marker.stateCode})
               </span>
-              <p class="text-[11px] text-slate-300 leading-relaxed mt-1">
+              <p class="text-[11.5px] text-slate-200 leading-relaxed mt-1">
                 ${marker.desc}
               </p>
             </div>
@@ -497,15 +538,15 @@ export default function CountryAdm1Map({
           const mLayer = L.marker([lat, lng], { icon: customIcon });
 
           mLayer.bindPopup(`
-            <div class="p-2 space-y-1.5 text-xs max-w-xs font-sans">
+            <div style="background: #090e17; color: #f8fafc; border-radius: 10px;" class="p-2.5 space-y-1.5 text-xs max-w-xs font-sans">
               <div class="flex items-center gap-1.5 font-bold text-white text-sm">
                 <span>${iconEmoji}</span>
                 <span>${marker.name}</span>
               </div>
-              <span class="text-[10px] font-mono-num uppercase px-1.5 py-0.5 rounded bg-slate-800 text-indigo-300 border border-slate-700">
+              <span class="text-[10px] font-mono-num uppercase px-1.5 py-0.5 rounded bg-slate-800 text-indigo-300 border border-slate-700 inline-block font-semibold">
                 ${marker.state} (${marker.stateCode}) • ${marker.type.toUpperCase()}
               </span>
-              <p class="text-[11px] text-slate-300 leading-relaxed mt-1">
+              <p class="text-[11.5px] text-slate-200 leading-relaxed mt-1">
                 ${marker.desc}
               </p>
             </div>
