@@ -179,6 +179,10 @@ export function ensureTerritoryMap(state) {
     }
   }
   if (nationsById.has("usa")) tm["United States of America"] = "usa";
+  // Explicitly deconflict Caucasus Georgia from US State Georgia
+  if (!tm["Georgia"] || tm["Georgia"] === "georgia") tm["Georgia"] = "georgia_tbilisi";
+  if (!tm["Georgia (USA)"]) tm["Georgia (USA)"] = "usa";
+  if (!tm["Georgia:Atlanta"]) tm["Georgia:Atlanta"] = "usa";
 
   // Martian Provinces
   for (const [prov, controller] of Object.entries(DEFAULT_MARS_PROVINCES)) {
