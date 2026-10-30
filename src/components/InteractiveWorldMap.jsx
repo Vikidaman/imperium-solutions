@@ -3493,12 +3493,22 @@ export default function InteractiveWorldMap({
                   All Global Territories & Outer Space Sectors (Click 'Annex' to add to {activeNation?.name}):
                 </span>
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
-                  {allGlobalProvinces.filter((p) =>
-                    !provinceSearchQuery.trim() ||
-                    p.name.toLowerCase().includes(provinceSearchQuery.trim().toLowerCase()) ||
-                    (p.type && p.type.toLowerCase().includes(provinceSearchQuery.trim().toLowerCase())) ||
-                    (p.capital && p.capital.toLowerCase().includes(provinceSearchQuery.trim().toLowerCase()))
-                  ).map((p) => {
+                  {allGlobalProvinces.filter((p) => {
+                    const currentControllerId =
+                      p.name === "Georgia"
+                        ? territoryMap["Georgia (USA)"] || territoryMap["Georgia:Atlanta"] || territoryMap["Georgia"]
+                        : territoryMap[p.name];
+                    const currentController = nationById.get(currentControllerId);
+                    if (currentController?.isSeceded) return false;
+
+                    const q = provinceSearchQuery.trim().toLowerCase();
+                    if (!q) return true;
+                    return (
+                      p.name.toLowerCase().includes(q) ||
+                      (p.type && p.type.toLowerCase().includes(q)) ||
+                      (p.capital && p.capital.toLowerCase().includes(q))
+                    );
+                  }).map((p) => {
                     const currentControllerId =
                       p.name === "Georgia"
                         ? territoryMap["Georgia (USA)"] || territoryMap["Georgia:Atlanta"] || territoryMap["Georgia"]
