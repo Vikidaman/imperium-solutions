@@ -2144,15 +2144,28 @@ export default function InteractiveWorldMap({
                               )}
                             </div>
 
-                            {!isReadOnly && nationalStatesList.length > 1 && (
+                            {!isReadOnly && (
                               <button
-                                onClick={() =>
+                                onClick={() => {
+                                  let defaultCap =
+                                    st.capital ||
+                                    US_STATES_CATALOG[st.name]?.capital ||
+                                    (st.name === "Georgia" ? "Atlanta" : "");
+                                  let chosenCapital = defaultCap;
+                                  if (!chosenCapital) {
+                                    chosenCapital = window.prompt(
+                                      `Enter capital city for seceding nation "${st.name}" (creates unique Country-Capital tag):`,
+                                      `${st.name} City`
+                                    );
+                                    if (!chosenCapital) return;
+                                  }
                                   onTransferTerritory({
                                     territoryName: st.name,
                                     mode: "RELEASE",
                                     planet: activeNation.planet || "Earth",
-                                  })
-                                }
+                                    capital: chosenCapital,
+                                  });
+                                }}
                                 className="text-[11px] text-slate-500 hover:text-rose-400 cursor-pointer font-semibold transition"
                                 title="Release this territory as an independent unitary state (with no sub-provinces)"
                               >
