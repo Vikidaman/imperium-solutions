@@ -678,7 +678,9 @@ export default {
     }
 
     // Enforce Public Read-Only Mode vs. Private Director Mode on all mutating endpoints
-    if (["POST", "PATCH", "DELETE", "PUT"].includes(request.method)) {
+    // Analytical forecasting queries (/api/ai/simulate-shock & /api/ai/economic-advisory) are safe to preview
+    const isAiForecastQuery = parts[1] === "ai" && ["economic-advisory", "simulate-shock"].includes(parts[2]);
+    if (["POST", "PATCH", "DELETE", "PUT"].includes(request.method) && !isAiForecastQuery) {
       const providedKey =
         request.headers.get("x-director-key") || url.searchParams.get("access");
       if (!(await isValidDirectorToken(db, providedKey, env))) {
