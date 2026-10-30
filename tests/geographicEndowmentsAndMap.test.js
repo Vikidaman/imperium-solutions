@@ -27,14 +27,55 @@ describe("Geographic Endowments & Multi-Provider Cartography", () => {
     const wyoming = US_GEOGRAPHIC_ENDOWMENTS["Wyoming"];
     assert.ok(wyoming, "Wyoming endowments must exist");
     assert.ok(wyoming.primaryBasins.some((b) => b.name === "Powder River Basin"), "Powder River Basin must be mapped");
+
+    // Comprehensive Montana test (Agriculture, Minerals, Hydrocarbons, Landlocked)
+    const montana = US_GEOGRAPHIC_ENDOWMENTS["Montana"];
+    assert.ok(montana, "Montana endowments must exist");
+    assert.equal(montana.code, "MT");
+    assert.equal(montana.arableLandIndex, 85, "Montana must have high agricultural index (Golden Triangle grain, cattle)");
+    assert.equal(montana.mineralIndex, 82, "Montana must have high mineral index (Stillwater Pt/Pd, Butte copper)");
+    assert.equal(montana.hydrocarbonIndex, 35, "Montana has Bakken Elm Coulee / Bell Creek oil");
+    assert.equal(montana.logisticsWaterwayIndex, 0, "Montana is landlocked with 0 port/waterway index");
+    assert.ok(montana.primaryBasins.some((b) => b.name.includes("Golden Triangle")), "Golden Triangle basin mapped");
+    assert.ok(montana.primaryBasins.some((b) => b.name.includes("Stillwater")), "Stillwater Complex mapped");
   });
 
-  test("getUsStateEndowment returns valid fallback for unlisted states", () => {
-    const endow = getUsStateEndowment("Delaware");
+  test("Strict zero baseline for absent resources across non-producing and landlocked states", () => {
+    // Non-oil producing states must be strictly 0, not arbitrary baseline 20%
+    assert.equal(US_GEOGRAPHIC_ENDOWMENTS["Minnesota"].hydrocarbonIndex, 0, "Minnesota produces 0 crude/gas");
+    assert.equal(US_GEOGRAPHIC_ENDOWMENTS["Vermont"].hydrocarbonIndex, 0, "Vermont produces 0 crude/gas");
+    assert.equal(US_GEOGRAPHIC_ENDOWMENTS["Iowa"].hydrocarbonIndex, 0, "Iowa produces 0 crude/gas");
+    assert.equal(US_GEOGRAPHIC_ENDOWMENTS["Hawaii"].hydrocarbonIndex, 0, "Hawaii produces 0 crude/gas");
+    assert.equal(US_GEOGRAPHIC_ENDOWMENTS["Nevada"].hydrocarbonIndex, 0, "Nevada produces 0 crude/gas");
+
+    // Landlocked states without navigable waterways must have 0 logisticsWaterwayIndex
+    assert.equal(US_GEOGRAPHIC_ENDOWMENTS["Montana"].logisticsWaterwayIndex, 0, "Montana has 0 seaport/commercial waterway access");
+    assert.equal(US_GEOGRAPHIC_ENDOWMENTS["Wyoming"].logisticsWaterwayIndex, 0, "Wyoming has 0 seaport/commercial waterway access");
+    assert.equal(US_GEOGRAPHIC_ENDOWMENTS["Colorado"].logisticsWaterwayIndex, 0, "Colorado has 0 seaport/commercial waterway access");
+    assert.equal(US_GEOGRAPHIC_ENDOWMENTS["Utah"].logisticsWaterwayIndex, 0, "Utah has 0 seaport/commercial waterway access");
+  });
+
+  test("All 50 US states explicitly defined with empirical USGS/EIA/USDA endowments", () => {
+    const stateCount = Object.keys(US_GEOGRAPHIC_ENDOWMENTS).length;
+    assert.ok(stateCount >= 50, `Expected at least 50 states defined, got ${stateCount}`);
+    for (const [name, endow] of Object.entries(US_GEOGRAPHIC_ENDOWMENTS)) {
+      assert.ok(endow.code, `${name} must have a 2-letter state code`);
+      assert.ok(endow.region, `${name} must have a geographic region`);
+      assert.ok(Number.isFinite(endow.hydrocarbonIndex), `${name} hydrocarbonIndex must be a number`);
+      assert.ok(Number.isFinite(endow.mineralIndex), `${name} mineralIndex must be a number`);
+      assert.ok(Number.isFinite(endow.arableLandIndex), `${name} arableLandIndex must be a number`);
+      assert.ok(Number.isFinite(endow.logisticsWaterwayIndex), `${name} logisticsWaterwayIndex must be a number`);
+      assert.ok(endow.resources, `${name} must have resource text summaries`);
+    }
+  });
+
+  test("getUsStateEndowment returns strict zero baseline fallback for unlisted territories", () => {
+    const endow = getUsStateEndowment("Guam");
     assert.ok(endow, "Must return endowment object");
-    assert.ok(endow.hydrocarbonIndex >= 0 && endow.hydrocarbonIndex <= 100);
-    assert.ok(endow.mineralIndex >= 0 && endow.mineralIndex <= 100);
-    assert.ok(endow.arableLandIndex >= 0 && endow.arableLandIndex <= 100);
+    assert.equal(endow.hydrocarbonIndex, 0, "Fallback hydrocarbonIndex must be strictly 0");
+    assert.equal(endow.mineralIndex, 0, "Fallback mineralIndex must be strictly 0");
+    assert.equal(endow.arableLandIndex, 0, "Fallback arableLandIndex must be strictly 0");
+    assert.equal(endow.logisticsWaterwayIndex, 0, "Fallback logisticsWaterwayIndex must be strictly 0");
   });
 
   test("Map tile providers contain CartoDB, Esri Satellite, and OpenStreetMap options", () => {

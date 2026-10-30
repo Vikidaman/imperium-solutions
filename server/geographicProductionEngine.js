@@ -83,10 +83,10 @@ export function evaluateGeographicProduction(endowments, capitalStock = 65, extr
   const ensembles = model.ensembles || {};
 
   const featureMap = {
-    hydrocarbon_endowment: Number(endowments.hydrocarbonIndex) || 25,
-    mineral_endowment: Number(endowments.mineralIndex) || 35,
-    arable_land_endowment: Number(endowments.arableLandIndex) || 50,
-    waterway_logistics_endowment: Number(endowments.logisticsWaterwayIndex) || 60,
+    hydrocarbon_endowment: Number.isFinite(Number(endowments?.hydrocarbonIndex)) ? Number(endowments.hydrocarbonIndex) : 0,
+    mineral_endowment: Number.isFinite(Number(endowments?.mineralIndex)) ? Number(endowments.mineralIndex) : 0,
+    arable_land_endowment: Number.isFinite(Number(endowments?.arableLandIndex)) ? Number(endowments.arableLandIndex) : 0,
+    waterway_logistics_endowment: Number.isFinite(Number(endowments?.logisticsWaterwayIndex)) ? Number(endowments.logisticsWaterwayIndex) : 0,
     industrial_capital_stock: Number(capitalStock) || 65,
     extractive_labor_share: Number(extractiveLabor) || 2.0,
     agricultural_labor_share: Number(agriLabor) || 2.5,

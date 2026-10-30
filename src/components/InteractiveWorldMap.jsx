@@ -1715,25 +1715,25 @@ export default function InteractiveWorldMap({
                                 <span className="text-[9px] text-amber-400 block font-bold flex items-center gap-1">
                                   <Fuel className="w-3 h-3" /> 🛢️ Oil & Gas:
                                 </span>
-                                <strong>{endow.hydrocarbonIndex}%</strong> ({endow.hydrocarbonIndex > 60 ? "Abundant Reserves" : endow.hydrocarbonIndex > 25 ? "Moderate Play" : "Low"})
+                                <strong>{endow.hydrocarbonIndex}%</strong> ({endow.hydrocarbonIndex > 60 ? "Abundant Reserves" : endow.hydrocarbonIndex > 25 ? "Moderate Play" : endow.hydrocarbonIndex > 0 ? "Marginal" : "None / 0%"})
                               </div>
                               <div className="p-2 rounded-lg bg-purple-500/10 border border-purple-500/25 text-purple-200">
                                 <span className="text-[9px] text-purple-400 block font-bold flex items-center gap-1">
                                   <Pickaxe className="w-3 h-3" /> ⛏️ Minerals:
                                 </span>
-                                <strong>{endow.mineralIndex}%</strong> ({endow.mineralIndex > 60 ? "Rich Deposits" : endow.mineralIndex > 30 ? "Standard" : "Aggregates"})
+                                <strong>{endow.mineralIndex}%</strong> ({endow.mineralIndex > 60 ? "Rich Deposits" : endow.mineralIndex > 30 ? "Standard" : endow.mineralIndex > 0 ? "Minor Aggregates" : "None / 0%"})
                               </div>
                               <div className="p-2 rounded-lg bg-emerald-500/10 border border-emerald-500/25 text-emerald-200">
                                 <span className="text-[9px] text-emerald-400 block font-bold flex items-center gap-1">
                                   <Wheat className="w-3 h-3" /> 🌾 Arable Land:
                                 </span>
-                                <strong>{endow.arableLandIndex}%</strong> ({endow.arableLandIndex > 70 ? "Prime Breadbasket" : "Arable Soil"})
+                                <strong>{endow.arableLandIndex}%</strong> ({endow.arableLandIndex > 70 ? "Prime Breadbasket" : endow.arableLandIndex > 35 ? "Arable Soil / Grazing" : endow.arableLandIndex > 0 ? "Marginal" : "Non-Arable / 0%"})
                               </div>
                               <div className="p-2 rounded-lg bg-cyan-500/10 border border-cyan-500/25 text-cyan-200">
                                 <span className="text-[9px] text-cyan-400 block font-bold flex items-center gap-1">
                                   <Anchor className="w-3 h-3" /> ⚓ Logistics & Ports:
                                 </span>
-                                <strong>{endow.logisticsWaterwayIndex}%</strong> ({endow.logisticsWaterwayIndex > 80 ? "Super-Hub Gateway" : "Regional Artery"})
+                                <strong>{endow.logisticsWaterwayIndex}%</strong> ({endow.logisticsWaterwayIndex > 80 ? "Super-Hub Gateway" : endow.logisticsWaterwayIndex > 40 ? "Regional Artery" : endow.logisticsWaterwayIndex > 0 ? "Minor Inland River" : "Landlocked / 0%"})
                               </div>
                             </div>
 
@@ -3684,25 +3684,25 @@ export default function InteractiveWorldMap({
                                   <span className="text-[9px] text-amber-400 block font-bold flex items-center gap-1">
                                     <Fuel className="w-3 h-3" /> 🛢️ Oil & Gas:
                                   </span>
-                                  <strong>{endow.hydrocarbonIndex}%</strong> ({endow.hydrocarbonIndex > 60 ? "Abundant Reserves" : endow.hydrocarbonIndex > 25 ? "Moderate Play" : "Low"})
+                                  <strong>{endow.hydrocarbonIndex}%</strong> ({endow.hydrocarbonIndex > 60 ? "Abundant Reserves" : endow.hydrocarbonIndex > 25 ? "Moderate Play" : endow.hydrocarbonIndex > 0 ? "Marginal" : "None / 0%"})
                                 </div>
                                 <div className="p-1.5 rounded-lg bg-purple-500/10 border border-purple-500/25 text-purple-200">
                                   <span className="text-[9px] text-purple-400 block font-bold flex items-center gap-1">
                                     <Pickaxe className="w-3 h-3" /> ⛏️ Minerals:
                                   </span>
-                                  <strong>{endow.mineralIndex}%</strong> ({endow.mineralIndex > 60 ? "Rich Deposits" : endow.mineralIndex > 30 ? "Standard" : "Aggregates"})
+                                  <strong>{endow.mineralIndex}%</strong> ({endow.mineralIndex > 60 ? "Rich Deposits" : endow.mineralIndex > 30 ? "Standard" : endow.mineralIndex > 0 ? "Minor Aggregates" : "None / 0%"})
                                 </div>
                                 <div className="p-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/25 text-emerald-200">
                                   <span className="text-[9px] text-emerald-400 block font-bold flex items-center gap-1">
                                     <Wheat className="w-3 h-3" /> 🌾 Arable Land:
                                   </span>
-                                  <strong>{endow.arableLandIndex}%</strong> ({endow.arableLandIndex > 70 ? "Prime Breadbasket" : "Arable Soil"})
+                                  <strong>{endow.arableLandIndex}%</strong> ({endow.arableLandIndex > 70 ? "Prime Breadbasket" : endow.arableLandIndex > 35 ? "Arable Soil / Grazing" : endow.arableLandIndex > 0 ? "Marginal" : "Non-Arable / 0%"})
                                 </div>
                                 <div className="p-1.5 rounded-lg bg-cyan-500/10 border border-cyan-500/25 text-cyan-200">
                                   <span className="text-[9px] text-cyan-400 block font-bold flex items-center gap-1">
                                     <Anchor className="w-3 h-3" /> ⚓ Logistics & Ports:
                                   </span>
-                                  <strong>{endow.logisticsWaterwayIndex}%</strong> ({endow.logisticsWaterwayIndex > 80 ? "Super-Hub Gateway" : "Regional Artery"})
+                                  <strong>{endow.logisticsWaterwayIndex}%</strong> ({endow.logisticsWaterwayIndex > 80 ? "Super-Hub Gateway" : endow.logisticsWaterwayIndex > 40 ? "Regional Artery" : endow.logisticsWaterwayIndex > 0 ? "Minor Inland River" : "Landlocked / 0%"})
                                 </div>
                               </div>
 

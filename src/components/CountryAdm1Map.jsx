@@ -167,25 +167,54 @@ export default function CountryAdm1Map({
             } else if (layerMode === "resources" && isUsa) {
               const endow = getUsStateEndowment(name);
               if (resourceCategory === "oil_gas") {
-                const ratio = (endow.hydrocarbonIndex || 0) / 100;
-                fillColor = `hsl(38, 92%, ${Math.round(20 + ratio * 35)}%)`;
-                fillOpacity = Math.max(0.2, ratio * 0.75);
+                const val = endow.hydrocarbonIndex || 0;
+                if (val <= 0) {
+                  fillColor = "#0f172a";
+                  fillOpacity = 0.35;
+                } else {
+                  const ratio = val / 100;
+                  fillColor = `hsl(38, 92%, ${Math.round(25 + ratio * 35)}%)`;
+                  fillOpacity = Math.max(0.35, ratio * 0.85);
+                }
               } else if (resourceCategory === "mineral") {
-                const ratio = (endow.mineralIndex || 0) / 100;
-                fillColor = `hsl(275, 85%, ${Math.round(25 + ratio * 35)}%)`;
-                fillOpacity = Math.max(0.2, ratio * 0.75);
+                const val = endow.mineralIndex || 0;
+                if (val <= 0) {
+                  fillColor = "#0f172a";
+                  fillOpacity = 0.35;
+                } else {
+                  const ratio = val / 100;
+                  fillColor = `hsl(275, 85%, ${Math.round(30 + ratio * 35)}%)`;
+                  fillOpacity = Math.max(0.35, ratio * 0.85);
+                }
               } else if (resourceCategory === "agri") {
-                const ratio = (endow.arableLandIndex || 0) / 100;
-                fillColor = `hsl(142, 75%, ${Math.round(22 + ratio * 35)}%)`;
-                fillOpacity = Math.max(0.2, ratio * 0.75);
+                const val = endow.arableLandIndex || 0;
+                if (val <= 0) {
+                  fillColor = "#0f172a";
+                  fillOpacity = 0.35;
+                } else {
+                  const ratio = val / 100;
+                  fillColor = `hsl(142, 75%, ${Math.round(25 + ratio * 35)}%)`;
+                  fillOpacity = Math.max(0.35, ratio * 0.85);
+                }
               } else if (resourceCategory === "port") {
-                const ratio = (endow.logisticsWaterwayIndex || 0) / 100;
-                fillColor = `hsl(199, 89%, ${Math.round(25 + ratio * 35)}%)`;
-                fillOpacity = Math.max(0.2, ratio * 0.75);
+                const val = endow.logisticsWaterwayIndex || 0;
+                if (val <= 0) {
+                  fillColor = "#0f172a";
+                  fillOpacity = 0.35;
+                } else {
+                  const ratio = val / 100;
+                  fillColor = `hsl(199, 89%, ${Math.round(30 + ratio * 35)}%)`;
+                  fillOpacity = Math.max(0.35, ratio * 0.85);
+                }
               } else {
                 const totalEndow = ((endow.hydrocarbonIndex || 0) + (endow.mineralIndex || 0) + (endow.arableLandIndex || 0)) / 300;
-                fillColor = `hsl(180, 85%, ${Math.round(25 + totalEndow * 35)}%)`;
-                fillOpacity = Math.max(0.25, totalEndow * 0.7);
+                if (totalEndow <= 0) {
+                  fillColor = "#0f172a";
+                  fillOpacity = 0.35;
+                } else {
+                  fillColor = `hsl(180, 85%, ${Math.round(25 + totalEndow * 35)}%)`;
+                  fillOpacity = Math.max(0.35, totalEndow * 0.8);
+                }
               }
             } else if (isUsa && regionTint) {
               fillColor = regionTint;
