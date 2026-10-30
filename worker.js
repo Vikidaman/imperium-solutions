@@ -8,6 +8,9 @@ import {
   triggerElectionAction,
   triggerLawAction,
   queueConstruction,
+  setNationPolicyRate,
+  issueSovereignBond,
+  repaySovereignBond,
   resolveNewsDilemma,
   publishCustomNews,
 } from "./server/engine.js";
@@ -1532,6 +1535,12 @@ export default {
           result = triggerLawAction(sess.state, body);
         } else if (type === "QUEUE_CONSTRUCTION") {
           result = queueConstruction(sess.state, body);
+        } else if (type === "SET_POLICY_RATE") {
+          result = setNationPolicyRate(sess.state, body);
+        } else if (type === "ISSUE_SOVEREIGN_BOND") {
+          result = issueSovereignBond(sess.state, body);
+        } else if (type === "REPAY_SOVEREIGN_BOND") {
+          result = repaySovereignBond(sess.state, body);
         } else if (type === "RESOLVE_DILEMMA") {
           result = resolveNewsDilemma(sess.state, body);
         } else if (type === "PUBLISH_NEWS") {
