@@ -1501,7 +1501,10 @@ export default function InteractiveWorldMap({
 
                     {/* Seceded Constituent States & Transferred Territories Overlay (e.g. California Republic, Republic of Texas) */}
                     {STATIC_US_STATE_FEATURES.map((stFeat) => {
-                      const directOwnerId = territoryMap[stFeat.name];
+                      const directOwnerId =
+                        stFeat.name === "Georgia"
+                          ? territoryMap["Georgia (USA)"] || territoryMap["Georgia:Atlanta"] || (territoryMap["Georgia"] === "usa" ? "usa" : territoryMap["Georgia"])
+                          : territoryMap[stFeat.name];
                       const usaOwnerId = territoryMap["United States of America"] || "usa";
                       if (!directOwnerId || directOwnerId === usaOwnerId) return null;
 
