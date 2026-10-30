@@ -636,7 +636,7 @@ export function ensureVictoriaState(state) {
         date: curDate,
         quarter: state.timeManager?.quarterNumber || 1,
         category: "WORLD CHRONICLE",
-        headline: "The Grand Ledger Opens: Great Powers Compete for Planetary Hegemony",
+        headline: "The Grand Ledger Opens: Sovereign Nations Compete for Planetary Markets",
         summary:
           "Industrial syndicates, sovereign bourses, and parliamentary coalitions mobilize across Earth and Mars as the new era begins. Markets await fiscal and tariff directives from national capitals.",
         nationName: "Global",
@@ -1052,23 +1052,13 @@ export function evaluateVictoriaMechanics(state) {
       legitimacyTier,
     };
 
-    // National Sovereign Capacities (Construction & Sovereign Prestige)
-    const territories = nation.territoryCount || 1;
+    // National Sovereign Capacities (Construction Capacity)
     const constructionCapacity = Math.round(
       25 + ((c.industryGdp || 0) / 1e11) * 18 + (c.infrastructureEfficiency || 0.75) * 35
-    );
-    const prestige = Math.round(
-      ((c.aggregateGdp || 0) / 1e11) * 45 +
-        ((c.totalValuation || 0) / 1e12) * 20 +
-        territories * 15 +
-        (c.literacyRate || 0.7) * 120
     );
 
     nation.capacities = {
       constructionCapacity,
-      prestige,
-      rankTitle: "Minor Power",
-      globalRank: 1,
     };
 
     // Dynamic Election Projections & Countdown
