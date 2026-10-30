@@ -3535,17 +3535,22 @@ export default function InteractiveWorldMap({
                   All Global Territories & Outer Space Sectors (Click 'Annex' to add to {activeNation?.name}):
                 </span>
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
-                  {STATIC_EARTH_FEATURES.filter((f) =>
+                  {allGlobalProvinces.filter((p) =>
                     !provinceSearchQuery.trim() ||
-                    f.name.toLowerCase().includes(provinceSearchQuery.trim().toLowerCase())
-                  ).map((f) => {
-                    const currentControllerId = territoryMap[f.name];
+                    p.name.toLowerCase().includes(provinceSearchQuery.trim().toLowerCase()) ||
+                    (p.type && p.type.toLowerCase().includes(provinceSearchQuery.trim().toLowerCase())) ||
+                    (p.capital && p.capital.toLowerCase().includes(provinceSearchQuery.trim().toLowerCase()))
+                  ).map((p) => {
+                    const currentControllerId =
+                      p.name === "Georgia"
+                        ? territoryMap["Georgia (USA)"] || territoryMap["Georgia:Atlanta"] || territoryMap["Georgia"]
+                        : territoryMap[p.name];
                     const currentController = nationById.get(currentControllerId);
                     const isControlledByActive = currentControllerId === activeNation?.id;
 
                     return (
                       <div
-                        key={f.name}
+                        key={p.name}
                         className={`p-2.5 rounded-xl border flex items-center justify-between gap-2 text-xs transition ${
                           isControlledByActive
                             ? "bg-cyan-950/30 border-cyan-500/50"
@@ -3553,9 +3558,21 @@ export default function InteractiveWorldMap({
                         }`}
                       >
                         <div className="min-w-0">
-                          <div className="font-bold text-white truncate">{f.name}</div>
-                          <div className="text-[10px] text-slate-400 truncate">
-                            {currentController ? currentController.name : "Non-Aligned"}
+                          <div className="font-bold text-white truncate flex items-center gap-1.5">
+                            {p.name}
+                            {p.code && (
+                              <span className="text-[9px] px-1 py-0.2 rounded bg-cyan-500/20 text-cyan-300 font-mono-num font-bold">
+                                {p.code}
+                              </span>
+                            )}
+                          </div>
+                          <div className="text-[10px] text-slate-400 truncate flex items-center gap-1.5 mt-0.5">
+                            <span className="text-slate-500">{p.planet} • {p.type || "Territory"}</span>
+                            {p.capital && <span className="text-slate-400 font-mono-num">• {p.capital}</span>}
+                            <span>•</span>
+                            <span className={currentController ? "text-cyan-300 font-medium" : "text-slate-500"}>
+                              {currentController ? currentController.name : "Non-Aligned"}
+                            </span>
                           </div>
                         </div>
 
@@ -3563,21 +3580,31 @@ export default function InteractiveWorldMap({
                           <button
                             onClick={() =>
                               onTransferTerritory({
-                                territoryName: f.name,
+                                territoryName: p.name,
                                 targetNationId: activeNation.id,
                                 mode: "ANNEX",
-                                planet: "Earth",
+                                planet: p.planet || "Earth",
                               })
                             }
-                            className="px-2.5 py-1 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 text-[10px] font-bold cursor-pointer shrink-0"
+                            className="px-2.5 py-1 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 text-[10px] font-bold cursor-pointer shrink-0 transition"
                           >
                             + Annex
                           </button>
                         )}
-                        {isControlledByActive && (
-                          <span className="text-[10px] font-mono-num text-cyan-400 font-bold px-1.5 py-0.5 rounded bg-cyan-500/10">
-                            Core
-                          </span>
+                        {!isReadOnly && isControlledByActive && (
+                          <button
+                            onClick={() =>
+                              onTransferTerritory({
+                                territoryName: p.name,
+                                mode: "RELEASE",
+                                planet: p.planet || "Earth",
+                              })
+                            }
+                            className="px-2 py-1 rounded-lg bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/40 text-[10px] font-bold cursor-pointer shrink-0 transition"
+                            title="Release as sovereign independent nation"
+                          >
+                            Release
+                          </button>
                         )}
                       </div>
                     );
