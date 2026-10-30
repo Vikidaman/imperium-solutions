@@ -1587,28 +1587,12 @@ export default function InteractiveWorldMap({
                     {/* Capital Markers & Nation Badges on Earth */}
                     {earthFeatures
                       .filter((f) => {
+                        // USA rendered via individual constituent state features
+                        if (f.name === "United States of America") return false;
                         const ctrlId = territoryMap[f.name];
                         const n = nationById.get(ctrlId);
                         if (!n) return false;
-                        if (
-                          n.id === "usa" &&
-                          (viewTier === "country" ||
-                            zoom >= 1.6 ||
-                            activeNation?.id === "usa")
-                        ) {
-                          // Hide single national center label when US individual states are expanded
-                          return false;
-                        }
-                        if (
-                          n.id === "european_union" &&
-                          f.name === "France"
-                        )
-                          return true;
-                        if (
-                          n.id === "usa" &&
-                          f.name === "United States of America"
-                        )
-                          return true;
+                        if (n.id === "european_union" && f.name === "France") return true;
                         return n.name.toLowerCase() === f.name.toLowerCase();
                       })
                       .map((f) => {
@@ -1618,7 +1602,7 @@ export default function InteractiveWorldMap({
                         const isSelected = n.id === activeNation?.id;
                         return (
                           <g
-                            key={`label_${n.id}`}
+                            key={`label_${f.name}`}
                             transform={`translate(${cx}, ${cy})`}
                             className="pointer-events-none"
                           >
@@ -1628,7 +1612,7 @@ export default function InteractiveWorldMap({
                               stroke="#020617"
                               strokeWidth={1 / Math.sqrt(zoom)}
                             />
-                            {/* Only show country name text at subcontinent level */}
+                            {/* Clean map: Only show country name text at subcontinent level */}
                             {viewTier === "subcontinent" && (
                               <text
                                 y={-6 / Math.sqrt(zoom)}
