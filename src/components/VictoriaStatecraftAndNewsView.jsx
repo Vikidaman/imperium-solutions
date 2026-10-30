@@ -217,14 +217,13 @@ export default function VictoriaStatecraftAndNewsView({
               >
                 {nations.map((n) => (
                   <option key={n.id} value={n.id}>
-                    {n.name} ({n.planet}) — #{n.capacities?.globalRank || 1}{" "}
-                    {n.capacities?.rankTitle || "Power"}
+                    {n.name} ({n.planet}) — {n.governmentSystem || "Sovereign Republic"}
                   </option>
                 ))}
               </select>
-              <span className="px-2.5 py-1 rounded-lg bg-amber-500/15 border border-amber-500/40 text-amber-300 text-xs font-mono-num font-bold flex items-center gap-1">
-                <Crown className="w-3.5 h-3.5" /> #{capacities.globalRank}{" "}
-                {capacities.rankTitle} ({capacities.prestige} Prestige)
+              <span className="px-2.5 py-1 rounded-lg bg-cyan-500/15 border border-cyan-500/40 text-cyan-300 text-xs font-mono-num font-bold flex items-center gap-1.5">
+                <Flag className="w-3.5 h-3.5" />
+                {nation.governmentSystem || nation.laws?.governance || "Sovereign Republic"}
               </span>
             </div>
           </div>
