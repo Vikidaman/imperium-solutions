@@ -15,6 +15,7 @@ import {
   Lock,
   LogOut,
   Sliders,
+  BookOpen,
 } from "lucide-react";
 import InteractiveWorldMap from "./components/InteractiveWorldMap";
 import DirectorLoginPortal from "./components/DirectorLoginPortal";
@@ -25,6 +26,7 @@ const VictoriaStatecraftAndNewsView = lazy(() =>
   import("./components/VictoriaStatecraftAndNewsView")
 );
 const DirectorConfigView = lazy(() => import("./components/DirectorConfigView"));
+const HistoricalSourcesView = lazy(() => import("./components/HistoricalSourcesView"));
 
 function detectPrivatePortalRoute() {
   if (typeof window === "undefined") return false;
@@ -748,6 +750,11 @@ export default function App() {
                 label: "World Ledger & History",
                 icon: Clock,
               },
+              {
+                id: "sources",
+                label: "Historical Sources & Credits",
+                icon: BookOpen,
+              },
             ].map((tab) => {
               const Icon = tab.icon;
               const active = activeTab === tab.id;
@@ -1039,7 +1046,12 @@ export default function App() {
                 onTimeAction={handleTimeAction}
                 onResetScenario={handleResetScenario}
                 onCreateNewScenario={handleCreateNewScenario}
+                onJumpToTab={handleJumpToTab}
               />
+            )}
+
+            {activeTab === "sources" && (
+              <HistoricalSourcesView onJumpToTab={handleJumpToTab} />
             )}
           </Suspense>
         </ErrorBoundary>

@@ -12,6 +12,8 @@ import {
   Zap,
   Globe2,
   Rocket,
+  BookOpen,
+  ExternalLink,
 } from "lucide-react";
 import {
   LineChart,
@@ -35,6 +37,7 @@ export default function LedgerAndTimeView({
   onTimeAction,
   onResetScenario,
   onCreateNewScenario,
+  onJumpToTab,
 }) {
   const state = session?.state || {};
   const tm = state.timeManager || {};
@@ -102,6 +105,33 @@ export default function LedgerAndTimeView({
 
   return (
     <div className="space-y-6">
+      {/* Historical Accounting & Empirical Calibration Attribution Banner */}
+      <div className="p-4 rounded-2xl bg-slate-900/90 border border-slate-800 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-lg">
+        <div className="flex items-center gap-3">
+          <div className="p-2 rounded-xl bg-cyan-500/15 border border-cyan-500/30 text-cyan-400 shrink-0">
+            <BookOpen className="w-4 h-4" />
+          </div>
+          <div className="text-xs">
+            <span className="font-bold text-white block">
+              Historical Timeline, Input-Output Matrices & Empirical Datasets
+            </span>
+            <span className="text-slate-400">
+              Grounded in the <strong>Angus Maddison Project (GGDC)</strong>, <strong>Leontief Input-Output Accounts (BEA)</strong>, and <strong>USGS/EIA/USDA</strong> surveys.
+            </span>
+          </div>
+        </div>
+        {onJumpToTab && (
+          <button
+            type="button"
+            onClick={() => onJumpToTab("sources")}
+            className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-cyan-300 hover:text-cyan-200 border border-slate-700 text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer shrink-0"
+          >
+            <span>Inspect All Historical Sources</span>
+            <ExternalLink className="w-3 h-3" />
+          </button>
+        )}
+      </div>
+
       {/* Planetary Federation Summary Cards */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
         {(state.planetsSummary || []).map((planet) => {

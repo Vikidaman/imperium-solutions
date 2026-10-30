@@ -51,6 +51,8 @@ import {
   Activity,
   FileText,
   RefreshCw,
+  ExternalLink,
+  BookOpen,
 } from "lucide-react";
 import BufferedRangeSlider from "./BufferedRangeSlider";
 import CountryAdm1Map from "./CountryAdm1Map";
@@ -1933,7 +1935,18 @@ export default function InteractiveWorldMap({
                                 <Sparkles className="w-3 h-3 text-cyan-400" />
                                 Geographic Resource Endowments:
                               </span>
-                              <span className="text-slate-500 font-mono-num">USGS / EIA / USDA</span>
+                              {onJumpToTab ? (
+                                <button
+                                  type="button"
+                                  onClick={() => onJumpToTab("sources")}
+                                  className="text-cyan-400 hover:text-cyan-200 underline underline-offset-2 font-mono-num text-[10px] cursor-pointer flex items-center gap-1 transition"
+                                  title="Inspect full historical and empirical sources"
+                                >
+                                  USGS / EIA / USDA <ExternalLink className="w-2.5 h-2.5" />
+                                </button>
+                              ) : (
+                                <span className="text-slate-500 font-mono-num">USGS / EIA / USDA</span>
+                              )}
                             </div>
 
                             <div className="grid grid-cols-2 gap-1.5 text-[10px] font-mono-num">
@@ -3955,7 +3968,18 @@ export default function InteractiveWorldMap({
                                   <Sparkles className="w-3 h-3 text-cyan-400" />
                                   Geographic Resource Endowments:
                                 </span>
+                                {onJumpToTab ? (
+                                <button
+                                  type="button"
+                                  onClick={() => onJumpToTab("sources")}
+                                  className="text-cyan-400 hover:text-cyan-200 underline underline-offset-2 font-mono-num text-[10px] cursor-pointer flex items-center gap-1 transition"
+                                  title="Inspect full historical and empirical sources"
+                                >
+                                  USGS / EIA / USDA <ExternalLink className="w-2.5 h-2.5" />
+                                </button>
+                              ) : (
                                 <span className="text-slate-500 font-mono-num">USGS / EIA / USDA</span>
+                              )}
                               </div>
 
                               <div className="grid grid-cols-2 gap-1.5 text-[10px] font-mono-num">
