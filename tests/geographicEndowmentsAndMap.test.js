@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { US_GEOGRAPHIC_ENDOWMENTS, getUsStateEndowment, ALL_US_RESOURCE_MARKERS } from "../src/data/usGeographicEndowments.js";
 import { MAP_PROVIDERS } from "../src/data/mapProviders.js";
 import { evaluateGeographicProduction } from "../server/geographicProductionEngine.js";
+import { US_STATES_CATALOG, getUsaStateData } from "../src/data/usStatesData.js";
 
 describe("Geographic Endowments & Multi-Provider Cartography", () => {
   test("US geographic endowments contain authoritative USGS/EIA/USDA data for key anchor states", () => {
@@ -63,5 +64,34 @@ describe("Geographic Endowments & Multi-Provider Cartography", () => {
     assert.ok(result.outputs.heavyManufacturingGdp > 20, "Texas manufacturing GDP must be substantial");
     assert.ok(result.outputs.agriculturalProductionGdp > 5, "Texas agricultural GDP must be substantial");
     assert.ok(result.resourceMultipliers.domesticSupplyBuffer >= 1.0, "Supply buffer must be >= 1.0");
+  });
+
+  test("Colorado and all 50 constituent states have capitals, GDP shares, and USGS/EIA endowments", () => {
+    const colorado = US_STATES_CATALOG["Colorado"];
+    assert.ok(colorado, "Colorado must exist in state catalog");
+    assert.equal(colorado.code, "CO");
+    assert.equal(colorado.capital, "Denver");
+    assert.ok(colorado.gdpShare > 0.015, "Colorado GDP share must be grounded (~2.0% of US)");
+    assert.ok(colorado.popShare > 0.015, "Colorado workforce share must be grounded (~1.7% of US)");
+
+    const coEndow = getUsStateEndowment("Colorado");
+    assert.ok(coEndow, "Colorado geographic endowments must exist");
+    assert.ok(coEndow.mineralIndex >= 50, "Colorado must have significant mineral index from Molybdenum & precious metals");
+    assert.ok(coEndow.hydrocarbonIndex >= 40, "Colorado must have gas index from DJ and Piceance basins");
+    assert.ok(coEndow.primaryBasins.some((b) => b.name.includes("Molybdenum") || b.name.includes("DJ Basin")), "Must map key basins");
+
+    // Verify all 50 core states have valid capital and positive GDP shares
+    const coreStates = Object.entries(US_STATES_CATALOG).filter(([_, m]) => m.status !== "TERRITORY");
+    assert.equal(coreStates.length, 51, "Must contain 50 sovereign states + District of Columbia");
+
+    let totalGdpShare = 0;
+    for (const [name, meta] of Object.entries(US_STATES_CATALOG)) {
+      assert.ok(meta.capital, `${name} must have a capital city`);
+      assert.ok(meta.code, `${name} must have a 2-letter postal code`);
+      assert.ok(meta.gdpShare > 0, `${name} must have a positive GDP share`);
+      assert.ok(meta.popShare > 0, `${name} must have a positive pop share`);
+      totalGdpShare += meta.gdpShare;
+    }
+    assert.ok(totalGdpShare > 0.95 && totalGdpShare <= 1.05, "Total state GDP share must sum to ~100% of national economy");
   });
 });

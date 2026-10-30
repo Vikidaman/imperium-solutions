@@ -51,7 +51,7 @@ export default function CountryAdm1Map({
   const markersLayerRef = useRef(null);
 
   const [mapProvider, setMapProvider] = useState("carto_dark");
-  const [layerMode, setLayerMode] = useState("administrative"); // "administrative" | "economic" | "resources"
+  const [layerMode, setLayerMode] = useState("administrative"); // "administrative" | "resources"
   const [resourceCategory, setResourceCategory] = useState("all"); // "all" | "oil_gas" | "mineral" | "agri" | "port"
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -186,13 +186,12 @@ export default function CountryAdm1Map({
                 fillColor = `hsl(180, 85%, ${Math.round(25 + totalEndow * 35)}%)`;
                 fillOpacity = Math.max(0.25, totalEndow * 0.7);
               }
-            } else if (layerMode === "economic") {
-              const linked = getLinkedSubdivision(iso3, name);
-              fillColor = linked ? "#0284c7" : nationColor;
-              fillOpacity = 0.38;
             } else if (isUsa && regionTint) {
               fillColor = regionTint;
               fillOpacity = 0.32;
+            } else {
+              fillColor = nationColor;
+              fillOpacity = 0.28;
             }
 
             if (isSelected) {
@@ -242,17 +241,26 @@ export default function CountryAdm1Map({
 
             // Clean Tooltip
             const endow = isUsa ? getUsStateEndowment(name) : null;
-            let tooltipContent = `<div class="px-2 py-1 text-xs">
-              <strong class="text-white block font-bold">${name}</strong>`;
+            const stateMeta = isUsa ? getUsaStateData(name) : null;
+            let tooltipContent = `<div class="px-2.5 py-1.5 text-xs font-sans">
+              <div class="flex items-center gap-1.5">
+                <strong class="text-white block font-bold">${name}</strong>
+                ${stateMeta?.code ? `<span class="text-[10px] bg-cyan-500/20 text-cyan-300 font-mono font-bold px-1 rounded">${stateMeta.code}</span>` : ""}
+              </div>`;
+            if (stateMeta?.capital) {
+              tooltipContent += `<div class="text-[10px] text-slate-300">Capital: <strong class="text-white">${stateMeta.capital}</strong></div>`;
+            }
             if (endow && layerMode === "resources") {
-              tooltipContent += `<div class="text-[10px] text-amber-300 mt-0.5">
+              tooltipContent += `<div class="text-[10px] text-amber-300 mt-1 font-mono">
                 🛢️ Oil/Gas: ${endow.hydrocarbonIndex}% | ⛏️ Minerals: ${endow.mineralIndex}%
               </div>
-              <div class="text-[10px] text-emerald-300">
+              <div class="text-[10px] text-emerald-300 font-mono">
                 🌾 Arable: ${endow.arableLandIndex}% | ⚓ Ports: ${endow.logisticsWaterwayIndex}%
               </div>`;
+            } else if (stateMeta) {
+              tooltipContent += `<div class="text-[10px] text-emerald-400 font-mono mt-0.5">Share of US GDP: ${(stateMeta.gdpShare * 100).toFixed(1)}%</div>`;
             } else {
-              tooltipContent += `<span class="text-[10px] text-slate-300">Click to inspect constituent unit</span>`;
+              tooltipContent += `<span class="text-[10px] text-slate-400">Click to inspect constituent unit</span>`;
             }
             tooltipContent += `</div>`;
 
@@ -424,47 +432,33 @@ export default function CountryAdm1Map({
         </div>
 
         {/* Layer Mode Toggle (Administrative vs Economic vs Natural Endowments) */}
+        {/* Layer Mode: States (Administrative) vs Natural Resources View */}
         <div className="flex items-center gap-1 bg-slate-950 p-1 rounded-xl border border-slate-800">
           <button
             onClick={() => setLayerMode("administrative")}
-            className={`px-2 py-0.5 rounded-lg text-[11px] font-bold transition flex items-center gap-1 cursor-pointer ${
+            className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition flex items-center gap-1.5 cursor-pointer ${
               layerMode === "administrative"
                 ? "bg-cyan-500 text-slate-950 shadow-sm"
                 : "text-slate-400 hover:text-slate-200"
             }`}
-            title="Real constitutional administrative boundaries"
+            title="Real constitutional administrative boundaries and statehood"
           >
-            <Layers className="w-3 h-3" />
-            Administrative
+            <Landmark className="w-3.5 h-3.5" />
+            States (Administrative)
           </button>
 
           <button
-            onClick={() => setLayerMode("economic")}
-            className={`px-2 py-0.5 rounded-lg text-[11px] font-bold transition flex items-center gap-1 cursor-pointer ${
-              layerMode === "economic"
-                ? "bg-amber-500 text-slate-950 shadow-sm"
-                : "text-slate-400 hover:text-slate-200"
+            onClick={() => setLayerMode("resources")}
+            className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition flex items-center gap-1.5 cursor-pointer ${
+              layerMode === "resources"
+                ? "bg-emerald-500 text-slate-950 shadow-sm shadow-emerald-500/20"
+                : "text-emerald-400 hover:text-emerald-200"
             }`}
-            title="Macroeconomic simulator zones"
+            title="USGS, EIA & USDA naturally occurring geological resources and agricultural endowments"
           >
-            <Landmark className="w-3 h-3" />
-            Economic
+            <Sparkles className="w-3.5 h-3.5 text-emerald-300" />
+            Natural Resources
           </button>
-
-          {isUsa && (
-            <button
-              onClick={() => setLayerMode("resources")}
-              className={`px-2 py-0.5 rounded-lg text-[11px] font-bold transition flex items-center gap-1 cursor-pointer ${
-                layerMode === "resources"
-                  ? "bg-emerald-500 text-slate-950 shadow-sm shadow-emerald-500/20"
-                  : "text-emerald-400 hover:text-emerald-200"
-              }`}
-              title="USGS & EIA naturally occurring geological resource overlay"
-            >
-              <Sparkles className="w-3 h-3 text-emerald-300" />
-              Resources
-            </button>
-          )}
         </div>
 
         {/* Camera Reset & Zoom Controls */}

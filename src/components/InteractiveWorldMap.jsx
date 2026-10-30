@@ -36,6 +36,10 @@ import {
   Landmark,
   BarChart3,
   PieChart,
+  Fuel,
+  Pickaxe,
+  Wheat,
+  Anchor,
 } from "lucide-react";
 import BufferedRangeSlider from "./BufferedRangeSlider";
 import CountryAdm1Map from "./CountryAdm1Map";
@@ -543,11 +547,10 @@ export default function InteractiveWorldMap({
   const [transferringState, setTransferringState] = useState(null);
   const [transferTargetNationId, setTransferTargetNationId] = useState("");
   const [selectedStateName, setSelectedStateName] = useState(null);
-  const [usaDivisionMode, setUsaDivisionMode] = useState("states"); // "states" | "corridors"
   const [stateSearchQuery, setStateSearchQuery] = useState("");
   const [showStatesTableModal, setShowStatesTableModal] = useState(false);
-  const [statesModalFilter, setStatesModalFilter] = useState("all"); // "all" | "state" | "territory"
-  const [statesModalSort, setStatesModalSort] = useState("gdp"); // "gdp" | "name" | "pops" | "infra"
+  const [statesModalFilter, setStatesModalFilter] = useState("all"); // "all" | "state" | "territory" | "energy" | "minerals" | "agri"
+  const [statesModalSort, setStatesModalSort] = useState("gdp"); // "gdp" | "pops" | "name" | "energy" | "minerals" | "agri" | "infra"
   const [hoveredModalState, setHoveredModalState] = useState(null);
   const tooltipRef = useRef(null);
   const setHoveredTerritory = (val) => tooltipRef.current?.setHover(val);
@@ -880,8 +883,8 @@ export default function InteractiveWorldMap({
 
     const territoryStatusMap = state.territoryStatusMap || {};
 
-    // 1. United States 50 Individual Constituent States Mode
-    if (activeNation.id === "usa" && usaDivisionMode === "states") {
+    // 1. United States 50 Individual Constituent States & Territories
+    if (activeNation.id === "usa" || activeNation.name?.toLowerCase().includes("united states")) {
       const statesList = Object.entries(US_STATES_CATALOG).map(([name, meta]) => {
         const assignedId = territoryMap[name];
         if (assignedId && assignedId !== "usa") return null; // Transferred away
@@ -890,10 +893,11 @@ export default function InteractiveWorldMap({
         return {
           name,
           code: meta.code,
+          capital: meta.capital,
           region: meta.region,
           role: meta.role,
           status,
-          isCore: true,
+          isCore: status !== "TERRITORY",
           gdp: (c.aggregateGdp || 0) * meta.gdpShare,
           pops: Math.round((c.effectiveWorkingPops || 0) * meta.popShare),
           infra: c.infrastructureEfficiency || 0.88,
@@ -1053,7 +1057,7 @@ export default function InteractiveWorldMap({
         urban: c.urbanisationIndex || 0.78,
       },
     ];
-  }, [activeNation, territoryMap, state.territoryStatusMap, c, usaDivisionMode]);
+  }, [activeNation, territoryMap, state.territoryStatusMap, c]);
 
   // Filtered & Sorted constituent states for the Country & States Table Pop Up Modal
   const modalFilteredStates = useMemo(() => {
@@ -1062,16 +1066,38 @@ export default function InteractiveWorldMap({
       list = list.filter((s) => s.status === "STATE");
     } else if (statesModalFilter === "territory") {
       list = list.filter((s) => s.status === "TERRITORY");
+    } else if (statesModalFilter === "energy") {
+      list = list.filter((s) => {
+        const endow = getUsStateEndowment(s.name);
+        return (endow?.hydrocarbonIndex || 0) >= 40;
+      });
+    } else if (statesModalFilter === "minerals") {
+      list = list.filter((s) => {
+        const endow = getUsStateEndowment(s.name);
+        return (endow?.mineralIndex || 0) >= 50;
+      });
+    } else if (statesModalFilter === "agri") {
+      list = list.filter((s) => {
+        const endow = getUsStateEndowment(s.name);
+        return (endow?.arableLandIndex || 0) >= 60;
+      });
     }
 
     if (stateSearchQuery.trim()) {
       const q = stateSearchQuery.toLowerCase().trim();
-      list = list.filter(
-        (s) =>
+      list = list.filter((s) => {
+        const endow = getUsStateEndowment(s.name);
+        return (
           s.name.toLowerCase().includes(q) ||
           (s.code && s.code.toLowerCase().includes(q)) ||
-          (s.region && s.region.toLowerCase().includes(q))
-      );
+          (s.capital && s.capital.toLowerCase().includes(q)) ||
+          (s.role && s.role.toLowerCase().includes(q)) ||
+          (s.region && s.region.toLowerCase().includes(q)) ||
+          (endow?.resources?.hydrocarbons && endow.resources.hydrocarbons.toLowerCase().includes(q)) ||
+          (endow?.resources?.criticalMinerals && endow.resources.criticalMinerals.toLowerCase().includes(q)) ||
+          (endow?.resources?.agriculture && endow.resources.agriculture.toLowerCase().includes(q))
+        );
+      });
     }
 
     if (statesModalSort === "gdp") {
@@ -1080,6 +1106,12 @@ export default function InteractiveWorldMap({
       list.sort((a, b) => (b.pops || 0) - (a.pops || 0));
     } else if (statesModalSort === "name") {
       list.sort((a, b) => a.name.localeCompare(b.name));
+    } else if (statesModalSort === "energy") {
+      list.sort((a, b) => (getUsStateEndowment(b.name)?.hydrocarbonIndex || 0) - (getUsStateEndowment(a.name)?.hydrocarbonIndex || 0));
+    } else if (statesModalSort === "minerals") {
+      list.sort((a, b) => (getUsStateEndowment(b.name)?.mineralIndex || 0) - (getUsStateEndowment(a.name)?.mineralIndex || 0));
+    } else if (statesModalSort === "agri") {
+      list.sort((a, b) => (getUsStateEndowment(b.name)?.arableLandIndex || 0) - (getUsStateEndowment(a.name)?.arableLandIndex || 0));
     } else if (statesModalSort === "infra") {
       list.sort((a, b) => (b.infra || 0) - (a.infra || 0));
     }
@@ -2171,37 +2203,6 @@ export default function InteractiveWorldMap({
                   </div>
                 </div>
 
-                {/* USA Toggle: 50 Sovereign States vs 6 Economic Corridors */}
-                {activeNation.id === "usa" && (
-                  <div className="flex items-center justify-between gap-2 bg-slate-950/70 p-1.5 rounded-xl border border-slate-800 text-xs">
-                    <span className="text-[11px] text-slate-400 font-semibold pl-1">
-                      Division Mode:
-                    </span>
-                    <div className="flex items-center gap-1">
-                      <button
-                        onClick={() => setUsaDivisionMode("states")}
-                        className={`px-2.5 py-1 rounded-lg text-xs font-semibold cursor-pointer transition ${
-                          usaDivisionMode === "states"
-                            ? "bg-cyan-500 text-slate-950 font-bold shadow-sm"
-                            : "text-slate-400 hover:text-white"
-                        }`}
-                      >
-                        50 Sovereign States (56)
-                      </button>
-                      <button
-                        onClick={() => setUsaDivisionMode("corridors")}
-                        className={`px-2.5 py-1 rounded-lg text-xs font-semibold cursor-pointer transition ${
-                          usaDivisionMode === "corridors"
-                            ? "bg-cyan-500 text-slate-950 font-bold shadow-sm"
-                            : "text-slate-400 hover:text-white"
-                        }`}
-                      >
-                        6 Economic Blocs
-                      </button>
-                    </div>
-                  </div>
-                )}
-
                 {/* Quick Search Filter across States */}
                 {nationalStatesList.length > 5 && (
                   <div className="relative">
@@ -3026,7 +3027,7 @@ export default function InteractiveWorldMap({
                       </span>
                     </h2>
                     <span className="text-[11px] px-2.5 py-0.5 rounded-full bg-slate-800 text-slate-300 border border-slate-700 font-mono-num font-bold">
-                      {nationalStatesList.length} Total Subdivisions
+                      {activeNation.id === "usa" ? "50 Sovereign States (+ 6 Territories)" : `${nationalStatesList.length} Constituent Subdivisions`}
                     </span>
                   </div>
                   <p className="text-xs text-slate-400 mt-1 flex items-center gap-2.5 flex-wrap">
@@ -3080,23 +3081,36 @@ export default function InteractiveWorldMap({
               {/* Selected / Hovered State or Country Quick Dossier Card */}
               <div className="w-full md:w-2/5 glass-panel rounded-2xl p-4 border border-slate-800 text-xs space-y-2">
                 {(() => {
+                  const isUsa = activeNation.id === "usa" || activeNation.name?.toLowerCase().includes("united states");
                   const activeDossier = selectedStateName
-                    ? (modalFilteredStates.find((s) => s.name === selectedStateName) || {
+                    ? (nationalStatesList.find((s) => s.name === selectedStateName) || {
                         name: selectedStateName,
-                        role: "First-Level Administrative Unit (ADM1)",
+                        role: "Constituent Sovereign State",
                         status: "STATE",
                       })
                     : hoveredModalState;
 
                   if (activeDossier) {
+                    const stateMeta = isUsa ? getUsaStateData(activeDossier.name) : null;
+                    const stateGdp = activeDossier.gdp || (stateMeta ? (c.aggregateGdp || 0) * stateMeta.gdpShare : 0);
+                    const statePops = activeDossier.pops || (stateMeta ? Math.round((c.effectiveWorkingPops || 0) * stateMeta.popShare) : 0);
+                    const gdpSharePercent = stateMeta ? (stateMeta.gdpShare * 100).toFixed(1) : (c.aggregateGdp > 0 ? ((stateGdp / c.aggregateGdp) * 100).toFixed(1) : "0.0");
+                    const popSharePercent = stateMeta ? (stateMeta.popShare * 100).toFixed(1) : (c.effectiveWorkingPops > 0 ? ((statePops / c.effectiveWorkingPops) * 100).toFixed(1) : "0.0");
+                    const capital = activeDossier.capital || stateMeta?.capital || (activeDossier.name === "Georgia" ? "Atlanta" : "");
+
                     return (
                       <div className="space-y-2 animate-in fade-in duration-100">
                         <div className="flex items-center justify-between">
-                          <span className="font-bold text-white text-sm flex items-center gap-1.5">
+                          <span className="font-bold text-white text-sm flex items-center gap-1.5 flex-wrap">
                             {activeDossier.name}
-                            {activeDossier.code && (
+                            {(activeDossier.code || stateMeta?.code) && (
                               <span className="px-1.5 py-0.5 rounded bg-cyan-500/20 text-cyan-300 font-mono-num text-[10px] font-bold">
-                                {activeDossier.code}
+                                {activeDossier.code || stateMeta?.code}
+                              </span>
+                            )}
+                            {capital && (
+                              <span className="text-[11px] text-slate-400 font-normal">
+                                • Capital: <strong className="text-slate-200">{capital}</strong>
                               </span>
                             )}
                           </span>
@@ -3107,25 +3121,31 @@ export default function InteractiveWorldMap({
                           )}
                         </div>
                         <p className="text-[11px] text-slate-400">
-                          {activeDossier.region || activeDossier.role || "Administrative Division"}
+                          {activeDossier.region || activeDossier.role || "Constituent Sovereign State"}
                         </p>
                         <div className="grid grid-cols-2 gap-2 pt-1 font-mono-num text-[11px]">
-                          <div className="bg-slate-900/80 p-2 rounded-xl border border-slate-800">
-                            <span className="text-slate-400 block text-[10px]">Estimated GDP:</span>
-                            <strong className="text-emerald-400">
-                              {activeDossier.gdp ? formatCurrency(activeDossier.gdp) : "Aggregated in Zone"}
+                          <div className="bg-slate-900/80 p-2.5 rounded-xl border border-slate-800">
+                            <span className="text-slate-400 block text-[10px]">State GDP & National Share:</span>
+                            <strong className="text-emerald-400 text-sm">
+                              {formatCurrency(stateGdp)}
                             </strong>
+                            <span className="text-cyan-400 font-bold block text-[10px] mt-0.5">
+                              {gdpSharePercent}% of US National GDP
+                            </span>
                           </div>
-                          <div className="bg-slate-900/80 p-2 rounded-xl border border-slate-800">
-                            <span className="text-slate-400 block text-[10px]">Working Population:</span>
-                            <strong className="text-white">
-                              {activeDossier.pops ? formatCompactNumber(activeDossier.pops) : "National Pool"}
+                          <div className="bg-slate-900/80 p-2.5 rounded-xl border border-slate-800">
+                            <span className="text-slate-400 block text-[10px]">Constituent Workforce:</span>
+                            <strong className="text-white text-sm">
+                              {formatCompactNumber(statePops)}
                             </strong>
+                            <span className="text-slate-400 block text-[10px] mt-0.5">
+                              {popSharePercent}% of US Workforce
+                            </span>
                           </div>
                         </div>
 
                         {/* Geographic Resource Endowments Breakdown (USGS, EIA, USDA) */}
-                        {activeNation.id === "usa" && (() => {
+                        {isUsa && (() => {
                           const endow = getUsStateEndowment(activeDossier.name);
                           if (!endow) return null;
                           return (
@@ -3140,20 +3160,28 @@ export default function InteractiveWorldMap({
 
                               <div className="grid grid-cols-2 gap-1.5 text-[10px] font-mono-num">
                                 <div className="p-1.5 rounded-lg bg-amber-500/10 border border-amber-500/25 text-amber-200">
-                                  <span className="text-[9px] text-amber-400 block font-bold">🛢️ Oil & Gas:</span>
-                                  <strong>{endow.hydrocarbonIndex}%</strong> ({endow.hydrocarbonIndex > 60 ? "Abundant" : endow.hydrocarbonIndex > 25 ? "Moderate" : "Low"})
+                                  <span className="text-[9px] text-amber-400 block font-bold flex items-center gap-1">
+                                    <Fuel className="w-3 h-3" /> 🛢️ Oil & Gas:
+                                  </span>
+                                  <strong>{endow.hydrocarbonIndex}%</strong> ({endow.hydrocarbonIndex > 60 ? "Abundant Reserves" : endow.hydrocarbonIndex > 25 ? "Moderate Play" : "Low"})
                                 </div>
                                 <div className="p-1.5 rounded-lg bg-purple-500/10 border border-purple-500/25 text-purple-200">
-                                  <span className="text-[9px] text-purple-400 block font-bold">⛏️ Minerals:</span>
+                                  <span className="text-[9px] text-purple-400 block font-bold flex items-center gap-1">
+                                    <Pickaxe className="w-3 h-3" /> ⛏️ Minerals:
+                                  </span>
                                   <strong>{endow.mineralIndex}%</strong> ({endow.mineralIndex > 60 ? "Rich Deposits" : endow.mineralIndex > 30 ? "Standard" : "Aggregates"})
                                 </div>
                                 <div className="p-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/25 text-emerald-200">
-                                  <span className="text-[9px] text-emerald-400 block font-bold">🌾 Arable Soil:</span>
-                                  <strong>{endow.arableLandIndex}%</strong> ({endow.arableLandIndex > 70 ? "Prime Breadbasket" : "Arable"})
+                                  <span className="text-[9px] text-emerald-400 block font-bold flex items-center gap-1">
+                                    <Wheat className="w-3 h-3" /> 🌾 Arable Land:
+                                  </span>
+                                  <strong>{endow.arableLandIndex}%</strong> ({endow.arableLandIndex > 70 ? "Prime Breadbasket" : "Arable Soil"})
                                 </div>
                                 <div className="p-1.5 rounded-lg bg-cyan-500/10 border border-cyan-500/25 text-cyan-200">
-                                  <span className="text-[9px] text-cyan-400 block font-bold">⚓ Logistics/Ports:</span>
-                                  <strong>{endow.logisticsWaterwayIndex}%</strong> ({endow.logisticsWaterwayIndex > 80 ? "Super-Hub" : "Regional"})
+                                  <span className="text-[9px] text-cyan-400 block font-bold flex items-center gap-1">
+                                    <Anchor className="w-3 h-3" /> ⚓ Logistics & Ports:
+                                  </span>
+                                  <strong>{endow.logisticsWaterwayIndex}%</strong> ({endow.logisticsWaterwayIndex > 80 ? "Super-Hub Gateway" : "Regional Artery"})
                                 </div>
                               </div>
 
@@ -3184,7 +3212,7 @@ export default function InteractiveWorldMap({
                       <Compass className="w-5 h-5 mx-auto text-cyan-400/80" />
                       <p className="font-medium text-slate-300 text-xs">Interactive Cartography Overview</p>
                       <p className="text-[11px] text-slate-500">
-                        Click on any real administrative polygon or table row to inspect and select its constituent unit.
+                        Click on any real administrative polygon or table row to inspect its natural resources and state economic contribution.
                       </p>
                     </div>
                   );
@@ -3195,34 +3223,8 @@ export default function InteractiveWorldMap({
             {/* Modal Filters & Search Toolbar */}
             <div className="px-5 py-3 bg-slate-950/80 border-b border-slate-800 flex flex-wrap items-center justify-between gap-3 text-xs">
               <div className="flex items-center gap-2 flex-wrap flex-1">
-                {/* USA Toggle Mode */}
-                {activeNation.id === "usa" && (
-                  <div className="flex items-center gap-1 bg-slate-900 p-1 rounded-xl border border-slate-800">
-                    <button
-                      onClick={() => setUsaDivisionMode("states")}
-                      className={`px-3 py-1 rounded-lg text-xs font-semibold cursor-pointer transition ${
-                        usaDivisionMode === "states"
-                          ? "bg-cyan-500 text-slate-950 font-bold shadow-sm"
-                          : "text-slate-400 hover:text-white"
-                      }`}
-                    >
-                      50 Sovereign States ({Object.keys(US_STATES_CATALOG).length})
-                    </button>
-                    <button
-                      onClick={() => setUsaDivisionMode("corridors")}
-                      className={`px-3 py-1 rounded-lg text-xs font-semibold cursor-pointer transition ${
-                        usaDivisionMode === "corridors"
-                          ? "bg-cyan-500 text-slate-950 font-bold shadow-sm"
-                          : "text-slate-400 hover:text-white"
-                      }`}
-                    >
-                      6 Macro Blocs
-                    </button>
-                  </div>
-                )}
-
-                {/* Status Filter Pills */}
-                <div className="flex items-center gap-1 bg-slate-900 p-1 rounded-xl border border-slate-800 text-[11px]">
+                {/* Status & Natural Resource Filter Pills */}
+                <div className="flex items-center gap-1 bg-slate-900 p-1 rounded-xl border border-slate-800 text-[11px] overflow-x-auto">
                   <button
                     onClick={() => setStatesModalFilter("all")}
                     className={`px-2.5 py-1 rounded-lg font-semibold transition cursor-pointer ${
@@ -3231,7 +3233,7 @@ export default function InteractiveWorldMap({
                         : "text-slate-400 hover:text-white"
                     }`}
                   >
-                    All Subdivisions
+                    All Subdivisions ({nationalStatesList.length})
                   </button>
                   <button
                     onClick={() => setStatesModalFilter("state")}
@@ -3241,7 +3243,7 @@ export default function InteractiveWorldMap({
                         : "text-slate-400 hover:text-white"
                     }`}
                   >
-                    Core States
+                    Core States (50)
                   </button>
                   <button
                     onClick={() => setStatesModalFilter("territory")}
@@ -3253,6 +3255,41 @@ export default function InteractiveWorldMap({
                   >
                     Territories
                   </button>
+
+                  {activeNation.id === "usa" && (
+                    <>
+                      <button
+                        onClick={() => setStatesModalFilter("energy")}
+                        className={`px-2 py-1 rounded-lg font-semibold transition cursor-pointer flex items-center gap-1 ${
+                          statesModalFilter === "energy"
+                            ? "bg-amber-500/25 border border-amber-500/50 text-amber-300 font-bold"
+                            : "text-amber-400 hover:text-amber-200"
+                        }`}
+                      >
+                        <Fuel className="w-3 h-3" /> 🛢️ Energy
+                      </button>
+                      <button
+                        onClick={() => setStatesModalFilter("minerals")}
+                        className={`px-2 py-1 rounded-lg font-semibold transition cursor-pointer flex items-center gap-1 ${
+                          statesModalFilter === "minerals"
+                            ? "bg-purple-500/25 border border-purple-500/50 text-purple-300 font-bold"
+                            : "text-purple-400 hover:text-purple-200"
+                        }`}
+                      >
+                        <Pickaxe className="w-3 h-3" /> ⛏️ Minerals
+                      </button>
+                      <button
+                        onClick={() => setStatesModalFilter("agri")}
+                        className={`px-2 py-1 rounded-lg font-semibold transition cursor-pointer flex items-center gap-1 ${
+                          statesModalFilter === "agri"
+                            ? "bg-emerald-500/25 border border-emerald-500/50 text-emerald-300 font-bold"
+                            : "text-emerald-400 hover:text-emerald-200"
+                        }`}
+                      >
+                        <Wheat className="w-3 h-3" /> 🌾 Agriculture
+                      </button>
+                    </>
+                  )}
                 </div>
 
                 {/* Search Box */}
@@ -3260,7 +3297,11 @@ export default function InteractiveWorldMap({
                   <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
                   <input
                     type="text"
-                    placeholder={`Search states or postal codes...`}
+                    placeholder={
+                      activeNation.id === "usa"
+                        ? "Search 56 states, capitals, minerals, basins..."
+                        : "Search states or subdivisions..."
+                    }
                     value={stateSearchQuery}
                     onChange={(e) => setStateSearchQuery(e.target.value)}
                     className="w-full pl-8 pr-3 py-1.5 rounded-xl bg-slate-900 border border-slate-800 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 font-medium"
@@ -3274,11 +3315,18 @@ export default function InteractiveWorldMap({
                 <select
                   value={statesModalSort}
                   onChange={(e) => setStatesModalSort(e.target.value)}
-                  className="px-2.5 py-1 rounded-lg bg-slate-900 border border-slate-800 text-slate-200 text-xs font-semibold focus:outline-none focus:border-cyan-500"
+                  className="px-2.5 py-1 rounded-lg bg-slate-900 border border-slate-800 text-slate-200 text-xs font-semibold focus:outline-none focus:border-cyan-500 cursor-pointer"
                 >
-                  <option value="gdp">Regional GDP (Highest First)</option>
+                  <option value="gdp">State GDP (% of National Economy)</option>
                   <option value="pops">Working Population</option>
-                  <option value="name">Name (A → Z)</option>
+                  <option value="name">State Name (A → Z)</option>
+                  {activeNation.id === "usa" && (
+                    <>
+                      <option value="energy">🛢️ Oil & Gas Endowments</option>
+                      <option value="minerals">⛏️ Critical Minerals Endowments</option>
+                      <option value="agri">🌾 Agricultural Endowments</option>
+                    </>
+                  )}
                   <option value="infra">Infrastructure Efficiency</option>
                 </select>
               </div>
@@ -3300,14 +3348,13 @@ export default function InteractiveWorldMap({
                 <table className="w-full text-left text-xs text-slate-200">
                   <thead className="bg-slate-950/90 text-[10px] uppercase tracking-wider text-slate-400 font-mono-num border-b border-slate-800 sticky top-0 z-10 backdrop-blur-sm">
                     <tr>
-                      <th className="py-3 px-4 w-12 text-center">#</th>
-                      <th className="py-3 px-3">State / Territory Name</th>
-                      <th className="py-3 px-3">Status</th>
-                      <th className="py-3 px-3">Economic Corridor & Role</th>
-                      <th className="py-3 px-3 text-right">State GDP</th>
-                      <th className="py-3 px-3 text-right">Working Pops</th>
-                      <th className="py-3 px-3 text-right">Infra Efficiency</th>
-                      <th className="py-3 px-3 text-right">Urbanisation</th>
+                      <th className="py-3 px-3 w-10 text-center">#</th>
+                      <th className="py-3 px-3">State & Capital</th>
+                      <th className="py-3 px-2">Status</th>
+                      <th className="py-3 px-3">Primary Natural Resources & Role</th>
+                      <th className="py-3 px-3 text-right">State GDP & Share</th>
+                      <th className="py-3 px-3 text-right">Workforce</th>
+                      <th className="py-3 px-3 text-right">Modeled Production</th>
                       <th className="py-3 px-4 text-center">Statecraft Actions</th>
                     </tr>
                   </thead>
@@ -3331,7 +3378,7 @@ export default function InteractiveWorldMap({
                               : ""
                           }`}
                         >
-                          <td className="py-3 px-4 text-center text-slate-500 font-bold text-[11px]">
+                          <td className="py-3 px-3 text-center text-slate-500 font-bold text-[11px]">
                             {idx + 1}
                           </td>
                           <td className="py-3 px-3">
@@ -3341,39 +3388,78 @@ export default function InteractiveWorldMap({
                                   isTerritory ? "bg-amber-400" : "bg-cyan-400"
                                 }`}
                               />
-                              <span className="font-bold text-white text-xs">
-                                {st.name}
-                              </span>
-                              {st.code && (
-                                <span className="text-[10px] px-1.5 py-0.5 rounded bg-cyan-500/20 text-cyan-300 font-bold">
-                                  {st.code}
-                                </span>
-                              )}
+                              <div>
+                                <div className="flex items-center gap-1.5">
+                                  <span className="font-bold text-white text-xs">
+                                    {st.name}
+                                  </span>
+                                  {st.code && (
+                                    <span className="text-[10px] px-1 py-0.2 rounded bg-cyan-500/20 text-cyan-300 font-mono font-bold">
+                                      {st.code}
+                                    </span>
+                                  )}
+                                </div>
+                                {st.capital && (
+                                  <span className="text-[10px] text-slate-400 block font-normal">
+                                    Cap: <strong className="text-slate-300">{st.capital}</strong>
+                                  </span>
+                                )}
+                              </div>
                             </div>
                           </td>
-                          <td className="py-3 px-3">
+                          <td className="py-3 px-2">
                             {isTerritory ? (
-                              <span className="text-[10px] px-2 py-0.5 rounded bg-amber-500/20 border border-amber-500/40 text-amber-300 font-bold">
+                              <span className="text-[9px] px-2 py-0.5 rounded bg-amber-500/20 border border-amber-500/40 text-amber-300 font-bold">
                                 TERRITORY
                               </span>
                             ) : (
-                              <span className="text-[10px] px-2 py-0.5 rounded bg-cyan-500/15 border border-cyan-500/30 text-cyan-300 font-bold">
+                              <span className="text-[9px] px-2 py-0.5 rounded bg-cyan-500/15 border border-cyan-500/30 text-cyan-300 font-bold">
                                 CORE STATE
                               </span>
                             )}
                           </td>
-                          <td
-                            className="py-3 px-3 text-[11px] text-slate-300 font-sans max-w-xs truncate"
-                            title={st.role}
-                          >
-                            {st.role}
+                          <td className="py-3 px-3 max-w-xs">
+                            {activeNation.id === "usa" ? (() => {
+                              const endow = getUsStateEndowment(st.name);
+                              return (
+                                <div className="space-y-1">
+                                  <div className="flex items-center gap-1 flex-wrap">
+                                    {endow.hydrocarbonIndex >= 30 && (
+                                      <span className="px-1.5 py-0.2 rounded bg-amber-500/15 border border-amber-500/30 text-amber-300 text-[10px] font-bold flex items-center gap-0.5">
+                                        <Fuel className="w-2.5 h-2.5" /> {endow.hydrocarbonIndex}%
+                                      </span>
+                                    )}
+                                    {endow.mineralIndex >= 30 && (
+                                      <span className="px-1.5 py-0.2 rounded bg-purple-500/15 border border-purple-500/30 text-purple-300 text-[10px] font-bold flex items-center gap-0.5">
+                                        <Pickaxe className="w-2.5 h-2.5" /> {endow.mineralIndex}%
+                                      </span>
+                                    )}
+                                    {endow.arableLandIndex >= 40 && (
+                                      <span className="px-1.5 py-0.2 rounded bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-[10px] font-bold flex items-center gap-0.5">
+                                        <Wheat className="w-2.5 h-2.5" /> {endow.arableLandIndex}%
+                                      </span>
+                                    )}
+                                    {endow.logisticsWaterwayIndex >= 65 && (
+                                      <span className="px-1.5 py-0.2 rounded bg-cyan-500/15 border border-cyan-500/30 text-cyan-300 text-[10px] font-bold flex items-center gap-0.5">
+                                        <Anchor className="w-2.5 h-2.5" /> {endow.logisticsWaterwayIndex}%
+                                      </span>
+                                    )}
+                                  </div>
+                                  <p className="text-[10.5px] text-slate-300 font-sans truncate" title={st.role}>
+                                    {st.role}
+                                  </p>
+                                </div>
+                              );
+                            })() : (
+                              <span className="text-[11px] text-slate-300 font-sans truncate block">{st.role}</span>
+                            )}
                           </td>
                           <td className="py-3 px-3 text-right">
                             <span className="text-emerald-400 font-bold">
                               {formatCurrency(st.gdp)}
                             </span>
-                            <span className="text-[10px] text-slate-500 block">
-                              ({gdpPercent.toFixed(1)}%)
+                            <span className="text-[10px] text-cyan-400 font-bold block">
+                              {gdpPercent.toFixed(1)}% of US GDP
                             </span>
                           </td>
                           <td className="py-3 px-3 text-right">
@@ -3384,11 +3470,22 @@ export default function InteractiveWorldMap({
                               ({popPercent.toFixed(1)}%)
                             </span>
                           </td>
-                          <td className="py-3 px-3 text-right text-amber-300 font-bold">
-                            {formatPercent(st.infra, 0)}
-                          </td>
-                          <td className="py-3 px-3 text-right text-cyan-300 font-bold">
-                            {formatPercent(st.urban, 0)}
+                          <td className="py-3 px-3 text-right text-[11px]">
+                            {activeNation.id === "usa" ? (() => {
+                              const endow = getUsStateEndowment(st.name);
+                              return (
+                                <div className="text-right font-mono-num">
+                                  <span className="text-slate-300 block text-[10px]">
+                                    Ind: <strong className="text-cyan-300">{endow.modeledIndustrialOutput?.split(' ')[0] || '-'}</strong>
+                                  </span>
+                                  <span className="text-slate-400 block text-[10px]">
+                                    Agri: <strong className="text-emerald-300">{endow.modeledAgriculturalOutput?.split(' ')[0] || '-'}</strong>
+                                  </span>
+                                </div>
+                              );
+                            })() : (
+                              <span className="text-amber-300 font-bold">{formatPercent(st.infra, 0)}</span>
+                            )}
                           </td>
                           <td className="py-3 px-4 text-center">
                             <div className="flex items-center justify-center gap-1.5 flex-wrap">

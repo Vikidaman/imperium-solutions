@@ -204,6 +204,32 @@ export const US_GEOGRAPHIC_ENDOWMENTS = {
     sourceAttribution: "USDA NASS 2024 / EIA SEDS / Iowa Department of Agriculture"
   },
 
+  "Colorado": {
+    name: "Colorado",
+    code: "CO",
+    region: "Rocky Mountains & High Plains",
+    hydrocarbonIndex: 68,
+    mineralIndex: 82,
+    arableLandIndex: 58,
+    logisticsWaterwayIndex: 62,
+    primaryBasins: [
+      { name: "Denver-Julesburg (DJ) Basin", type: "oil_gas", coords: [-104.5, 40.2], desc: "Major Niobrara tight oil and natural gas play producing >400k bbl/d crude and 5.5 Bcf/d natural gas" },
+      { name: "Climax & Henderson Molybdenum Mines", type: "mineral", coords: [-106.18, 39.37], desc: "Global-scale primary molybdenum mines producing essential alloys for defense and aerospace steels" },
+      { name: "Piceance Basin Gas Shales", type: "oil_gas", coords: [-108.0, 39.5], desc: "Vast Western Slope natural gas reserves and sodium bicarbonate (nahcolite) deposits" },
+      { name: "Cripple Creek & Victor Gold Mine", type: "mineral", coords: [-105.15, 38.73], desc: "Historic and active open-pit gold extraction complex in the Colorado Mineral Belt" },
+      { name: "San Luis Valley & High Plains", type: "agri", coords: [-105.8, 37.5], desc: "High-altitude specialty agriculture producing potatoes, malting barley, and livestock grazing" }
+    ],
+    resources: {
+      hydrocarbons: "Crude Oil: 160M bbl/yr (#4 US); Natural Gas: 1.8T cu ft/yr (#7 US); DJ Basin Niobrara shale and Piceance tight sands",
+      criticalMinerals: "U.S. leader in Molybdenum (Climax/Henderson), Cripple Creek gold, vanadium, beryllium, tellurium, and titanium aggregates",
+      agriculture: "U.S. top-tier cattle and sheep feedlots ($6.5B livestock), #2 in fresh market potatoes, malting barley, sugar beets, and winter wheat",
+      logistics: "Denver International Airport (DIA) cargo hub; transcontinental I-25/I-70 crossroads; BNSF & Union Pacific rail junctions"
+    },
+    modeledIndustrialOutput: "$42B (Aerospace Defense Systems, Telecommunications Hardware, Molybdenum Metallurgy, Natural Gas Refining)",
+    modeledAgriculturalOutput: "$9.2B (Cattle Ranching, Dairy, Potatoes, Brewing Grains, Alfalfa)",
+    sourceAttribution: "USGS Minerals Yearbook 2024 / EIA SEDS / Colorado Geological Survey / USDA NASS"
+  },
+
   "North Dakota": {
     name: "North Dakota",
     code: "ND",
