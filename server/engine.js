@@ -318,8 +318,30 @@ export function transferTerritory(state, { territoryName, targetNationId, mode =
   // 1. SECESSION / RELEASE:
   // "When one state within a country secedes, it should not have any more state and provinces since it is a state itself."
   if (mode === "RELEASE") {
+    const isCalifornia = territoryName.toLowerCase().includes("california");
+    const isTexas = territoryName.toLowerCase().includes("texas");
+    const nationName = isCalifornia
+      ? "California Republic"
+      : isTexas
+      ? "Republic of Texas"
+      : territoryName.toLowerCase().includes("republic")
+      ? territoryName
+      : `${territoryName} Republic`;
+    const capitalName = isCalifornia
+      ? "Sacramento"
+      : isTexas
+      ? "Austin"
+      : `${territoryName} City`;
+    const sovereignColor = isCalifornia
+      ? "#f59e0b"
+      : isTexas
+      ? "#ef4444"
+      : "#10b981";
+
     const existing = (state.nations || []).find(
-      (n) => n.name.toLowerCase() === territoryName.toLowerCase()
+      (n) =>
+        n.name.toLowerCase() === territoryName.toLowerCase() ||
+        n.name.toLowerCase() === nationName.toLowerCase()
     );
     if (existing) {
       state.territoryMap[territoryName] = existing.id;
@@ -328,7 +350,7 @@ export function transferTerritory(state, { territoryName, targetNationId, mode =
       return { state, nationId: existing.id, action: `Restored sovereignty to ${existing.name}` };
     }
 
-    const newId = `${territoryName.toLowerCase().replace(/[^a-z0-9]+/g, "_")}_${Date.now()
+    const newId = `${nationName.toLowerCase().replace(/[^a-z0-9]+/g, "_")}_${Date.now()
       .toString(36)
       .slice(-3)}`;
     const templateNation = prevNation || state.nations[0];
@@ -350,29 +372,40 @@ export function transferTerritory(state, { territoryName, targetNationId, mode =
     // A seceded state is a unitary sovereign entity with NO internal sub-states/provinces
     const newNation = {
       id: newId,
-      name: territoryName,
+      name: nationName,
       planet,
+      capital: capitalName,
+      governmentSystem: "Presidential Republic",
+      color: sovereignColor,
       isSeceded: true,
       isUnitaryState: true,
       constituentStates: [],
       unincorporatedTerritories: [],
-      stockExchangeName: `${territoryName} National Bourse`,
+      stockExchangeName: `${nationName} National Bourse`,
       consumerSentiment: 56,
       kFactorScaler: 1500,
       workingPops: newPops,
-      literacyRate: 0.82,
-      urbanisationIndex: 0.72,
-      infrastructureEfficiency: 0.78,
-      rulingParty: state.politicalParties?.[0]?.name || "Republican",
+      literacyRate: 0.88,
+      urbanisationIndex: 0.82,
+      infrastructureEfficiency: 0.84,
+      rulingParty: state.politicalParties?.[0]?.name || "Democratic Party",
       federalCooperativity: 0.1,
       diplomaticExpenses: 0,
-      treasuryBalance: 25000000000,
+      treasuryBalance: 35000000000,
       specializedIndustry: "Industry & Manufacturing GDP",
       crimePolicy: "Beat Cops",
       healthcarePolicy: "State-run Healthcare",
       highImmigration: false,
       companies: transferredCompanies,
       market: (templateNation?.market || []).map((m) => ({ ...m })),
+      laws: {
+        governance: "Presidential Republic",
+        economy: "Laissez-Faire",
+        trade: "Free Trade",
+        taxation: "Graduated Taxation",
+        policing: "Beat Cops",
+        welfare: "State-run Healthcare",
+      },
     };
 
     state.nations.push(newNation);
@@ -384,16 +417,16 @@ export function transferTerritory(state, { territoryName, targetNationId, mode =
       date: state.timeManager?.crisisDate || "2025-01-01",
       quarter: state.timeManager?.quarterNumber || 1,
       category: "DIPLOMATIC PLAY",
-      headline: `Sovereignty Proclaimed: ${territoryName} Declares Independence!`,
-      summary: `A new sovereign unitary state rises over ${territoryName} (${planet}), establishing the ${territoryName} National Bourse and mobilizing ${(newPops / 1e6).toFixed(1)}M citizens.`,
-      nationName: territoryName,
-      impact: `New Sovereign State: ${territoryName} (Unitary)`,
+      headline: `Sovereignty Proclaimed: ${nationName} Declares Independence!`,
+      summary: `A new sovereign unitary state rises over ${territoryName} (${planet}), establishing capital at ${capitalName} and mobilizing ${(newPops / 1e6).toFixed(1)}M citizens.`,
+      nationName: nationName,
+      impact: `New Sovereign State: ${nationName} (Unitary)`,
     });
     evaluateSimulation(state);
     return {
       state,
       nationId: newId,
-      action: `${territoryName} declared independence as a sovereign unitary state`,
+      action: `${nationName} declared independence as a sovereign unitary state`,
     };
   }
 
