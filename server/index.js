@@ -13,8 +13,11 @@ import {
   getLedgerHistory,
   logActivity,
   getActivityLog,
+  rollbackSession,
   getAuthValue,
   setAuthValue,
+  recordForecastEntry,
+  getForecastRecords,
 } from "./db.js";
 import {
   evaluateSimulation,
@@ -38,7 +41,7 @@ const app = express();
 app.use(cors());
 app.use(express.json({ limit: "50mb" }));
 
-const DIRECTOR_SECRET_KEY = process.env.DIRECTOR_SECRET_KEY || "imperium-director-9942";
+const DIRECTOR_SECRET_KEY = process.env.DIRECTOR_SECRET_KEY || null;
 const DEFAULT_MASTER_PASSWORD = process.env.DIRECTOR_MASTER_PASSWORD || "imperium-2026";
 
 function isValidDirectorSessionToken(token) {
@@ -403,6 +406,42 @@ app.post("/api/sessions/:id/reset", (req, res) => {
     ledgerHistory: getLedgerHistory(id),
     activityLog: getActivityLog(id, 60),
   });
+});
+
+// 4b. Rollback session to a prior quarter or snapshot ID
+app.post("/api/sessions/:id/rollback", (req, res) => {
+  const id = req.params.id;
+  const { targetQuarter, targetId, actor } = req.body || {};
+  try {
+    const rolled = rollbackSession(id, targetQuarter, targetId);
+    sessionCache.set(id, rolled);
+    broadcastSessionUpdate(id, {
+      type: "STATE_UPDATED",
+      actor: actor || "Director",
+      action: "Simulation Rollback",
+      details: `Rolled back to Quarter ${rolled.rolledBackTo} (${rolled.crisisDate})`,
+      timestamp: new Date().toISOString(),
+    });
+    res.json({
+      ok: true,
+      session: rolled,
+      ledgerHistory: getLedgerHistory(id),
+      activityLog: getActivityLog(id, 60),
+    });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+// 4c. Ledger history endpoint
+app.get("/api/sessions/:id/ledger", (req, res) => {
+  res.json({ ledgerHistory: getLedgerHistory(req.params.id) });
+});
+
+// 4d. Activity log endpoint
+app.get("/api/sessions/:id/activity", (req, res) => {
+  const limit = Math.min(200, parseInt(req.query.limit, 10) || 60);
+  res.json({ activityLog: getActivityLog(req.params.id, limit) });
 });
 
 // 5. SSE Stream for multiplayer real-time sync

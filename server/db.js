@@ -47,6 +47,25 @@ db.exec(`
     value TEXT NOT NULL,
     updated_at TEXT NOT NULL
   );
+
+  CREATE TABLE IF NOT EXISTS forecast_history (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    session_id TEXT NOT NULL,
+    nation_id TEXT NOT NULL,
+    quarter INTEGER NOT NULL,
+    sim_date TEXT NOT NULL,
+    model_version TEXT NOT NULL,
+    baseline_forecast REAL NOT NULL,
+    structural_adj REAL NOT NULL,
+    crisis_adj REAL NOT NULL,
+    final_growth REAL NOT NULL,
+    interval_80_lower REAL NOT NULL,
+    interval_80_upper REAL NOT NULL,
+    interval_95_lower REAL NOT NULL,
+    interval_95_upper REAL NOT NULL,
+    features_json TEXT NOT NULL,
+    created_at TEXT NOT NULL
+  );
 `);
 
 export function getAuthValue(key, fallback = null) {
@@ -270,4 +289,85 @@ export function getActivityLog(sessionId, limit = 50) {
     )
     .all(sessionId, limit);
 }
+
+export function rollbackSession(sessionId, targetQuarter, targetId) {
+  let row;
+  if (targetId) {
+    row = db
+      .prepare("SELECT * FROM ledger_history WHERE session_id = ? AND id = ?")
+      .get(sessionId, targetId);
+  } else if (targetQuarter != null) {
+    row = db
+      .prepare(
+        "SELECT * FROM ledger_history WHERE session_id = ? AND quarter = ? ORDER BY id DESC LIMIT 1"
+      )
+      .get(sessionId, targetQuarter);
+  }
+  if (!row) {
+    throw new Error(`Snapshot not found for session ${sessionId}`);
+  }
+  const snap = JSON.parse(row.snapshot_json);
+  snap.version = (snap.version || 0) + 1;
+  saveSessionState(sessionId, snap);
+  db.prepare("DELETE FROM ledger_history WHERE session_id = ? AND id > ?").run(
+    sessionId,
+    row.id
+  );
+  logActivity(
+    sessionId,
+    "Director",
+    "Simulation Rollback",
+    `Rolled back to Quarter ${row.quarter} (${row.crisis_date})`
+  );
+  return {
+    id: sessionId,
+    state: snap,
+    rolledBackTo: row.quarter,
+    crisisDate: row.crisis_date,
+  };
+}
+
+export function recordForecastEntry(sessionId, entry) {
+  const stmt = db.prepare(`
+    INSERT INTO forecast_history (
+      session_id, nation_id, quarter, sim_date, model_version,
+      baseline_forecast, structural_adj, crisis_adj, final_growth,
+      interval_80_lower, interval_80_upper, interval_95_lower, interval_95_upper,
+      features_json, created_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `);
+  return stmt.run(
+    sessionId,
+    entry.nationId,
+    entry.quarter || 1,
+    entry.simDate || "",
+    entry.modelVersion || "1.0.0",
+    entry.baselineForecast || 0,
+    entry.structuralAdj || 0,
+    entry.crisisAdj || 0,
+    entry.finalGrowth || 0,
+    entry.interval80Lower || 0,
+    entry.interval80Upper || 0,
+    entry.interval95Lower || 0,
+    entry.interval95Upper || 0,
+    JSON.stringify(entry.features || {}),
+    new Date().toISOString()
+  );
+}
+
+export function getForecastRecords(sessionId, nationId = null, limit = 100) {
+  if (nationId) {
+    return db
+      .prepare(
+        "SELECT * FROM forecast_history WHERE session_id = ? AND nation_id = ? ORDER BY id DESC LIMIT ?"
+      )
+      .all(sessionId, nationId, limit);
+  }
+  return db
+    .prepare(
+      "SELECT * FROM forecast_history WHERE session_id = ? ORDER BY id DESC LIMIT ?"
+    )
+    .all(sessionId, limit);
+}
+
 

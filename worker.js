@@ -232,11 +232,7 @@ async function ensureDefaultSessions(env, requestUrl) {
       try {
         const rawJson = chunkRows.results.map((r) => r.data).join("");
         const parsed = JSON.parse(rawJson);
-        const hasOldCompanies = (parsed.nations || []).some(
-          (n) => (n.companies || []).length > 0
-        );
-        const hasOldGoods = (parsed.goodsCatalog || []).length > 60;
-        if (!hasOldCompanies && !hasOldGoods && parsed.powerBlocs?.length > 0) {
+        if (parsed?.nations?.length > 0 && parsed?.timeManager) {
           return;
         }
       } catch {
@@ -245,14 +241,8 @@ async function ensureDefaultSessions(env, requestUrl) {
     }
   } else if (memorySessions.size > 0) {
     const existing = memorySessions.get("interstellar-default");
-    if (existing?.state) {
-      const hasOldCompanies = (existing.state.nations || []).some(
-        (n) => (n.companies || []).length > 0
-      );
-      const hasOldGoods = (existing.state.goodsCatalog || []).length > 60;
-      if (!hasOldCompanies && !hasOldGoods && existing.state.powerBlocs?.length > 0) {
-        return;
-      }
+    if (existing?.state?.nations?.length > 0 && existing?.state?.timeManager) {
+      return;
     }
   }
 
@@ -413,12 +403,9 @@ async function getActivityLog(db, sessionId, limit = 50) {
   return rows.results || [];
 }
 
-const DIRECTOR_SECRET_KEY = "imperium-director-9942";
-const DEFAULT_MASTER_PASSWORD = "imperium-2026";
-
-async function isValidDirectorToken(db, token) {
+async function isValidDirectorToken(db, token, env) {
   if (!token) return false;
-  if (token === DIRECTOR_SECRET_KEY) return true;
+  if (env?.DIRECTOR_SECRET_KEY && token === env.DIRECTOR_SECRET_KEY) return true;
   const activeSessions = await getD1AuthValue(db, "sessions", {});
   return Boolean(activeSessions[token]);
 }
@@ -547,7 +534,7 @@ export default {
         if (botToken && chatId) {
           const alreadyPaired = Boolean(cfg.botToken && cfg.chatId);
           const providedToken = request.headers.get("x-director-key");
-          if (alreadyPaired && !(await isValidDirectorToken(db, providedToken))) {
+          if (alreadyPaired && !(await isValidDirectorToken(db, providedToken, env))) {
             return jsonResponse(
               {
                 error:
@@ -688,7 +675,7 @@ export default {
     if (["POST", "PATCH", "DELETE", "PUT"].includes(request.method)) {
       const providedKey =
         request.headers.get("x-director-key") || url.searchParams.get("access");
-      if (!(await isValidDirectorToken(db, providedKey))) {
+      if (!(await isValidDirectorToken(db, providedKey, env))) {
         return jsonResponse(
           {
             error:
@@ -797,6 +784,70 @@ export default {
           session: sess,
           ledgerHistory: await getLedgerHistory(db, sessionId, sess.state),
           activityLog: await getActivityLog(db, sessionId, 60),
+        });
+      }
+
+      // POST /api/sessions/:id/rollback
+      if (parts[3] === "rollback" && request.method === "POST") {
+        const body = await request.json().catch(() => ({}));
+        const { targetQuarter, targetId, actor } = body;
+        let row = null;
+        if (db) {
+          if (targetId) {
+            row = await db
+              .prepare("SELECT * FROM ledger_history WHERE session_id = ? AND id = ?")
+              .bind(sessionId, targetId)
+              .first();
+          } else if (targetQuarter != null) {
+            row = await db
+              .prepare(
+                "SELECT * FROM ledger_history WHERE session_id = ? AND quarter = ? ORDER BY id DESC LIMIT 1"
+              )
+              .bind(sessionId, targetQuarter)
+              .first();
+          }
+        }
+        if (!row) {
+          return jsonResponse({ error: "Snapshot not found for session rollback" }, 404);
+        }
+        const snap = JSON.parse(row.snapshot_json);
+        snap.version = (snap.version || 0) + 1;
+        sess.state = snap;
+        memorySessions.set(sessionId, sess);
+        if (db) {
+          await db
+            .prepare("DELETE FROM ledger_history WHERE session_id = ? AND id > ?")
+            .bind(sessionId, row.id)
+            .run();
+          await saveStateToD1(db, sess);
+          await logActivity(
+            db,
+            sessionId,
+            actor || "Director",
+            "Simulation Rollback",
+            `Rolled back to Quarter ${row.quarter} (${row.crisis_date})`
+          );
+        }
+        return jsonResponse({
+          ok: true,
+          session: sess,
+          ledgerHistory: await getLedgerHistory(db, sessionId, sess.state),
+          activityLog: await getActivityLog(db, sessionId, 60),
+        });
+      }
+
+      // GET /api/sessions/:id/ledger
+      if (parts[3] === "ledger" && request.method === "GET") {
+        return jsonResponse({
+          ledgerHistory: await getLedgerHistory(db, sessionId, sess.state),
+        });
+      }
+
+      // GET /api/sessions/:id/activity
+      if (parts[3] === "activity" && request.method === "GET") {
+        const limit = Math.min(200, parseInt(url.searchParams.get("limit") || "60", 10));
+        return jsonResponse({
+          activityLog: await getActivityLog(db, sessionId, limit),
         });
       }
 

@@ -20,6 +20,14 @@ import {
   History,
   Star,
   Calendar,
+  Activity,
+  RotateCcw,
+  AlertTriangle,
+  Play,
+  Pause,
+  FastForward,
+  Clock,
+  ShieldAlert,
 } from "lucide-react";
 import { HISTORICAL_ERAS, getHistoricalEraForDate } from "../data/historicalEras";
 import { formatCurrency, formatCompactNumber } from "../utils/formatters";
@@ -29,9 +37,13 @@ export default function DirectorConfigView({
   onUpdateDirectorConfig,
   onSelectNation,
   onTransferTerritory,
+  onRollbackSession,
+  activityLog = [],
+  ledgerHistory = [],
+  onTimeAction,
   isReadOnly,
 }) {
-  const [activeSubTab, setActiveSubTab] = useState("planets"); // "planets" | "powerblocs" | "historical_borders"
+  const [activeSubTab, setActiveSubTab] = useState("planets"); // "planets" | "powerblocs" | "historical_borders" | "operations"
   const [editingBloc, setEditingBloc] = useState(null);
   const [editingPlanet, setEditingPlanet] = useState(null);
   const [selectedEraId, setSelectedEraId] = useState(state.currentEraId || "era_2015");
@@ -127,6 +139,18 @@ export default function DirectorConfigView({
           >
             <History className="w-4 h-4" />
             Historical Eras & Internal Borders (500 BC – Present)
+          </button>
+
+          <button
+            onClick={() => setActiveSubTab("operations")}
+            className={`px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition cursor-pointer ${
+              activeSubTab === "operations"
+                ? "bg-purple-500 text-white shadow-md shadow-purple-500/20"
+                : "bg-slate-800 text-slate-300 hover:bg-slate-700"
+            }`}
+          >
+            <Activity className="w-4 h-4" />
+            Live Operations & Snapshot Rollback ({ledgerHistory?.length || 0})
           </button>
         </div>
 
@@ -1106,6 +1130,267 @@ export default function DirectorConfigView({
           </div>
         );
       })()}
+
+      {/* SUBTAB 4: LIVE OPERATIONS, DECISION AUDIT LOG & SNAPSHOT ROLLBACK */}
+      {activeSubTab === "operations" && (
+        <div className="space-y-6">
+          {/* Header Controls */}
+          <div className="bg-slate-900/90 border border-purple-500/30 rounded-2xl p-6 shadow-xl relative overflow-hidden">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div>
+                <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                  <Activity className="w-5 h-5 text-purple-400" />
+                  Live Event Operations & Controlled Rollback
+                </h3>
+                <p className="text-xs text-slate-400 mt-1">
+                  Monitor participant activity in real-time, execute deterministic quarter progressions, and safely rollback simulation state if an interruption occurs.
+                </p>
+              </div>
+
+              {/* Time advancement buttons */}
+              {onTimeAction && (
+                <div className="flex flex-wrap items-center gap-2">
+                  <button
+                    disabled={isReadOnly}
+                    onClick={() => onTimeAction({ command: "ADVANCE_DAYS", daysToAdd: 30 })}
+                    className="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-200 border border-slate-700 flex items-center gap-1.5 transition cursor-pointer disabled:opacity-50"
+                  >
+                    <Clock className="w-3.5 h-3.5 text-cyan-400" />
+                    +30 Days
+                  </button>
+                  <button
+                    disabled={isReadOnly}
+                    onClick={() => onTimeAction({ command: "ADVANCE_QUARTER", daysToAdd: 90 })}
+                    className="px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-xs font-bold text-white shadow-lg shadow-purple-600/30 flex items-center gap-1.5 transition cursor-pointer disabled:opacity-50"
+                  >
+                    <FastForward className="w-3.5 h-3.5" />
+                    Advance Quarter (+90 Days)
+                  </button>
+                  <button
+                    disabled={isReadOnly}
+                    onClick={() =>
+                      onTimeAction({
+                        command: state.timeManager?.isLive ? "LOCK" : "LOAD",
+                      })
+                    }
+                    className={`px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 transition cursor-pointer disabled:opacity-50 ${
+                      state.timeManager?.isLive
+                        ? "bg-rose-500/20 text-rose-300 border border-rose-500/40 hover:bg-rose-500/30"
+                        : "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 hover:bg-emerald-500/30"
+                    }`}
+                  >
+                    {state.timeManager?.isLive ? (
+                      <>
+                        <Pause className="w-3.5 h-3.5" /> Pause Timer
+                      </>
+                    ) : (
+                      <>
+                        <Play className="w-3.5 h-3.5" /> Start Timer
+                      </>
+                    )}
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* Current Simulation Metrics */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-6 pt-4 border-t border-slate-800/80">
+              <div className="bg-slate-950/60 p-3 rounded-xl border border-slate-800">
+                <span className="text-[10px] text-slate-500 uppercase tracking-wider block">Crisis Date</span>
+                <span className="text-sm font-bold text-cyan-300 font-mono-num">{state.timeManager?.crisisDate || "N/A"}</span>
+              </div>
+              <div className="bg-slate-950/60 p-3 rounded-xl border border-slate-800">
+                <span className="text-[10px] text-slate-500 uppercase tracking-wider block">Current Quarter</span>
+                <span className="text-sm font-bold text-purple-300 font-mono-num">Quarter {state.timeManager?.quarter ?? 1}</span>
+              </div>
+              <div className="bg-slate-950/60 p-3 rounded-xl border border-slate-800">
+                <span className="text-[10px] text-slate-500 uppercase tracking-wider block">Timer Mode</span>
+                <span className={`text-sm font-bold font-mono-num ${state.timeManager?.isLive ? "text-emerald-400" : "text-amber-400"}`}>
+                  {state.timeManager?.isLive ? "RUNNING (60s tick)" : "PAUSED"}
+                </span>
+              </div>
+              <div className="bg-slate-950/60 p-3 rounded-xl border border-slate-800">
+                <span className="text-[10px] text-slate-500 uppercase tracking-wider block">Active Nations</span>
+                <span className="text-sm font-bold text-white font-mono-num">{nations.length} Sovereignties</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Participant Readiness & Macro Health Grid */}
+          <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-6 shadow-xl">
+            <h4 className="text-sm font-bold text-white flex items-center gap-2 mb-3">
+              <ShieldAlert className="w-4 h-4 text-cyan-400" />
+              Participant Readiness & Sovereign Stability Checklist
+            </h4>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs text-slate-300">
+                <thead>
+                  <tr className="border-b border-slate-800 text-[11px] text-slate-400 uppercase tracking-wider">
+                    <th className="pb-2.5 font-semibold">Nation / Bloc</th>
+                    <th className="pb-2.5 font-semibold">Sovereign Treasury</th>
+                    <th className="pb-2.5 font-semibold">Sol Index</th>
+                    <th className="pb-2.5 font-semibold">Unemployment</th>
+                    <th className="pb-2.5 font-semibold">Construction</th>
+                    <th className="pb-2.5 font-semibold">Legitimacy</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-800/60">
+                  {nations.map((n) => {
+                    const c = n.computed || {};
+                    const isDeficit = (n.cashTreasury || 0) < 0;
+                    return (
+                      <tr key={n.id} className="hover:bg-slate-800/30 transition">
+                        <td className="py-2.5 font-bold text-white flex items-center gap-2">
+                          <span className="w-2 h-2 rounded-full bg-cyan-400" />
+                          {n.name}
+                        </td>
+                        <td className="py-2.5 font-mono-num font-semibold">
+                          <span className={isDeficit ? "text-rose-400 font-bold" : "text-emerald-400"}>
+                            {formatCurrency(n.cashTreasury || 0)}
+                          </span>
+                        </td>
+                        <td className="py-2.5 font-mono-num text-cyan-300">
+                          {(c.sol || 15).toFixed(1)}
+                        </td>
+                        <td className="py-2.5 font-mono-num text-amber-300">
+                          {((c.unemploymentRate || 0) * 100).toFixed(1)}%
+                        </td>
+                        <td className="py-2.5 text-slate-400">
+                          {(n.constructionQueue || []).length > 0 ? (
+                            <span className="px-2 py-0.5 rounded-full bg-cyan-500/10 text-cyan-400 text-[10px] font-bold">
+                              {(n.constructionQueue || []).length} active
+                            </span>
+                          ) : (
+                            <span className="text-[10px] text-slate-500">Idle</span>
+                          )}
+                        </td>
+                        <td className="py-2.5 font-mono-num text-purple-300">
+                          {n.legitimacy ?? 75}%
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* Rollback Console */}
+          <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-6 shadow-xl">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h4 className="text-sm font-bold text-white flex items-center gap-2">
+                  <RotateCcw className="w-4 h-4 text-amber-400" />
+                  Historical Snapshot Rollback Console
+                </h4>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  Every quarter progression creates an immutable database snapshot. Restoring a prior quarter will revert national balances, legislation, and territory to that point.
+                </p>
+              </div>
+              <span className="text-xs text-slate-400 font-mono-num bg-slate-800/80 px-2.5 py-1 rounded-lg">
+                {ledgerHistory.length} Snapshots Stored
+              </span>
+            </div>
+
+            {ledgerHistory.length === 0 ? (
+              <div className="text-center py-8 text-xs text-slate-500 bg-slate-950/40 rounded-xl border border-slate-800/60">
+                No prior snapshots saved yet. Snapshots are automatically recorded as quarters advance.
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                {ledgerHistory.map((snap) => (
+                  <div
+                    key={snap.id}
+                    className="bg-slate-950/70 border border-slate-800 hover:border-amber-500/50 rounded-xl p-4 transition space-y-3"
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 font-bold text-xs">
+                        Quarter {snap.quarter}
+                      </span>
+                      <span className="text-[11px] text-slate-400 font-mono-num">{snap.crisisDate}</span>
+                    </div>
+
+                    <div className="text-[11px] text-slate-400 space-y-1">
+                      <div className="flex justify-between">
+                        <span>World GDP:</span>
+                        <span className="font-mono-num text-slate-200">
+                          {formatCurrency(snap.snapshot?.globalStats?.totalGdp || 0)}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Population:</span>
+                        <span className="font-mono-num text-slate-200">
+                          {formatCompactNumber(snap.snapshot?.globalStats?.totalPopulation || 0)}
+                        </span>
+                      </div>
+                    </div>
+
+                    <button
+                      disabled={isReadOnly}
+                      onClick={() => {
+                        if (
+                          window.confirm(
+                            `Are you sure you want to rollback the simulation to Quarter ${snap.quarter} (${snap.crisisDate})? Forward timeline progress will be replaced.`
+                          )
+                        ) {
+                          onRollbackSession && onRollbackSession(snap.quarter, snap.id);
+                        }
+                      }}
+                      className="w-full py-1.5 rounded-lg bg-amber-500/20 hover:bg-amber-500 text-amber-300 hover:text-slate-950 border border-amber-500/40 text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-40"
+                    >
+                      <RotateCcw className="w-3.5 h-3.5" />
+                      Rollback to Q{snap.quarter}
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Decision Audit Log & Timeline */}
+          <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-6 shadow-xl">
+            <h4 className="text-sm font-bold text-white flex items-center gap-2 mb-3">
+              <Calendar className="w-4 h-4 text-purple-400" />
+              Live Decision Audit Log & Event Timeline
+            </h4>
+            {activityLog.length === 0 ? (
+              <div className="text-center py-6 text-xs text-slate-500 bg-slate-950/40 rounded-xl border border-slate-800/60">
+                No actions logged in this session yet.
+              </div>
+            ) : (
+              <div className="space-y-2 max-h-96 overflow-y-auto pr-1">
+                {activityLog.map((log) => (
+                  <div
+                    key={log.id}
+                    className="p-3 rounded-xl bg-slate-950/60 border border-slate-800/80 flex items-start justify-between gap-3 text-xs"
+                  >
+                    <div className="space-y-0.5">
+                      <div className="flex items-center gap-2">
+                        <span
+                          className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                            log.actor === "Director"
+                              ? "bg-purple-500/20 text-purple-300"
+                              : "bg-cyan-500/20 text-cyan-300"
+                          }`}
+                        >
+                          {log.actor}
+                        </span>
+                        <span className="font-bold text-white">{log.action}</span>
+                      </div>
+                      {log.details && (
+                        <p className="text-slate-400 text-[11px]">{log.details}</p>
+                      )}
+                    </div>
+                    <span className="text-[10px] text-slate-500 font-mono-num whitespace-nowrap">
+                      {log.created_at ? new Date(log.created_at).toLocaleTimeString() : ""}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

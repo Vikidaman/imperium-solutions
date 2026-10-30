@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "node server/index.js",
     "build": "vite build",
+    "test": "node --test tests/*.test.js",
     "start": "NODE_ENV=production node server/index.js",
     "deploy": "npm run build && npx wrangler pages deploy dist --project-name imperium-solutions-simulator --branch main --commit-dirty=true --force",
     "sync": "node scripts/auto-sync.js --once",

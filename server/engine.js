@@ -19,8 +19,11 @@ import {
 } from "./victoriaMechanics.js";
 import { HISTORICAL_ERAS, getHistoricalEraForDate } from "./historicalEras.js";
 import { ALL_SOVEREIGN_NATIONS, ALL_NATIONS_BY_ID, ALL_NATIONS_BY_NAME } from "../src/data/nationsCatalog.js";
+import { computeGdpForecast, applyForecastGrowth } from "./forecastingEngine.js";
 
 export {
+  computeGdpForecast,
+  applyForecastGrowth,
   setCustomStartDate,
   triggerElectionAction,
   triggerLawAction,
@@ -321,7 +324,7 @@ export function applyHistoricalEra(state, eraIdOrDate) {
  * - mode === "INTEGRATE": Integrates an unincorporated territory into full Constituent Statehood
  * - mode === "RELEASE": Releases a state as a unitary sovereign nation with NO internal sub-provinces
  */
-export function transferTerritory(state, { territoryName, targetNationId, mode = "ANNEX", planet = "Earth", capital }) {
+export function transferTerritory(state, { territoryName, targetNationId, mode = "ANNEX", planet = "Earth", capital, newCountryName }) {
   ensureTerritoryMap(state);
   if (!state.territoryStatusMap) state.territoryStatusMap = {};
   const prevControllerId = state.territoryMap[territoryName];
@@ -329,7 +332,7 @@ export function transferTerritory(state, { territoryName, targetNationId, mode =
 
   // 1. SECESSION / RELEASE:
   // "When one state within a country secedes, it should not have any more state and provinces since it is a state itself."
-  if (mode === "RELEASE") {
+  if (mode === "RELEASE" || mode === "SECEDE") {
     const isGeorgia = territoryName.toLowerCase() === "georgia";
     const isUsaGeorgia = isGeorgia && (prevControllerId === "usa" || prevNation?.id === "usa" || territoryName.includes("USA"));
     const isCalifornia = territoryName.toLowerCase().includes("california");
@@ -344,16 +347,18 @@ export function transferTerritory(state, { territoryName, targetNationId, mode =
       else capitalName = `${territoryName} City`;
     }
 
-    let nationName = territoryName;
-    if (isCalifornia) nationName = "California Republic";
-    else if (isTexas) nationName = "Republic of Texas";
-    else if (isUsaGeorgia) nationName = "Georgia Republic";
-    else if (
-      !nationName.toLowerCase().includes("republic") &&
-      !nationName.toLowerCase().includes("commonwealth") &&
-      !nationName.toLowerCase().includes("state")
-    ) {
-      nationName = `${territoryName} Republic`;
+    let nationName = newCountryName || territoryName;
+    if (!newCountryName) {
+      if (isCalifornia) nationName = "California Republic";
+      else if (isTexas) nationName = "Republic of Texas";
+      else if (isUsaGeorgia) nationName = "Georgia Republic";
+      else if (
+        !nationName.toLowerCase().includes("republic") &&
+        !nationName.toLowerCase().includes("commonwealth") &&
+        !nationName.toLowerCase().includes("state")
+      ) {
+        nationName = `${territoryName} Republic`;
+      }
     }
 
     const sovereignColor = isCalifornia
@@ -371,8 +376,10 @@ export function transferTerritory(state, { territoryName, targetNationId, mode =
       ? "georgia_tbilisi"
       : `${clean(territoryName)}_${clean(capitalName)}`;
 
+    const newId = targetNationId || countryTag;
     const existing = (state.nations || []).find(
       (n) =>
+        n.id === newId ||
         n.id === countryTag ||
         n.name.toLowerCase() === territoryName.toLowerCase() ||
         n.name.toLowerCase() === nationName.toLowerCase()
@@ -388,7 +395,6 @@ export function transferTerritory(state, { territoryName, targetNationId, mode =
       return { state, nationId: existing.id, action: `Restored sovereignty to ${existing.name}` };
     }
 
-    const newId = countryTag;
     const templateNation = prevNation || state.nations[0];
     let transferredCompanies = [];
     let newPops = planet === "Mars" ? 4500000 : 18000000;
@@ -959,7 +965,9 @@ export function evaluateSimulation(state) {
         : rawWorkingPops;
 
     const unemploymentRate =
-      effectiveWorkingPops > 0 ? 1 - totalEmployed / effectiveWorkingPops : 0;
+      effectiveWorkingPops > 0
+        ? Math.max(0, Math.min(1, 1 - totalEmployed / effectiveWorkingPops))
+        : 0;
 
     const crimePolicy = nation.crimePolicy || party.localCrimePolicy || "Profiling";
     const healthcarePolicy =
@@ -1012,11 +1020,13 @@ export function evaluateSimulation(state) {
       (crimeRate * urbanisationIndex) / 2 + getHealthcareMortalityBase(healthcarePolicy);
 
     // K3: =(L3+N3)-(M3+O3)+ln(H3/J3)
-    const wageRatio = quarterlyWages > 0 ? quarterlyWages / consumerSentiment : 0.01;
-    const solBase =
-      literacyRate + urbanisationIndex - (crimeRate + mortalityRate) + Math.log(Math.max(0.0001, wageRatio));
+    const wageRatio = Math.max(0.001, quarterlyWages > 0 ? quarterlyWages / consumerSentiment : 0.01);
+    const rawSolBase =
+      literacyRate + urbanisationIndex - (crimeRate + mortalityRate) + Math.log(wageRatio);
+    const solBase = Number.isFinite(rawSolBase) ? rawSolBase : 15.0;
     const fertilityRate = Math.max(0, (literacyRate / 100) * solBase);
-    const sol = nation.highImmigration ? solBase : solBase - fertilityRate;
+    const rawSol = nation.highImmigration ? solBase : solBase - fertilityRate;
+    const sol = Math.max(1.0, Math.min(50.0, Number.isFinite(rawSol) ? rawSol : 15.0));
 
     const netImmigrationRate =
       (nation.highImmigration ? 0.1 : 0.01) * sol * urbanisationIndex - crimeRate;
@@ -1102,6 +1112,66 @@ export function evaluateSimulation(state) {
     const netBudgetBalance =
       stateIncome + stateContributions - stateExpenditures + diplomaticExpenses;
 
+    // Macroeconomic & Population Cohort Dynamics (Part A)
+    const baseInflation =
+      0.022 +
+      (averageCompanyGrowth > 0.05 ? 0.012 : 0) +
+      (netBudgetBalance < -aggregateGdp * 0.04 ? 0.015 : 0) -
+      (Number(nation.centralBankRate) || 0.045) * 0.22;
+    const inflationRate = Math.max(-0.015, Math.min(0.25, Number(baseInflation.toFixed(4))));
+
+    const lowIncomePops = Math.round(effectiveWorkingPops * 0.45);
+    const middleClassPops = Math.round(effectiveWorkingPops * 0.45);
+    const upperClassPops = Math.max(1, effectiveWorkingPops - lowIncomePops - middleClassPops);
+
+    const baseWageFloor = Math.max(1200, quarterlyWages || 1200);
+    const cohorts = {
+      lowIncome: {
+        name: "Low-Income & Labor Cohort",
+        popShare: 0.45,
+        pops: lowIncomePops,
+        averageWage: Math.round(baseWageFloor * 0.48),
+        livingStandard: Number(Math.max(1.0, sol * 0.65).toFixed(1)),
+        taxBurden: Number((incomeTax * 0.45 + salesTax).toFixed(3)),
+        unemploymentRate: Number(Math.min(1.0, unemploymentRate * 1.45).toFixed(4)),
+        povertyRate: Number(Math.max(0.02, Math.min(0.65, (1.0 - sol / 30) * 0.5)).toFixed(3)),
+      },
+      middleClass: {
+        name: "Middle Class & Technical Cohort",
+        popShare: 0.45,
+        pops: middleClassPops,
+        averageWage: Math.round(baseWageFloor * 1.15),
+        livingStandard: Number(Math.min(50.0, sol * 1.12).toFixed(1)),
+        taxBurden: Number((incomeTax + salesTax).toFixed(3)),
+        unemploymentRate: Number(Math.max(0, unemploymentRate * 0.8).toFixed(4)),
+        homeOwnershipRate: Number(Math.min(0.85, Math.max(0.35, 0.45 + sol * 0.01)).toFixed(2)),
+      },
+      upperClass: {
+        name: "Capital & Ownership Cohort",
+        popShare: 0.10,
+        pops: upperClassPops,
+        averageWage: Math.round(baseWageFloor * 2.85),
+        livingStandard: Number(Math.min(50.0, sol * 1.85).toFixed(1)),
+        taxBurden: Number((incomeTax * 1.25 + corporateTax * 0.4).toFixed(3)),
+        unemploymentRate: Number(Math.max(0, unemploymentRate * 0.3).toFixed(4)),
+        capitalIncomeShare: Number(Math.min(0.75, 0.35 + (1 - workerShareOfGdp) * 0.4).toFixed(2)),
+      },
+    };
+
+    const giniCoefficient = Number(
+      Math.min(0.65, Math.max(0.24, 0.28 + (1 - workerShareOfGdp) * 0.24 + (1 - incomeTax) * 0.05)).toFixed(3)
+    );
+    const povertyRate = Number(Math.max(0.025, Math.min(0.60, (26 - sol) / 55)).toFixed(3));
+    const institutionalTrust = Number(
+      Math.max(
+        0.1,
+        Math.min(0.95, (nation.legitimacy ?? 75) / 100 - (inflationRate > 0.08 ? 0.15 : 0) - unemploymentRate * 0.5)
+      ).toFixed(2)
+    );
+    const socialCohesion = Number(
+      Math.max(0.1, Math.min(0.95, 0.90 - unemploymentRate * 0.6 - (1 - workerShareOfGdp) * 0.4)).toFixed(2)
+    );
+
     nation.computed = {
       agriculturalGdp,
       industryGdp,
@@ -1123,6 +1193,12 @@ export function evaluateSimulation(state) {
       netImmigrationRate,
       popGrowthRate,
       infrastructureEfficiency,
+      inflationRate,
+      giniCoefficient,
+      povertyRate,
+      institutionalTrust,
+      socialCohesion,
+      cohorts,
       incomeTax,
       incomeTaxRevenue,
       salesTax,
@@ -1149,6 +1225,7 @@ export function evaluateSimulation(state) {
       crimePolicy,
       healthcarePolicy,
     };
+    nation.computed.forecast = computeGdpForecast(nation, state);
   }
 
   // 9. Step D: Planetary / Federation Summaries (Earth, Mars, etc.)
@@ -1216,6 +1293,8 @@ export function evaluateSimulation(state) {
       const c = n.computed;
       c.federalContributions =
         planetSol > c.sol ? c.stateContributions * 2 : c.stateContributions * 0.5;
+      c.netBudgetBalance =
+        c.stateIncome + c.federalContributions - c.stateExpenditures + c.diplomaticExpenses;
       totalFedContributions += c.federalContributions;
       totalStateContributions += c.stateContributions;
     }
@@ -1254,7 +1333,9 @@ export function evaluateSimulation(state) {
   const companyByNameAndHq = new Map();
   for (const nation of state.nations || []) {
     for (const comp of nation.companies || []) {
-      companyByNameAndHq.set(`${comp.name.toLowerCase()}__${nation.name.toLowerCase()}`, comp);
+      const cName = (comp.name || comp.id || "").toLowerCase();
+      const nName = (nation.name || nation.id || "").toLowerCase();
+      if (cName) companyByNameAndHq.set(`${cName}__${nName}`, comp);
     }
   }
 
@@ -1286,15 +1367,16 @@ export function evaluateSimulation(state) {
   // 11. Compute Time Manager derived cells (F2 Days Elapsed, F3 Quarter Number, F6 Date Diff)
   if (state.timeManager) {
     const tm = state.timeManager;
-    const startDt = new Date(tm.crisisStartDate || "2025-01-01T00:00:00Z");
-    const currDt = new Date(tm.crisisDate || tm.crisisStartDate || "2025-01-01T00:00:00Z");
-    const nextPayDt = new Date(tm.nextPaymentDate || "2025-04-01T00:00:00Z");
+    const startStr = tm.crisisStartDate || "2025-01-01";
+    const currStr = tm.crisisDate || startStr;
+    const nextPayStr = tm.nextPaymentDate || addDaysToSimDate(startStr, 90);
 
-    const daysElapsed = Math.max(0, (currDt.getTime() - startDt.getTime()) / 86400000);
-    const dateDiff = (nextPayDt.getTime() - currDt.getTime()) / 86400000;
+    const daysElapsed = Math.max(0, diffSimDays(currStr, startStr));
+    const dateDiff = diffSimDays(nextPayStr, currStr);
 
     tm.daysElapsed = Number(daysElapsed.toFixed(2));
     tm.quarterNumber = Math.max(1, Math.round(1 + daysElapsed / 90));
+    tm.quarter = tm.quarterNumber;
     tm.dateDiff = Number(dateDiff.toFixed(2));
     tm.daysPerMinute = Number(((Number(tm.intervalDaysPerHour) || 90) / 60).toFixed(4));
     if (tm.liveStatus === undefined) {
@@ -1322,6 +1404,11 @@ export function runBudgetAndDividendUpdater(state, randomizeHype = false) {
   for (const nation of state.nations || []) {
     const c = nation.computed;
     if (!c) continue;
+
+    // 0. Authoritative AI Macroeconomic Forecast Application
+    const fc = computeGdpForecast(nation, state);
+    c.forecast = fc;
+    applyForecastGrowth(nation, fc);
 
     // 1. Amtremain(arr1, arr2, "+"): netBudgetBalance + treasuryBalance
     const netBudget = Number(c.netBudgetBalance) || 0;
@@ -1379,6 +1466,91 @@ export function runBudgetAndDividendUpdater(state, randomizeHype = false) {
 }
 
 /**
+ * Astronomical and Proleptic Gregorian date arithmetic supporting all years from -500 BC to 3000 AD.
+ * Solves V8 Date "Invalid Date" / RangeError when year is negative or outside 0000-9999.
+ */
+export function isLeapYear(y) {
+  return (y % 4 === 0 && y % 100 !== 0) || (y % 400 === 0);
+}
+
+const DAYS_IN_MONTH = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+
+export function getDaysInMonth(y, m) {
+  if (m === 2 && isLeapYear(y)) return 29;
+  return DAYS_IN_MONTH[m - 1] || 30;
+}
+
+export function parseSimDate(dateStr) {
+  if (!dateStr || typeof dateStr !== "string") return { year: 2025, month: 1, day: 1 };
+  const clean = dateStr.trim().split("T")[0];
+  let isNegative = false;
+  let rest = clean;
+  if (rest.startsWith("-")) {
+    isNegative = true;
+    rest = rest.slice(1);
+  }
+  const parts = rest.split("-");
+  const yearNum = parseInt(parts[0], 10);
+  const year = isNegative ? -yearNum : yearNum;
+  const month = parseInt(parts[1] || "1", 10);
+  const day = parseInt(parts[2] || "1", 10);
+  return {
+    year: isNaN(year) ? 2025 : year,
+    month: isNaN(month) ? 1 : Math.max(1, Math.min(12, month)),
+    day: isNaN(day) ? 1 : Math.max(1, Math.min(31, day)),
+  };
+}
+
+export function formatSimDate({ year, month, day }) {
+  const m = String(month).padStart(2, "0");
+  const d = String(day).padStart(2, "0");
+  if (year < 0) {
+    const absY = String(Math.abs(year)).padStart(4, "0");
+    return `-${absY}-${m}-${d}`;
+  }
+  const absY = String(year).padStart(4, "0");
+  return `${absY}-${m}-${d}`;
+}
+
+export function addDaysToSimDate(dateStr, days) {
+  let { year, month, day } = parseSimDate(dateStr);
+  day += Math.round(days);
+  while (day > getDaysInMonth(year, month)) {
+    day -= getDaysInMonth(year, month);
+    month++;
+    if (month > 12) {
+      month = 1;
+      year++;
+    }
+  }
+  while (day < 1) {
+    month--;
+    if (month < 1) {
+      month = 12;
+      year--;
+    }
+    day += getDaysInMonth(year, month);
+  }
+  return formatSimDate({ year, month, day });
+}
+
+export function simDateToAbsoluteDays({ year, month, day }) {
+  const y = year - 1;
+  let days = y * 365 + Math.floor(y / 4) - Math.floor(y / 100) + Math.floor(y / 400);
+  for (let m = 1; m < month; m++) {
+    days += getDaysInMonth(year, m);
+  }
+  days += day;
+  return days;
+}
+
+export function diffSimDays(dateStrA, dateStrB) {
+  const dA = simDateToAbsoluteDays(parseSimDate(dateStrA));
+  const dB = simDateToAbsoluteDays(parseSimDate(dateStrB));
+  return dA - dB;
+}
+
+/**
  * Implements Timer() + NuevoGDPManager() from the spreadsheet Apps Script:
  * - Timer() adds `daysToAdd` (default `interval / 60` per tick) to `C5` (crisisDate).
  * - NuevoGDPManager() checks if `date_diff < 3` (`F6 < 3`). When triggered, it advances `F4` (nextPaymentDate)
@@ -1389,25 +1561,25 @@ export function advanceSimulationTime(state, daysToAdd = 90, randomizeHype = fal
 
   const tm = state.timeManager;
   const prevDateStr = tm.crisisDate || tm.crisisStartDate || "2025-01-01";
-  const curDt = new Date(`${prevDateStr.split("T")[0]}T00:00:00Z`);
-  let nextPayDt = new Date(`${(tm.nextPaymentDate || "2025-04-01").split("T")[0]}T00:00:00Z`);
+  const targetDateStr = addDaysToSimDate(prevDateStr, daysToAdd);
+  tm.crisisDate = targetDateStr;
 
-  const targetDt = new Date(curDt.getTime() + daysToAdd * 86400000);
-  tm.crisisDate = targetDt.toISOString().split("T")[0];
+  let nextPayDateStr = tm.nextPaymentDate || addDaysToSimDate(prevDateStr, 90);
 
   // Check NuevoGDPManager condition: (date_diff < 3)
   let quartersCrossed = 0;
-  let dateDiff = (nextPayDt.getTime() - targetDt.getTime()) / 86400000;
+  let dateDiff = diffSimDays(nextPayDateStr, targetDateStr);
 
   while (dateDiff < 3) {
-    nextPayDt = new Date(nextPayDt.getTime() + 90 * 86400000);
-    tm.nextPaymentDate = nextPayDt.toISOString().split("T")[0];
+    nextPayDateStr = addDaysToSimDate(nextPayDateStr, 90);
+    tm.nextPaymentDate = nextPayDateStr;
     runBudgetAndDividendUpdater(state, randomizeHype);
     quartersCrossed++;
-    dateDiff = (nextPayDt.getTime() - targetDt.getTime()) / 86400000;
+    dateDiff = diffSimDays(nextPayDateStr, targetDateStr);
   }
 
   processTimeTickVictoria(state, daysToAdd, prevDateStr, tm.crisisDate, quartersCrossed);
+  state.version = (state.version || 0) + 1;
   evaluateSimulation(state);
   return { state, quartersCrossed };
 }

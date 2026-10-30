@@ -575,20 +575,85 @@ export const CONSTRUCTION_BUILDINGS = [
   },
 ];
 
-function addDaysToIso(isoStr, days) {
-  const dt = new Date(`${(isoStr || "2025-01-01").split("T")[0]}T00:00:00Z`);
-  if (Number.isNaN(dt.getTime())) {
-    return "2025-01-01";
+function isLeapYear(y) {
+  return (y % 4 === 0 && y % 100 !== 0) || (y % 400 === 0);
+}
+
+const DAYS_IN_MONTH = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+
+function getDaysInMonth(y, m) {
+  if (m === 2 && isLeapYear(y)) return 29;
+  return DAYS_IN_MONTH[m - 1] || 30;
+}
+
+function parseSimDate(dateStr) {
+  if (!dateStr || typeof dateStr !== "string") return { year: 2025, month: 1, day: 1 };
+  const clean = dateStr.trim().split("T")[0];
+  let isNegative = false;
+  let rest = clean;
+  if (rest.startsWith("-")) {
+    isNegative = true;
+    rest = rest.slice(1);
   }
-  dt.setUTCDate(dt.getUTCDate() + Math.round(days));
-  return dt.toISOString().split("T")[0];
+  const parts = rest.split("-");
+  const yearNum = parseInt(parts[0], 10);
+  const year = isNegative ? -yearNum : yearNum;
+  const month = parseInt(parts[1] || "1", 10);
+  const day = parseInt(parts[2] || "1", 10);
+  return {
+    year: isNaN(year) ? 2025 : year,
+    month: isNaN(month) ? 1 : Math.max(1, Math.min(12, month)),
+    day: isNaN(day) ? 1 : Math.max(1, Math.min(31, day)),
+  };
+}
+
+function formatSimDate({ year, month, day }) {
+  const m = String(month).padStart(2, "0");
+  const d = String(day).padStart(2, "0");
+  if (year < 0) {
+    const absY = String(Math.abs(year)).padStart(4, "0");
+    return `-${absY}-${m}-${d}`;
+  }
+  const absY = String(year).padStart(4, "0");
+  return `${absY}-${m}-${d}`;
+}
+
+function addDaysToIso(isoStr, days) {
+  let { year, month, day } = parseSimDate(isoStr);
+  day += Math.round(days);
+  while (day > getDaysInMonth(year, month)) {
+    day -= getDaysInMonth(year, month);
+    month++;
+    if (month > 12) {
+      month = 1;
+      year++;
+    }
+  }
+  while (day < 1) {
+    month--;
+    if (month < 1) {
+      month = 12;
+      year--;
+    }
+    day += getDaysInMonth(year, month);
+  }
+  return formatSimDate({ year, month, day });
+}
+
+function simDateToAbsoluteDays({ year, month, day }) {
+  const y = year - 1;
+  let days = y * 365 + Math.floor(y / 4) - Math.floor(y / 100) + Math.floor(y / 400);
+  for (let m = 1; m < month; m++) {
+    days += getDaysInMonth(year, m);
+  }
+  days += day;
+  return days;
 }
 
 function diffDaysIso(targetIso, currentIso) {
-  const t = new Date(`${(targetIso || "2025-01-01").split("T")[0]}T00:00:00Z`).getTime();
-  const c = new Date(`${(currentIso || "2025-01-01").split("T")[0]}T00:00:00Z`).getTime();
-  if (Number.isNaN(t) || Number.isNaN(c)) return 360;
-  return Math.round((t - c) / 86400000);
+  const dA = simDateToAbsoluteDays(parseSimDate(targetIso));
+  const dB = simDateToAbsoluteDays(parseSimDate(currentIso));
+  return dA - dB;
 }
 
 export function getSolTierLabel(solScore) {

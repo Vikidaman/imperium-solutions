@@ -1,0 +1,7503 @@
+{
+  "metadata": {
+    "model_version": "1.0.0",
+    "algorithm": "GradientBoostingRegressor",
+    "n_estimators": 50,
+    "max_depth": 3,
+    "learning_rate": 0.08,
+    "target_variable": "annual_real_gdp_growth_pct",
+    "features": [
+      "lagged_gdp_growth",
+      "gdp_growth_ma3",
+      "unemployment_rate",
+      "unemployment_change",
+      "inflation_rate",
+      "interest_rate_real",
+      "investment_ratio",
+      "fiscal_balance_ratio",
+      "debt_to_gdp_ratio",
+      "trade_openness",
+      "population_growth",
+      "development_tier"
+    ],
+    "feature_importances": {
+      "lagged_gdp_growth": 0.485670545103716,
+      "gdp_growth_ma3": 0.010554873079499191,
+      "unemployment_rate": 0.03321782675388028,
+      "unemployment_change": 0.1352575392707875,
+      "inflation_rate": 0.009291985988407789,
+      "interest_rate_real": 0.019643056282200595,
+      "investment_ratio": 0.0656567234807887,
+      "fiscal_balance_ratio": 0.2088709739487008,
+      "debt_to_gdp_ratio": 0.02259596233006639,
+      "trade_openness": 0.0036159632287509633,
+      "population_growth": 0.0048862237337322315,
+      "development_tier": 0.0007383267994695521
+    },
+    "marginal_coefficients": {
+      "lagged_gdp_growth": -0.24644019276013632,
+      "gdp_growth_ma3": 0.7229373286394898,
+      "unemployment_rate": 1.1671135164603534,
+      "unemployment_change": -0.8850331630517724,
+      "inflation_rate": 0.12734248472432796,
+      "interest_rate_real": 0.10734672362090472,
+      "investment_ratio": 0.09472158363600645,
+      "fiscal_balance_ratio": 0.7012650782051055,
+      "debt_to_gdp_ratio": -0.02714604268842378,
+      "trade_openness": -0.00020848152445920463,
+      "population_growth": 0.020038664191708914,
+      "development_tier": 2.2202093797520384
+    },
+    "conformal_intervals": {
+      "interval_80": {
+        "lower_offset": -0.9283461942986118,
+        "upper_offset": 1.690457859210846
+      },
+      "interval_95": {
+        "lower_offset": -5.991690656039962,
+        "upper_offset": 3.3843532988092533
+      }
+    },
+    "feature_statistics": {
+      "lagged_gdp_growth": {
+        "mean": 2.4460502857142856,
+        "std": 2.432558593532661,
+        "min": -9.0,
+        "max": 8.961
+      },
+      "gdp_growth_ma3": {
+        "mean": 2.419038857142857,
+        "std": 1.9461796728088925,
+        "min": -2.408,
+        "max": 8.883
+      },
+      "unemployment_rate": {
+        "mean": 6.247421714285715,
+        "std": 1.596888038223648,
+        "min": 3.254,
+        "max": 11.552
+      },
+      "unemployment_change": {
+        "mean": -0.0014800000000000015,
+        "std": 0.7742102349309609,
+        "min": -2.721,
+        "max": 4.414
+      },
+      "inflation_rate": {
+        "mean": 3.2440879999999996,
+        "std": 1.8679479441342641,
+        "min": 0.1,
+        "max": 11.54
+      },
+      "interest_rate_real": {
+        "mean": 2.1239565714285713,
+        "std": 1.6632496879385221,
+        "min": -1.323,
+        "max": 7.6
+      },
+      "investment_ratio": {
+        "mean": 23.702372571428572,
+        "std": 5.6676807359893635,
+        "min": 14.062,
+        "max": 43.526
+      },
+      "fiscal_balance_ratio": {
+        "mean": -2.3720160000000003,
+        "std": 1.3894380380314209,
+        "min": -9.892,
+        "max": 1.413
+      },
+      "debt_to_gdp_ratio": {
+        "mean": 73.28339542857144,
+        "std": 14.582135830413804,
+        "min": 40.496,
+        "max": 120.685
+      },
+      "trade_openness": {
+        "mean": 73.8,
+        "std": 58.409408821709555,
+        "min": 27.0,
+        "max": 320.0
+      },
+      "population_growth": {
+        "mean": 0.6248,
+        "std": 0.30022388670961836,
+        "min": 0.06,
+        "max": 1.623
+      },
+      "development_tier": {
+        "mean": 1.44,
+        "std": 0.6978227007909176,
+        "min": 0.0,
+        "max": 2.0
+      }
+    },
+    "created_at": "2026-10-30T10:38:08.561213"
+  },
+  "ensemble": {
+    "init_value": 2.465845714285714,
+    "learning_rate": 0.08,
+    "trees": [
+      [
+        {
+          "id": 0,
+          "is_leaf": false,
+          "feature": 0,
+          "feature_name": "lagged_gdp_growth",
+          "threshold": 3.603000044822693,
+          "left": 1,
+          "right": 8,
+          "value": null
+        },
+        {
+          "id": 1,
+          "is_leaf": false,
+          "feature": 7,
+          "feature_name": "fiscal_balance_ratio",
+          "threshold": -6.68149995803833,
+          "left": 2,
+          "right": 5,
+          "value": null
+        },
+        {
+          "id": 2,
+          "is_leaf": false,
+          "feature": 9,
+          "feature_name": "trade_openness",
+          "threshold": 104.0,
+          "left": 3,
+          "right": 4,
+          "value": null
+        },
+        {
+          "id": 3,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": -6.64351238095238
+        },
+        {
+          "id": 4,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": -10.20051238095238
+        },
+        {
+          "id": 5,
+          "is_leaf": false,
+          "feature": 0,
+          "feature_name": "lagged_gdp_growth",
+          "threshold": 1.519499957561493,
+          "left": 6,
+          "right": 7,
+          "value": null
+        },
+        {
+          "id": 6,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": -1.4698457142857126
+        },
+        {
+          "id": 7,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": -0.17452559233449433
+        },
+        {
+          "id": 8,
+          "is_leaf": false,
+          "feature": 0,
+          "feature_name": "lagged_gdp_growth",
+          "threshold": 6.375499963760376,
+          "left": 9,
+          "right": 12,
+          "value": null
+        },
+        {
+          "id": 9,
+          "is_leaf": false,
+          "feature": 7,
+          "feature_name": "fiscal_balance_ratio",
+          "threshold": -5.381999969482422,
+          "left": 10,
+          "right": 11,
+          "value": null
+        },
+        {
+          "id": 10,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": -3.596512380952381
+        },
+        {
+          "id": 11,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": 1.8119953453169348
+        },
+        {
+          "id": 12,
+          "is_leaf": false,
+          "feature": 7,
+          "feature_name": "fiscal_balance_ratio",
+          "threshold": -6.78000020980835,
+          "left": 13,
+          "right": 14,
+          "value": null
+        },
+        {
+          "id": 13,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": -0.935845714285714
+        },
+        {
+          "id": 14,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": 4.623007944250871
+        }
+      ],
+      [
+        {
+          "id": 0,
+          "is_leaf": false,
+          "feature": 0,
+          "feature_name": "lagged_gdp_growth",
+          "threshold": 3.602500081062317,
+          "left": 1,
+          "right": 8,
+          "value": null
+        },
+        {
+          "id": 1,
+          "is_leaf": false,
+          "feature": 7,
+          "feature_name": "fiscal_balance_ratio",
+          "threshold": -6.68149995803833,
+          "left": 2,
+          "right": 5,
+          "value": null
+        },
+        {
+          "id": 2,
+          "is_leaf": false,
+          "feature": 9,
+          "feature_name": "trade_openness",
+          "threshold": 104.0,
+          "left": 3,
+          "right": 4,
+          "value": null
+        },
+        {
+          "id": 3,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": -5.928182905627705
+        },
+        {
+          "id": 4,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": -9.384471390476191
+        },
+        {
+          "id": 5,
+          "is_leaf": false,
+          "feature": 0,
+          "feature_name": "lagged_gdp_growth",
+          "threshold": 2.0945000648498535,
+          "left": 6,
+          "right": 7,
+          "value": null
+        },
+        {
+          "id": 6,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": -1.0472900193419001
+        },
+        {
+          "id": 7,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": 0.07457466643437892
+        },
+        {
+          "id": 8,
+          "is_leaf": false,
+          "feature": 0,
+          "feature_name": "lagged_gdp_growth",
+          "threshold": 6.364500045776367,
+          "left": 9,
+          "right": 12,
+          "value": null
+        },
+        {
+          "id": 9,
+          "is_leaf": false,
+          "feature": 0,
+          "feature_name": "lagged_gdp_growth",
+          "threshold": 4.860000133514404,
+          "left": 10,
+          "right": 11,
+          "value": null
+        },
+        {
+          "id": 10,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": 1.269540112634386
+        },
+        {
+          "id": 11,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": 2.4234006286868364
+        },
+        {
+          "id": 12,
+          "is_leaf": false,
+          "feature": 7,
+          "feature_name": "fiscal_balance_ratio",
+          "threshold": -6.78000020980835,
+          "left": 13,
+          "right": 14,
+          "value": null
+        },
+        {
+          "id": 13,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": -0.8609780571428567
+        },
+        {
+          "id": 14,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": 4.294288218535915
+        }
+      ],
+      [
+        {
+          "id": 0,
+          "is_leaf": false,
+          "feature": 0,
+          "feature_name": "lagged_gdp_growth",
+          "threshold": 3.602500081062317,
+          "left": 1,
+          "right": 8,
+          "value": null
+        },
+        {
+          "id": 1,
+          "is_leaf": false,
+          "feature": 7,
+          "feature_name": "fiscal_balance_ratio",
+          "threshold": -6.68149995803833,
+          "left": 2,
+          "right": 5,
+          "value": null
+        },
+        {
+          "id": 2,
+          "is_leaf": false,
+          "feature": 8,
+          "feature_name": "debt_to_gdp_ratio",
+          "threshold": 74.75749969482422,
+          "left": 3,
+          "right": 4,
+          "value": null
+        },
+        {
+          "id": 3,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": -3.916110091359307
+        },
+        {
+          "id": 4,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": -6.967729251689886
+        },
+        {
+          "id": 5,
+          "is_leaf": false,
+          "feature": 0,
+          "feature_name": "lagged_gdp_growth",
+          "threshold": 1.519499957561493,
+          "left": 6,
+          "right": 7,
+          "value": null
+        },
+        {
+          "id": 6,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": -1.3194263119061849
+        },
+        {
+          "id": 7,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": -0.16392616014743946
+        },
+        {
+          "id": 8,
+          "is_leaf": false,
+          "feature": 0,
+          "feature_name": "lagged_gdp_growth",
+          "threshold": 5.257999897003174,
+          "left": 9,
+          "right": 12,
+          "value": null
+        },
+        {
+          "id": 9,
+          "is_leaf": false,
+          "feature": 7,
+          "feature_name": "fiscal_balance_ratio",
+          "threshold": -6.563500165939331,
+          "left": 10,
+          "right": 11,
+          "value": null
+        },
+        {
+          "id": 10,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": -3.2089967741044703
+        },
+        {
+          "id": 11,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": 1.2661234855961079
+        },
+        {
+          "id": 12,
+          "is_leaf": false,
+          "feature": 7,
+          "feature_name": "fiscal_balance_ratio",
+          "threshold": -6.60450005531311,
+          "left": 13,
+          "right": 14,
+          "value": null
+        },
+        {
+          "id": 13,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": -1.3905482933379494
+        },
+        {
+          "id": 14,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": 3.363587077195527
+        }
+      ],
+      [
+        {
+          "id": 0,
+          "is_leaf": false,
+          "feature": 0,
+          "feature_name": "lagged_gdp_growth",
+          "threshold": 3.6015000343322754,
+          "left": 1,
+          "right": 8,
+          "value": null
+        },
+        {
+          "id": 1,
+          "is_leaf": false,
+          "feature": 7,
+          "feature_name": "fiscal_balance_ratio",
+          "threshold": -6.437999963760376,
+          "left": 2,
+          "right": 5,
+          "value": null
+        },
+        {
+          "id": 2,
+          "is_leaf": false,
+          "feature": 2,
+          "feature_name": "unemployment_rate",
+          "threshold": 8.835000038146973,
+          "left": 3,
+          "right": 4,
+          "value": null
+        },
+        {
+          "id": 3,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": -5.975577972461292
+        },
+        {
+          "id": 4,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": 5.981013627460193
+        },
+        {
+          "id": 5,
+          "is_leaf": false,
+          "feature": 0,
+          "feature_name": "lagged_gdp_growth",
+          "threshold": 2.1160000562667847,
+          "left": 6,
+          "right": 7,
+          "value": null
+        },
+        {
+          "id": 6,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": -0.918900217173637
+        },
+        {
+          "id": 7,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": 0.058331717172081354
+        },
+        {
+          "id": 8,
+          "is_leaf": false,
+          "feature": 0,
+          "feature_name": "lagged_gdp_growth",
+          "threshold": 6.364500045776367,
+          "left": 9,
+          "right": 12,
+          "value": null
+        },
+        {
+          "id": 9,
+          "is_leaf": false,
+          "feature": 7,
+          "feature_name": "fiscal_balance_ratio",
+          "threshold": -5.381999969482422,
+          "left": 10,
+          "right": 11,
+          "value": null
+        },
+        {
+          "id": 10,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": -3.598365361152699
+        },
+        {
+          "id": 11,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": 1.3764659414592557
+        },
+        {
+          "id": 12,
+          "is_leaf": false,
+          "feature": 6,
+          "feature_name": "investment_ratio",
+          "threshold": 42.047000885009766,
+          "left": 13,
+          "right": 14,
+          "value": null
+        },
+        {
+          "id": 13,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": 3.2564255619995714
+        },
+        {
+          "id": 14,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": 4.739218263598857
+        }
+      ],
+      [
+        {
+          "id": 0,
+          "is_leaf": false,
+          "feature": 0,
+          "feature_name": "lagged_gdp_growth",
+          "threshold": 3.3389999866485596,
+          "left": 1,
+          "right": 8,
+          "value": null
+        },
+        {
+          "id": 1,
+          "is_leaf": false,
+          "feature": 7,
+          "feature_name": "fiscal_balance_ratio",
+          "threshold": -6.437999963760376,
+          "left": 2,
+          "right": 5,
+          "value": null
+        },
+        {
+          "id": 2,
+          "is_leaf": false,
+          "feature": 1,
+          "feature_name": "gdp_growth_ma3",
+          "threshold": 4.201500058174133,
+          "left": 3,
+          "right": 4,
+          "value": null
+        },
+        {
+          "id": 3,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": -5.830472897689072
+        },
+        {
+          "id": 4,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": 5.502532537263377
+        },
+        {
+          "id": 5,
+          "is_leaf": false,
+          "feature": 0,
+          "feature_name": "lagged_gdp_growth",
+          "threshold": 1.3675000071525574,
+          "left": 6,
+          "right": 7,
+          "value": null
+        },
+        {
+          "id": 6,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": -1.0295103375471943
+        },
+        {
+          "id": 7,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": -0.21789695551040297
+        },
+        {
+          "id": 8,
+          "is_leaf": false,
+          "feature": 0,
+          "feature_name": "lagged_gdp_growth",
+          "threshold": 5.84850001335144,
+          "left": 9,
+          "right": 12,
+          "value": null
+        },
+        {
+          "id": 9,
+          "is_leaf": false,
+          "feature": 7,
+          "feature_name": "fiscal_balance_ratio",
+          "threshold": -5.381999969482422,
+          "left": 10,
+          "right": 11,
+          "value": null
+        },
+        {
+          "id": 10,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": -3.5454304774377676
+        },
+        {
+          "id": 11,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": 1.057011814685574
+        },
+        {
+          "id": 12,
+          "is_leaf": false,
+          "feature": 7,
+          "feature_name": "fiscal_balance_ratio",
+          "threshold": -6.545000076293945,
+          "left": 13,
+          "right": 14,
+          "value": null
+        },
+        {
+          "id": 13,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": -1.265626837904788
+        },
+        {
+          "id": 14,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": 3.202968406842802
+        }
+      ],
+      [
+        {
+          "id": 0,
+          "is_leaf": false,
+          "feature": 0,
+          "feature_name": "lagged_gdp_growth",
+          "threshold": 2.8984999656677246,
+          "left": 1,
+          "right": 8,
+          "value": null
+        },
+        {
+          "id": 1,
+          "is_leaf": false,
+          "feature": 7,
+          "feature_name": "fiscal_balance_ratio",
+          "threshold": -6.437999963760376,
+          "left": 2,
+          "right": 5,
+          "value": null
+        },
+        {
+          "id": 2,
+          "is_leaf": false,
+          "feature": 3,
+          "feature_name": "unemployment_change",
+          "threshold": 1.3630000352859497,
+          "left": 3,
+          "right": 4,
+          "value": null
+        },
+        {
+          "id": 3,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": -5.337628269119153
+        },
+        {
+          "id": 4,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": 5.062329934282308
+        },
+        {
+          "id": 5,
+          "is_leaf": false,
+          "feature": 3,
+          "feature_name": "unemployment_change",
+          "threshold": 1.1610000133514404,
+          "left": 6,
+          "right": 7,
+          "value": null
+        },
+        {
+          "id": 6,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": -0.8552571503657742
+        },
+        {
+          "id": 7,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": 1.0158076444158877
+        },
+        {
+          "id": 8,
+          "is_leaf": false,
+          "feature": 0,
+          "feature_name": "lagged_gdp_growth",
+          "threshold": 5.231000185012817,
+          "left": 9,
+          "right": 12,
+          "value": null
+        },
+        {
+          "id": 9,
+          "is_leaf": false,
+          "feature": 7,
+          "feature_name": "fiscal_balance_ratio",
+          "threshold": -5.302500009536743,
+          "left": 10,
+          "right": 11,
+          "value": null
+        },
+        {
+          "id": 10,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": -3.093773188045082
+        },
+        {
+          "id": 11,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": 0.7814800316195515
+        },
+        {
+          "id": 12,
+          "is_leaf": false,
+          "feature": 7,
+          "feature_name": "fiscal_balance_ratio",
+          "threshold": -6.60450005531311,
+          "left": 13,
+          "right": 14,
+          "value": null
+        },
+        {
+          "id": 13,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": -1.164376690872405
+        },
+        {
+          "id": 14,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": 2.7857962824615874
+        }
+      ],
+      [
+        {
+          "id": 0,
+          "is_leaf": false,
+          "feature": 0,
+          "feature_name": "lagged_gdp_growth",
+          "threshold": 4.173500061035156,
+          "left": 1,
+          "right": 8,
+          "value": null
+        },
+        {
+          "id": 1,
+          "is_leaf": false,
+          "feature": 7,
+          "feature_name": "fiscal_balance_ratio",
+          "threshold": -6.161999940872192,
+          "left": 2,
+          "right": 5,
+          "value": null
+        },
+        {
+          "id": 2,
+          "is_leaf": false,
+          "feature": 6,
+          "feature_name": "investment_ratio",
+          "threshold": 34.34850025177002,
+          "left": 3,
+          "right": 4,
+          "value": null
+        },
+        {
+          "id": 3,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": -4.7669538235191276
+        },
+        {
+          "id": 4,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": 4.657343539539723
+        },
+        {
+          "id": 5,
+          "is_leaf": false,
+          "feature": 0,
+          "feature_name": "lagged_gdp_growth",
+          "threshold": 2.4420000314712524,
+          "left": 6,
+          "right": 7,
+          "value": null
+        },
+        {
+          "id": 6,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": -0.6551041161186001
+        },
+        {
+          "id": 7,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": 0.27895044520164897
+        },
+        {
+          "id": 8,
+          "is_leaf": false,
+          "feature": 8,
+          "feature_name": "debt_to_gdp_ratio",
+          "threshold": 51.078500747680664,
+          "left": 9,
+          "right": 12,
+          "value": null
+        },
+        {
+          "id": 9,
+          "is_leaf": false,
+          "feature": 6,
+          "feature_name": "investment_ratio",
+          "threshold": 41.9060001373291,
+          "left": 10,
+          "right": 11,
+          "value": null
+        },
+        {
+          "id": 10,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": 2.508452033662615
+        },
+        {
+          "id": 11,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": 3.9324033017785402
+        },
+        {
+          "id": 12,
+          "is_leaf": false,
+          "feature": 7,
+          "feature_name": "fiscal_balance_ratio",
+          "threshold": -4.055000066757202,
+          "left": 13,
+          "right": 14,
+          "value": null
+        },
+        {
+          "id": 13,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": -1.2848699874263236
+        },
+        {
+          "id": 14,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": 1.49438493772407
+        }
+      ],
+      [
+        {
+          "id": 0,
+          "is_leaf": false,
+          "feature": 0,
+          "feature_name": "lagged_gdp_growth",
+          "threshold": 3.6454999446868896,
+          "left": 1,
+          "right": 8,
+          "value": null
+        },
+        {
+          "id": 1,
+          "is_leaf": false,
+          "feature": 7,
+          "feature_name": "fiscal_balance_ratio",
+          "threshold": -6.437999963760376,
+          "left": 2,
+          "right": 5,
+          "value": null
+        },
+        {
+          "id": 2,
+          "is_leaf": false,
+          "feature": 8,
+          "feature_name": "debt_to_gdp_ratio",
+          "threshold": 60.26149940490723,
+          "left": 3,
+          "right": 4,
+          "value": null
+        },
+        {
+          "id": 3,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": 4.284756056376545
+        },
+        {
+          "id": 4,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": -4.1779275532398055
+        },
+        {
+          "id": 5,
+          "is_leaf": false,
+          "feature": 0,
+          "feature_name": "lagged_gdp_growth",
+          "threshold": 1.550000011920929,
+          "left": 6,
+          "right": 7,
+          "value": null
+        },
+        {
+          "id": 6,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": -0.9581597690824624
+        },
+        {
+          "id": 7,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": -0.06384198465390185
+        },
+        {
+          "id": 8,
+          "is_leaf": false,
+          "feature": 0,
+          "feature_name": "lagged_gdp_growth",
+          "threshold": 6.324000120162964,
+          "left": 9,
+          "right": 12,
+          "value": null
+        },
+        {
+          "id": 9,
+          "is_leaf": false,
+          "feature": 7,
+          "feature_name": "fiscal_balance_ratio",
+          "threshold": -5.381999969482422,
+          "left": 10,
+          "right": 11,
+          "value": null
+        },
+        {
+          "id": 10,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": -2.4805972317185634
+        },
+        {
+          "id": 11,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": 1.0261399622104423
+        },
+        {
+          "id": 12,
+          "is_leaf": false,
+          "feature": 0,
+          "feature_name": "lagged_gdp_growth",
+          "threshold": 7.212000131607056,
+          "left": 13,
+          "right": 14,
+          "value": null
+        },
+        {
+          "id": 13,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": 2.2129727328719593
+        },
+        {
+          "id": 14,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": 3.2510038748636383
+        }
+      ],
+      [
+        {
+          "id": 0,
+          "is_leaf": false,
+          "feature": 0,
+          "feature_name": "lagged_gdp_growth",
+          "threshold": 2.8984999656677246,
+          "left": 1,
+          "right": 8,
+          "value": null
+        },
+        {
+          "id": 1,
+          "is_leaf": false,
+          "feature": 7,
+          "feature_name": "fiscal_balance_ratio",
+          "threshold": -6.68149995803833,
+          "left": 2,
+          "right": 5,
+          "value": null
+        },
+        {
+          "id": 2,
+          "is_leaf": false,
+          "feature": 9,
+          "feature_name": "trade_openness",
+          "threshold": 121.5,
+          "left": 3,
+          "right": 4,
+          "value": null
+        },
+        {
+          "id": 3,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": -3.567162465497396
+        },
+        {
+          "id": 4,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": -6.369543831153962
+        },
+        {
+          "id": 5,
+          "is_leaf": false,
+          "feature": 3,
+          "feature_name": "unemployment_change",
+          "threshold": 1.128000020980835,
+          "left": 6,
+          "right": 7,
+          "value": null
+        },
+        {
+          "id": 6,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": -0.6402278701817065
+        },
+        {
+          "id": 7,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": 0.9994470760007156
+        },
+        {
+          "id": 8,
+          "is_leaf": false,
+          "feature": 0,
+          "feature_name": "lagged_gdp_growth",
+          "threshold": 5.84850001335144,
+          "left": 9,
+          "right": 12,
+          "value": null
+        },
+        {
+          "id": 9,
+          "is_leaf": false,
+          "feature": 7,
+          "feature_name": "fiscal_balance_ratio",
+          "threshold": -5.349999904632568,
+          "left": 10,
+          "right": 11,
+          "value": null
+        },
+        {
+          "id": 10,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": -2.765500047679541
+        },
+        {
+          "id": 11,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": 0.6586187680858822
+        },
+        {
+          "id": 12,
+          "is_leaf": false,
+          "feature": 7,
+          "feature_name": "fiscal_balance_ratio",
+          "threshold": -6.545000076293945,
+          "left": 13,
+          "right": 14,
+          "value": null
+        },
+        {
+          "id": 13,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": -1.1509861031778676
+        },
+        {
+          "id": 14,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": 2.2817216931646
+        }
+      ],
+      [
+        {
+          "id": 0,
+          "is_leaf": false,
+          "feature": 0,
+          "feature_name": "lagged_gdp_growth",
+          "threshold": 4.147500038146973,
+          "left": 1,
+          "right": 8,
+          "value": null
+        },
+        {
+          "id": 1,
+          "is_leaf": false,
+          "feature": 7,
+          "feature_name": "fiscal_balance_ratio",
+          "threshold": -6.437999963760376,
+          "left": 2,
+          "right": 5,
+          "value": null
+        },
+        {
+          "id": 2,
+          "is_leaf": false,
+          "feature": 6,
+          "feature_name": "investment_ratio",
+          "threshold": 34.34850025177002,
+          "left": 3,
+          "right": 4,
+          "value": null
+        },
+        {
+          "id": 3,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": -3.887733408155565
+        },
+        {
+          "id": 4,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": 3.862019805786364
+        },
+        {
+          "id": 5,
+          "is_leaf": false,
+          "feature": 0,
+          "feature_name": "lagged_gdp_growth",
+          "threshold": 1.4179999828338623,
+          "left": 6,
+          "right": 7,
+          "value": null
+        },
+        {
+          "id": 6,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": -0.8107661776487728
+        },
+        {
+          "id": 7,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": 0.04908464000200504
+        },
+        {
+          "id": 8,
+          "is_leaf": false,
+          "feature": 0,
+          "feature_name": "lagged_gdp_growth",
+          "threshold": 6.324000120162964,
+          "left": 9,
+          "right": 12,
+          "value": null
+        },
+        {
+          "id": 9,
+          "is_leaf": false,
+          "feature": 3,
+          "feature_name": "unemployment_change",
+          "threshold": 0.7484999895095825,
+          "left": 10,
+          "right": 11,
+          "value": null
+        },
+        {
+          "id": 10,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": 1.1331728468235347
+        },
+        {
+          "id": 11,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": -0.8644748444095893
+        },
+        {
+          "id": 12,
+          "is_leaf": false,
+          "feature": 6,
+          "feature_name": "investment_ratio",
+          "threshold": 42.047000885009766,
+          "left": 13,
+          "right": 14,
+          "value": null
+        },
+        {
+          "id": 13,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": 1.9425270762935583
+        },
+        {
+          "id": 14,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": 3.167127030626305
+        }
+      ],
+      [
+        {
+          "id": 0,
+          "is_leaf": false,
+          "feature": 6,
+          "feature_name": "investment_ratio",
+          "threshold": 27.68000030517578,
+          "left": 1,
+          "right": 8,
+          "value": null
+        },
+        {
+          "id": 1,
+          "is_leaf": false,
+          "feature": 7,
+          "feature_name": "fiscal_balance_ratio",
+          "threshold": -6.437999963760376,
+          "left": 2,
+          "right": 5,
+          "value": null
+        },
+        {
+          "id": 2,
+          "is_leaf": false,
+          "feature": 11,
+          "feature_name": "development_tier",
+          "threshold": 1.5,
+          "left": 3,
+          "right": 4,
+          "value": null
+        },
+        {
+          "id": 3,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": -2.05026579879923
+        },
+        {
+          "id": 4,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": -4.256148231060187
+        },
+        {
+          "id": 5,
+          "is_leaf": false,
+          "feature": 0,
+          "feature_name": "lagged_gdp_growth",
+          "threshold": 2.490499973297119,
+          "left": 6,
+          "right": 7,
+          "value": null
+        },
+        {
+          "id": 6,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": -0.6008555687443835
+        },
+        {
+          "id": 7,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": 0.2713041323440499
+        },
+        {
+          "id": 8,
+          "is_leaf": false,
+          "feature": 10,
+          "feature_name": "population_growth",
+          "threshold": 0.5329999923706055,
+          "left": 9,
+          "right": 12,
+          "value": null
+        },
+        {
+          "id": 9,
+          "is_leaf": false,
+          "feature": 10,
+          "feature_name": "population_growth",
+          "threshold": 0.4934999942779541,
+          "left": 10,
+          "right": 11,
+          "value": null
+        },
+        {
+          "id": 10,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": 0.5292809448638207
+        },
+        {
+          "id": 11,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": -2.0590685438674634
+        },
+        {
+          "id": 12,
+          "is_leaf": false,
+          "feature": 3,
+          "feature_name": "unemployment_change",
+          "threshold": 1.4890000224113464,
+          "left": 13,
+          "right": 14,
+          "value": null
+        },
+        {
+          "id": 13,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": 1.5014764581976638
+        },
+        {
+          "id": 14,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": 4.466734941168142
+        }
+      ],
+      [
+        {
+          "id": 0,
+          "is_leaf": false,
+          "feature": 6,
+          "feature_name": "investment_ratio",
+          "threshold": 28.80049991607666,
+          "left": 1,
+          "right": 8,
+          "value": null
+        },
+        {
+          "id": 1,
+          "is_leaf": false,
+          "feature": 7,
+          "feature_name": "fiscal_balance_ratio",
+          "threshold": -6.437999963760376,
+          "left": 2,
+          "right": 5,
+          "value": null
+        },
+        {
+          "id": 2,
+          "is_leaf": false,
+          "feature": 10,
+          "feature_name": "population_growth",
+          "threshold": 0.7045000195503235,
+          "left": 3,
+          "right": 4,
+          "value": null
+        },
+        {
+          "id": 3,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": -4.11934967167643
+        },
+        {
+          "id": 4,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": -2.0707397813736357
+        },
+        {
+          "id": 5,
+          "is_leaf": false,
+          "feature": 0,
+          "feature_name": "lagged_gdp_growth",
+          "threshold": 1.550000011920929,
+          "left": 6,
+          "right": 7,
+          "value": null
+        },
+        {
+          "id": 6,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": -0.75983988154285
+        },
+        {
+          "id": 7,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": 0.10986876301495158
+        },
+        {
+          "id": 8,
+          "is_leaf": false,
+          "feature": 3,
+          "feature_name": "unemployment_change",
+          "threshold": 1.2950000166893005,
+          "left": 9,
+          "right": 12,
+          "value": null
+        },
+        {
+          "id": 9,
+          "is_leaf": false,
+          "feature": 6,
+          "feature_name": "investment_ratio",
+          "threshold": 41.85850143432617,
+          "left": 10,
+          "right": 11,
+          "value": null
+        },
+        {
+          "id": 10,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": 1.0629659586049955
+        },
+        {
+          "id": 11,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": 2.6645525778136094
+        },
+        {
+          "id": 12,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": 3.769640281602219
+        }
+      ],
+      [
+        {
+          "id": 0,
+          "is_leaf": false,
+          "feature": 0,
+          "feature_name": "lagged_gdp_growth",
+          "threshold": 3.3389999866485596,
+          "left": 1,
+          "right": 8,
+          "value": null
+        },
+        {
+          "id": 1,
+          "is_leaf": false,
+          "feature": 3,
+          "feature_name": "unemployment_change",
+          "threshold": 1.402999997138977,
+          "left": 2,
+          "right": 5,
+          "value": null
+        },
+        {
+          "id": 2,
+          "is_leaf": false,
+          "feature": 3,
+          "feature_name": "unemployment_change",
+          "threshold": 0.699999988079071,
+          "left": 3,
+          "right": 4,
+          "value": null
+        },
+        {
+          "id": 3,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": -0.3769862084771238
+        },
+        {
+          "id": 4,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": -2.976000644124335
+        },
+        {
+          "id": 5,
+          "is_leaf": false,
+          "feature": 5,
+          "feature_name": "interest_rate_real",
+          "threshold": 1.9789999723434448,
+          "left": 6,
+          "right": 7,
+          "value": null
+        },
+        {
+          "id": 6,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": -0.5032607889021395
+        },
+        {
+          "id": 7,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": 2.449508794986665
+        },
+        {
+          "id": 8,
+          "is_leaf": false,
+          "feature": 6,
+          "feature_name": "investment_ratio",
+          "threshold": 31.779500007629395,
+          "left": 9,
+          "right": 12,
+          "value": null
+        },
+        {
+          "id": 9,
+          "is_leaf": false,
+          "feature": 7,
+          "feature_name": "fiscal_balance_ratio",
+          "threshold": -4.058500051498413,
+          "left": 10,
+          "right": 11,
+          "value": null
+        },
+        {
+          "id": 10,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": -1.2072921003520476
+        },
+        {
+          "id": 11,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": 0.6356838438434741
+        },
+        {
+          "id": 12,
+          "is_leaf": false,
+          "feature": 10,
+          "feature_name": "population_growth",
+          "threshold": 0.6114999949932098,
+          "left": 13,
+          "right": 14,
+          "value": null
+        },
+        {
+          "id": 13,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": -0.058870729243294784
+        },
+        {
+          "id": 14,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": 1.980249348800046
+        }
+      ],
+      [
+        {
+          "id": 0,
+          "is_leaf": false,
+          "feature": 6,
+          "feature_name": "investment_ratio",
+          "threshold": 25.192500114440918,
+          "left": 1,
+          "right": 8,
+          "value": null
+        },
+        {
+          "id": 1,
+          "is_leaf": false,
+          "feature": 7,
+          "feature_name": "fiscal_balance_ratio",
+          "threshold": -6.129999876022339,
+          "left": 2,
+          "right": 5,
+          "value": null
+        },
+        {
+          "id": 2,
+          "is_leaf": false,
+          "feature": 5,
+          "feature_name": "interest_rate_real",
+          "threshold": 3.384999990463257,
+          "left": 3,
+          "right": 4,
+          "value": null
+        },
+        {
+          "id": 3,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": -3.5741776572244364
+        },
+        {
+          "id": 4,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": -1.1309508244615596
+        },
+        {
+          "id": 5,
+          "is_leaf": false,
+          "feature": 3,
+          "feature_name": "unemployment_change",
+          "threshold": -0.08650000020861626,
+          "left": 6,
+          "right": 7,
+          "value": null
+        },
+        {
+          "id": 6,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": 0.19083420501237705
+        },
+        {
+          "id": 7,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": -0.5977425234302206
+        },
+        {
+          "id": 8,
+          "is_leaf": false,
+          "feature": 3,
+          "feature_name": "unemployment_change",
+          "threshold": 1.402999997138977,
+          "left": 9,
+          "right": 12,
+          "value": null
+        },
+        {
+          "id": 9,
+          "is_leaf": false,
+          "feature": 3,
+          "feature_name": "unemployment_change",
+          "threshold": -0.31049999594688416,
+          "left": 10,
+          "right": 11,
+          "value": null
+        },
+        {
+          "id": 10,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": 1.4061267159927724
+        },
+        {
+          "id": 11,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": 0.3050867314842237
+        },
+        {
+          "id": 12,
+          "is_leaf": false,
+          "feature": 4,
+          "feature_name": "inflation_rate",
+          "threshold": 7.003499984741211,
+          "left": 13,
+          "right": 14,
+          "value": null
+        },
+        {
+          "id": 13,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": 2.5414007518372372
+        },
+        {
+          "id": 14,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": 4.362038617656956
+        }
+      ],
+      [
+        {
+          "id": 0,
+          "is_leaf": false,
+          "feature": 0,
+          "feature_name": "lagged_gdp_growth",
+          "threshold": 3.0404999256134033,
+          "left": 1,
+          "right": 8,
+          "value": null
+        },
+        {
+          "id": 1,
+          "is_leaf": false,
+          "feature": 3,
+          "feature_name": "unemployment_change",
+          "threshold": 1.1610000133514404,
+          "left": 2,
+          "right": 5,
+          "value": null
+        },
+        {
+          "id": 2,
+          "is_leaf": false,
+          "feature": 3,
+          "feature_name": "unemployment_change",
+          "threshold": 0.7495000064373016,
+          "left": 3,
+          "right": 4,
+          "value": null
+        },
+        {
+          "id": 3,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": -0.42416238203915557
+        },
+        {
+          "id": 4,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": -3.582382977527234
+        },
+        {
+          "id": 5,
+          "is_leaf": false,
+          "feature": 4,
+          "feature_name": "inflation_rate",
+          "threshold": 4.6625001430511475,
+          "left": 6,
+          "right": 7,
+          "value": null
+        },
+        {
+          "id": 6,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": 0.11505294647801155
+        },
+        {
+          "id": 7,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": 2.6405418912152636
+        },
+        {
+          "id": 8,
+          "is_leaf": false,
+          "feature": 0,
+          "feature_name": "lagged_gdp_growth",
+          "threshold": 5.2204999923706055,
+          "left": 9,
+          "right": 12,
+          "value": null
+        },
+        {
+          "id": 9,
+          "is_leaf": false,
+          "feature": 7,
+          "feature_name": "fiscal_balance_ratio",
+          "threshold": -5.27049994468689,
+          "left": 10,
+          "right": 11,
+          "value": null
+        },
+        {
+          "id": 10,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": -2.118467226925457
+        },
+        {
+          "id": 11,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": 0.44263566235343754
+        },
+        {
+          "id": 12,
+          "is_leaf": false,
+          "feature": 3,
+          "feature_name": "unemployment_change",
+          "threshold": 0.945499986410141,
+          "left": 13,
+          "right": 14,
+          "value": null
+        },
+        {
+          "id": 13,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": 1.461187355845924
+        },
+        {
+          "id": 14,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": -3.134587434801075
+        }
+      ],
+      [
+        {
+          "id": 0,
+          "is_leaf": false,
+          "feature": 0,
+          "feature_name": "lagged_gdp_growth",
+          "threshold": 2.8355000019073486,
+          "left": 1,
+          "right": 8,
+          "value": null
+        },
+        {
+          "id": 1,
+          "is_leaf": false,
+          "feature": 3,
+          "feature_name": "unemployment_change",
+          "threshold": 1.3425000309944153,
+          "left": 2,
+          "right": 5,
+          "value": null
+        },
+        {
+          "id": 2,
+          "is_leaf": false,
+          "feature": 3,
+          "feature_name": "unemployment_change",
+          "threshold": 0.34800000488758087,
+          "left": 3,
+          "right": 4,
+          "value": null
+        },
+        {
+          "id": 3,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": -0.1961060566414711
+        },
+        {
+          "id": 4,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": -1.6061704203025147
+        },
+        {
+          "id": 5,
+          "is_leaf": false,
+          "feature": 1,
+          "feature_name": "gdp_growth_ma3",
+          "threshold": 0.5834999978542328,
+          "left": 6,
+          "right": 7,
+          "value": null
+        },
+        {
+          "id": 6,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": 0.14306179883483247
+        },
+        {
+          "id": 7,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": 2.530903992435833
+        },
+        {
+          "id": 8,
+          "is_leaf": false,
+          "feature": 0,
+          "feature_name": "lagged_gdp_growth",
+          "threshold": 5.84850001335144,
+          "left": 9,
+          "right": 12,
+          "value": null
+        },
+        {
+          "id": 9,
+          "is_leaf": false,
+          "feature": 7,
+          "feature_name": "fiscal_balance_ratio",
+          "threshold": -5.349999904632568,
+          "left": 10,
+          "right": 11,
+          "value": null
+        },
+        {
+          "id": 10,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": -1.7491140804700855
+        },
+        {
+          "id": 11,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": 0.4240329678107426
+        },
+        {
+          "id": 12,
+          "is_leaf": false,
+          "feature": 7,
+          "feature_name": "fiscal_balance_ratio",
+          "threshold": -6.545000076293945,
+          "left": 13,
+          "right": 14,
+          "value": null
+        },
+        {
+          "id": 13,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": -1.4388581984617788
+        },
+        {
+          "id": 14,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": 1.5039698145345228
+        }
+      ],
+      [
+        {
+          "id": 0,
+          "is_leaf": false,
+          "feature": 0,
+          "feature_name": "lagged_gdp_growth",
+          "threshold": 2.0924999713897705,
+          "left": 1,
+          "right": 8,
+          "value": null
+        },
+        {
+          "id": 1,
+          "is_leaf": false,
+          "feature": 3,
+          "feature_name": "unemployment_change",
+          "threshold": 1.1735000014305115,
+          "left": 2,
+          "right": 5,
+          "value": null
+        },
+        {
+          "id": 2,
+          "is_leaf": false,
+          "feature": 3,
+          "feature_name": "unemployment_change",
+          "threshold": 0.7509999871253967,
+          "left": 3,
+          "right": 4,
+          "value": null
+        },
+        {
+          "id": 3,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": -0.5303929809456819
+        },
+        {
+          "id": 4,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": -3.6655233389691206
+        },
+        {
+          "id": 5,
+          "is_leaf": false,
+          "feature": 4,
+          "feature_name": "inflation_rate",
+          "threshold": 4.6625001430511475,
+          "left": 6,
+          "right": 7,
+          "value": null
+        },
+        {
+          "id": 6,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": 0.06372935528997258
+        },
+        {
+          "id": 7,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": 2.3524361460987038
+        },
+        {
+          "id": 8,
+          "is_leaf": false,
+          "feature": 7,
+          "feature_name": "fiscal_balance_ratio",
+          "threshold": -4.448499917984009,
+          "left": 9,
+          "right": 12,
+          "value": null
+        },
+        {
+          "id": 9,
+          "is_leaf": false,
+          "feature": 7,
+          "feature_name": "fiscal_balance_ratio",
+          "threshold": -6.519999980926514,
+          "left": 10,
+          "right": 11,
+          "value": null
+        },
+        {
+          "id": 10,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": -1.096374776450625
+        },
+        {
+          "id": 11,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": -3.889852561243707
+        },
+        {
+          "id": 12,
+          "is_leaf": false,
+          "feature": 0,
+          "feature_name": "lagged_gdp_growth",
+          "threshold": 4.860000133514404,
+          "left": 13,
+          "right": 14,
+          "value": null
+        },
+        {
+          "id": 13,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": 0.21634628153106697
+        },
+        {
+          "id": 14,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": 1.1074071195456474
+        }
+      ],
+      [
+        {
+          "id": 0,
+          "is_leaf": false,
+          "feature": 2,
+          "feature_name": "unemployment_rate",
+          "threshold": 6.064500093460083,
+          "left": 1,
+          "right": 8,
+          "value": null
+        },
+        {
+          "id": 1,
+          "is_leaf": false,
+          "feature": 0,
+          "feature_name": "lagged_gdp_growth",
+          "threshold": 0.43150000274181366,
+          "left": 2,
+          "right": 5,
+          "value": null
+        },
+        {
+          "id": 2,
+          "is_leaf": false,
+          "feature": 5,
+          "feature_name": "interest_rate_real",
+          "threshold": 1.4010000228881836,
+          "left": 3,
+          "right": 4,
+          "value": null
+        },
+        {
+          "id": 3,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": -1.9071347391116078
+        },
+        {
+          "id": 4,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": -5.805794702355004
+        },
+        {
+          "id": 5,
+          "is_leaf": false,
+          "feature": 7,
+          "feature_name": "fiscal_balance_ratio",
+          "threshold": -4.369999885559082,
+          "left": 6,
+          "right": 7,
+          "value": null
+        },
+        {
+          "id": 6,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": -3.3599983871365557
+        },
+        {
+          "id": 7,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": -0.10127316593065096
+        },
+        {
+          "id": 8,
+          "is_leaf": false,
+          "feature": 6,
+          "feature_name": "investment_ratio",
+          "threshold": 21.323500633239746,
+          "left": 9,
+          "right": 12,
+          "value": null
+        },
+        {
+          "id": 9,
+          "is_leaf": false,
+          "feature": 3,
+          "feature_name": "unemployment_change",
+          "threshold": -0.41849999129772186,
+          "left": 10,
+          "right": 11,
+          "value": null
+        },
+        {
+          "id": 10,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": 0.4638993391074235
+        },
+        {
+          "id": 11,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": -0.19646753808699466
+        },
+        {
+          "id": 12,
+          "is_leaf": false,
+          "feature": 6,
+          "feature_name": "investment_ratio",
+          "threshold": 41.85850143432617,
+          "left": 13,
+          "right": 14,
+          "value": null
+        },
+        {
+          "id": 13,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": 0.7536672428637823
+        },
+        {
+          "id": 14,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": 2.002633784099987
+        }
+      ],
+      [
+        {
+          "id": 0,
+          "is_leaf": false,
+          "feature": 2,
+          "feature_name": "unemployment_rate",
+          "threshold": 5.948999881744385,
+          "left": 1,
+          "right": 8,
+          "value": null
+        },
+        {
+          "id": 1,
+          "is_leaf": false,
+          "feature": 0,
+          "feature_name": "lagged_gdp_growth",
+          "threshold": 1.0195000171661377,
+          "left": 2,
+          "right": 5,
+          "value": null
+        },
+        {
+          "id": 2,
+          "is_leaf": false,
+          "feature": 3,
+          "feature_name": "unemployment_change",
+          "threshold": 0.1745000034570694,
+          "left": 3,
+          "right": 4,
+          "value": null
+        },
+        {
+          "id": 3,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": -0.7033473690734503
+        },
+        {
+          "id": 4,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": -2.349792502255264
+        },
+        {
+          "id": 5,
+          "is_leaf": false,
+          "feature": 3,
+          "feature_name": "unemployment_change",
+          "threshold": 1.0180000066757202,
+          "left": 6,
+          "right": 7,
+          "value": null
+        },
+        {
+          "id": 6,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": -0.10082337351647792
+        },
+        {
+          "id": 7,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": -9.166459028903953
+        },
+        {
+          "id": 8,
+          "is_leaf": false,
+          "feature": 6,
+          "feature_name": "investment_ratio",
+          "threshold": 28.445499420166016,
+          "left": 9,
+          "right": 12,
+          "value": null
+        },
+        {
+          "id": 9,
+          "is_leaf": false,
+          "feature": 0,
+          "feature_name": "lagged_gdp_growth",
+          "threshold": -8.725500106811523,
+          "left": 10,
+          "right": 11,
+          "value": null
+        },
+        {
+          "id": 10,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": 4.94525467640235
+        },
+        {
+          "id": 11,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": 0.11911467549109646
+        },
+        {
+          "id": 12,
+          "is_leaf": false,
+          "feature": 7,
+          "feature_name": "fiscal_balance_ratio",
+          "threshold": -7.697999954223633,
+          "left": 13,
+          "right": 14,
+          "value": null
+        },
+        {
+          "id": 13,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": -1.4484243362431128
+        },
+        {
+          "id": 14,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": 1.0553628114063405
+        }
+      ],
+      [
+        {
+          "id": 0,
+          "is_leaf": false,
+          "feature": 6,
+          "feature_name": "investment_ratio",
+          "threshold": 28.21049976348877,
+          "left": 1,
+          "right": 8,
+          "value": null
+        },
+        {
+          "id": 1,
+          "is_leaf": false,
+          "feature": 3,
+          "feature_name": "unemployment_change",
+          "threshold": -0.3074999898672104,
+          "left": 2,
+          "right": 5,
+          "value": null
+        },
+        {
+          "id": 2,
+          "is_leaf": false,
+          "feature": 3,
+          "feature_name": "unemployment_change",
+          "threshold": -0.6730000078678131,
+          "left": 3,
+          "right": 4,
+          "value": null
+        },
+        {
+          "id": 3,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": 0.591517375436376
+        },
+        {
+          "id": 4,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": 0.0854948278369339
+        },
+        {
+          "id": 5,
+          "is_leaf": false,
+          "feature": 7,
+          "feature_name": "fiscal_balance_ratio",
+          "threshold": -6.439500093460083,
+          "left": 6,
+          "right": 7,
+          "value": null
+        },
+        {
+          "id": 6,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": -2.321142887655848
+        },
+        {
+          "id": 7,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": -0.3275031709678076
+        },
+        {
+          "id": 8,
+          "is_leaf": false,
+          "feature": 7,
+          "feature_name": "fiscal_balance_ratio",
+          "threshold": -7.697999954223633,
+          "left": 9,
+          "right": 10,
+          "value": null
+        },
+        {
+          "id": 9,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": -1.2985742510339813
+        },
+        {
+          "id": 10,
+          "is_leaf": false,
+          "feature": 6,
+          "feature_name": "investment_ratio",
+          "threshold": 33.267499923706055,
+          "left": 11,
+          "right": 12,
+          "value": null
+        },
+        {
+          "id": 11,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": 0.6507957130433245
+        },
+        {
+          "id": 12,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": 1.5081331941706813
+        }
+      ],
+      [
+        {
+          "id": 0,
+          "is_leaf": false,
+          "feature": 3,
+          "feature_name": "unemployment_change",
+          "threshold": -0.3110000044107437,
+          "left": 1,
+          "right": 8,
+          "value": null
+        },
+        {
+          "id": 1,
+          "is_leaf": false,
+          "feature": 8,
+          "feature_name": "debt_to_gdp_ratio",
+          "threshold": 51.86949920654297,
+          "left": 2,
+          "right": 5,
+          "value": null
+        },
+        {
+          "id": 2,
+          "is_leaf": false,
+          "feature": 10,
+          "feature_name": "population_growth",
+          "threshold": 0.9735000133514404,
+          "left": 3,
+          "right": 4,
+          "value": null
+        },
+        {
+          "id": 3,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": 1.8652773977008967
+        },
+        {
+          "id": 4,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": 0.826645966441026
+        },
+        {
+          "id": 5,
+          "is_leaf": false,
+          "feature": 3,
+          "feature_name": "unemployment_change",
+          "threshold": -0.863999992609024,
+          "left": 6,
+          "right": 7,
+          "value": null
+        },
+        {
+          "id": 6,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": 0.7360597600810167
+        },
+        {
+          "id": 7,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": 0.19075721351131514
+        },
+        {
+          "id": 8,
+          "is_leaf": false,
+          "feature": 2,
+          "feature_name": "unemployment_rate",
+          "threshold": 7.114000082015991,
+          "left": 9,
+          "right": 12,
+          "value": null
+        },
+        {
+          "id": 9,
+          "is_leaf": false,
+          "feature": 7,
+          "feature_name": "fiscal_balance_ratio",
+          "threshold": -4.890499830245972,
+          "left": 10,
+          "right": 11,
+          "value": null
+        },
+        {
+          "id": 10,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": -2.2182449008221443
+        },
+        {
+          "id": 11,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": -0.3748168686919721
+        },
+        {
+          "id": 12,
+          "is_leaf": false,
+          "feature": 3,
+          "feature_name": "unemployment_change",
+          "threshold": 1.1620000004768372,
+          "left": 13,
+          "right": 14,
+          "value": null
+        },
+        {
+          "id": 13,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": 0.14140994998229897
+        },
+        {
+          "id": 14,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": 1.0015858607318822
+        }
+      ],
+      [
+        {
+          "id": 0,
+          "is_leaf": false,
+          "feature": 6,
+          "feature_name": "investment_ratio",
+          "threshold": 27.74149990081787,
+          "left": 1,
+          "right": 8,
+          "value": null
+        },
+        {
+          "id": 1,
+          "is_leaf": false,
+          "feature": 3,
+          "feature_name": "unemployment_change",
+          "threshold": -0.08650000020861626,
+          "left": 2,
+          "right": 5,
+          "value": null
+        },
+        {
+          "id": 2,
+          "is_leaf": false,
+          "feature": 7,
+          "feature_name": "fiscal_balance_ratio",
+          "threshold": -4.283999919891357,
+          "left": 3,
+          "right": 4,
+          "value": null
+        },
+        {
+          "id": 3,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": -2.3793272859141874
+        },
+        {
+          "id": 4,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": 0.22717265394939762
+        },
+        {
+          "id": 5,
+          "is_leaf": false,
+          "feature": 5,
+          "feature_name": "interest_rate_real",
+          "threshold": 0.3610000014305115,
+          "left": 6,
+          "right": 7,
+          "value": null
+        },
+        {
+          "id": 6,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": -1.4046549862001836
+        },
+        {
+          "id": 7,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": -0.2561972966507551
+        },
+        {
+          "id": 8,
+          "is_leaf": false,
+          "feature": 3,
+          "feature_name": "unemployment_change",
+          "threshold": 1.4890000224113464,
+          "left": 9,
+          "right": 12,
+          "value": null
+        },
+        {
+          "id": 9,
+          "is_leaf": false,
+          "feature": 3,
+          "feature_name": "unemployment_change",
+          "threshold": 0.289000004529953,
+          "left": 10,
+          "right": 11,
+          "value": null
+        },
+        {
+          "id": 10,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": 0.7891272272362019
+        },
+        {
+          "id": 11,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": -0.11051672898569125
+        },
+        {
+          "id": 12,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": 2.2061343679779695
+        }
+      ],
+      [
+        {
+          "id": 0,
+          "is_leaf": false,
+          "feature": 0,
+          "feature_name": "lagged_gdp_growth",
+          "threshold": 3.978500008583069,
+          "left": 1,
+          "right": 8,
+          "value": null
+        },
+        {
+          "id": 1,
+          "is_leaf": false,
+          "feature": 3,
+          "feature_name": "unemployment_change",
+          "threshold": 1.3425000309944153,
+          "left": 2,
+          "right": 5,
+          "value": null
+        },
+        {
+          "id": 2,
+          "is_leaf": false,
+          "feature": 3,
+          "feature_name": "unemployment_change",
+          "threshold": 0.699999988079071,
+          "left": 3,
+          "right": 4,
+          "value": null
+        },
+        {
+          "id": 3,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": -0.08763133189902564
+        },
+        {
+          "id": 4,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": -2.163761861530203
+        },
+        {
+          "id": 5,
+          "is_leaf": false,
+          "feature": 5,
+          "feature_name": "interest_rate_real",
+          "threshold": 2.2299998998641968,
+          "left": 6,
+          "right": 7,
+          "value": null
+        },
+        {
+          "id": 6,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": -0.16857123177241515
+        },
+        {
+          "id": 7,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": 1.7480059683333249
+        },
+        {
+          "id": 8,
+          "is_leaf": false,
+          "feature": 7,
+          "feature_name": "fiscal_balance_ratio",
+          "threshold": -5.381999969482422,
+          "left": 9,
+          "right": 10,
+          "value": null
+        },
+        {
+          "id": 9,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": -1.4654549376494816
+        },
+        {
+          "id": 10,
+          "is_leaf": false,
+          "feature": 6,
+          "feature_name": "investment_ratio",
+          "threshold": 33.48500061035156,
+          "left": 11,
+          "right": 12,
+          "value": null
+        },
+        {
+          "id": 11,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": 0.51201959424932
+        },
+        {
+          "id": 12,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": 1.256970672274864
+        }
+      ],
+      [
+        {
+          "id": 0,
+          "is_leaf": false,
+          "feature": 0,
+          "feature_name": "lagged_gdp_growth",
+          "threshold": 2.899500012397766,
+          "left": 1,
+          "right": 8,
+          "value": null
+        },
+        {
+          "id": 1,
+          "is_leaf": false,
+          "feature": 7,
+          "feature_name": "fiscal_balance_ratio",
+          "threshold": -6.263999938964844,
+          "left": 2,
+          "right": 5,
+          "value": null
+        },
+        {
+          "id": 2,
+          "is_leaf": false,
+          "feature": 1,
+          "feature_name": "gdp_growth_ma3",
+          "threshold": 4.201500058174133,
+          "left": 3,
+          "right": 4,
+          "value": null
+        },
+        {
+          "id": 3,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": -2.3304881555733403
+        },
+        {
+          "id": 4,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": 1.231133721737212
+        },
+        {
+          "id": 5,
+          "is_leaf": false,
+          "feature": 3,
+          "feature_name": "unemployment_change",
+          "threshold": -0.5564999878406525,
+          "left": 6,
+          "right": 7,
+          "value": null
+        },
+        {
+          "id": 6,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": 0.5260591247427661
+        },
+        {
+          "id": 7,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": -0.3173356332032226
+        },
+        {
+          "id": 8,
+          "is_leaf": false,
+          "feature": 2,
+          "feature_name": "unemployment_rate",
+          "threshold": 4.882500171661377,
+          "left": 9,
+          "right": 12,
+          "value": null
+        },
+        {
+          "id": 9,
+          "is_leaf": false,
+          "feature": 7,
+          "feature_name": "fiscal_balance_ratio",
+          "threshold": -3.73799991607666,
+          "left": 10,
+          "right": 11,
+          "value": null
+        },
+        {
+          "id": 10,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": -1.7693488839873837
+        },
+        {
+          "id": 11,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": 0.026417471414823063
+        },
+        {
+          "id": 12,
+          "is_leaf": false,
+          "feature": 3,
+          "feature_name": "unemployment_change",
+          "threshold": 0.4125000089406967,
+          "left": 13,
+          "right": 14,
+          "value": null
+        },
+        {
+          "id": 13,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": 0.5288218409715206
+        },
+        {
+          "id": 14,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": -0.2822731639208481
+        }
+      ],
+      [
+        {
+          "id": 0,
+          "is_leaf": false,
+          "feature": 2,
+          "feature_name": "unemployment_rate",
+          "threshold": 6.07450008392334,
+          "left": 1,
+          "right": 8,
+          "value": null
+        },
+        {
+          "id": 1,
+          "is_leaf": false,
+          "feature": 0,
+          "feature_name": "lagged_gdp_growth",
+          "threshold": 0.4520000070333481,
+          "left": 2,
+          "right": 5,
+          "value": null
+        },
+        {
+          "id": 2,
+          "is_leaf": false,
+          "feature": 1,
+          "feature_name": "gdp_growth_ma3",
+          "threshold": 1.3989999890327454,
+          "left": 3,
+          "right": 4,
+          "value": null
+        },
+        {
+          "id": 3,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": -1.245415850200752
+        },
+        {
+          "id": 4,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": -4.5195908869085555
+        },
+        {
+          "id": 5,
+          "is_leaf": false,
+          "feature": 7,
+          "feature_name": "fiscal_balance_ratio",
+          "threshold": -4.533999919891357,
+          "left": 6,
+          "right": 7,
+          "value": null
+        },
+        {
+          "id": 6,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": -2.459439869776617
+        },
+        {
+          "id": 7,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": -0.041589173604791745
+        },
+        {
+          "id": 8,
+          "is_leaf": false,
+          "feature": 6,
+          "feature_name": "investment_ratio",
+          "threshold": 18.082500457763672,
+          "left": 9,
+          "right": 12,
+          "value": null
+        },
+        {
+          "id": 9,
+          "is_leaf": false,
+          "feature": 3,
+          "feature_name": "unemployment_change",
+          "threshold": 2.4595000743865967,
+          "left": 10,
+          "right": 11,
+          "value": null
+        },
+        {
+          "id": 10,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": -0.3511907024591175
+        },
+        {
+          "id": 11,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": 3.5227616637959924
+        },
+        {
+          "id": 12,
+          "is_leaf": false,
+          "feature": 6,
+          "feature_name": "investment_ratio",
+          "threshold": 33.26849937438965,
+          "left": 13,
+          "right": 14,
+          "value": null
+        },
+        {
+          "id": 13,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": 0.36550469919331696
+        },
+        {
+          "id": 14,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": 1.0715400878528005
+        }
+      ],
+      [
+        {
+          "id": 0,
+          "is_leaf": false,
+          "feature": 3,
+          "feature_name": "unemployment_change",
+          "threshold": -0.4895000010728836,
+          "left": 1,
+          "right": 8,
+          "value": null
+        },
+        {
+          "id": 1,
+          "is_leaf": false,
+          "feature": 6,
+          "feature_name": "investment_ratio",
+          "threshold": 26.328999519348145,
+          "left": 2,
+          "right": 5,
+          "value": null
+        },
+        {
+          "id": 2,
+          "is_leaf": false,
+          "feature": 5,
+          "feature_name": "interest_rate_real",
+          "threshold": 5.008999824523926,
+          "left": 3,
+          "right": 4,
+          "value": null
+        },
+        {
+          "id": 3,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": 0.3890606963502509
+        },
+        {
+          "id": 4,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": -0.27749375142155175
+        },
+        {
+          "id": 5,
+          "is_leaf": false,
+          "feature": 1,
+          "feature_name": "gdp_growth_ma3",
+          "threshold": 0.6539999917149544,
+          "left": 6,
+          "right": 7,
+          "value": null
+        },
+        {
+          "id": 6,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": 2.4711181212726325
+        },
+        {
+          "id": 7,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": 0.7880078220115924
+        },
+        {
+          "id": 8,
+          "is_leaf": false,
+          "feature": 3,
+          "feature_name": "unemployment_change",
+          "threshold": 1.0304999947547913,
+          "left": 9,
+          "right": 12,
+          "value": null
+        },
+        {
+          "id": 9,
+          "is_leaf": false,
+          "feature": 0,
+          "feature_name": "lagged_gdp_growth",
+          "threshold": 1.0195000171661377,
+          "left": 10,
+          "right": 11,
+          "value": null
+        },
+        {
+          "id": 10,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": -1.0806714882645996
+        },
+        {
+          "id": 11,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": -0.05934960041784997
+        },
+        {
+          "id": 12,
+          "is_leaf": false,
+          "feature": 5,
+          "feature_name": "interest_rate_real",
+          "threshold": 1.5544999837875366,
+          "left": 13,
+          "right": 14,
+          "value": null
+        },
+        {
+          "id": 13,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": -0.2849182496471941
+        },
+        {
+          "id": 14,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": 1.4706525278678477
+        }
+      ],
+      [
+        {
+          "id": 0,
+          "is_leaf": false,
+          "feature": 3,
+          "feature_name": "unemployment_change",
+          "threshold": -0.3074999898672104,
+          "left": 1,
+          "right": 8,
+          "value": null
+        },
+        {
+          "id": 1,
+          "is_leaf": false,
+          "feature": 8,
+          "feature_name": "debt_to_gdp_ratio",
+          "threshold": 51.86949920654297,
+          "left": 2,
+          "right": 5,
+          "value": null
+        },
+        {
+          "id": 2,
+          "is_leaf": false,
+          "feature": 8,
+          "feature_name": "debt_to_gdp_ratio",
+          "threshold": 42.38100051879883,
+          "left": 3,
+          "right": 4,
+          "value": null
+        },
+        {
+          "id": 3,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": -0.034808761908851515
+        },
+        {
+          "id": 4,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": 1.3125957806729003
+        },
+        {
+          "id": 5,
+          "is_leaf": false,
+          "feature": 3,
+          "feature_name": "unemployment_change",
+          "threshold": -0.8314999938011169,
+          "left": 6,
+          "right": 7,
+          "value": null
+        },
+        {
+          "id": 6,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": 0.5831154764347433
+        },
+        {
+          "id": 7,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": 0.11285492319177574
+        },
+        {
+          "id": 8,
+          "is_leaf": false,
+          "feature": 5,
+          "feature_name": "interest_rate_real",
+          "threshold": 0.351500004529953,
+          "left": 9,
+          "right": 12,
+          "value": null
+        },
+        {
+          "id": 9,
+          "is_leaf": false,
+          "feature": 6,
+          "feature_name": "investment_ratio",
+          "threshold": 26.351499557495117,
+          "left": 10,
+          "right": 11,
+          "value": null
+        },
+        {
+          "id": 10,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": -0.7679938748438626
+        },
+        {
+          "id": 11,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": -4.1168566413177805
+        },
+        {
+          "id": 12,
+          "is_leaf": false,
+          "feature": 3,
+          "feature_name": "unemployment_change",
+          "threshold": 1.0304999947547913,
+          "left": 13,
+          "right": 14,
+          "value": null
+        },
+        {
+          "id": 13,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": -0.16925902359593176
+        },
+        {
+          "id": 14,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": 0.8462074181505199
+        }
+      ],
+      [
+        {
+          "id": 0,
+          "is_leaf": false,
+          "feature": 5,
+          "feature_name": "interest_rate_real",
+          "threshold": 0.346000000834465,
+          "left": 1,
+          "right": 8,
+          "value": null
+        },
+        {
+          "id": 1,
+          "is_leaf": false,
+          "feature": 3,
+          "feature_name": "unemployment_change",
+          "threshold": 0.6959999799728394,
+          "left": 2,
+          "right": 5,
+          "value": null
+        },
+        {
+          "id": 2,
+          "is_leaf": false,
+          "feature": 10,
+          "feature_name": "population_growth",
+          "threshold": 0.6780000030994415,
+          "left": 3,
+          "right": 4,
+          "value": null
+        },
+        {
+          "id": 3,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": -0.37002918310662264
+        },
+        {
+          "id": 4,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": -4.3673388757789775
+        },
+        {
+          "id": 5,
+          "is_leaf": false,
+          "feature": 7,
+          "feature_name": "fiscal_balance_ratio",
+          "threshold": -3.2519999742507935,
+          "left": 6,
+          "right": 7,
+          "value": null
+        },
+        {
+          "id": 6,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": -0.38627705588957045
+        },
+        {
+          "id": 7,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": -4.7636139358284035
+        },
+        {
+          "id": 8,
+          "is_leaf": false,
+          "feature": 7,
+          "feature_name": "fiscal_balance_ratio",
+          "threshold": -4.882499933242798,
+          "left": 9,
+          "right": 12,
+          "value": null
+        },
+        {
+          "id": 9,
+          "is_leaf": false,
+          "feature": 0,
+          "feature_name": "lagged_gdp_growth",
+          "threshold": -6.236999988555908,
+          "left": 10,
+          "right": 11,
+          "value": null
+        },
+        {
+          "id": 10,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": 2.962706370935251
+        },
+        {
+          "id": 11,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": -1.1918068868596754
+        },
+        {
+          "id": 12,
+          "is_leaf": false,
+          "feature": 6,
+          "feature_name": "investment_ratio",
+          "threshold": 24.190500259399414,
+          "left": 13,
+          "right": 14,
+          "value": null
+        },
+        {
+          "id": 13,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": -0.04122611206898561
+        },
+        {
+          "id": 14,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": 0.3498622064675901
+        }
+      ],
+      [
+        {
+          "id": 0,
+          "is_leaf": false,
+          "feature": 2,
+          "feature_name": "unemployment_rate",
+          "threshold": 6.064500093460083,
+          "left": 1,
+          "right": 8,
+          "value": null
+        },
+        {
+          "id": 1,
+          "is_leaf": false,
+          "feature": 3,
+          "feature_name": "unemployment_change",
+          "threshold": 0.28200000524520874,
+          "left": 2,
+          "right": 5,
+          "value": null
+        },
+        {
+          "id": 2,
+          "is_leaf": false,
+          "feature": 7,
+          "feature_name": "fiscal_balance_ratio",
+          "threshold": -4.533999919891357,
+          "left": 3,
+          "right": 4,
+          "value": null
+        },
+        {
+          "id": 3,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": -2.211711267331688
+        },
+        {
+          "id": 4,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": 0.015451543605403253
+        },
+        {
+          "id": 5,
+          "is_leaf": false,
+          "feature": 8,
+          "feature_name": "debt_to_gdp_ratio",
+          "threshold": 72.12699890136719,
+          "left": 6,
+          "right": 7,
+          "value": null
+        },
+        {
+          "id": 6,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": -0.25978202027532926
+        },
+        {
+          "id": 7,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": -1.4627966635360492
+        },
+        {
+          "id": 8,
+          "is_leaf": false,
+          "feature": 6,
+          "feature_name": "investment_ratio",
+          "threshold": 19.29300022125244,
+          "left": 9,
+          "right": 12,
+          "value": null
+        },
+        {
+          "id": 9,
+          "is_leaf": false,
+          "feature": 5,
+          "feature_name": "interest_rate_real",
+          "threshold": 1.5910000205039978,
+          "left": 10,
+          "right": 11,
+          "value": null
+        },
+        {
+          "id": 10,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": -1.681625782474158
+        },
+        {
+          "id": 11,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": -0.14968012541023648
+        },
+        {
+          "id": 12,
+          "is_leaf": false,
+          "feature": 3,
+          "feature_name": "unemployment_change",
+          "threshold": 1.234499990940094,
+          "left": 13,
+          "right": 14,
+          "value": null
+        },
+        {
+          "id": 13,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": 0.30269031324124746
+        },
+        {
+          "id": 14,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": 1.077285282807784
+        }
+      ],
+      [
+        {
+          "id": 0,
+          "is_leaf": false,
+          "feature": 3,
+          "feature_name": "unemployment_change",
+          "threshold": 0.11749999970197678,
+          "left": 1,
+          "right": 8,
+          "value": null
+        },
+        {
+          "id": 1,
+          "is_leaf": false,
+          "feature": 7,
+          "feature_name": "fiscal_balance_ratio",
+          "threshold": -4.533999919891357,
+          "left": 2,
+          "right": 5,
+          "value": null
+        },
+        {
+          "id": 2,
+          "is_leaf": false,
+          "feature": 7,
+          "feature_name": "fiscal_balance_ratio",
+          "threshold": -5.660499811172485,
+          "left": 3,
+          "right": 4,
+          "value": null
+        },
+        {
+          "id": 3,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": -1.1794102729509641
+        },
+        {
+          "id": 4,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": -3.8764729381976863
+        },
+        {
+          "id": 5,
+          "is_leaf": false,
+          "feature": 2,
+          "feature_name": "unemployment_rate",
+          "threshold": 6.875999927520752,
+          "left": 6,
+          "right": 7,
+          "value": null
+        },
+        {
+          "id": 6,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": 0.11662016856197456
+        },
+        {
+          "id": 7,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": 0.5273782413484907
+        },
+        {
+          "id": 8,
+          "is_leaf": false,
+          "feature": 2,
+          "feature_name": "unemployment_rate",
+          "threshold": 5.973999977111816,
+          "left": 9,
+          "right": 12,
+          "value": null
+        },
+        {
+          "id": 9,
+          "is_leaf": false,
+          "feature": 3,
+          "feature_name": "unemployment_change",
+          "threshold": 1.034500002861023,
+          "left": 10,
+          "right": 11,
+          "value": null
+        },
+        {
+          "id": 10,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": -0.7033881206396256
+        },
+        {
+          "id": 11,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": -5.672203466616894
+        },
+        {
+          "id": 12,
+          "is_leaf": false,
+          "feature": 4,
+          "feature_name": "inflation_rate",
+          "threshold": 7.393500089645386,
+          "left": 13,
+          "right": 14,
+          "value": null
+        },
+        {
+          "id": 13,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": -0.09335020530063709
+        },
+        {
+          "id": 14,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": 2.154034925991452
+        }
+      ],
+      [
+        {
+          "id": 0,
+          "is_leaf": false,
+          "feature": 7,
+          "feature_name": "fiscal_balance_ratio",
+          "threshold": -4.882499933242798,
+          "left": 1,
+          "right": 6,
+          "value": null
+        },
+        {
+          "id": 1,
+          "is_leaf": false,
+          "feature": 4,
+          "feature_name": "inflation_rate",
+          "threshold": 4.947999954223633,
+          "left": 2,
+          "right": 5,
+          "value": null
+        },
+        {
+          "id": 2,
+          "is_leaf": false,
+          "feature": 0,
+          "feature_name": "lagged_gdp_growth",
+          "threshold": -7.726500034332275,
+          "left": 3,
+          "right": 4,
+          "value": null
+        },
+        {
+          "id": 3,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": 0.7535182258296194
+        },
+        {
+          "id": 4,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": -1.5131252727810605
+        },
+        {
+          "id": 5,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": 0.5626389484109839
+        },
+        {
+          "id": 6,
+          "is_leaf": false,
+          "feature": 6,
+          "feature_name": "investment_ratio",
+          "threshold": 24.13949966430664,
+          "left": 7,
+          "right": 10,
+          "value": null
+        },
+        {
+          "id": 7,
+          "is_leaf": false,
+          "feature": 3,
+          "feature_name": "unemployment_change",
+          "threshold": 0.2880000025033951,
+          "left": 8,
+          "right": 9,
+          "value": null
+        },
+        {
+          "id": 8,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": 0.009104453472069856
+        },
+        {
+          "id": 9,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": -0.566025428443603
+        },
+        {
+          "id": 10,
+          "is_leaf": false,
+          "feature": 3,
+          "feature_name": "unemployment_change",
+          "threshold": 1.402999997138977,
+          "left": 11,
+          "right": 12,
+          "value": null
+        },
+        {
+          "id": 11,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": 0.271022850960845
+        },
+        {
+          "id": 12,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": 1.6668216930635833
+        }
+      ],
+      [
+        {
+          "id": 0,
+          "is_leaf": false,
+          "feature": 3,
+          "feature_name": "unemployment_change",
+          "threshold": 0.15300000458955765,
+          "left": 1,
+          "right": 8,
+          "value": null
+        },
+        {
+          "id": 1,
+          "is_leaf": false,
+          "feature": 7,
+          "feature_name": "fiscal_balance_ratio",
+          "threshold": -4.533999919891357,
+          "left": 2,
+          "right": 5,
+          "value": null
+        },
+        {
+          "id": 2,
+          "is_leaf": false,
+          "feature": 7,
+          "feature_name": "fiscal_balance_ratio",
+          "threshold": -5.660499811172485,
+          "left": 3,
+          "right": 4,
+          "value": null
+        },
+        {
+          "id": 3,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": -0.8297199979045013
+        },
+        {
+          "id": 4,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": -3.5061942703695115
+        },
+        {
+          "id": 5,
+          "is_leaf": false,
+          "feature": 2,
+          "feature_name": "unemployment_rate",
+          "threshold": 6.707499980926514,
+          "left": 6,
+          "right": 7,
+          "value": null
+        },
+        {
+          "id": 6,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": 0.0643848690502755
+        },
+        {
+          "id": 7,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": 0.43017868257698266
+        },
+        {
+          "id": 8,
+          "is_leaf": false,
+          "feature": 3,
+          "feature_name": "unemployment_change",
+          "threshold": 1.0755000114440918,
+          "left": 9,
+          "right": 12,
+          "value": null
+        },
+        {
+          "id": 9,
+          "is_leaf": false,
+          "feature": 0,
+          "feature_name": "lagged_gdp_growth",
+          "threshold": 0.43449999392032623,
+          "left": 10,
+          "right": 11,
+          "value": null
+        },
+        {
+          "id": 10,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": -1.6016463354281898
+        },
+        {
+          "id": 11,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": -0.22563959621743224
+        },
+        {
+          "id": 12,
+          "is_leaf": false,
+          "feature": 5,
+          "feature_name": "interest_rate_real",
+          "threshold": 2.0024999380111694,
+          "left": 13,
+          "right": 14,
+          "value": null
+        },
+        {
+          "id": 13,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": -0.04315968470322964
+        },
+        {
+          "id": 14,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": 1.3518260770531962
+        }
+      ],
+      [
+        {
+          "id": 0,
+          "is_leaf": false,
+          "feature": 6,
+          "feature_name": "investment_ratio",
+          "threshold": 24.183000564575195,
+          "left": 1,
+          "right": 8,
+          "value": null
+        },
+        {
+          "id": 1,
+          "is_leaf": false,
+          "feature": 2,
+          "feature_name": "unemployment_rate",
+          "threshold": 7.114000082015991,
+          "left": 2,
+          "right": 5,
+          "value": null
+        },
+        {
+          "id": 2,
+          "is_leaf": false,
+          "feature": 7,
+          "feature_name": "fiscal_balance_ratio",
+          "threshold": -4.533999919891357,
+          "left": 3,
+          "right": 4,
+          "value": null
+        },
+        {
+          "id": 3,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": -1.4915302876826264
+        },
+        {
+          "id": 4,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": -0.21367512635988234
+        },
+        {
+          "id": 5,
+          "is_leaf": false,
+          "feature": 3,
+          "feature_name": "unemployment_change",
+          "threshold": 4.296999931335449,
+          "left": 6,
+          "right": 7,
+          "value": null
+        },
+        {
+          "id": 6,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": 0.15918760305317395
+        },
+        {
+          "id": 7,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": 3.864054014097346
+        },
+        {
+          "id": 8,
+          "is_leaf": false,
+          "feature": 3,
+          "feature_name": "unemployment_change",
+          "threshold": 1.234499990940094,
+          "left": 9,
+          "right": 12,
+          "value": null
+        },
+        {
+          "id": 9,
+          "is_leaf": false,
+          "feature": 3,
+          "feature_name": "unemployment_change",
+          "threshold": 0.7444999814033508,
+          "left": 10,
+          "right": 11,
+          "value": null
+        },
+        {
+          "id": 10,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": 0.319961177613665
+        },
+        {
+          "id": 11,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": -2.40239537133488
+        },
+        {
+          "id": 12,
+          "is_leaf": false,
+          "feature": 1,
+          "feature_name": "gdp_growth_ma3",
+          "threshold": 0.5699999928474426,
+          "left": 13,
+          "right": 14,
+          "value": null
+        },
+        {
+          "id": 13,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": -0.2609495918026914
+        },
+        {
+          "id": 14,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": 1.624531897060342
+        }
+      ],
+      [
+        {
+          "id": 0,
+          "is_leaf": false,
+          "feature": 0,
+          "feature_name": "lagged_gdp_growth",
+          "threshold": 2.0020000338554382,
+          "left": 1,
+          "right": 8,
+          "value": null
+        },
+        {
+          "id": 1,
+          "is_leaf": false,
+          "feature": 3,
+          "feature_name": "unemployment_change",
+          "threshold": 1.1735000014305115,
+          "left": 2,
+          "right": 5,
+          "value": null
+        },
+        {
+          "id": 2,
+          "is_leaf": false,
+          "feature": 3,
+          "feature_name": "unemployment_change",
+          "threshold": 0.8210000097751617,
+          "left": 3,
+          "right": 4,
+          "value": null
+        },
+        {
+          "id": 3,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": -0.26506378539997133
+        },
+        {
+          "id": 4,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": -2.854067920587475
+        },
+        {
+          "id": 5,
+          "is_leaf": false,
+          "feature": 1,
+          "feature_name": "gdp_growth_ma3",
+          "threshold": 0.18050000071525574,
+          "left": 6,
+          "right": 7,
+          "value": null
+        },
+        {
+          "id": 6,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": -0.24648188358585665
+        },
+        {
+          "id": 7,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": 1.2121282608144837
+        },
+        {
+          "id": 8,
+          "is_leaf": false,
+          "feature": 2,
+          "feature_name": "unemployment_rate",
+          "threshold": 4.869999885559082,
+          "left": 9,
+          "right": 12,
+          "value": null
+        },
+        {
+          "id": 9,
+          "is_leaf": false,
+          "feature": 4,
+          "feature_name": "inflation_rate",
+          "threshold": 4.003499984741211,
+          "left": 10,
+          "right": 11,
+          "value": null
+        },
+        {
+          "id": 10,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": -0.11741340953577825
+        },
+        {
+          "id": 11,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": -2.280815613201166
+        },
+        {
+          "id": 12,
+          "is_leaf": false,
+          "feature": 5,
+          "feature_name": "interest_rate_real",
+          "threshold": 3.122499942779541,
+          "left": 13,
+          "right": 14,
+          "value": null
+        },
+        {
+          "id": 13,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": 0.46008063935093624
+        },
+        {
+          "id": 14,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": 0.07530679693042262
+        }
+      ],
+      [
+        {
+          "id": 0,
+          "is_leaf": false,
+          "feature": 8,
+          "feature_name": "debt_to_gdp_ratio",
+          "threshold": 56.737998962402344,
+          "left": 1,
+          "right": 6,
+          "value": null
+        },
+        {
+          "id": 1,
+          "is_leaf": false,
+          "feature": 8,
+          "feature_name": "debt_to_gdp_ratio",
+          "threshold": 41.464500427246094,
+          "left": 2,
+          "right": 3,
+          "value": null
+        },
+        {
+          "id": 2,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": -3.31257214930935
+        },
+        {
+          "id": 3,
+          "is_leaf": false,
+          "feature": 6,
+          "feature_name": "investment_ratio",
+          "threshold": 33.267499923706055,
+          "left": 4,
+          "right": 5,
+          "value": null
+        },
+        {
+          "id": 4,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": 0.28793778558675737
+        },
+        {
+          "id": 5,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": 0.8900641303642965
+        },
+        {
+          "id": 6,
+          "is_leaf": false,
+          "feature": 3,
+          "feature_name": "unemployment_change",
+          "threshold": -0.6435000002384186,
+          "left": 7,
+          "right": 10,
+          "value": null
+        },
+        {
+          "id": 7,
+          "is_leaf": false,
+          "feature": 4,
+          "feature_name": "inflation_rate",
+          "threshold": 5.796999931335449,
+          "left": 8,
+          "right": 9,
+          "value": null
+        },
+        {
+          "id": 8,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": 0.41846866008408584
+        },
+        {
+          "id": 9,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": -0.1028840594312082
+        },
+        {
+          "id": 10,
+          "is_leaf": false,
+          "feature": 3,
+          "feature_name": "unemployment_change",
+          "threshold": 1.1610000133514404,
+          "left": 11,
+          "right": 12,
+          "value": null
+        },
+        {
+          "id": 11,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": -0.1969322494941267
+        },
+        {
+          "id": 12,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": 0.5272602278501665
+        }
+      ],
+      [
+        {
+          "id": 0,
+          "is_leaf": false,
+          "feature": 3,
+          "feature_name": "unemployment_change",
+          "threshold": 0.2824999988079071,
+          "left": 1,
+          "right": 8,
+          "value": null
+        },
+        {
+          "id": 1,
+          "is_leaf": false,
+          "feature": 7,
+          "feature_name": "fiscal_balance_ratio",
+          "threshold": -4.533999919891357,
+          "left": 2,
+          "right": 5,
+          "value": null
+        },
+        {
+          "id": 2,
+          "is_leaf": false,
+          "feature": 7,
+          "feature_name": "fiscal_balance_ratio",
+          "threshold": -6.612500190734863,
+          "left": 3,
+          "right": 4,
+          "value": null
+        },
+        {
+          "id": 3,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": -0.7760134012361117
+        },
+        {
+          "id": 4,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": -2.4863483450854162
+        },
+        {
+          "id": 5,
+          "is_leaf": false,
+          "feature": 2,
+          "feature_name": "unemployment_rate",
+          "threshold": 4.868000030517578,
+          "left": 6,
+          "right": 7,
+          "value": null
+        },
+        {
+          "id": 6,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": -0.13618904946944346
+        },
+        {
+          "id": 7,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": 0.28478416367330034
+        },
+        {
+          "id": 8,
+          "is_leaf": false,
+          "feature": 3,
+          "feature_name": "unemployment_change",
+          "threshold": 1.1610000133514404,
+          "left": 9,
+          "right": 12,
+          "value": null
+        },
+        {
+          "id": 9,
+          "is_leaf": false,
+          "feature": 8,
+          "feature_name": "debt_to_gdp_ratio",
+          "threshold": 73.75399780273438,
+          "left": 10,
+          "right": 11,
+          "value": null
+        },
+        {
+          "id": 10,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": -0.1443869845836545
+        },
+        {
+          "id": 11,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": -1.4016564632364623
+        },
+        {
+          "id": 12,
+          "is_leaf": false,
+          "feature": 5,
+          "feature_name": "interest_rate_real",
+          "threshold": 1.5544999837875366,
+          "left": 13,
+          "right": 14,
+          "value": null
+        },
+        {
+          "id": 13,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": -0.36926877766750343
+        },
+        {
+          "id": 14,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": 0.9519574034909281
+        }
+      ],
+      [
+        {
+          "id": 0,
+          "is_leaf": false,
+          "feature": 6,
+          "feature_name": "investment_ratio",
+          "threshold": 24.183000564575195,
+          "left": 1,
+          "right": 8,
+          "value": null
+        },
+        {
+          "id": 1,
+          "is_leaf": false,
+          "feature": 3,
+          "feature_name": "unemployment_change",
+          "threshold": 0.2824999988079071,
+          "left": 2,
+          "right": 5,
+          "value": null
+        },
+        {
+          "id": 2,
+          "is_leaf": false,
+          "feature": 7,
+          "feature_name": "fiscal_balance_ratio",
+          "threshold": -3.8160001039505005,
+          "left": 3,
+          "right": 4,
+          "value": null
+        },
+        {
+          "id": 3,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": -0.9572648988686637
+        },
+        {
+          "id": 4,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": 0.07308935668146972
+        },
+        {
+          "id": 5,
+          "is_leaf": false,
+          "feature": 8,
+          "feature_name": "debt_to_gdp_ratio",
+          "threshold": 73.75399780273438,
+          "left": 6,
+          "right": 7,
+          "value": null
+        },
+        {
+          "id": 6,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": 0.06118371314541823
+        },
+        {
+          "id": 7,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": -0.8664748723532945
+        },
+        {
+          "id": 8,
+          "is_leaf": false,
+          "feature": 2,
+          "feature_name": "unemployment_rate",
+          "threshold": 5.121500015258789,
+          "left": 9,
+          "right": 12,
+          "value": null
+        },
+        {
+          "id": 9,
+          "is_leaf": false,
+          "feature": 7,
+          "feature_name": "fiscal_balance_ratio",
+          "threshold": -3.875,
+          "left": 10,
+          "right": 11,
+          "value": null
+        },
+        {
+          "id": 10,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": -1.6905222129022306
+        },
+        {
+          "id": 11,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": 0.0025735382638992993
+        },
+        {
+          "id": 12,
+          "is_leaf": false,
+          "feature": 8,
+          "feature_name": "debt_to_gdp_ratio",
+          "threshold": 41.464500427246094,
+          "left": 13,
+          "right": 14,
+          "value": null
+        },
+        {
+          "id": 13,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": -1.8158770612176132
+        },
+        {
+          "id": 14,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": 0.37841727506048145
+        }
+      ],
+      [
+        {
+          "id": 0,
+          "is_leaf": false,
+          "feature": 2,
+          "feature_name": "unemployment_rate",
+          "threshold": 6.064500093460083,
+          "left": 1,
+          "right": 8,
+          "value": null
+        },
+        {
+          "id": 1,
+          "is_leaf": false,
+          "feature": 0,
+          "feature_name": "lagged_gdp_growth",
+          "threshold": 0.4520000070333481,
+          "left": 2,
+          "right": 5,
+          "value": null
+        },
+        {
+          "id": 2,
+          "is_leaf": false,
+          "feature": 5,
+          "feature_name": "interest_rate_real",
+          "threshold": 1.402500033378601,
+          "left": 3,
+          "right": 4,
+          "value": null
+        },
+        {
+          "id": 3,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": -0.5752168539041609
+        },
+        {
+          "id": 4,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": -3.4668453115869546
+        },
+        {
+          "id": 5,
+          "is_leaf": false,
+          "feature": 3,
+          "feature_name": "unemployment_change",
+          "threshold": 0.9905000030994415,
+          "left": 6,
+          "right": 7,
+          "value": null
+        },
+        {
+          "id": 6,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": -0.041197644220532216
+        },
+        {
+          "id": 7,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": -6.359418087725514
+        },
+        {
+          "id": 8,
+          "is_leaf": false,
+          "feature": 6,
+          "feature_name": "investment_ratio",
+          "threshold": 18.082500457763672,
+          "left": 9,
+          "right": 12,
+          "value": null
+        },
+        {
+          "id": 9,
+          "is_leaf": false,
+          "feature": 6,
+          "feature_name": "investment_ratio",
+          "threshold": 17.315500259399414,
+          "left": 10,
+          "right": 11,
+          "value": null
+        },
+        {
+          "id": 10,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": -0.018387718262274286
+        },
+        {
+          "id": 11,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": -0.629964895896085
+        },
+        {
+          "id": 12,
+          "is_leaf": false,
+          "feature": 9,
+          "feature_name": "trade_openness",
+          "threshold": 237.5,
+          "left": 13,
+          "right": 14,
+          "value": null
+        },
+        {
+          "id": 13,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": 0.2272455190156999
+        },
+        {
+          "id": 14,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": 1.5158996138716678
+        }
+      ],
+      [
+        {
+          "id": 0,
+          "is_leaf": false,
+          "feature": 8,
+          "feature_name": "debt_to_gdp_ratio",
+          "threshold": 72.27050018310547,
+          "left": 1,
+          "right": 6,
+          "value": null
+        },
+        {
+          "id": 1,
+          "is_leaf": false,
+          "feature": 3,
+          "feature_name": "unemployment_change",
+          "threshold": 1.7950000166893005,
+          "left": 2,
+          "right": 5,
+          "value": null
+        },
+        {
+          "id": 2,
+          "is_leaf": false,
+          "feature": 3,
+          "feature_name": "unemployment_change",
+          "threshold": -0.5879999995231628,
+          "left": 3,
+          "right": 4,
+          "value": null
+        },
+        {
+          "id": 3,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": 0.5518571212416782
+        },
+        {
+          "id": 4,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": 0.08207877920439507
+        },
+        {
+          "id": 5,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": 1.3233427943273652
+        },
+        {
+          "id": 6,
+          "is_leaf": false,
+          "feature": 3,
+          "feature_name": "unemployment_change",
+          "threshold": 0.11749999970197678,
+          "left": 7,
+          "right": 10,
+          "value": null
+        },
+        {
+          "id": 7,
+          "is_leaf": false,
+          "feature": 7,
+          "feature_name": "fiscal_balance_ratio",
+          "threshold": -4.159999966621399,
+          "left": 8,
+          "right": 9,
+          "value": null
+        },
+        {
+          "id": 8,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": -1.2383449912132378
+        },
+        {
+          "id": 9,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": 0.08708286011560307
+        },
+        {
+          "id": 10,
+          "is_leaf": false,
+          "feature": 0,
+          "feature_name": "lagged_gdp_growth",
+          "threshold": -1.412500023841858,
+          "left": 11,
+          "right": 12,
+          "value": null
+        },
+        {
+          "id": 11,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": 0.29375033025115727
+        },
+        {
+          "id": 12,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": -0.8359812385127484
+        }
+      ],
+      [
+        {
+          "id": 0,
+          "is_leaf": false,
+          "feature": 2,
+          "feature_name": "unemployment_rate",
+          "threshold": 5.139500141143799,
+          "left": 1,
+          "right": 6,
+          "value": null
+        },
+        {
+          "id": 1,
+          "is_leaf": false,
+          "feature": 2,
+          "feature_name": "unemployment_rate",
+          "threshold": 5.134999990463257,
+          "left": 2,
+          "right": 5,
+          "value": null
+        },
+        {
+          "id": 2,
+          "is_leaf": false,
+          "feature": 7,
+          "feature_name": "fiscal_balance_ratio",
+          "threshold": -4.797499895095825,
+          "left": 3,
+          "right": 4,
+          "value": null
+        },
+        {
+          "id": 3,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": -1.2066164090687155
+        },
+        {
+          "id": 4,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": -0.11790829983941596
+        },
+        {
+          "id": 5,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": -4.549904336343466
+        },
+        {
+          "id": 6,
+          "is_leaf": false,
+          "feature": 3,
+          "feature_name": "unemployment_change",
+          "threshold": 4.296999931335449,
+          "left": 7,
+          "right": 10,
+          "value": null
+        },
+        {
+          "id": 7,
+          "is_leaf": false,
+          "feature": 5,
+          "feature_name": "interest_rate_real",
+          "threshold": 0.346000000834465,
+          "left": 8,
+          "right": 9,
+          "value": null
+        },
+        {
+          "id": 8,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": -0.32904958675983725
+        },
+        {
+          "id": 9,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": 0.14313281144127157
+        },
+        {
+          "id": 10,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": 3.3808568274075768
+        }
+      ],
+      [
+        {
+          "id": 0,
+          "is_leaf": false,
+          "feature": 3,
+          "feature_name": "unemployment_change",
+          "threshold": 0.3974999934434891,
+          "left": 1,
+          "right": 8,
+          "value": null
+        },
+        {
+          "id": 1,
+          "is_leaf": false,
+          "feature": 7,
+          "feature_name": "fiscal_balance_ratio",
+          "threshold": -4.533999919891357,
+          "left": 2,
+          "right": 5,
+          "value": null
+        },
+        {
+          "id": 2,
+          "is_leaf": false,
+          "feature": 7,
+          "feature_name": "fiscal_balance_ratio",
+          "threshold": -6.643500089645386,
+          "left": 3,
+          "right": 4,
+          "value": null
+        },
+        {
+          "id": 3,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": -0.4004363695763982
+        },
+        {
+          "id": 4,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": -1.8923492364506043
+        },
+        {
+          "id": 5,
+          "is_leaf": false,
+          "feature": 2,
+          "feature_name": "unemployment_rate",
+          "threshold": 5.115000009536743,
+          "left": 6,
+          "right": 7,
+          "value": null
+        },
+        {
+          "id": 6,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": -0.09291773216414152
+        },
+        {
+          "id": 7,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": 0.2181952920053168
+        },
+        {
+          "id": 8,
+          "is_leaf": false,
+          "feature": 3,
+          "feature_name": "unemployment_change",
+          "threshold": 1.1010000109672546,
+          "left": 9,
+          "right": 12,
+          "value": null
+        },
+        {
+          "id": 9,
+          "is_leaf": false,
+          "feature": 3,
+          "feature_name": "unemployment_change",
+          "threshold": 0.9479999840259552,
+          "left": 10,
+          "right": 11,
+          "value": null
+        },
+        {
+          "id": 10,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": -0.3578640625260794
+        },
+        {
+          "id": 11,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": -2.564728826140804
+        },
+        {
+          "id": 12,
+          "is_leaf": false,
+          "feature": 4,
+          "feature_name": "inflation_rate",
+          "threshold": 4.6625001430511475,
+          "left": 13,
+          "right": 14,
+          "value": null
+        },
+        {
+          "id": 13,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": -0.15105475111683847
+        },
+        {
+          "id": 14,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": 0.9188900489458005
+        }
+      ],
+      [
+        {
+          "id": 0,
+          "is_leaf": false,
+          "feature": 3,
+          "feature_name": "unemployment_change",
+          "threshold": -0.5879999995231628,
+          "left": 1,
+          "right": 8,
+          "value": null
+        },
+        {
+          "id": 1,
+          "is_leaf": false,
+          "feature": 7,
+          "feature_name": "fiscal_balance_ratio",
+          "threshold": -2.1100000143051147,
+          "left": 2,
+          "right": 5,
+          "value": null
+        },
+        {
+          "id": 2,
+          "is_leaf": false,
+          "feature": 9,
+          "feature_name": "trade_openness",
+          "threshold": 237.5,
+          "left": 3,
+          "right": 4,
+          "value": null
+        },
+        {
+          "id": 3,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": 0.6228032966536575
+        },
+        {
+          "id": 4,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": 2.7625935187767605
+        },
+        {
+          "id": 5,
+          "is_leaf": false,
+          "feature": 6,
+          "feature_name": "investment_ratio",
+          "threshold": 17.700499534606934,
+          "left": 6,
+          "right": 7,
+          "value": null
+        },
+        {
+          "id": 6,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": -0.4641992264953385
+        },
+        {
+          "id": 7,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": 0.2436284564278092
+        },
+        {
+          "id": 8,
+          "is_leaf": false,
+          "feature": 7,
+          "feature_name": "fiscal_balance_ratio",
+          "threshold": -6.437999963760376,
+          "left": 9,
+          "right": 12,
+          "value": null
+        },
+        {
+          "id": 9,
+          "is_leaf": false,
+          "feature": 9,
+          "feature_name": "trade_openness",
+          "threshold": 237.5,
+          "left": 10,
+          "right": 11,
+          "value": null
+        },
+        {
+          "id": 10,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": -0.7038116663755126
+        },
+        {
+          "id": 11,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": -3.086555954269942
+        },
+        {
+          "id": 12,
+          "is_leaf": false,
+          "feature": 2,
+          "feature_name": "unemployment_rate",
+          "threshold": 8.635499954223633,
+          "left": 13,
+          "right": 14,
+          "value": null
+        },
+        {
+          "id": 13,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": -0.06374389350259124
+        },
+        {
+          "id": 14,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": 0.3958924893284756
+        }
+      ],
+      [
+        {
+          "id": 0,
+          "is_leaf": false,
+          "feature": 8,
+          "feature_name": "debt_to_gdp_ratio",
+          "threshold": 72.29999923706055,
+          "left": 1,
+          "right": 8,
+          "value": null
+        },
+        {
+          "id": 1,
+          "is_leaf": false,
+          "feature": 3,
+          "feature_name": "unemployment_change",
+          "threshold": 1.4890000224113464,
+          "left": 2,
+          "right": 5,
+          "value": null
+        },
+        {
+          "id": 2,
+          "is_leaf": false,
+          "feature": 3,
+          "feature_name": "unemployment_change",
+          "threshold": 0.7564999759197235,
+          "left": 3,
+          "right": 4,
+          "value": null
+        },
+        {
+          "id": 3,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": 0.15064580458017587
+        },
+        {
+          "id": 4,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": -0.5947627225730583
+        },
+        {
+          "id": 5,
+          "is_leaf": false,
+          "feature": 4,
+          "feature_name": "inflation_rate",
+          "threshold": 7.003499984741211,
+          "left": 6,
+          "right": 7,
+          "value": null
+        },
+        {
+          "id": 6,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": 0.7180499936777104
+        },
+        {
+          "id": 7,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": 1.6246011567116285
+        },
+        {
+          "id": 8,
+          "is_leaf": false,
+          "feature": 3,
+          "feature_name": "unemployment_change",
+          "threshold": 0.11749999970197678,
+          "left": 9,
+          "right": 12,
+          "value": null
+        },
+        {
+          "id": 9,
+          "is_leaf": false,
+          "feature": 7,
+          "feature_name": "fiscal_balance_ratio",
+          "threshold": -4.158999919891357,
+          "left": 10,
+          "right": 11,
+          "value": null
+        },
+        {
+          "id": 10,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": -0.9413026973483232
+        },
+        {
+          "id": 11,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": 0.069804233581307
+        },
+        {
+          "id": 12,
+          "is_leaf": false,
+          "feature": 8,
+          "feature_name": "debt_to_gdp_ratio",
+          "threshold": 72.38949966430664,
+          "left": 13,
+          "right": 14,
+          "value": null
+        },
+        {
+          "id": 13,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": -5.547184357114194
+        },
+        {
+          "id": 14,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": -0.3311304257530439
+        }
+      ],
+      [
+        {
+          "id": 0,
+          "is_leaf": false,
+          "feature": 0,
+          "feature_name": "lagged_gdp_growth",
+          "threshold": 0.4520000070333481,
+          "left": 1,
+          "right": 8,
+          "value": null
+        },
+        {
+          "id": 1,
+          "is_leaf": false,
+          "feature": 2,
+          "feature_name": "unemployment_rate",
+          "threshold": 5.6595001220703125,
+          "left": 2,
+          "right": 5,
+          "value": null
+        },
+        {
+          "id": 2,
+          "is_leaf": false,
+          "feature": 8,
+          "feature_name": "debt_to_gdp_ratio",
+          "threshold": 75.72700119018555,
+          "left": 3,
+          "right": 4,
+          "value": null
+        },
+        {
+          "id": 3,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": 0.10977173615433426
+        },
+        {
+          "id": 4,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": -2.2314965151242143
+        },
+        {
+          "id": 5,
+          "is_leaf": false,
+          "feature": 10,
+          "feature_name": "population_growth",
+          "threshold": 0.2370000034570694,
+          "left": 6,
+          "right": 7,
+          "value": null
+        },
+        {
+          "id": 6,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": 2.290004492956339
+        },
+        {
+          "id": 7,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": -0.10746884505639263
+        },
+        {
+          "id": 8,
+          "is_leaf": false,
+          "feature": 3,
+          "feature_name": "unemployment_change",
+          "threshold": 0.9479999840259552,
+          "left": 9,
+          "right": 12,
+          "value": null
+        },
+        {
+          "id": 9,
+          "is_leaf": false,
+          "feature": 7,
+          "feature_name": "fiscal_balance_ratio",
+          "threshold": -4.533999919891357,
+          "left": 10,
+          "right": 11,
+          "value": null
+        },
+        {
+          "id": 10,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": -0.6946400707421766
+        },
+        {
+          "id": 11,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": 0.07950889279001506
+        },
+        {
+          "id": 12,
+          "is_leaf": false,
+          "feature": 8,
+          "feature_name": "debt_to_gdp_ratio",
+          "threshold": 63.50600051879883,
+          "left": 13,
+          "right": 14,
+          "value": null
+        },
+        {
+          "id": 13,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": -0.13437200011433176
+        },
+        {
+          "id": 14,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": -4.0850412402247676
+        }
+      ],
+      [
+        {
+          "id": 0,
+          "is_leaf": false,
+          "feature": 0,
+          "feature_name": "lagged_gdp_growth",
+          "threshold": 1.001499980688095,
+          "left": 1,
+          "right": 8,
+          "value": null
+        },
+        {
+          "id": 1,
+          "is_leaf": false,
+          "feature": 3,
+          "feature_name": "unemployment_change",
+          "threshold": 0.9334999918937683,
+          "left": 2,
+          "right": 5,
+          "value": null
+        },
+        {
+          "id": 2,
+          "is_leaf": false,
+          "feature": 3,
+          "feature_name": "unemployment_change",
+          "threshold": 0.8210000097751617,
+          "left": 3,
+          "right": 4,
+          "value": null
+        },
+        {
+          "id": 3,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": -0.3769144450519708
+        },
+        {
+          "id": 4,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": -3.406924977691068
+        },
+        {
+          "id": 5,
+          "is_leaf": false,
+          "feature": 0,
+          "feature_name": "lagged_gdp_growth",
+          "threshold": 0.6529999822378159,
+          "left": 6,
+          "right": 7,
+          "value": null
+        },
+        {
+          "id": 6,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": 0.4364019792465867
+        },
+        {
+          "id": 7,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": -3.7719655943579298
+        },
+        {
+          "id": 8,
+          "is_leaf": false,
+          "feature": 7,
+          "feature_name": "fiscal_balance_ratio",
+          "threshold": -2.91949999332428,
+          "left": 9,
+          "right": 12,
+          "value": null
+        },
+        {
+          "id": 9,
+          "is_leaf": false,
+          "feature": 8,
+          "feature_name": "debt_to_gdp_ratio",
+          "threshold": 62.72050094604492,
+          "left": 10,
+          "right": 11,
+          "value": null
+        },
+        {
+          "id": 10,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": 0.13456530791306612
+        },
+        {
+          "id": 11,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": -0.40602016835839067
+        },
+        {
+          "id": 12,
+          "is_leaf": false,
+          "feature": 2,
+          "feature_name": "unemployment_rate",
+          "threshold": 4.865499973297119,
+          "left": 13,
+          "right": 14,
+          "value": null
+        },
+        {
+          "id": 13,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": -0.08227760952067559
+        },
+        {
+          "id": 14,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": 0.22963844773701816
+        }
+      ],
+      [
+        {
+          "id": 0,
+          "is_leaf": false,
+          "feature": 6,
+          "feature_name": "investment_ratio",
+          "threshold": 30.17199993133545,
+          "left": 1,
+          "right": 8,
+          "value": null
+        },
+        {
+          "id": 1,
+          "is_leaf": false,
+          "feature": 3,
+          "feature_name": "unemployment_change",
+          "threshold": 0.11899999901652336,
+          "left": 2,
+          "right": 5,
+          "value": null
+        },
+        {
+          "id": 2,
+          "is_leaf": false,
+          "feature": 7,
+          "feature_name": "fiscal_balance_ratio",
+          "threshold": -2.896000027656555,
+          "left": 3,
+          "right": 4,
+          "value": null
+        },
+        {
+          "id": 3,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": -0.22243966923148603
+        },
+        {
+          "id": 4,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": 0.06264459015002197
+        },
+        {
+          "id": 5,
+          "is_leaf": false,
+          "feature": 5,
+          "feature_name": "interest_rate_real",
+          "threshold": 0.3269999921321869,
+          "left": 6,
+          "right": 7,
+          "value": null
+        },
+        {
+          "id": 6,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": -0.7594753197974818
+        },
+        {
+          "id": 7,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": -0.13624638229049746
+        },
+        {
+          "id": 8,
+          "is_leaf": false,
+          "feature": 8,
+          "feature_name": "debt_to_gdp_ratio",
+          "threshold": 41.591501235961914,
+          "left": 9,
+          "right": 10,
+          "value": null
+        },
+        {
+          "id": 9,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": -1.6024515614608021
+        },
+        {
+          "id": 10,
+          "is_leaf": false,
+          "feature": 6,
+          "feature_name": "investment_ratio",
+          "threshold": 33.26849937438965,
+          "left": 11,
+          "right": 12,
+          "value": null
+        },
+        {
+          "id": 11,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": 0.22129509982935233
+        },
+        {
+          "id": 12,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": 0.7122151029660688
+        }
+      ],
+      [
+        {
+          "id": 0,
+          "is_leaf": false,
+          "feature": 8,
+          "feature_name": "debt_to_gdp_ratio",
+          "threshold": 66.06099700927734,
+          "left": 1,
+          "right": 6,
+          "value": null
+        },
+        {
+          "id": 1,
+          "is_leaf": false,
+          "feature": 8,
+          "feature_name": "debt_to_gdp_ratio",
+          "threshold": 41.464500427246094,
+          "left": 2,
+          "right": 3,
+          "value": null
+        },
+        {
+          "id": 2,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": -1.4742554365439378
+        },
+        {
+          "id": 3,
+          "is_leaf": false,
+          "feature": 6,
+          "feature_name": "investment_ratio",
+          "threshold": 31.9399995803833,
+          "left": 4,
+          "right": 5,
+          "value": null
+        },
+        {
+          "id": 4,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": 0.10442785779443152
+        },
+        {
+          "id": 5,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": 0.5020872737169526
+        },
+        {
+          "id": 6,
+          "is_leaf": false,
+          "feature": 3,
+          "feature_name": "unemployment_change",
+          "threshold": 1.1735000014305115,
+          "left": 7,
+          "right": 10,
+          "value": null
+        },
+        {
+          "id": 7,
+          "is_leaf": false,
+          "feature": 3,
+          "feature_name": "unemployment_change",
+          "threshold": 0.7509999871253967,
+          "left": 8,
+          "right": 9,
+          "value": null
+        },
+        {
+          "id": 8,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": -0.08823988622965719
+        },
+        {
+          "id": 9,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": -1.3292481855140001
+        },
+        {
+          "id": 10,
+          "is_leaf": false,
+          "feature": 4,
+          "feature_name": "inflation_rate",
+          "threshold": 4.6625001430511475,
+          "left": 11,
+          "right": 12,
+          "value": null
+        },
+        {
+          "id": 11,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": -0.0404180573450612
+        },
+        {
+          "id": 12,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": 1.0461669914473446
+        }
+      ],
+      [
+        {
+          "id": 0,
+          "is_leaf": false,
+          "feature": 3,
+          "feature_name": "unemployment_change",
+          "threshold": -0.8314999938011169,
+          "left": 1,
+          "right": 6,
+          "value": null
+        },
+        {
+          "id": 1,
+          "is_leaf": false,
+          "feature": 4,
+          "feature_name": "inflation_rate",
+          "threshold": 7.921000003814697,
+          "left": 2,
+          "right": 5,
+          "value": null
+        },
+        {
+          "id": 2,
+          "is_leaf": false,
+          "feature": 8,
+          "feature_name": "debt_to_gdp_ratio",
+          "threshold": 90.01750183105469,
+          "left": 3,
+          "right": 4,
+          "value": null
+        },
+        {
+          "id": 3,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": 0.5574318258999522
+        },
+        {
+          "id": 4,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": 0.04846742797714137
+        },
+        {
+          "id": 5,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": -0.6267307572583741
+        },
+        {
+          "id": 6,
+          "is_leaf": false,
+          "feature": 2,
+          "feature_name": "unemployment_rate",
+          "threshold": 7.114000082015991,
+          "left": 7,
+          "right": 10,
+          "value": null
+        },
+        {
+          "id": 7,
+          "is_leaf": false,
+          "feature": 4,
+          "feature_name": "inflation_rate",
+          "threshold": 0.3774999976158142,
+          "left": 8,
+          "right": 9,
+          "value": null
+        },
+        {
+          "id": 8,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": 1.0548710510690218
+        },
+        {
+          "id": 9,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": -0.1560779829445929
+        },
+        {
+          "id": 10,
+          "is_leaf": false,
+          "feature": 6,
+          "feature_name": "investment_ratio",
+          "threshold": 17.47599983215332,
+          "left": 11,
+          "right": 12,
+          "value": null
+        },
+        {
+          "id": 11,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": -0.3020479405129701
+        },
+        {
+          "id": 12,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": 0.23096179638137704
+        }
+      ],
+      [
+        {
+          "id": 0,
+          "is_leaf": false,
+          "feature": 3,
+          "feature_name": "unemployment_change",
+          "threshold": 0.278999999165535,
+          "left": 1,
+          "right": 8,
+          "value": null
+        },
+        {
+          "id": 1,
+          "is_leaf": false,
+          "feature": 7,
+          "feature_name": "fiscal_balance_ratio",
+          "threshold": -4.797499895095825,
+          "left": 2,
+          "right": 5,
+          "value": null
+        },
+        {
+          "id": 2,
+          "is_leaf": false,
+          "feature": 7,
+          "feature_name": "fiscal_balance_ratio",
+          "threshold": -7.127500057220459,
+          "left": 3,
+          "right": 4,
+          "value": null
+        },
+        {
+          "id": 3,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": -0.15294339345527566
+        },
+        {
+          "id": 4,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": -1.5520984083513711
+        },
+        {
+          "id": 5,
+          "is_leaf": false,
+          "feature": 5,
+          "feature_name": "interest_rate_real",
+          "threshold": 0.3005000054836273,
+          "left": 6,
+          "right": 7,
+          "value": null
+        },
+        {
+          "id": 6,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": -0.27856596094271
+        },
+        {
+          "id": 7,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": 0.11532984481387072
+        },
+        {
+          "id": 8,
+          "is_leaf": false,
+          "feature": 3,
+          "feature_name": "unemployment_change",
+          "threshold": 1.1610000133514404,
+          "left": 9,
+          "right": 12,
+          "value": null
+        },
+        {
+          "id": 9,
+          "is_leaf": false,
+          "feature": 8,
+          "feature_name": "debt_to_gdp_ratio",
+          "threshold": 73.75399780273438,
+          "left": 10,
+          "right": 11,
+          "value": null
+        },
+        {
+          "id": 10,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": -0.12274743754455975
+        },
+        {
+          "id": 11,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": -1.1089567645998326
+        },
+        {
+          "id": 12,
+          "is_leaf": false,
+          "feature": 5,
+          "feature_name": "interest_rate_real",
+          "threshold": 1.5544999837875366,
+          "left": 13,
+          "right": 14,
+          "value": null
+        },
+        {
+          "id": 13,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": -0.17864477252756092
+        },
+        {
+          "id": 14,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": 0.6452636377679145
+        }
+      ],
+      [
+        {
+          "id": 0,
+          "is_leaf": false,
+          "feature": 0,
+          "feature_name": "lagged_gdp_growth",
+          "threshold": 0.335999995470047,
+          "left": 1,
+          "right": 8,
+          "value": null
+        },
+        {
+          "id": 1,
+          "is_leaf": false,
+          "feature": 2,
+          "feature_name": "unemployment_rate",
+          "threshold": 5.672499895095825,
+          "left": 2,
+          "right": 5,
+          "value": null
+        },
+        {
+          "id": 2,
+          "is_leaf": false,
+          "feature": 8,
+          "feature_name": "debt_to_gdp_ratio",
+          "threshold": 73.24599838256836,
+          "left": 3,
+          "right": 4,
+          "value": null
+        },
+        {
+          "id": 3,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": 0.22357306874541047
+        },
+        {
+          "id": 4,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": -2.103991107966914
+        },
+        {
+          "id": 5,
+          "is_leaf": false,
+          "feature": 0,
+          "feature_name": "lagged_gdp_growth",
+          "threshold": 0.19099999964237213,
+          "left": 6,
+          "right": 7,
+          "value": null
+        },
+        {
+          "id": 6,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": 0.14061996061551038
+        },
+        {
+          "id": 7,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": -1.8996140210326171
+        },
+        {
+          "id": 8,
+          "is_leaf": false,
+          "feature": 4,
+          "feature_name": "inflation_rate",
+          "threshold": 0.7820000052452087,
+          "left": 9,
+          "right": 12,
+          "value": null
+        },
+        {
+          "id": 9,
+          "is_leaf": false,
+          "feature": 10,
+          "feature_name": "population_growth",
+          "threshold": 0.4570000022649765,
+          "left": 10,
+          "right": 11,
+          "value": null
+        },
+        {
+          "id": 10,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": 1.0083565845480118
+        },
+        {
+          "id": 11,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": 0.314991547008885
+        },
+        {
+          "id": 12,
+          "is_leaf": false,
+          "feature": 3,
+          "feature_name": "unemployment_change",
+          "threshold": 0.9479999840259552,
+          "left": 13,
+          "right": 14,
+          "value": null
+        },
+        {
+          "id": 13,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": 0.06425893139491591
+        },
+        {
+          "id": 14,
+          "is_leaf": true,
+          "feature": null,
+          "feature_name": null,
+          "threshold": null,
+          "left": null,
+          "right": null,
+          "value": -0.6993365330090601
+        }
+      ]
+    ]
+  }
+}

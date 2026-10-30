@@ -32,6 +32,10 @@ import {
   PlusCircle,
   CheckCircle2,
   Search,
+  ChevronRight,
+  Landmark,
+  BarChart3,
+  PieChart,
 } from "lucide-react";
 import BufferedRangeSlider from "./BufferedRangeSlider";
 import {
@@ -148,6 +152,47 @@ const SUBCONTINENT_PRESETS = [
   { id: "af", name: "Africa", zoom: 2.0, pan: { x: -50, y: -50 } },
   { id: "oc", name: "Oceania", zoom: 2.4, pan: { x: -470, y: -180 } },
 ];
+
+export const COUNTRY_TO_SUBCONTINENT = {
+  usa: "na", canada: "na", mexico: "na", cuba: "na", haiti: "na", dominican_republic: "na", guatemala: "na", panama: "na",
+  brazil: "sa", argentina: "sa", chile: "sa", colombia: "sa", peru: "sa", venezuela: "sa", ecuador: "sa", bolivia: "sa", uruguay: "sa", paraguay: "sa",
+  uk: "we", germany: "we", france: "we", italy: "we", spain: "we", netherlands: "we", switzerland: "we", sweden: "we", belgium: "we", austria: "we", norway: "we", denmark: "we", ireland: "we", portugal: "we", greece: "we", finland: "we",
+  russia: "ee", poland: "ee", ukraine: "ee", turkey: "ee", kazakhstan: "ee", romania: "ee", czechia: "ee", hungary: "ee", belarus: "ee", bulgaria: "ee", slovakia: "ee", serbia: "ee",
+  china: "ea", japan: "ea", south_korea: "ea", taiwan: "ea", mongolia: "ea", north_korea: "ea",
+  india: "sa_asia", pakistan: "sa_asia", bangladesh: "sa_asia", sri_lanka: "sa_asia", nepal: "sa_asia",
+  indonesia: "sea", vietnam: "sea", thailand: "sea", philippines: "sea", malaysia: "sea", singapore: "sea", myanmar: "sea", cambodia: "sea",
+  saudi_arabia: "me", iran: "me", uae: "me", israel: "me", egypt: "me", iraq: "me", qatar: "me", kuwait: "me", oman: "me", jordan: "me",
+  south_africa: "af", nigeria: "af", kenya: "af", ethiopia: "af", morocco: "af", algeria: "af", ghana: "af", angola: "af", tanzania: "af", congo: "af",
+  australia: "oc", new_zealand: "oc", papua_new_guinea: "oc", fiji: "oc",
+};
+
+export function getSubcontinentForCountry(countryId) {
+  if (!countryId) return "we";
+  const cleanId = String(countryId).toLowerCase().replace(/[^a-z0-9_]+/g, "");
+  return COUNTRY_TO_SUBCONTINENT[cleanId] || "we";
+}
+
+export function getFeatureFitTransform(features, width = 960, height = 500, padding = 60) {
+  if (!features || features.length === 0) return { zoom: 1, pan: { x: 0, y: 0 } };
+  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+  for (const f of features) {
+    if (!f || !f.bounds) continue;
+    const [[x0, y0], [x1, y1]] = f.bounds;
+    if (x0 < minX) minX = x0;
+    if (y0 < minY) minY = y0;
+    if (x1 > maxX) maxX = x1;
+    if (y1 > maxY) maxY = y1;
+  }
+  if (!Number.isFinite(minX) || !Number.isFinite(maxX)) return { zoom: 1, pan: { x: 0, y: 0 } };
+  const dx = Math.max(10, maxX - minX);
+  const dy = Math.max(10, maxY - minY);
+  const cx = (minX + maxX) / 2;
+  const cy = (minY + maxY) / 2;
+  const k = Math.min(6.5, Math.max(1.1, 0.78 / Math.max(dx / width, dy / height)));
+  const tx = width / 2 - k * cx;
+  const ty = height / 2 - k * cy;
+  return { zoom: Number(k.toFixed(2)), pan: { x: Math.round(tx), y: Math.round(ty) } };
+}
 
 // Constituent Regional States for deep macroeconomic statecraft
 const CONSTITUENT_REGIONAL_STATES = {
@@ -486,6 +531,7 @@ export default function InteractiveWorldMap({
   const [theater, setTheater] = useState("Earth"); // "Earth" | "Mars"
   const [mapLens, setMapLens] = useState("sovereignty"); // "sovereignty" | "gdp" | "sol" | "unrest"
   const [interactionMode, setInteractionMode] = useState("inspect"); // "inspect" | "annex" | "release"
+  const [mapLocation, setMapLocation] = useState({ level: "world" }); // { level: "world" } | { level: "subcontinent", subcontinentId } | { level: "country", countryId }
   const [viewTier, setViewTier] = useState("worldwide"); // "worldwide" | "subcontinent" | "country"
   const [rightPanelTab, setRightPanelTab] = useState("states"); // "states" | "cabinet"
   const [selectedSubcontinent, setSelectedSubcontinent] = useState("all");
@@ -526,18 +572,40 @@ export default function InteractiveWorldMap({
     }
   }, [planetsConfig, theater]);
 
+  // Reset to full world view
+  const navigateToWorld = () => {
+    setMapLocation({ level: "world" });
+    setViewTier("worldwide");
+    setSelectedStateName(null);
+    setZoom(1);
+    setPan({ x: 0, y: 0 });
+  };
+
   // Focus camera on a selected subcontinent
-  const handleSelectSubcontinent = (subId) => {
-    setSelectedSubcontinent(subId);
-    const preset = SUBCONTINENT_PRESETS.find((p) => p.id === subId) || SUBCONTINENT_PRESETS[0];
+  const navigateToSubcontinent = (subId) => {
+    const validSubId = subId && subId !== "all" ? subId : "we";
+    setSelectedSubcontinent(validSubId);
+    setMapLocation({ level: "subcontinent", subcontinentId: validSubId });
+    setViewTier("subcontinent");
+    setSelectedStateName(null);
+    const preset = SUBCONTINENT_PRESETS.find((p) => p.id === validSubId) || SUBCONTINENT_PRESETS[1];
     setZoom(preset.zoom);
     setPan(preset.pan);
   };
 
-  // Focus camera on a specific nation
-  const focusOnCountry = (targetNation) => {
+  const handleSelectSubcontinent = (subId) => {
+    navigateToSubcontinent(subId);
+  };
+
+  // Focus camera on a specific nation (geometry-based fit)
+  const navigateToCountry = (targetNation) => {
     if (!targetNation) return;
+    const subId = getSubcontinentForCountry(targetNation.id);
+    setSelectedSubcontinent(subId);
+    setMapLocation({ level: "country", countryId: targetNation.id, subcontinentId: subId });
+    setViewTier("country");
     onSelectNation(targetNation.id);
+    setSelectedStateName(null);
     setRightPanelTab("states");
 
     const isMars = (targetNation.planet || "").toLowerCase().includes("mars");
@@ -555,19 +623,17 @@ export default function InteractiveWorldMap({
         territoryMap[f.name] === targetNation.id
     );
     if (matchedFeatures.length > 0) {
-      let sumX = 0, sumY = 0;
-      matchedFeatures.forEach((f) => {
-        sumX += f.centroid[0];
-        sumY += f.centroid[1];
-      });
-      const cx = sumX / matchedFeatures.length;
-      const cy = sumY / matchedFeatures.length;
-      setZoom(3.2);
-      setPan({ x: Math.round(480 - cx), y: Math.round(250 - cy) });
+      const { zoom: fitZ, pan: fitP } = getFeatureFitTransform(matchedFeatures, 960, 500, 60);
+      setZoom(fitZ);
+      setPan(fitP);
     } else {
-      setZoom(2.2);
+      setZoom(2.8);
       setPan({ x: 0, y: 0 });
     }
+  };
+
+  const focusOnCountry = (targetNation) => {
+    navigateToCountry(targetNation);
   };
 
   // Focus camera on a specific territory / state
@@ -1214,104 +1280,255 @@ export default function InteractiveWorldMap({
         </div>
       </div>
 
-      {/* 2-Tier Map View Switcher Bar (World-Wide / Subcontinent Focus) */}
-      <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-3 flex flex-wrap items-center justify-between gap-3 text-xs shadow-md">
-        <div className="flex items-center gap-2">
-          <span className="text-[10px] font-mono-num uppercase tracking-wider text-slate-400 font-bold">
-            Map View Tier:
-          </span>
-          <div className="flex items-center gap-1 bg-slate-950 p-1 rounded-xl border border-slate-800">
+      {/* 3-Tier Map View Navigation Bar & Persistent Breadcrumbs */}
+      <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-3 space-y-2.5 shadow-md">
+        <div className="flex flex-wrap items-center justify-between gap-3 text-xs">
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] font-mono-num uppercase tracking-wider text-slate-400 font-bold">
+              Map View Tier:
+            </span>
+            <div className="flex items-center gap-1 bg-slate-950 p-1 rounded-xl border border-slate-800">
+              <button
+                onClick={() => navigateToWorld()}
+                className={`px-3 py-1.5 rounded-lg font-bold transition cursor-pointer flex items-center gap-1.5 ${
+                  mapLocation.level === "world"
+                    ? "bg-cyan-500 text-slate-950 shadow-sm shadow-cyan-500/20"
+                    : "text-slate-400 hover:text-slate-200"
+                }`}
+              >
+                <Globe2 className="w-3.5 h-3.5" />
+                1. World-Wide
+              </button>
+
+              <button
+                onClick={() => {
+                  const subId = selectedSubcontinent && selectedSubcontinent !== "all" ? selectedSubcontinent : "we";
+                  navigateToSubcontinent(subId);
+                }}
+                className={`px-3 py-1.5 rounded-lg font-bold transition cursor-pointer flex items-center gap-1.5 ${
+                  mapLocation.level === "subcontinent"
+                    ? "bg-amber-500 text-slate-950 shadow-sm shadow-amber-500/20"
+                    : "text-slate-400 hover:text-slate-200"
+                }`}
+              >
+                <Compass className="w-3.5 h-3.5" />
+                2. Subcontinent Focus
+              </button>
+
+              <button
+                onClick={() => {
+                  if (activeNation) navigateToCountry(activeNation);
+                }}
+                className={`px-3 py-1.5 rounded-lg font-bold transition cursor-pointer flex items-center gap-1.5 ${
+                  mapLocation.level === "country"
+                    ? "bg-emerald-500 text-slate-950 shadow-sm shadow-emerald-500/20"
+                    : "text-slate-400 hover:text-slate-200"
+                }`}
+              >
+                <Landmark className="w-3.5 h-3.5" />
+                3. Country & States
+              </button>
+            </div>
+          </div>
+
+          {/* Active Nation Quick Selector & Controls */}
+          <div className="flex items-center gap-2 flex-wrap">
+            <div className="flex items-center gap-1.5 bg-slate-950 px-2.5 py-1 rounded-xl border border-slate-800">
+              <span className="text-slate-400 text-[11px]">Nation:</span>
+              <select
+                value={activeNation?.id || ""}
+                onChange={(e) => {
+                  const target = nations.find((n) => n.id === e.target.value);
+                  if (target) navigateToCountry(target);
+                }}
+                className="bg-transparent text-cyan-300 font-bold text-xs cursor-pointer focus:outline-none"
+              >
+                {nations.map((n) => (
+                  <option key={n.id} value={n.id} className="bg-slate-900 text-white">
+                    {n.name} ({n.planet})
+                  </option>
+                ))}
+              </select>
+            </div>
+
             <button
-              onClick={() => {
-                setViewTier("worldwide");
-                resetCamera();
-              }}
-              className={`px-3 py-1.5 rounded-lg font-bold transition cursor-pointer flex items-center gap-1.5 ${
-                viewTier === "worldwide"
-                  ? "bg-cyan-500 text-slate-950 shadow-sm shadow-cyan-500/20"
-                  : "text-slate-400 hover:text-slate-200"
+              onClick={() => setShowStatesTableModal(true)}
+              className="px-3 py-1.5 rounded-xl bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 border border-cyan-500/40 text-xs font-bold flex items-center gap-1.5 cursor-pointer transition shadow-sm"
+              title="Open interactive state-by-state map and constituent divisions table in pop up"
+            >
+              <Layers className="w-3.5 h-3.5" />
+              States Table Pop-Up
+            </button>
+
+            {!isReadOnly && (
+              <button
+                onClick={() => setShowProvinceManager(true)}
+                className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-semibold flex items-center gap-1.5 cursor-pointer transition"
+              >
+                <PlusCircle className="w-3.5 h-3.5 text-cyan-400" />
+                Manage Provinces
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* PERSISTENT GEOGRAPHIC BREADCRUMBS */}
+        <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-800/80 text-xs">
+          <div className="flex items-center gap-2 flex-wrap text-slate-300">
+            <span className="text-slate-500 text-[10px] uppercase tracking-wider font-mono-num font-bold">Location:</span>
+            
+            <button
+              onClick={() => navigateToWorld()}
+              className={`flex items-center gap-1 hover:text-cyan-400 transition cursor-pointer ${
+                mapLocation.level === "world" ? "text-cyan-400 font-bold" : "text-slate-400"
               }`}
             >
               <Globe2 className="w-3.5 h-3.5" />
-              1. World-Wide
+              World
             </button>
 
-            <button
-              onClick={() => {
-                setViewTier("subcontinent");
-                if (selectedSubcontinent === "all") handleSelectSubcontinent("we");
-              }}
-              className={`px-3 py-1.5 rounded-lg font-bold transition cursor-pointer flex items-center gap-1.5 ${
-                viewTier === "subcontinent"
-                  ? "bg-amber-500 text-slate-950 shadow-sm shadow-amber-500/20"
-                  : "text-slate-400 hover:text-slate-200"
-              }`}
-            >
-              <Compass className="w-3.5 h-3.5" />
-              2. Subcontinent Focus
-            </button>
+            {mapLocation.level !== "world" && (
+              <>
+                <ChevronRight className="w-3.5 h-3.5 text-slate-600" />
+                <button
+                  onClick={() => {
+                    const subId = mapLocation.subcontinentId || getSubcontinentForCountry(activeNation?.id) || "we";
+                    navigateToSubcontinent(subId);
+                  }}
+                  className={`flex items-center gap-1 hover:text-amber-400 transition cursor-pointer ${
+                    mapLocation.level === "subcontinent" ? "text-amber-400 font-bold" : "text-slate-400"
+                  }`}
+                >
+                  <Compass className="w-3.5 h-3.5" />
+                  {SUBCONTINENT_PRESETS.find((p) => p.id === (mapLocation.subcontinentId || getSubcontinentForCountry(activeNation?.id)))?.name || "Region"}
+                </button>
+              </>
+            )}
+
+            {mapLocation.level === "country" && activeNation && (
+              <>
+                <ChevronRight className="w-3.5 h-3.5 text-slate-600" />
+                <button
+                  onClick={() => navigateToCountry(activeNation)}
+                  className="flex items-center gap-1 text-emerald-400 font-bold cursor-pointer"
+                >
+                  <Landmark className="w-3.5 h-3.5" />
+                  {activeNation.name}
+                </button>
+              </>
+            )}
+
+            {selectedStateName && mapLocation.level === "country" && (
+              <>
+                <ChevronRight className="w-3.5 h-3.5 text-slate-600" />
+                <span className="px-2 py-0.5 rounded bg-cyan-500/20 text-cyan-300 text-[11px] font-bold border border-cyan-500/30">
+                  {selectedStateName}
+                </span>
+              </>
+            )}
           </div>
+
+          {/* Subcontinent Switcher Pills (when in Subcontinent View) */}
+          {mapLocation.level === "subcontinent" && (
+            <div className="flex flex-wrap items-center gap-1">
+              <span className="text-slate-500 text-[10px] uppercase font-bold tracking-wider">Subcontinents:</span>
+              {SUBCONTINENT_PRESETS.filter((p) => p.id !== "all").map((p) => (
+                <button
+                  key={p.id}
+                  onClick={() => navigateToSubcontinent(p.id)}
+                  className={`px-2 py-0.5 rounded-lg text-[10px] font-semibold transition cursor-pointer ${
+                    selectedSubcontinent === p.id
+                      ? "bg-amber-500 text-slate-950 font-bold shadow-sm"
+                      : "bg-slate-950 text-slate-400 hover:text-slate-200 border border-slate-800"
+                  }`}
+                >
+                  {p.name}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
 
-        {/* Subcontinent Presets (Visible when Subcontinent Tier is active) */}
-        {viewTier === "subcontinent" && (
-          <div className="flex flex-wrap items-center gap-1.5">
-            <span className="text-slate-400 text-[11px]">Region:</span>
-            {SUBCONTINENT_PRESETS.map((p) => (
-              <button
-                key={p.id}
-                onClick={() => handleSelectSubcontinent(p.id)}
-                className={`px-2 py-1 rounded-lg text-[11px] font-semibold transition cursor-pointer ${
-                  selectedSubcontinent === p.id
-                    ? "bg-amber-500/20 text-amber-300 border border-amber-500/40"
-                    : "bg-slate-950 text-slate-400 hover:text-slate-200 border border-slate-800"
-                }`}
-              >
-                {p.name}
-              </button>
-            ))}
+        {/* Subcontinent View Regional Indicators Banner */}
+        {mapLocation.level === "subcontinent" && (
+          <div className="bg-slate-950/70 border border-amber-500/30 rounded-xl p-3 flex flex-wrap items-center justify-between gap-4 text-xs mt-1">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-lg bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-400 font-bold">
+                <Compass className="w-4 h-4" />
+              </div>
+              <div>
+                <h4 className="font-bold text-white text-sm">
+                  {SUBCONTINENT_PRESETS.find((p) => p.id === selectedSubcontinent)?.name || "Subcontinent"} Regional Focus
+                </h4>
+                <p className="text-[11px] text-slate-400">
+                  Click any country on the map or select below to inspect constituent states & regional administration.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 flex-wrap">
+              {nations
+                .filter((n) => getSubcontinentForCountry(n.id) === selectedSubcontinent)
+                .slice(0, 8)
+                .map((n) => (
+                  <button
+                    key={n.id}
+                    onClick={() => navigateToCountry(n)}
+                    className="px-2.5 py-1 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-200 border border-slate-800 text-[11px] font-semibold flex items-center gap-1.5 transition cursor-pointer"
+                  >
+                    <span className="w-2 h-2 rounded-full" style={{ backgroundColor: nationColorMap.get(n.id) || "#06b6d4" }} />
+                    {n.name}
+                  </button>
+                ))}
+            </div>
           </div>
         )}
 
-        {/* Active Nation Quick Desk & Pop-Up Trigger */}
-        <div className="flex items-center gap-2 flex-wrap">
-          <div className="flex items-center gap-1.5 bg-slate-950 px-2.5 py-1 rounded-xl border border-slate-800">
-            <span className="text-slate-400 text-[11px]">Nation:</span>
-            <select
-              value={activeNation?.id || ""}
-              onChange={(e) => {
-                const target = nations.find((n) => n.id === e.target.value);
-                if (target) focusOnCountry(target);
-              }}
-              className="bg-transparent text-cyan-300 font-bold text-xs cursor-pointer focus:outline-none"
-            >
-              {nations.map((n) => (
-                <option key={n.id} value={n.id} className="bg-slate-900 text-white">
-                  {n.name} ({n.planet})
-                </option>
-              ))}
-            </select>
+        {/* Country View National & State Overview Banner */}
+        {mapLocation.level === "country" && activeNation && (
+          <div className="bg-slate-950/70 border border-emerald-500/30 rounded-xl p-3 flex flex-wrap items-center justify-between gap-4 text-xs mt-1">
+            <div className="flex items-center gap-3">
+              <div
+                className="w-9 h-9 rounded-xl flex items-center justify-center font-bold text-white shadow-md"
+                style={{ backgroundColor: activeNation.color || "#0284c7" }}
+              >
+                {activeNation.name.slice(0, 2).toUpperCase()}
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h4 className="font-bold text-white text-sm">{activeNation.name}</h4>
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                    {activeNation.governmentSystem || "Sovereign Republic"}
+                  </span>
+                </div>
+                <div className="flex items-center gap-3 text-[11px] text-slate-400 mt-0.5 font-mono-num">
+                  <span>GDP: <strong className="text-white">{formatCurrency(activeNation.computed?.aggregateGdp || 0)}</strong></span>
+                  <span>Pops: <strong className="text-cyan-300">{formatCompactNumber(activeNation.computed?.effectiveWorkingPops || 0)}</strong></span>
+                  <span>SoL: <strong className="text-emerald-300">{(activeNation.computed?.sol || 15).toFixed(1)}</strong></span>
+                  <span>Unemp: <strong className="text-amber-300">{((activeNation.computed?.unemploymentRate || 0) * 100).toFixed(1)}%</strong></span>
+                  <span>Inflation: <strong className="text-purple-300">{((activeNation.computed?.inflationRate || 0.02) * 100).toFixed(1)}%</strong></span>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => navigateToSubcontinent(getSubcontinentForCountry(activeNation.id))}
+                className="px-2.5 py-1 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-800 text-[11px] font-semibold flex items-center gap-1 cursor-pointer transition"
+              >
+                <ArrowLeft className="w-3 h-3 text-amber-400" />
+                Back to Subcontinent
+              </button>
+              <button
+                onClick={() => navigateToWorld()}
+                className="px-2.5 py-1 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-800 text-[11px] font-semibold flex items-center gap-1 cursor-pointer transition"
+              >
+                <Globe2 className="w-3 h-3 text-cyan-400" />
+                World View
+              </button>
+            </div>
           </div>
-
-          <button
-            onClick={() => setShowStatesTableModal(true)}
-            className="px-3 py-1.5 rounded-xl bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 border border-cyan-500/40 text-xs font-bold flex items-center gap-1.5 cursor-pointer transition shadow-sm"
-            title="Open interactive state-by-state map and constituent divisions table in pop up"
-          >
-            <Layers className="w-3.5 h-3.5" />
-            Country & States Pop-Up
-          </button>
-
-          {!isReadOnly && (
-            <button
-              onClick={() => setShowProvinceManager(true)}
-              className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-semibold flex items-center gap-1.5 cursor-pointer transition"
-            >
-              <PlusCircle className="w-3.5 h-3.5 text-cyan-400" />
-              Manage Provinces
-            </button>
-          )}
-        </div>
+        )}
       </div>
 
       {/* Main Split View: Interactive Map Canvas (Left 7 Cols) + Nation Command Drawer (Right 5 Cols) */}
@@ -1470,7 +1687,11 @@ export default function InteractiveWorldMap({
                           onMouseLeave={() => setHoveredTerritory(null)}
                           onClick={(e) => {
                             e.stopPropagation();
-                            handleTerritoryClick(feat.name, "Earth");
+                            if (ctrlNation) {
+                              navigateToCountry(ctrlNation);
+                            } else {
+                              handleTerritoryClick(feat.name, "Earth");
+                            }
                           }}
                         />
                       );
@@ -1516,7 +1737,10 @@ export default function InteractiveWorldMap({
                           onMouseLeave={() => setHoveredTerritory(null)}
                           onClick={(e) => {
                             e.stopPropagation();
-                            handleTerritoryClick(stFeat.name, "Earth");
+                            setSelectedStateName(stFeat.name);
+                            if (mapLocation.level !== "country") {
+                              navigateToCountry(stNation || activeNation);
+                            }
                           }}
                         />
                       );

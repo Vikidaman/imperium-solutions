@@ -26,19 +26,15 @@ const VictoriaStatecraftAndNewsView = lazy(() =>
 );
 const DirectorConfigView = lazy(() => import("./components/DirectorConfigView"));
 
-const DIRECTOR_SECRET_KEY = "imperium-director-9942";
-
 function detectPrivatePortalRoute() {
   if (typeof window === "undefined") return false;
   const params = new URLSearchParams(window.location.search);
   const queryKey =
     params.get("access") || params.get("key") || params.get("portal") || params.get("director");
-  const pathMatch =
-    window.location.pathname.includes("director-9942") ||
-    window.location.pathname.includes("director");
+  const pathMatch = window.location.pathname.includes("director");
   return (
-    queryKey === DIRECTOR_SECRET_KEY ||
     queryKey === "director" ||
+    queryKey === "true" ||
     queryKey === "private" ||
     pathMatch
   );
@@ -260,7 +256,20 @@ export default function App() {
         // ignore parse errors
       }
     };
-    return () => es.close();
+
+    // Resilient fallback polling for multiplayer spectators when SSE is quiet
+    const pollInterval = setInterval(() => {
+      if (typeof document !== "undefined" && !document.hidden) {
+        if (Date.now() - lastMutationTimeRef.current > 3000) {
+          fetchSessionDetail(activeSessionId);
+        }
+      }
+    }, 4500);
+
+    return () => {
+      es.close();
+      clearInterval(pollInterval);
+    };
   }, [activeSessionId, fetchSessionDetail, showToast]);
 
   // API Mutation Helpers
@@ -584,6 +593,32 @@ export default function App() {
       if (data.toastMessage) {
         showToast(data.toastMessage);
       }
+    }
+  };
+
+  const handleRollbackSession = async (targetQuarter, targetId) => {
+    if (guardReadOnly()) return;
+    lastMutationTimeRef.current = Date.now();
+    try {
+      const res = await fetch(`/api/sessions/${activeSessionId}/rollback`, {
+        method: "POST",
+        headers: getMutationHeaders(),
+        body: JSON.stringify({ targetQuarter, targetId, actor: actorName }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setSessionData(data.session);
+        setLedgerHistory(data.ledgerHistory || []);
+        setActivityLog(data.activityLog || []);
+        showToast(
+          `Simulation rolled back to Quarter ${data.session?.state?.timeManager?.quarter || targetQuarter} (${data.session?.state?.timeManager?.crisisDate || ""})`
+        );
+      } else {
+        const err = await res.json();
+        showToast(`Rollback failed: ${err.error || "Unknown error"}`);
+      }
+    } catch (e) {
+      showToast(`Rollback error: ${e.message}`);
     }
   };
 
@@ -925,6 +960,10 @@ export default function App() {
                 onUpdateDirectorConfig={handleUpdateDirectorConfig}
                 onSelectNation={setSelectedNationId}
                 onTransferTerritory={handleTransferTerritory}
+                onRollbackSession={handleRollbackSession}
+                activityLog={activityLog}
+                ledgerHistory={ledgerHistory}
+                onTimeAction={handleTimeAction}
                 isReadOnly={isReadOnly}
               />
             )}
