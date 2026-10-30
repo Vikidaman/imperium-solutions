@@ -8,6 +8,7 @@
 
 import "dotenv/config";
 import { COMMODITY_PRICE_BENCHMARKS } from "./empiricalPriceCatalog.js";
+import { getUsStateServicesEndowment } from "../src/data/usServicesEndowments.js";
 
 const GROQ_API_KEY = process.env.GROQ_API_KEY || "";
 const PRIMARY_MODEL = "openai/gpt-oss-120b";
@@ -88,6 +89,7 @@ Never invent fictional quadrillion-dollar GDP numbers. Always provide concise, m
 
   let userPrompt = "";
   if (stateName && endowments) {
+    const srvEndow = getUsStateServicesEndowment(stateName);
     userPrompt = `Analyze the constituent state of ${stateName} (${nationName}).
 Geographic Resource Endowments:
 - Hydrocarbons / Energy Index: ${endowments.hydrocarbonIndex}%
@@ -95,14 +97,25 @@ Geographic Resource Endowments:
 - Arable Land / Agriculture Index: ${endowments.arableLandIndex}%
 - Marine Logistics / Waterways Index: ${endowments.logisticsWaterwayIndex}%
 Primary Basins: ${JSON.stringify(endowments.primaryBasins || [])}
-Modeled Production: Industrial: ${endowments.modeledIndustrialOutput || "N/A"}, Agriculture: ${endowments.modeledAgriculturalOutput || "N/A"}
+Modeled Physical Production: Industrial: ${endowments.modeledIndustrialOutput || "N/A"}, Agriculture: ${endowments.modeledAgriculturalOutput || "N/A"}
+
+Services & Knowledge Economy Endowments:
+- Human Capital Index (STEM/R&D): ${srvEndow?.humanCapitalIndex ?? 50}%
+- Urban Agglomeration Index (Metropolitan Density): ${srvEndow?.urbanAgglomerationIndex ?? 50}%
+- Financial Depth Index (Commercial Banking & VC): ${srvEndow?.financialDepthIndex ?? 50}%
+- Digital Infrastructure (Data Centers & Fiber): ${srvEndow?.digitalConnectivityIndex ?? 50}%
+- Consumer Amenities (Tourism & Hospitality): ${srvEndow?.consumerAmenityIndex ?? 50}%
+Key Service Clusters: ${JSON.stringify(srvEndow?.primaryClusters || [])}
+Modeled Services Output: ${srvEndow?.modeledServicesOutput || "N/A"}
+
 Regional Role: ${stateData?.role || endowments.region || "Constituent State"}
 Estimated State GDP: $${stateData?.gdp ? (stateData.gdp / 1e9).toFixed(1) + "B" : "Grounded Share"}
 
 Provide an executive advisory covering:
 1. Economic Engine & Natural Advantages: How its geology and geography link to real commodity markets.
-2. Value-Added Manufacturing Potential: Converting local feedstocks into high-value exports.
-3. Statecraft & Infrastructure Priority: Recommended capital investments.`;
+2. Services & Knowledge Economy Strategy: How to maximize urban agglomeration, STEM talent, financial capital, and consumer hospitality.
+3. Value-Added Manufacturing & High-Tech Potential: Synergies between raw materials and service/tech industries.
+4. Statecraft & Infrastructure Priority: Recommended capital and policy investments.`;
   } else {
     userPrompt = `Provide a macroeconomic statecraft assessment for ${nationName}.
 Focus on:

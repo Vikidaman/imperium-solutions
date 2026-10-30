@@ -21,10 +21,20 @@ import { HISTORICAL_ERAS, getHistoricalEraForDate } from "./historicalEras.js";
 import { ALL_SOVEREIGN_NATIONS, ALL_NATIONS_BY_ID, ALL_NATIONS_BY_NAME } from "../src/data/nationsCatalog.js";
 import { computeGdpForecast, applyForecastGrowth } from "./forecastingEngine.js";
 import { COMMODITY_PRICE_BENCHMARKS } from "./empiricalPriceCatalog.js";
+import {
+  evaluateServicesProduction,
+  evaluateStateServices,
+  calculateSuperLinearAgglomeration,
+  calculateConsumerServices,
+} from "./servicesProductionEngine.js";
 
 export {
   computeGdpForecast,
   applyForecastGrowth,
+  evaluateServicesProduction,
+  evaluateStateServices,
+  calculateSuperLinearAgglomeration,
+  calculateConsumerServices,
   setCustomStartDate,
   triggerElectionAction,
   triggerLawAction,
@@ -1231,6 +1241,21 @@ export function evaluateSimulation(state) {
       averageCompanyGrowth,
       crimePolicy,
       healthcarePolicy,
+      servicesEvaluation: ["usa", "japan", "olympus"].includes(nation.id?.toLowerCase()) || nation.name === "USA"
+        ? evaluateServicesProduction({
+            endowment: {
+              humanCapitalIndex: 84,
+              urbanAgglomerationIndex: 86,
+              financialDepthIndex: 92,
+              digitalConnectivityIndex: 88,
+              consumerAmenityIndex: 82,
+            },
+            employedLabor: Math.round(totalEmployed * 0.76),
+            baseWage: (quarterlyWages * 4) || 64000,
+            sol,
+            crimeRate,
+          })
+        : null,
     };
     nation.computed.forecast = computeGdpForecast(nation, state);
   }

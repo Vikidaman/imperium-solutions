@@ -7,6 +7,11 @@ import {
   getUsStateEndowment,
   ALL_US_RESOURCE_MARKERS,
 } from "../data/usGeographicEndowments";
+import {
+  US_SERVICES_ENDOWMENTS,
+  getUsStateServicesEndowment,
+  ALL_US_SERVICE_CLUSTERS,
+} from "../data/usServicesEndowments";
 import { MAP_PROVIDERS } from "../data/mapProviders";
 import {
   Layers,
@@ -23,6 +28,11 @@ import {
   Wheat,
   Anchor,
   Sparkles,
+  Briefcase,
+  Laptop,
+  Building2,
+  GraduationCap,
+  UtensilsCrossed,
 } from "lucide-react";
 import { loadCountryAdm1, resolveIso3, getContinentalBounds } from "../services/boundaryService";
 import { getLinkedSubdivision } from "../data/adm1Mapping";
@@ -52,8 +62,9 @@ export default function CountryAdm1Map({
   const prevNationIdRef = useRef(null);
 
   const [mapProvider, setMapProvider] = useState("osm"); // Default to OpenStreetMap as requested
-  const [layerMode, setLayerMode] = useState("administrative"); // "administrative" | "resources"
+  const [layerMode, setLayerMode] = useState("administrative"); // "administrative" | "resources" | "services"
   const [resourceCategory, setResourceCategory] = useState("all"); // "all" | "oil_gas" | "mineral" | "agri" | "port"
+  const [serviceCategory, setServiceCategory] = useState("all"); // "all" | "tech" | "finance" | "research" | "hospitality"
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [geoData, setGeoData] = useState(null);
@@ -216,6 +227,33 @@ export default function CountryAdm1Map({
                   fillOpacity = Math.max(0.35, totalEndow * 0.8);
                 }
               }
+            } else if (layerMode === "services" && isUsa) {
+              const srvEndow = getUsStateServicesEndowment(name);
+              if (serviceCategory === "tech") {
+                const val = ((srvEndow.digitalConnectivityIndex || 50) + (srvEndow.humanCapitalIndex || 50)) / 2;
+                const ratio = val / 100;
+                fillColor = `hsl(220, 90%, ${Math.round(25 + ratio * 35)}%)`;
+                fillOpacity = Math.max(0.35, ratio * 0.85);
+              } else if (serviceCategory === "finance") {
+                const val = srvEndow.financialDepthIndex || 0;
+                const ratio = val / 100;
+                fillColor = `hsl(158, 85%, ${Math.round(25 + ratio * 35)}%)`;
+                fillOpacity = Math.max(0.35, ratio * 0.85);
+              } else if (serviceCategory === "research") {
+                const val = srvEndow.humanCapitalIndex || 0;
+                const ratio = val / 100;
+                fillColor = `hsl(270, 85%, ${Math.round(28 + ratio * 35)}%)`;
+                fillOpacity = Math.max(0.35, ratio * 0.85);
+              } else if (serviceCategory === "hospitality") {
+                const val = srvEndow.consumerAmenityIndex || 0;
+                const ratio = val / 100;
+                fillColor = `hsl(340, 85%, ${Math.round(28 + ratio * 35)}%)`;
+                fillOpacity = Math.max(0.35, ratio * 0.85);
+              } else {
+                const composite = ((srvEndow.humanCapitalIndex || 50) + (srvEndow.urbanAgglomerationIndex || 50) + (srvEndow.financialDepthIndex || 50) + (srvEndow.digitalConnectivityIndex || 50) + (srvEndow.consumerAmenityIndex || 50)) / 500;
+                fillColor = `hsl(205, 90%, ${Math.round(25 + composite * 35)}%)`;
+                fillOpacity = Math.max(0.35, composite * 0.85);
+              }
             } else if (isUsa && regionTint) {
               fillColor = regionTint;
               fillOpacity = 0.32;
@@ -271,6 +309,7 @@ export default function CountryAdm1Map({
 
             // Clean Tooltip
             const endow = isUsa ? getUsStateEndowment(name) : null;
+            const srvEndow = isUsa ? getUsStateServicesEndowment(name) : null;
             const stateMeta = isUsa ? getUsaStateData(name) : null;
             let tooltipContent = `<div class="px-2.5 py-1.5 text-xs font-sans">
               <div class="flex items-center gap-1.5">
@@ -280,7 +319,20 @@ export default function CountryAdm1Map({
             if (stateMeta?.capital) {
               tooltipContent += `<div class="text-[10px] text-slate-300">Capital: <strong class="text-white">${stateMeta.capital}</strong></div>`;
             }
-            if (endow && layerMode === "resources") {
+            if (srvEndow && layerMode === "services") {
+              tooltipContent += `<div class="text-[10px] text-cyan-300 mt-1 font-mono">
+                🧠 STEM/Talent: ${srvEndow.humanCapitalIndex}% | 🏙️ Density: ${srvEndow.urbanAgglomerationIndex}%
+              </div>
+              <div class="text-[10px] text-emerald-300 font-mono">
+                🏦 Finance: ${srvEndow.financialDepthIndex}% | ⚡ Digital: ${srvEndow.digitalConnectivityIndex}%
+              </div>
+              <div class="text-[10px] text-rose-300 font-mono">
+                🍸 Hospitality: ${srvEndow.consumerAmenityIndex}%
+              </div>
+              <div class="text-[9.5px] text-slate-400 border-t border-slate-800 pt-0.5 mt-0.5 font-mono">
+                ${srvEndow.modeledServicesOutput}
+              </div>`;
+            } else if (endow && layerMode === "resources") {
               tooltipContent += `<div class="text-[10px] text-amber-300 mt-1 font-mono">
                 🛢️ Oil/Gas: ${endow.hydrocarbonIndex}% | ⛏️ Minerals: ${endow.mineralIndex}%
               </div>
@@ -404,12 +456,80 @@ export default function CountryAdm1Map({
         markerGroup.addTo(map);
         markersLayerRef.current = markerGroup;
       }
+
+      // 5. Render Metropolitan Knowledge & Service Clusters in "services" mode
+      if (layerMode === "services" && isUsa) {
+        const markerGroup = L.layerGroup();
+
+        const filteredMarkers = ALL_US_SERVICE_CLUSTERS.filter((m) => {
+          if (serviceCategory === "all") return true;
+          return m.type === serviceCategory;
+        });
+
+        filteredMarkers.forEach((marker) => {
+          const [lng, lat] = marker.coords;
+          if (!lng || !lat) return;
+
+          let iconEmoji = "💻";
+          let badgeColor = "bg-blue-600/80 border-blue-300 text-blue-100";
+          if (marker.type === "finance") {
+            iconEmoji = "🏦";
+            badgeColor = "bg-emerald-600/80 border-emerald-300 text-emerald-100";
+          } else if (marker.type === "research") {
+            iconEmoji = "🔬";
+            badgeColor = "bg-purple-600/80 border-purple-300 text-purple-100";
+          } else if (marker.type === "hospitality") {
+            iconEmoji = "🍸";
+            badgeColor = "bg-rose-600/80 border-rose-300 text-rose-100";
+          }
+
+          const customIcon = L.divIcon({
+            className: "custom-service-marker",
+            html: `
+              <div class="flex items-center justify-center w-7 h-7 rounded-full ${badgeColor} border-2 shadow-lg backdrop-blur-sm cursor-pointer hover:scale-125 transition-transform duration-150 animate-pulse">
+                <span class="text-xs">${iconEmoji}</span>
+              </div>
+            `,
+            iconSize: [28, 28],
+            iconAnchor: [14, 14],
+          });
+
+          const mLayer = L.marker([lat, lng], { icon: customIcon });
+
+          mLayer.bindPopup(`
+            <div class="p-2 space-y-1.5 text-xs max-w-xs font-sans">
+              <div class="flex items-center gap-1.5 font-bold text-white text-sm">
+                <span>${iconEmoji}</span>
+                <span>${marker.name}</span>
+              </div>
+              <span class="text-[10px] font-mono-num uppercase px-1.5 py-0.5 rounded bg-slate-800 text-indigo-300 border border-slate-700">
+                ${marker.state} (${marker.stateCode}) • ${marker.type.toUpperCase()}
+              </span>
+              <p class="text-[11px] text-slate-300 leading-relaxed mt-1">
+                ${marker.desc}
+              </p>
+            </div>
+          `, { className: "custom-leaflet-popup" });
+
+          mLayer.on("click", (e) => {
+            L.DomEvent.stopPropagation(e);
+            if (onSelectSubdivision) {
+              onSelectSubdivision(marker.state);
+            }
+          });
+
+          markerGroup.addLayer(mLayer);
+        });
+
+        markerGroup.addTo(map);
+        markersLayerRef.current = markerGroup;
+      }
     });
 
     return () => {
       active = false;
     };
-  }, [geoData, mapProvider, layerMode, resourceCategory, isUsa, nation, selectedSubdivision, nationColor]);
+  }, [geoData, mapProvider, layerMode, resourceCategory, serviceCategory, isUsa, nation, selectedSubdivision, nationColor]);
 
   // Clean-up on unmount
   useEffect(() => {
@@ -508,6 +628,19 @@ export default function CountryAdm1Map({
             <Sparkles className="w-3.5 h-3.5 text-emerald-300" />
             Natural Resources
           </button>
+
+          <button
+            onClick={() => setLayerMode("services")}
+            className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition flex items-center gap-1.5 cursor-pointer ${
+              layerMode === "services"
+                ? "bg-indigo-500 text-white shadow-sm shadow-indigo-500/20"
+                : "text-indigo-400 hover:text-indigo-200"
+            }`}
+            title="BEA, BLS, NSF & FDIC services, human capital, finance, and agglomeration clusters"
+          >
+            <Briefcase className="w-3.5 h-3.5 text-indigo-300" />
+            Services & Knowledge
+          </button>
         </div>
 
         {/* Camera Reset & Zoom Controls */}
@@ -591,6 +724,61 @@ export default function CountryAdm1Map({
         </div>
       )}
 
+      {/* Sub-bar for Services Category Filters (Active when layerMode === "services") */}
+      {layerMode === "services" && isUsa && (
+        <div className="px-3.5 py-1.5 bg-slate-950/90 border-b border-indigo-500/30 flex items-center justify-between gap-2 z-10 text-[11px] overflow-x-auto">
+          <span className="text-slate-400 font-bold uppercase tracking-wider text-[10px] flex items-center gap-1">
+            <Briefcase className="w-3 h-3 text-indigo-400" />
+            Services:
+          </span>
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => setServiceCategory("all")}
+              className={`px-2 py-0.5 rounded-md font-semibold cursor-pointer transition ${
+                serviceCategory === "all" ? "bg-indigo-500 text-white font-bold" : "text-slate-300 hover:bg-slate-800"
+              }`}
+            >
+              All Sectors
+            </button>
+            <button
+              onClick={() => setServiceCategory("tech")}
+              className={`px-2 py-0.5 rounded-md font-semibold cursor-pointer transition flex items-center gap-1 ${
+                serviceCategory === "tech" ? "bg-blue-600 text-white font-bold" : "text-blue-400 hover:bg-slate-800"
+              }`}
+            >
+              <Laptop className="w-3 h-3" /> 💻 High-Tech & Cloud
+            </button>
+            <button
+              onClick={() => setServiceCategory("finance")}
+              className={`px-2 py-0.5 rounded-md font-semibold cursor-pointer transition flex items-center gap-1 ${
+                serviceCategory === "finance" ? "bg-emerald-600 text-white font-bold" : "text-emerald-400 hover:bg-slate-800"
+              }`}
+            >
+              <Building2 className="w-3 h-3" /> 🏦 Finance & Banking
+            </button>
+            <button
+              onClick={() => setServiceCategory("research")}
+              className={`px-2 py-0.5 rounded-md font-semibold cursor-pointer transition flex items-center gap-1 ${
+                serviceCategory === "research" ? "bg-purple-600 text-white font-bold" : "text-purple-400 hover:bg-slate-800"
+              }`}
+            >
+              <GraduationCap className="w-3 h-3" /> 🔬 STEM & R&D
+            </button>
+            <button
+              onClick={() => setServiceCategory("hospitality")}
+              className={`px-2 py-0.5 rounded-md font-semibold cursor-pointer transition flex items-center gap-1 ${
+                serviceCategory === "hospitality" ? "bg-rose-600 text-white font-bold" : "text-rose-400 hover:bg-slate-800"
+              }`}
+            >
+              <UtensilsCrossed className="w-3 h-3" /> 🍸 Hospitality & Tourism
+            </button>
+          </div>
+          <span className="text-[10px] text-slate-400 font-mono-num">
+            {ALL_US_SERVICE_CLUSTERS.filter((m) => serviceCategory === "all" || m.type === serviceCategory).length} Metro Clusters
+          </span>
+        </div>
+      )}
+
       {/* Main Interactive Map Viewport (Leaflet Container) */}
       <div className="relative w-full h-[400px] bg-slate-950 overflow-hidden">
         {/* Leaflet DOM mounting target */}
@@ -630,6 +818,22 @@ export default function CountryAdm1Map({
 
             {isUsa && (
               (() => {
+                if (layerMode === "services") {
+                  const srvEndow = getUsStateServicesEndowment(hoveredFeature.properties?.name);
+                  return (
+                    <div className="mt-1 pt-1 border-t border-slate-800 text-[10px] space-y-0.5">
+                      <div className="text-slate-300 font-mono-num">
+                        🧠 Talent: <strong className="text-cyan-300">{srvEndow.humanCapitalIndex}%</strong> | 🏙️ Density: <strong className="text-indigo-300">{srvEndow.urbanAgglomerationIndex}%</strong>
+                      </div>
+                      <div className="text-slate-300 font-mono-num">
+                        🏦 Finance: <strong className="text-emerald-300">{srvEndow.financialDepthIndex}%</strong> | 🍸 Amenities: <strong className="text-rose-300">{srvEndow.consumerAmenityIndex}%</strong>
+                      </div>
+                      <div className="text-slate-400 text-[9px] pt-0.5 font-mono">
+                        {srvEndow.modeledServicesOutput}
+                      </div>
+                    </div>
+                  );
+                }
                 const endow = getUsStateEndowment(hoveredFeature.properties?.name);
                 return (
                   <div className="mt-1 pt-1 border-t border-slate-800 text-[10px] space-y-0.5">
@@ -648,7 +852,7 @@ export default function CountryAdm1Map({
 
         {/* Metadata Source Footer */}
         <div className="absolute bottom-1 right-2 text-[9px] text-slate-400 pointer-events-none z-10 bg-slate-950/75 px-1.5 py-0.5 rounded border border-slate-800">
-          Map: {MAP_PROVIDERS[mapProvider]?.name} • USGS / EIA / USDA
+          Map: {MAP_PROVIDERS[mapProvider]?.name} • USGS / EIA / USDA / BEA / BLS
         </div>
       </div>
     </div>

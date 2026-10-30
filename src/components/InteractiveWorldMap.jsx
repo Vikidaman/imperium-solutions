@@ -40,11 +40,16 @@ import {
   Pickaxe,
   Wheat,
   Anchor,
+  Briefcase,
+  Laptop,
+  GraduationCap,
+  UtensilsCrossed,
 } from "lucide-react";
 import BufferedRangeSlider from "./BufferedRangeSlider";
 import CountryAdm1Map from "./CountryAdm1Map";
 import { ALL_NATIONS_BY_ID, ALL_NATIONS_BY_NAME, ALL_SOVEREIGN_NATIONS, getSovereignNation } from "../data/nationsCatalog";
 import { getUsStateEndowment } from "../data/usGeographicEndowments";
+import { getUsStateServicesEndowment } from "../data/usServicesEndowments";
 import {
   formatCurrency,
   formatExactCurrency,
@@ -1129,12 +1134,28 @@ export default function InteractiveWorldMap({
         const endow = getUsStateEndowment(s.name);
         return (endow?.arableLandIndex || 0) >= 60;
       });
+    } else if (statesModalFilter === "tech") {
+      list = list.filter((s) => {
+        const srv = getUsStateServicesEndowment(s.name);
+        return (srv?.digitalConnectivityIndex || 0) >= 75 || (srv?.humanCapitalIndex || 0) >= 75;
+      });
+    } else if (statesModalFilter === "finance") {
+      list = list.filter((s) => {
+        const srv = getUsStateServicesEndowment(s.name);
+        return (srv?.financialDepthIndex || 0) >= 65;
+      });
+    } else if (statesModalFilter === "hospitality") {
+      list = list.filter((s) => {
+        const srv = getUsStateServicesEndowment(s.name);
+        return (srv?.consumerAmenityIndex || 0) >= 75;
+      });
     }
 
     if (stateSearchQuery.trim()) {
       const q = stateSearchQuery.toLowerCase().trim();
       list = list.filter((s) => {
         const endow = getUsStateEndowment(s.name);
+        const srv = getUsStateServicesEndowment(s.name);
         return (
           s.name.toLowerCase().includes(q) ||
           (s.code && s.code.toLowerCase().includes(q)) ||
@@ -1143,7 +1164,10 @@ export default function InteractiveWorldMap({
           (s.region && s.region.toLowerCase().includes(q)) ||
           (endow?.resources?.hydrocarbons && endow.resources.hydrocarbons.toLowerCase().includes(q)) ||
           (endow?.resources?.criticalMinerals && endow.resources.criticalMinerals.toLowerCase().includes(q)) ||
-          (endow?.resources?.agriculture && endow.resources.agriculture.toLowerCase().includes(q))
+          (endow?.resources?.agriculture && endow.resources.agriculture.toLowerCase().includes(q)) ||
+          (srv?.servicesProfile?.techAndDefense && srv.servicesProfile.techAndDefense.toLowerCase().includes(q)) ||
+          (srv?.servicesProfile?.banking && srv.servicesProfile.banking.toLowerCase().includes(q)) ||
+          (srv?.servicesProfile?.hospitality && srv.servicesProfile.hospitality.toLowerCase().includes(q))
         );
       });
     }
@@ -1160,6 +1184,16 @@ export default function InteractiveWorldMap({
       list.sort((a, b) => (getUsStateEndowment(b.name)?.mineralIndex || 0) - (getUsStateEndowment(a.name)?.mineralIndex || 0));
     } else if (statesModalSort === "agri") {
       list.sort((a, b) => (getUsStateEndowment(b.name)?.arableLandIndex || 0) - (getUsStateEndowment(a.name)?.arableLandIndex || 0));
+    } else if (statesModalSort === "tech") {
+      list.sort((a, b) => {
+        const srvA = getUsStateServicesEndowment(a.name);
+        const srvB = getUsStateServicesEndowment(b.name);
+        return ((srvB?.digitalConnectivityIndex || 0) + (srvB?.humanCapitalIndex || 0)) - ((srvA?.digitalConnectivityIndex || 0) + (srvA?.humanCapitalIndex || 0));
+      });
+    } else if (statesModalSort === "finance") {
+      list.sort((a, b) => (getUsStateServicesEndowment(b.name)?.financialDepthIndex || 0) - (getUsStateServicesEndowment(a.name)?.financialDepthIndex || 0));
+    } else if (statesModalSort === "amenity") {
+      list.sort((a, b) => (getUsStateServicesEndowment(b.name)?.consumerAmenityIndex || 0) - (getUsStateServicesEndowment(a.name)?.consumerAmenityIndex || 0));
     } else if (statesModalSort === "infra") {
       list.sort((a, b) => (b.infra || 0) - (a.infra || 0));
     }
@@ -1889,6 +1923,36 @@ export default function InteractiveWorldMap({
                       >
                         <Wheat className="w-3 h-3" /> 🌾 Agriculture
                       </button>
+                      <button
+                        onClick={() => setStatesModalFilter("tech")}
+                        className={`px-2 py-1 rounded-lg font-semibold transition cursor-pointer flex items-center gap-1 ${
+                          statesModalFilter === "tech"
+                            ? "bg-blue-500/25 border border-blue-500/50 text-blue-300 font-bold"
+                            : "text-blue-400 hover:text-blue-200"
+                        }`}
+                      >
+                        <Laptop className="w-3 h-3" /> 💻 High-Tech & R&D
+                      </button>
+                      <button
+                        onClick={() => setStatesModalFilter("finance")}
+                        className={`px-2 py-1 rounded-lg font-semibold transition cursor-pointer flex items-center gap-1 ${
+                          statesModalFilter === "finance"
+                            ? "bg-emerald-500/25 border border-emerald-500/50 text-emerald-300 font-bold"
+                            : "text-emerald-400 hover:text-emerald-200"
+                        }`}
+                      >
+                        <Building2 className="w-3 h-3" /> 🏦 Finance
+                      </button>
+                      <button
+                        onClick={() => setStatesModalFilter("hospitality")}
+                        className={`px-2 py-1 rounded-lg font-semibold transition cursor-pointer flex items-center gap-1 ${
+                          statesModalFilter === "hospitality"
+                            ? "bg-rose-500/25 border border-rose-500/50 text-rose-300 font-bold"
+                            : "text-rose-400 hover:text-rose-200"
+                        }`}
+                      >
+                        <UtensilsCrossed className="w-3 h-3" /> 🍸 Hospitality
+                      </button>
                     </>
                   )}
                 </div>
@@ -1926,6 +1990,9 @@ export default function InteractiveWorldMap({
                       <option value="energy">🛢️ Oil & Gas Endowments</option>
                       <option value="minerals">⛏️ Critical Minerals Endowments</option>
                       <option value="agri">🌾 Agricultural Endowments</option>
+                      <option value="tech">💻 High-Tech & STEM Strength</option>
+                      <option value="finance">🏦 Financial Depth</option>
+                      <option value="amenity">🍸 Tourism & Amenities</option>
                     </>
                   )}
                   <option value="infra">Infrastructure Efficiency</option>
@@ -3769,6 +3836,63 @@ export default function InteractiveWorldMap({
                                 </div>
                               </div>
 
+                              {/* Services & Knowledge Economy Breakdown (BEA, BLS, NSF, FDIC) */}
+                              {(() => {
+                                const srvEndow = getUsStateServicesEndowment(activeDossier.name);
+                                if (!srvEndow) return null;
+                                return (
+                                  <div className="mt-2 pt-2 border-t border-slate-800/90 space-y-1.5">
+                                    <div className="flex items-center justify-between text-[10px] text-slate-400 font-bold uppercase tracking-wider">
+                                      <span className="text-indigo-400 flex items-center gap-1">
+                                        <Briefcase className="w-3 h-3 text-indigo-400" />
+                                        Services & Knowledge Endowments:
+                                      </span>
+                                      <span className="text-slate-500 font-mono-num">BEA / BLS / NSF / FDIC</span>
+                                    </div>
+
+                                    <div className="grid grid-cols-2 gap-1.5 text-[10px] font-mono-num">
+                                      <div className="p-1.5 rounded-lg bg-indigo-500/10 border border-indigo-500/25 text-indigo-200">
+                                        <span className="text-[9px] text-indigo-400 block font-bold flex items-center gap-1">
+                                          <GraduationCap className="w-3 h-3" /> 🧠 STEM Talent:
+                                        </span>
+                                        <strong>{srvEndow.humanCapitalIndex}%</strong> ({srvEndow.humanCapitalIndex > 80 ? "Elite R&D" : srvEndow.humanCapitalIndex > 65 ? "Tier-1 STEM" : "Standard"})
+                                      </div>
+                                      <div className="p-1.5 rounded-lg bg-blue-500/10 border border-blue-500/25 text-blue-200">
+                                        <span className="text-[9px] text-blue-400 block font-bold flex items-center gap-1">
+                                          <Laptop className="w-3 h-3" /> 🏙️ Urban Agglom:
+                                        </span>
+                                        <strong>{srvEndow.urbanAgglomerationIndex}%</strong> ({srvEndow.urbanAgglomerationIndex > 80 ? "Super-Linear" : srvEndow.urbanAgglomerationIndex > 60 ? "Dense Metro" : "Regional"})
+                                      </div>
+                                      <div className="p-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/25 text-emerald-200">
+                                        <span className="text-[9px] text-emerald-400 block font-bold flex items-center gap-1">
+                                          <Building2 className="w-3 h-3" /> 🏦 Finance Depth:
+                                        </span>
+                                        <strong>{srvEndow.financialDepthIndex}%</strong> ({srvEndow.financialDepthIndex > 80 ? "Global Bourse" : srvEndow.financialDepthIndex > 60 ? "Deep Banking" : "Commercial"})
+                                      </div>
+                                      <div className="p-1.5 rounded-lg bg-rose-500/10 border border-rose-500/25 text-rose-200">
+                                        <span className="text-[9px] text-rose-400 block font-bold flex items-center gap-1">
+                                          <UtensilsCrossed className="w-3 h-3" /> 🍸 Hospitality:
+                                        </span>
+                                        <strong>{srvEndow.consumerAmenityIndex}%</strong> ({srvEndow.consumerAmenityIndex > 80 ? "Premier Hub" : srvEndow.consumerAmenityIndex > 65 ? "High Amenity" : "Local Retail"})
+                                      </div>
+                                    </div>
+
+                                    <div className="p-2 rounded-xl bg-slate-950/80 border border-slate-800 text-[10px] space-y-1">
+                                      <p className="text-slate-300">
+                                        <strong className="text-blue-300">Tech & Corporate:</strong> {srvEndow.servicesProfile?.techAndDefense || "Regional enterprise IT and business services"}
+                                      </p>
+                                      <p className="text-slate-300">
+                                        <strong className="text-emerald-300">Finance & Banking:</strong> {srvEndow.servicesProfile?.banking || "Commercial banking & local finance"}
+                                      </p>
+                                      <div className="pt-1 mt-1 border-t border-slate-800/80 flex items-center justify-between text-[9px] text-slate-400">
+                                        <span>Digital Infra: <strong className="text-indigo-300">{srvEndow.digitalConnectivityIndex}%</strong></span>
+                                        <span>Services Output: <strong className="text-cyan-300">{srvEndow.modeledServicesOutput}</strong></span>
+                                      </div>
+                                    </div>
+                                  </div>
+                                );
+                              })()}
+
                               {/* Groq AI Economic Advisory Trigger */}
                               <button
                                 onClick={() => requestAiAdvisory(activeDossier.name, activeDossier, endow)}
@@ -3875,6 +3999,36 @@ export default function InteractiveWorldMap({
                       >
                         <Wheat className="w-3 h-3" /> 🌾 Agriculture
                       </button>
+                      <button
+                        onClick={() => setStatesModalFilter("tech")}
+                        className={`px-2 py-1 rounded-lg font-semibold transition cursor-pointer flex items-center gap-1 ${
+                          statesModalFilter === "tech"
+                            ? "bg-blue-500/25 border border-blue-500/50 text-blue-300 font-bold"
+                            : "text-blue-400 hover:text-blue-200"
+                        }`}
+                      >
+                        <Laptop className="w-3 h-3" /> 💻 High-Tech & R&D
+                      </button>
+                      <button
+                        onClick={() => setStatesModalFilter("finance")}
+                        className={`px-2 py-1 rounded-lg font-semibold transition cursor-pointer flex items-center gap-1 ${
+                          statesModalFilter === "finance"
+                            ? "bg-emerald-500/25 border border-emerald-500/50 text-emerald-300 font-bold"
+                            : "text-emerald-400 hover:text-emerald-200"
+                        }`}
+                      >
+                        <Building2 className="w-3 h-3" /> 🏦 Finance
+                      </button>
+                      <button
+                        onClick={() => setStatesModalFilter("hospitality")}
+                        className={`px-2 py-1 rounded-lg font-semibold transition cursor-pointer flex items-center gap-1 ${
+                          statesModalFilter === "hospitality"
+                            ? "bg-rose-500/25 border border-rose-500/50 text-rose-300 font-bold"
+                            : "text-rose-400 hover:text-rose-200"
+                        }`}
+                      >
+                        <UtensilsCrossed className="w-3 h-3" /> 🍸 Hospitality
+                      </button>
                     </>
                   )}
                 </div>
@@ -3912,6 +4066,9 @@ export default function InteractiveWorldMap({
                       <option value="energy">🛢️ Oil & Gas Endowments</option>
                       <option value="minerals">⛏️ Critical Minerals Endowments</option>
                       <option value="agri">🌾 Agricultural Endowments</option>
+                      <option value="tech">💻 High-Tech & STEM Strength</option>
+                      <option value="finance">🏦 Financial Depth</option>
+                      <option value="amenity">🍸 Tourism & Amenities</option>
                     </>
                   )}
                   <option value="infra">Infrastructure Efficiency</option>
@@ -4009,6 +4166,7 @@ export default function InteractiveWorldMap({
                           <td className="py-3 px-3 max-w-xs">
                             {activeNation.id === "usa" ? (() => {
                               const endow = getUsStateEndowment(st.name);
+                              const srv = getUsStateServicesEndowment(st.name);
                               return (
                                 <div className="space-y-1">
                                   <div className="flex items-center gap-1 flex-wrap">
@@ -4027,9 +4185,19 @@ export default function InteractiveWorldMap({
                                         <Wheat className="w-2.5 h-2.5" /> {endow.arableLandIndex}%
                                       </span>
                                     )}
-                                    {endow.logisticsWaterwayIndex >= 65 && (
-                                      <span className="px-1.5 py-0.2 rounded bg-cyan-500/15 border border-cyan-500/30 text-cyan-300 text-[10px] font-bold flex items-center gap-0.5">
-                                        <Anchor className="w-2.5 h-2.5" /> {endow.logisticsWaterwayIndex}%
+                                    {srv?.digitalConnectivityIndex >= 70 && (
+                                      <span className="px-1.5 py-0.2 rounded bg-blue-500/15 border border-blue-500/30 text-blue-300 text-[10px] font-bold flex items-center gap-0.5">
+                                        <Laptop className="w-2.5 h-2.5" /> {srv.digitalConnectivityIndex}%
+                                      </span>
+                                    )}
+                                    {srv?.financialDepthIndex >= 65 && (
+                                      <span className="px-1.5 py-0.2 rounded bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-[10px] font-bold flex items-center gap-0.5">
+                                        <Building2 className="w-2.5 h-2.5" /> {srv.financialDepthIndex}%
+                                      </span>
+                                    )}
+                                    {srv?.consumerAmenityIndex >= 75 && (
+                                      <span className="px-1.5 py-0.2 rounded bg-rose-500/15 border border-rose-500/30 text-rose-300 text-[10px] font-bold flex items-center gap-0.5">
+                                        <UtensilsCrossed className="w-2.5 h-2.5" /> {srv.consumerAmenityIndex}%
                                       </span>
                                     )}
                                   </div>
@@ -4061,13 +4229,14 @@ export default function InteractiveWorldMap({
                           <td className="py-3 px-3 text-right text-[11px]">
                             {activeNation.id === "usa" ? (() => {
                               const endow = getUsStateEndowment(st.name);
+                              const srv = getUsStateServicesEndowment(st.name);
                               return (
                                 <div className="text-right font-mono-num">
                                   <span className="text-slate-300 block text-[10px]">
-                                    Ind: <strong className="text-cyan-300">{endow.modeledIndustrialOutput?.split(' ')[0] || '-'}</strong>
+                                    Srv: <strong className="text-indigo-300">{srv?.modeledServicesOutput?.split(' ')[0] || '-'}</strong>
                                   </span>
                                   <span className="text-slate-400 block text-[10px]">
-                                    Agri: <strong className="text-emerald-300">{endow.modeledAgriculturalOutput?.split(' ')[0] || '-'}</strong>
+                                    Ind: <strong className="text-cyan-300">{endow.modeledIndustrialOutput?.split(' ')[0] || '-'}</strong>
                                   </span>
                                 </div>
                               );
