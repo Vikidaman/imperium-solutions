@@ -2372,509 +2372,6 @@
       ]
     },
     {
-      "id": "european_union",
-      "name": "European Union",
-      "planet": "Earth",
-      "stockExchangeName": "Brussells Stock Exchange",
-      "consumerSentiment": 50,
-      "kFactorScaler": 1500,
-      "workingPops": 1423885,
-      "literacyRate": 0.5166666667,
-      "urbanisationIndex": 0.5166666667,
-      "infrastructureEfficiency": 0.66,
-      "rulingParty": "Republican",
-      "federalCooperativity": 0,
-      "diplomaticExpenses": 0,
-      "treasuryBalance": -6597291673577016,
-      "specializedIndustry": "Agricultural Sector GDP",
-      "crimePolicy": "Profiling",
-      "healthcarePolicy": "Private Healthcare",
-      "highImmigration": false,
-      "companies": [],
-      "market": [
-        {
-          "goodName": "Rare Earth Metals",
-          "hype": 50,
-          "ddMultiplier": 1,
-          "exportTariffRate": 0,
-          "importTariffRate": 0.1,
-          "illegal": false
-        },
-        {
-          "goodName": "Iron Ore",
-          "hype": 19,
-          "ddMultiplier": 2.361,
-          "exportTariffRate": 0,
-          "importTariffRate": 0,
-          "illegal": false
-        },
-        {
-          "goodName": "Copper",
-          "hype": 19,
-          "ddMultiplier": 0.512,
-          "exportTariffRate": 0,
-          "importTariffRate": 0,
-          "illegal": false
-        },
-        {
-          "goodName": "Aluminium",
-          "hype": 4,
-          "ddMultiplier": 1.083,
-          "exportTariffRate": 0,
-          "importTariffRate": 0,
-          "illegal": false
-        },
-        {
-          "goodName": "Gold & Precious Metals",
-          "hype": 50,
-          "ddMultiplier": 1,
-          "exportTariffRate": 0,
-          "importTariffRate": 0.1,
-          "illegal": false
-        },
-        {
-          "goodName": "Lead & Heavy Metals",
-          "hype": 50,
-          "ddMultiplier": 1,
-          "exportTariffRate": 0,
-          "importTariffRate": 0.1,
-          "illegal": false
-        },
-        {
-          "goodName": "Lithium & Batteries",
-          "hype": 50,
-          "ddMultiplier": 1,
-          "exportTariffRate": 0,
-          "importTariffRate": 0.1,
-          "illegal": false
-        },
-        {
-          "goodName": "Silicon & Quartz",
-          "hype": 50,
-          "ddMultiplier": 1,
-          "exportTariffRate": 0,
-          "importTariffRate": 0.1,
-          "illegal": false
-        },
-        {
-          "goodName": "Coal & Carbon",
-          "hype": 50,
-          "ddMultiplier": 1,
-          "exportTariffRate": 0,
-          "importTariffRate": 0.1,
-          "illegal": false
-        },
-        {
-          "goodName": "Stone & Minerals",
-          "hype": 50,
-          "ddMultiplier": 1,
-          "exportTariffRate": 0,
-          "importTariffRate": 0.1,
-          "illegal": false
-        },
-        {
-          "goodName": "Crude Oil",
-          "hype": 47,
-          "ddMultiplier": 2.077,
-          "exportTariffRate": 0,
-          "importTariffRate": 0,
-          "illegal": false
-        },
-        {
-          "goodName": "Refined Petroleum & Fuels",
-          "hype": 50,
-          "ddMultiplier": 1,
-          "exportTariffRate": 0,
-          "importTariffRate": 0.1,
-          "illegal": false
-        },
-        {
-          "goodName": "Natural Gas",
-          "hype": 67,
-          "ddMultiplier": 1.834,
-          "exportTariffRate": 0,
-          "importTariffRate": 0,
-          "illegal": false
-        },
-        {
-          "goodName": "Uranium & Nuclear",
-          "hype": 50,
-          "ddMultiplier": 1,
-          "exportTariffRate": 0,
-          "importTariffRate": 0.1,
-          "illegal": false
-        },
-        {
-          "goodName": "Electricity & Grid",
-          "hype": 50,
-          "ddMultiplier": 1,
-          "exportTariffRate": 0,
-          "importTariffRate": 0.1,
-          "illegal": false
-        },
-        {
-          "goodName": "Water",
-          "hype": 86,
-          "ddMultiplier": 2.438,
-          "exportTariffRate": 0,
-          "importTariffRate": 0,
-          "illegal": false
-        },
-        {
-          "goodName": "Grain",
-          "hype": 50,
-          "ddMultiplier": 1,
-          "exportTariffRate": 0,
-          "importTariffRate": 0.1,
-          "illegal": false
-        },
-        {
-          "goodName": "Fresh Produce",
-          "hype": 50,
-          "ddMultiplier": 1,
-          "exportTariffRate": 0,
-          "importTariffRate": 0.1,
-          "illegal": false
-        },
-        {
-          "goodName": "Fruit & Cash Crops",
-          "hype": 50,
-          "ddMultiplier": 1,
-          "exportTariffRate": 0,
-          "importTariffRate": 0.1,
-          "illegal": false
-        },
-        {
-          "goodName": "Sugar & Confectionery",
-          "hype": 50,
-          "ddMultiplier": 1,
-          "exportTariffRate": 0,
-          "importTariffRate": 0.1,
-          "illegal": false
-        },
-        {
-          "goodName": "Coffee & Tea",
-          "hype": 50,
-          "ddMultiplier": 1,
-          "exportTariffRate": 0,
-          "importTariffRate": 0.1,
-          "illegal": false
-        },
-        {
-          "goodName": "Tobacco & Spirits",
-          "hype": 50,
-          "ddMultiplier": 1,
-          "exportTariffRate": 0,
-          "importTariffRate": 0.1,
-          "illegal": false
-        },
-        {
-          "goodName": "Cotton & Natural Fibres",
-          "hype": 50,
-          "ddMultiplier": 1,
-          "exportTariffRate": 0,
-          "importTariffRate": 0.1,
-          "illegal": false
-        },
-        {
-          "goodName": "Rubber & Polymers",
-          "hype": 50,
-          "ddMultiplier": 1,
-          "exportTariffRate": 0,
-          "importTariffRate": 0.1,
-          "illegal": false
-        },
-        {
-          "goodName": "Meat & Livestock",
-          "hype": 50,
-          "ddMultiplier": 1,
-          "exportTariffRate": 0,
-          "importTariffRate": 0.1,
-          "illegal": false
-        },
-        {
-          "goodName": "Fisheries & Seafood",
-          "hype": 50,
-          "ddMultiplier": 1,
-          "exportTariffRate": 0,
-          "importTariffRate": 0.1,
-          "illegal": false
-        },
-        {
-          "goodName": "Dairy Products",
-          "hype": 50,
-          "ddMultiplier": 1,
-          "exportTariffRate": 0,
-          "importTariffRate": 0.1,
-          "illegal": false
-        },
-        {
-          "goodName": "Wood & Timber",
-          "hype": 50,
-          "ddMultiplier": 1,
-          "exportTariffRate": 0,
-          "importTariffRate": 0.1,
-          "illegal": false
-        },
-        {
-          "goodName": "Paper & Publishing",
-          "hype": 50,
-          "ddMultiplier": 1,
-          "exportTariffRate": 0,
-          "importTariffRate": 0.1,
-          "illegal": false
-        },
-        {
-          "goodName": "Steel & Iron",
-          "hype": 50,
-          "ddMultiplier": 1,
-          "exportTariffRate": 0,
-          "importTariffRate": 0.1,
-          "illegal": false
-        },
-        {
-          "goodName": "Construction Materials",
-          "hype": 50,
-          "ddMultiplier": 1,
-          "exportTariffRate": 0,
-          "importTariffRate": 0.1,
-          "illegal": false
-        },
-        {
-          "goodName": "Glass & Ceramics",
-          "hype": 50,
-          "ddMultiplier": 1,
-          "exportTariffRate": 0,
-          "importTariffRate": 0.1,
-          "illegal": false
-        },
-        {
-          "goodName": "Industrial Hardware & Pipes",
-          "hype": 50,
-          "ddMultiplier": 1,
-          "exportTariffRate": 0,
-          "importTariffRate": 0.1,
-          "illegal": false
-        },
-        {
-          "goodName": "Plastics & Synthetics",
-          "hype": 50,
-          "ddMultiplier": 1,
-          "exportTariffRate": 0,
-          "importTariffRate": 0.1,
-          "illegal": false
-        },
-        {
-          "goodName": "Machine Tools & Machinery",
-          "hype": 50,
-          "ddMultiplier": 1,
-          "exportTariffRate": 0,
-          "importTariffRate": 0.1,
-          "illegal": false
-        },
-        {
-          "goodName": "Heavy Engines & Turbines",
-          "hype": 50,
-          "ddMultiplier": 1,
-          "exportTariffRate": 0,
-          "importTariffRate": 0.1,
-          "illegal": false
-        },
-        {
-          "goodName": "Semiconductors & Chips",
-          "hype": 50,
-          "ddMultiplier": 1,
-          "exportTariffRate": 0,
-          "importTariffRate": 0.1,
-          "illegal": false
-        },
-        {
-          "goodName": "Computers & Electronics",
-          "hype": 50,
-          "ddMultiplier": 1,
-          "exportTariffRate": 0,
-          "importTariffRate": 0.1,
-          "illegal": false
-        },
-        {
-          "goodName": "Telecommunications & Optics",
-          "hype": 50,
-          "ddMultiplier": 1,
-          "exportTariffRate": 0,
-          "importTariffRate": 0.1,
-          "illegal": false
-        },
-        {
-          "goodName": "Electrical Consumer Appliances",
-          "hype": 50,
-          "ddMultiplier": 1,
-          "exportTariffRate": 0,
-          "importTariffRate": 0.1,
-          "illegal": false
-        },
-        {
-          "goodName": "Apparel & Footwear",
-          "hype": 50,
-          "ddMultiplier": 1,
-          "exportTariffRate": 0,
-          "importTariffRate": 0.1,
-          "illegal": false
-        },
-        {
-          "goodName": "Automobiles & Transport Equipment",
-          "hype": 50,
-          "ddMultiplier": 1,
-          "exportTariffRate": 0,
-          "importTariffRate": 0.1,
-          "illegal": false
-        },
-        {
-          "goodName": "Railways & Rolling Stock",
-          "hype": 50,
-          "ddMultiplier": 1,
-          "exportTariffRate": 0,
-          "importTariffRate": 0.1,
-          "illegal": false
-        },
-        {
-          "goodName": "Ships & Marine Vessels",
-          "hype": 50,
-          "ddMultiplier": 1,
-          "exportTariffRate": 0,
-          "importTariffRate": 0.1,
-          "illegal": false
-        },
-        {
-          "goodName": "Aerospace & Aviation",
-          "hype": 50,
-          "ddMultiplier": 1,
-          "exportTariffRate": 0,
-          "importTariffRate": 0.1,
-          "illegal": false
-        },
-        {
-          "goodName": "Spacecraft & Propulsion",
-          "hype": 50,
-          "ddMultiplier": 1,
-          "exportTariffRate": 0,
-          "importTariffRate": 0.1,
-          "illegal": false
-        },
-        {
-          "goodName": "Small Arms & Munitions",
-          "hype": 50,
-          "ddMultiplier": 1,
-          "exportTariffRate": 0,
-          "importTariffRate": 0.1,
-          "illegal": false
-        },
-        {
-          "goodName": "Heavy Armaments & Artillery",
-          "hype": 50,
-          "ddMultiplier": 1,
-          "exportTariffRate": 0,
-          "importTariffRate": 0.1,
-          "illegal": false
-        },
-        {
-          "goodName": "Chemicals & Explosives",
-          "hype": 50,
-          "ddMultiplier": 1,
-          "exportTariffRate": 0,
-          "importTariffRate": 0.1,
-          "illegal": false
-        },
-        {
-          "goodName": "Fertilizer & Agrochem",
-          "hype": 50,
-          "ddMultiplier": 1,
-          "exportTariffRate": 0,
-          "importTariffRate": 0.1,
-          "illegal": false
-        },
-        {
-          "goodName": "Solar & Clean Energy",
-          "hype": 50,
-          "ddMultiplier": 1,
-          "exportTariffRate": 0,
-          "importTariffRate": 0.1,
-          "illegal": false
-        },
-        {
-          "goodName": "Pharmaceuticals & Medicine",
-          "hype": 50,
-          "ddMultiplier": 1,
-          "exportTariffRate": 0,
-          "importTariffRate": 0.1,
-          "illegal": false
-        },
-        {
-          "goodName": "Medical Technology & Services",
-          "hype": 50,
-          "ddMultiplier": 1,
-          "exportTariffRate": 0,
-          "importTariffRate": 0.1,
-          "illegal": false
-        },
-        {
-          "goodName": "Processed Foods & Hospitality",
-          "hype": 50,
-          "ddMultiplier": 1,
-          "exportTariffRate": 0,
-          "importTariffRate": 0.1,
-          "illegal": false
-        },
-        {
-          "goodName": "Retail, Trade & Logistics",
-          "hype": 50,
-          "ddMultiplier": 1,
-          "exportTariffRate": 0,
-          "importTariffRate": 0.1,
-          "illegal": false
-        },
-        {
-          "goodName": "Housing & Real Estate",
-          "hype": 50,
-          "ddMultiplier": 1,
-          "exportTariffRate": 0,
-          "importTariffRate": 0.1,
-          "illegal": false
-        },
-        {
-          "goodName": "Media, Internet & Software",
-          "hype": 50,
-          "ddMultiplier": 1,
-          "exportTariffRate": 0,
-          "importTariffRate": 0.1,
-          "illegal": false
-        },
-        {
-          "goodName": "Banking & Financial Services",
-          "hype": 50,
-          "ddMultiplier": 1,
-          "exportTariffRate": 0,
-          "importTariffRate": 0.1,
-          "illegal": false
-        },
-        {
-          "goodName": "Public Administration & Governance",
-          "hype": 50,
-          "ddMultiplier": 1,
-          "exportTariffRate": 0,
-          "importTariffRate": 0.1,
-          "illegal": false
-        },
-        {
-          "goodName": "Controlled & Illicit Goods",
-          "hype": 50,
-          "ddMultiplier": 1,
-          "exportTariffRate": 0,
-          "importTariffRate": 0.1,
-          "illegal": true
-        }
-      ]
-    },
-    {
       "id": "india",
       "name": "India",
       "planet": "Earth",
@@ -8406,6 +7903,2706 @@
           "illegal": true
         }
       ]
+    },
+    {
+      "id": "germany",
+      "name": "Germany",
+      "planet": "Earth",
+      "capital": "Berlin",
+      "stockExchangeName": "Frankfurt Stock Exchange",
+      "rulingParty": "Social Democratic Party",
+      "workingPops": 45000000,
+      "treasuryBalance": 85000000000,
+      "consumerSentiment": 65,
+      "kFactorScaler": 1500,
+      "literacyRate": 0.99,
+      "urbanisationIndex": 0.77,
+      "infrastructureEfficiency": 0.94,
+      "federalCooperativity": 0.1,
+      "diplomaticExpenses": 0,
+      "specializedIndustry": "Industry & Manufacturing GDP",
+      "crimePolicy": "Beat Cops",
+      "healthcarePolicy": "State-run Healthcare",
+      "companies": [],
+      "constituentStates": [
+        {
+          "name": "Bavaria",
+          "role": "Automotive (BMW/Audi), Aerospace, Electronics & Precision Engineering",
+          "gdpShare": 0.18,
+          "popShare": 0.16,
+          "status": "STATE"
+        },
+        {
+          "name": "North Rhine-Westphalia",
+          "role": "Ruhr Heavy Industry, Chemical Plants & Logistics Core",
+          "gdpShare": 0.21,
+          "popShare": 0.22,
+          "status": "STATE"
+        },
+        {
+          "name": "Baden-Württemberg",
+          "role": "Automotive (Mercedes/Porsche), Machine Tools & High-Tech Mittelstand",
+          "gdpShare": 0.15,
+          "popShare": 0.13,
+          "status": "STATE"
+        },
+        {
+          "name": "Hesse",
+          "role": "Frankfurt Financial Bourse, European Banking & Airport Hub",
+          "gdpShare": 0.09,
+          "popShare": 0.08,
+          "status": "STATE"
+        },
+        {
+          "name": "Lower Saxony",
+          "role": "Automotive (VW Wolfsburg), Renewable Wind & Agriculture",
+          "gdpShare": 0.09,
+          "popShare": 0.1,
+          "status": "STATE"
+        },
+        {
+          "name": "Berlin-Brandenburg",
+          "role": "Federal Governance, Startups, Creative Tech & Rail Transit",
+          "gdpShare": 0.08,
+          "popShare": 0.08,
+          "status": "STATE"
+        }
+      ],
+      "market": [
+        {
+          "goodName": "Rare Earth Metals",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Iron Ore",
+          "hype": 19,
+          "ddMultiplier": 2.361,
+          "exportTariffRate": 0,
+          "importTariffRate": 0,
+          "illegal": false
+        },
+        {
+          "goodName": "Copper",
+          "hype": 19,
+          "ddMultiplier": 0.512,
+          "exportTariffRate": 0,
+          "importTariffRate": 0,
+          "illegal": false
+        },
+        {
+          "goodName": "Aluminium",
+          "hype": 4,
+          "ddMultiplier": 1.083,
+          "exportTariffRate": 0,
+          "importTariffRate": 0,
+          "illegal": false
+        },
+        {
+          "goodName": "Gold & Precious Metals",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Lead & Heavy Metals",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Lithium & Batteries",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Silicon & Quartz",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Coal & Carbon",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Stone & Minerals",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Crude Oil",
+          "hype": 47,
+          "ddMultiplier": 2.077,
+          "exportTariffRate": 0,
+          "importTariffRate": 0,
+          "illegal": false
+        },
+        {
+          "goodName": "Refined Petroleum & Fuels",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Natural Gas",
+          "hype": 67,
+          "ddMultiplier": 1.834,
+          "exportTariffRate": 0,
+          "importTariffRate": 0,
+          "illegal": false
+        },
+        {
+          "goodName": "Uranium & Nuclear",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Electricity & Grid",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Water",
+          "hype": 86,
+          "ddMultiplier": 2.438,
+          "exportTariffRate": 0,
+          "importTariffRate": 0,
+          "illegal": false
+        },
+        {
+          "goodName": "Grain",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Fresh Produce",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Fruit & Cash Crops",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Sugar & Confectionery",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Coffee & Tea",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Tobacco & Spirits",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Cotton & Natural Fibres",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Rubber & Polymers",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Meat & Livestock",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Fisheries & Seafood",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Dairy Products",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Wood & Timber",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Paper & Publishing",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Steel & Iron",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Construction Materials",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Glass & Ceramics",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Industrial Hardware & Pipes",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Plastics & Synthetics",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Machine Tools & Machinery",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Heavy Engines & Turbines",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Semiconductors & Chips",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Computers & Electronics",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Telecommunications & Optics",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Electrical Consumer Appliances",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Apparel & Footwear",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Automobiles & Transport Equipment",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Railways & Rolling Stock",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Ships & Marine Vessels",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Aerospace & Aviation",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Spacecraft & Propulsion",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Small Arms & Munitions",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Heavy Armaments & Artillery",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Chemicals & Explosives",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Fertilizer & Agrochem",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Solar & Clean Energy",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Pharmaceuticals & Medicine",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Medical Technology & Services",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Processed Foods & Hospitality",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Retail, Trade & Logistics",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Housing & Real Estate",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Media, Internet & Software",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Banking & Financial Services",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Public Administration & Governance",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Controlled & Illicit Goods",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": true
+        }
+      ]
+    },
+    {
+      "id": "france",
+      "name": "France",
+      "planet": "Earth",
+      "capital": "Paris",
+      "stockExchangeName": "Euronext Paris",
+      "rulingParty": "Renaissance",
+      "workingPops": 31000000,
+      "treasuryBalance": 60000000000,
+      "consumerSentiment": 62,
+      "kFactorScaler": 1500,
+      "literacyRate": 0.99,
+      "urbanisationIndex": 0.81,
+      "infrastructureEfficiency": 0.93,
+      "federalCooperativity": 0.1,
+      "diplomaticExpenses": 0,
+      "specializedIndustry": "Industry & Manufacturing GDP",
+      "crimePolicy": "Beat Cops",
+      "healthcarePolicy": "State-run Healthcare",
+      "companies": [],
+      "constituentStates": [
+        {
+          "name": "Île-de-France (Paris)",
+          "role": "Corporate HQs, Luxury Fashion, Banking & Statecraft",
+          "gdpShare": 0.31,
+          "popShare": 0.19,
+          "status": "STATE"
+        },
+        {
+          "name": "Auvergne-Rhône-Alpes (Lyon)",
+          "role": "Precision Chemicals, Nuclear Energy, Bio-Tech & Alpine Logistics",
+          "gdpShare": 0.12,
+          "popShare": 0.12,
+          "status": "STATE"
+        },
+        {
+          "name": "Occitanie (Toulouse)",
+          "role": "Aerospace Core (Airbus assembly), Satellites & Advanced Tech",
+          "gdpShare": 0.07,
+          "popShare": 0.09,
+          "status": "STATE"
+        },
+        {
+          "name": "Nouvelle-Aquitaine (Bordeaux)",
+          "role": "Wine Viticulture, Agrifood & Atlantic Maritime Ports",
+          "gdpShare": 0.08,
+          "popShare": 0.09,
+          "status": "STATE"
+        },
+        {
+          "name": "Provence-Alpes-Côte d'Azur (Marseille)",
+          "role": "Mediterranean Super-Port, Petrochemicals & Tourism",
+          "gdpShare": 0.07,
+          "popShare": 0.08,
+          "status": "STATE"
+        }
+      ],
+      "market": [
+        {
+          "goodName": "Rare Earth Metals",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Iron Ore",
+          "hype": 19,
+          "ddMultiplier": 2.361,
+          "exportTariffRate": 0,
+          "importTariffRate": 0,
+          "illegal": false
+        },
+        {
+          "goodName": "Copper",
+          "hype": 19,
+          "ddMultiplier": 0.512,
+          "exportTariffRate": 0,
+          "importTariffRate": 0,
+          "illegal": false
+        },
+        {
+          "goodName": "Aluminium",
+          "hype": 4,
+          "ddMultiplier": 1.083,
+          "exportTariffRate": 0,
+          "importTariffRate": 0,
+          "illegal": false
+        },
+        {
+          "goodName": "Gold & Precious Metals",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Lead & Heavy Metals",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Lithium & Batteries",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Silicon & Quartz",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Coal & Carbon",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Stone & Minerals",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Crude Oil",
+          "hype": 47,
+          "ddMultiplier": 2.077,
+          "exportTariffRate": 0,
+          "importTariffRate": 0,
+          "illegal": false
+        },
+        {
+          "goodName": "Refined Petroleum & Fuels",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Natural Gas",
+          "hype": 67,
+          "ddMultiplier": 1.834,
+          "exportTariffRate": 0,
+          "importTariffRate": 0,
+          "illegal": false
+        },
+        {
+          "goodName": "Uranium & Nuclear",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Electricity & Grid",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Water",
+          "hype": 86,
+          "ddMultiplier": 2.438,
+          "exportTariffRate": 0,
+          "importTariffRate": 0,
+          "illegal": false
+        },
+        {
+          "goodName": "Grain",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Fresh Produce",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Fruit & Cash Crops",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Sugar & Confectionery",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Coffee & Tea",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Tobacco & Spirits",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Cotton & Natural Fibres",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Rubber & Polymers",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Meat & Livestock",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Fisheries & Seafood",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Dairy Products",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Wood & Timber",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Paper & Publishing",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Steel & Iron",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Construction Materials",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Glass & Ceramics",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Industrial Hardware & Pipes",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Plastics & Synthetics",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Machine Tools & Machinery",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Heavy Engines & Turbines",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Semiconductors & Chips",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Computers & Electronics",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Telecommunications & Optics",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Electrical Consumer Appliances",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Apparel & Footwear",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Automobiles & Transport Equipment",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Railways & Rolling Stock",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Ships & Marine Vessels",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Aerospace & Aviation",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Spacecraft & Propulsion",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Small Arms & Munitions",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Heavy Armaments & Artillery",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Chemicals & Explosives",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Fertilizer & Agrochem",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Solar & Clean Energy",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Pharmaceuticals & Medicine",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Medical Technology & Services",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Processed Foods & Hospitality",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Retail, Trade & Logistics",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Housing & Real Estate",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Media, Internet & Software",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Banking & Financial Services",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Public Administration & Governance",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Controlled & Illicit Goods",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": true
+        }
+      ]
+    },
+    {
+      "id": "united_kingdom",
+      "name": "United Kingdom",
+      "planet": "Earth",
+      "capital": "London",
+      "stockExchangeName": "London Stock Exchange",
+      "rulingParty": "Labour Party",
+      "workingPops": 34000000,
+      "treasuryBalance": 70000000000,
+      "consumerSentiment": 60,
+      "kFactorScaler": 1500,
+      "literacyRate": 0.99,
+      "urbanisationIndex": 0.84,
+      "infrastructureEfficiency": 0.91,
+      "federalCooperativity": 0.1,
+      "diplomaticExpenses": 0,
+      "specializedIndustry": "Office & Corporate Services GDP",
+      "crimePolicy": "Beat Cops",
+      "healthcarePolicy": "State-run Healthcare",
+      "companies": [],
+      "constituentStates": [
+        {
+          "name": "Greater London & South East",
+          "role": "City of London Global Finance, FinTech & Services",
+          "gdpShare": 0.38,
+          "popShare": 0.28,
+          "status": "STATE"
+        },
+        {
+          "name": "Midlands & Northern England",
+          "role": "Advanced Manufacturing, Green Energy & Rail Logistics",
+          "gdpShare": 0.28,
+          "popShare": 0.32,
+          "status": "STATE"
+        },
+        {
+          "name": "Scotland",
+          "role": "North Sea Oil & Gas, Renewable Wind, Whiskey & Spaceports",
+          "gdpShare": 0.08,
+          "popShare": 0.08,
+          "status": "STATE"
+        },
+        {
+          "name": "Wales & Northern Ireland",
+          "role": "Aerospace Composites, Agriculture & Maritime Trade",
+          "gdpShare": 0.06,
+          "popShare": 0.07,
+          "status": "STATE"
+        }
+      ],
+      "market": [
+        {
+          "goodName": "Rare Earth Metals",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Iron Ore",
+          "hype": 19,
+          "ddMultiplier": 2.361,
+          "exportTariffRate": 0,
+          "importTariffRate": 0,
+          "illegal": false
+        },
+        {
+          "goodName": "Copper",
+          "hype": 19,
+          "ddMultiplier": 0.512,
+          "exportTariffRate": 0,
+          "importTariffRate": 0,
+          "illegal": false
+        },
+        {
+          "goodName": "Aluminium",
+          "hype": 4,
+          "ddMultiplier": 1.083,
+          "exportTariffRate": 0,
+          "importTariffRate": 0,
+          "illegal": false
+        },
+        {
+          "goodName": "Gold & Precious Metals",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Lead & Heavy Metals",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Lithium & Batteries",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Silicon & Quartz",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Coal & Carbon",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Stone & Minerals",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Crude Oil",
+          "hype": 47,
+          "ddMultiplier": 2.077,
+          "exportTariffRate": 0,
+          "importTariffRate": 0,
+          "illegal": false
+        },
+        {
+          "goodName": "Refined Petroleum & Fuels",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Natural Gas",
+          "hype": 67,
+          "ddMultiplier": 1.834,
+          "exportTariffRate": 0,
+          "importTariffRate": 0,
+          "illegal": false
+        },
+        {
+          "goodName": "Uranium & Nuclear",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Electricity & Grid",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Water",
+          "hype": 86,
+          "ddMultiplier": 2.438,
+          "exportTariffRate": 0,
+          "importTariffRate": 0,
+          "illegal": false
+        },
+        {
+          "goodName": "Grain",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Fresh Produce",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Fruit & Cash Crops",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Sugar & Confectionery",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Coffee & Tea",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Tobacco & Spirits",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Cotton & Natural Fibres",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Rubber & Polymers",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Meat & Livestock",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Fisheries & Seafood",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Dairy Products",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Wood & Timber",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Paper & Publishing",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Steel & Iron",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Construction Materials",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Glass & Ceramics",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Industrial Hardware & Pipes",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Plastics & Synthetics",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Machine Tools & Machinery",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Heavy Engines & Turbines",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Semiconductors & Chips",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Computers & Electronics",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Telecommunications & Optics",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Electrical Consumer Appliances",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Apparel & Footwear",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Automobiles & Transport Equipment",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Railways & Rolling Stock",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Ships & Marine Vessels",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Aerospace & Aviation",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Spacecraft & Propulsion",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Small Arms & Munitions",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Heavy Armaments & Artillery",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Chemicals & Explosives",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Fertilizer & Agrochem",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Solar & Clean Energy",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Pharmaceuticals & Medicine",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Medical Technology & Services",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Processed Foods & Hospitality",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Retail, Trade & Logistics",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Housing & Real Estate",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Media, Internet & Software",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Banking & Financial Services",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Public Administration & Governance",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Controlled & Illicit Goods",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": true
+        }
+      ]
+    },
+    {
+      "id": "italy",
+      "name": "Italy",
+      "planet": "Earth",
+      "capital": "Rome",
+      "stockExchangeName": "Borsa Italiana",
+      "rulingParty": "Brothers of Italy",
+      "workingPops": 26000000,
+      "treasuryBalance": 45000000000,
+      "consumerSentiment": 58,
+      "kFactorScaler": 1500,
+      "literacyRate": 0.99,
+      "urbanisationIndex": 0.71,
+      "infrastructureEfficiency": 0.86,
+      "federalCooperativity": 0.1,
+      "diplomaticExpenses": 0,
+      "specializedIndustry": "Industry & Manufacturing GDP",
+      "crimePolicy": "Beat Cops",
+      "healthcarePolicy": "State-run Healthcare",
+      "companies": [],
+      "constituentStates": [
+        {
+          "name": "Lombardy (Milan)",
+          "role": "Borsa Italiana, Banking, High Fashion, Robotics & Pharma",
+          "gdpShare": 0.22,
+          "popShare": 0.17,
+          "status": "STATE"
+        },
+        {
+          "name": "Veneto & Emilia-Romagna",
+          "role": "Packaging Machinery, Supercars & Precision Ceramics",
+          "gdpShare": 0.18,
+          "popShare": 0.16,
+          "status": "STATE"
+        },
+        {
+          "name": "Lazio (Rome)",
+          "role": "National Governance, Defense, Cinema & Telecommunications",
+          "gdpShare": 0.11,
+          "popShare": 0.1,
+          "status": "STATE"
+        },
+        {
+          "name": "Piedmont (Turin)",
+          "role": "Automotive Engineering (Fiat/Stellantis) & Aerospace",
+          "gdpShare": 0.08,
+          "popShare": 0.07,
+          "status": "STATE"
+        },
+        {
+          "name": "Mezzogiorno & Southern Islands",
+          "role": "Mediterranean Agriculture, Tourism, Ports & Solar Power",
+          "gdpShare": 0.22,
+          "popShare": 0.33,
+          "status": "STATE"
+        }
+      ],
+      "market": [
+        {
+          "goodName": "Rare Earth Metals",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Iron Ore",
+          "hype": 19,
+          "ddMultiplier": 2.361,
+          "exportTariffRate": 0,
+          "importTariffRate": 0,
+          "illegal": false
+        },
+        {
+          "goodName": "Copper",
+          "hype": 19,
+          "ddMultiplier": 0.512,
+          "exportTariffRate": 0,
+          "importTariffRate": 0,
+          "illegal": false
+        },
+        {
+          "goodName": "Aluminium",
+          "hype": 4,
+          "ddMultiplier": 1.083,
+          "exportTariffRate": 0,
+          "importTariffRate": 0,
+          "illegal": false
+        },
+        {
+          "goodName": "Gold & Precious Metals",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Lead & Heavy Metals",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Lithium & Batteries",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Silicon & Quartz",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Coal & Carbon",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Stone & Minerals",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Crude Oil",
+          "hype": 47,
+          "ddMultiplier": 2.077,
+          "exportTariffRate": 0,
+          "importTariffRate": 0,
+          "illegal": false
+        },
+        {
+          "goodName": "Refined Petroleum & Fuels",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Natural Gas",
+          "hype": 67,
+          "ddMultiplier": 1.834,
+          "exportTariffRate": 0,
+          "importTariffRate": 0,
+          "illegal": false
+        },
+        {
+          "goodName": "Uranium & Nuclear",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Electricity & Grid",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Water",
+          "hype": 86,
+          "ddMultiplier": 2.438,
+          "exportTariffRate": 0,
+          "importTariffRate": 0,
+          "illegal": false
+        },
+        {
+          "goodName": "Grain",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Fresh Produce",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Fruit & Cash Crops",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Sugar & Confectionery",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Coffee & Tea",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Tobacco & Spirits",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Cotton & Natural Fibres",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Rubber & Polymers",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Meat & Livestock",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Fisheries & Seafood",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Dairy Products",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Wood & Timber",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Paper & Publishing",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Steel & Iron",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Construction Materials",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Glass & Ceramics",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Industrial Hardware & Pipes",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Plastics & Synthetics",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Machine Tools & Machinery",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Heavy Engines & Turbines",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Semiconductors & Chips",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Computers & Electronics",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Telecommunications & Optics",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Electrical Consumer Appliances",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Apparel & Footwear",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Automobiles & Transport Equipment",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Railways & Rolling Stock",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Ships & Marine Vessels",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Aerospace & Aviation",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Spacecraft & Propulsion",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Small Arms & Munitions",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Heavy Armaments & Artillery",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Chemicals & Explosives",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Fertilizer & Agrochem",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Solar & Clean Energy",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Pharmaceuticals & Medicine",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Medical Technology & Services",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Processed Foods & Hospitality",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Retail, Trade & Logistics",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Housing & Real Estate",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Media, Internet & Software",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Banking & Financial Services",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Public Administration & Governance",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Controlled & Illicit Goods",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": true
+        }
+      ]
+    },
+    {
+      "id": "spain",
+      "name": "Spain",
+      "planet": "Earth",
+      "capital": "Madrid",
+      "stockExchangeName": "Bolsa de Madrid",
+      "rulingParty": "Spanish Socialist Workers' Party",
+      "workingPops": 24000000,
+      "treasuryBalance": 35000000000,
+      "consumerSentiment": 60,
+      "kFactorScaler": 1500,
+      "literacyRate": 0.99,
+      "urbanisationIndex": 0.81,
+      "infrastructureEfficiency": 0.9,
+      "federalCooperativity": 0.1,
+      "diplomaticExpenses": 0,
+      "specializedIndustry": "Hospitality & Tourist Services GDP",
+      "crimePolicy": "Beat Cops",
+      "healthcarePolicy": "State-run Healthcare",
+      "companies": [],
+      "constituentStates": [
+        {
+          "name": "Community of Madrid",
+          "role": "Sovereign Statecraft, Banking, Corporate HQs & Services",
+          "gdpShare": 0.19,
+          "popShare": 0.14,
+          "status": "STATE"
+        },
+        {
+          "name": "Catalonia (Barcelona)",
+          "role": "Industrial Chemistry, Automotive, Biotech, Logistics & Ports",
+          "gdpShare": 0.19,
+          "popShare": 0.16,
+          "status": "STATE"
+        },
+        {
+          "name": "Andalusia",
+          "role": "Agribusiness Olive/Produce, Solar Energy & Aerospace Assembly",
+          "gdpShare": 0.13,
+          "popShare": 0.18,
+          "status": "STATE"
+        },
+        {
+          "name": "Basque Country & Northern Arc",
+          "role": "Specialty Metallurgy, Wind Energy & Machine Tooling",
+          "gdpShare": 0.09,
+          "popShare": 0.08,
+          "status": "STATE"
+        },
+        {
+          "name": "Valencian Community",
+          "role": "Ceramics, Port Logistics, Footwear & Tourism",
+          "gdpShare": 0.09,
+          "popShare": 0.11,
+          "status": "STATE"
+        }
+      ],
+      "market": [
+        {
+          "goodName": "Rare Earth Metals",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Iron Ore",
+          "hype": 19,
+          "ddMultiplier": 2.361,
+          "exportTariffRate": 0,
+          "importTariffRate": 0,
+          "illegal": false
+        },
+        {
+          "goodName": "Copper",
+          "hype": 19,
+          "ddMultiplier": 0.512,
+          "exportTariffRate": 0,
+          "importTariffRate": 0,
+          "illegal": false
+        },
+        {
+          "goodName": "Aluminium",
+          "hype": 4,
+          "ddMultiplier": 1.083,
+          "exportTariffRate": 0,
+          "importTariffRate": 0,
+          "illegal": false
+        },
+        {
+          "goodName": "Gold & Precious Metals",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Lead & Heavy Metals",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Lithium & Batteries",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Silicon & Quartz",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Coal & Carbon",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Stone & Minerals",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Crude Oil",
+          "hype": 47,
+          "ddMultiplier": 2.077,
+          "exportTariffRate": 0,
+          "importTariffRate": 0,
+          "illegal": false
+        },
+        {
+          "goodName": "Refined Petroleum & Fuels",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Natural Gas",
+          "hype": 67,
+          "ddMultiplier": 1.834,
+          "exportTariffRate": 0,
+          "importTariffRate": 0,
+          "illegal": false
+        },
+        {
+          "goodName": "Uranium & Nuclear",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Electricity & Grid",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Water",
+          "hype": 86,
+          "ddMultiplier": 2.438,
+          "exportTariffRate": 0,
+          "importTariffRate": 0,
+          "illegal": false
+        },
+        {
+          "goodName": "Grain",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Fresh Produce",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Fruit & Cash Crops",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Sugar & Confectionery",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Coffee & Tea",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Tobacco & Spirits",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Cotton & Natural Fibres",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Rubber & Polymers",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Meat & Livestock",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Fisheries & Seafood",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Dairy Products",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Wood & Timber",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Paper & Publishing",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Steel & Iron",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Construction Materials",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Glass & Ceramics",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Industrial Hardware & Pipes",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Plastics & Synthetics",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Machine Tools & Machinery",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Heavy Engines & Turbines",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Semiconductors & Chips",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Computers & Electronics",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Telecommunications & Optics",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Electrical Consumer Appliances",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Apparel & Footwear",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Automobiles & Transport Equipment",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Railways & Rolling Stock",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Ships & Marine Vessels",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Aerospace & Aviation",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Spacecraft & Propulsion",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Small Arms & Munitions",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Heavy Armaments & Artillery",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Chemicals & Explosives",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Fertilizer & Agrochem",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Solar & Clean Energy",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Pharmaceuticals & Medicine",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Medical Technology & Services",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Processed Foods & Hospitality",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Retail, Trade & Logistics",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Housing & Real Estate",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Media, Internet & Software",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Banking & Financial Services",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Public Administration & Governance",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": false
+        },
+        {
+          "goodName": "Controlled & Illicit Goods",
+          "hype": 50,
+          "ddMultiplier": 1,
+          "exportTariffRate": 0,
+          "importTariffRate": 0.1,
+          "illegal": true
+        }
+      ]
     }
   ],
   "stockAccounts": [
@@ -8473,60 +10670,7 @@
       "holdings": []
     }
   ],
-  "powerBlocs": [
-    {
-      "id": "allied_treaty_org",
-      "name": "Earth Democratic League",
-      "type": "TRADE_LEAGUE",
-      "leaderNationId": "usa",
-      "memberNationIds": [
-        "usa",
-        "european_union",
-        "japan",
-        "australia",
-        "canada"
-      ],
-      "cohesion": 88,
-      "customsUnion": true,
-      "defensivePact": true,
-      "mandate": "Free trade, low internal tariffs, common defense & democratic statecraft.",
-      "federalContributionRate": 0.08
-    },
-    {
-      "id": "eurasian_compact",
-      "name": "Eurasian Sovereign Sphere",
-      "type": "SOVEREIGN_EMPIRE",
-      "leaderNationId": "russia",
-      "memberNationIds": [
-        "russia",
-        "china",
-        "india"
-      ],
-      "cohesion": 76,
-      "customsUnion": true,
-      "defensivePact": true,
-      "mandate": "Resource sovereignty, heavy industrial quotas & multipolar security.",
-      "federalContributionRate": 0.1
-    },
-    {
-      "id": "ares_colonial_federation",
-      "name": "Martian Frontier Coalition",
-      "type": "FEDERAL_COMMONWEALTH",
-      "leaderNationId": "olympus",
-      "memberNationIds": [
-        "olympus",
-        "heinan",
-        "mitsubishi",
-        "sumitomo",
-        "ifc"
-      ],
-      "cohesion": 92,
-      "customsUnion": true,
-      "defensivePact": false,
-      "mandate": "Extraterrestrial resource pooling, terraforming parity & orbital tariff autonomy.",
-      "federalContributionRate": 0.12
-    }
-  ],
+  "powerBlocs": [],
   "planetsConfig": [
     {
       "id": "Earth",
@@ -8555,5 +10699,38 @@
       "habitability": 0.35,
       "independenceDesire": 20
     }
-  ]
+  ],
+  "territoryMap": {
+    "United States of America": "usa",
+    "China": "china",
+    "Japan": "japan",
+    "Germany": "germany",
+    "France": "france",
+    "United Kingdom": "united_kingdom",
+    "Italy": "italy",
+    "Spain": "spain",
+    "Poland": "poland",
+    "Netherlands": "netherlands",
+    "Belgium": "belgium",
+    "Sweden": "sweden",
+    "Switzerland": "switzerland",
+    "Austria": "austria",
+    "Norway": "norway",
+    "Denmark": "denmark",
+    "Finland": "finland",
+    "Ireland": "ireland",
+    "Portugal": "portugal",
+    "Greece": "greece",
+    "Czech Republic": "czech_republic",
+    "Romania": "romania",
+    "Ukraine": "ukraine",
+    "Russia": "russia",
+    "India": "india",
+    "Brazil": "brazil",
+    "Australia": "australia",
+    "Mexico": "mexico",
+    "Botswana": "botswana",
+    "Canada": "canada",
+    "Democratic Republic of the Congo": "dem_rep_congo"
+  }
 }

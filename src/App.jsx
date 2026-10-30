@@ -691,7 +691,7 @@ export default function App() {
               },
               {
                 id: "director",
-                label: "Planetary & Power Blocs",
+                label: "Director & Planetary Controls",
                 icon: Sliders,
               },
               {

@@ -193,47 +193,8 @@ export function buildSimplifiedSeed(originalSeed) {
     nation.market = newMarket;
   }
 
-  // Initialize Power Blocs and Planetry Configurations if not present
-  if (!seed.powerBlocs) {
-    seed.powerBlocs = [
-      {
-        id: "allied_treaty_org",
-        name: "Earth Democratic League",
-        type: "TRADE_LEAGUE", // TRADE_LEAGUE | MILITARY_PACT | SOVEREIGN_EMPIRE | IDEOLOGICAL_UNION | FEDERAL_COMMONWEALTH
-        leaderNationId: "usa",
-        memberNationIds: ["usa", "european_union", "japan", "australia", "canada"],
-        cohesion: 88,
-        customsUnion: true,
-        defensivePact: true,
-        mandate: "Free trade, low internal tariffs, common defense & democratic statecraft.",
-        federalContributionRate: 0.08
-      },
-      {
-        id: "eurasian_compact",
-        name: "Eurasian Sovereign Sphere",
-        type: "SOVEREIGN_EMPIRE",
-        leaderNationId: "russia",
-        memberNationIds: ["russia", "china", "india"],
-        cohesion: 76,
-        customsUnion: true,
-        defensivePact: true,
-        mandate: "Resource sovereignty, heavy industrial quotas & multipolar security.",
-        federalContributionRate: 0.10
-      },
-      {
-        id: "ares_colonial_federation",
-        name: "Martian Frontier Coalition",
-        type: "FEDERAL_COMMONWEALTH",
-        leaderNationId: "olympus",
-        memberNationIds: ["olympus", "heinan", "mitsubishi", "sumitomo", "ifc"],
-        cohesion: 92,
-        customsUnion: true,
-        defensivePact: false,
-        mandate: "Extraterrestrial resource pooling, terraforming parity & orbital tariff autonomy.",
-        federalContributionRate: 0.12
-      }
-    ];
-  }
+  // Power Blocs removed — states in Europe and globally are represented as sovereign nations
+  seed.powerBlocs = [];
 
   if (!seed.planetsConfig) {
     seed.planetsConfig = [

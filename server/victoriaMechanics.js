@@ -807,7 +807,7 @@ export function ensureVictoriaState(state) {
             : "Interventionism",
         trade: nation.name === "USA" || nation.name === "Japan" ? "Free Trade" : "Protectionism",
         taxation:
-          nation.rulingParty === "Democratic" || nation.name === "European Union"
+          nation.rulingParty === "Democratic" || (nation.rulingParty && (nation.rulingParty.includes("Social") || nation.rulingParty.includes("Labour")))
             ? "Graduated Taxation"
             : "Proportional Taxation",
         policing: nation.crimePolicy || "Beat Cops",

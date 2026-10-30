@@ -1,18 +1,24 @@
 import React, { useState, useEffect, useMemo, useRef } from "react";
-import { geoMercator, geoPath } from "d3-geo";
+import { geoMercator, geoNaturalEarth1, geoAlbersUsa, geoPath } from "d3-geo";
+import * as topojson from "topojson-client";
+import usAtlas from "us-atlas/states-10m.json";
+import { US_STATES_CATALOG, REGION_TINTS, getUsaStateData } from "../data/usStatesData";
 import {
   Layers,
   MapPin,
   ZoomIn,
   ZoomOut,
   RotateCcw,
-  Info,
   CheckCircle2,
   AlertCircle,
   Landmark,
 } from "lucide-react";
 import { loadCountryAdm1, resolveIso3 } from "../services/boundaryService";
 import { getLinkedSubdivision } from "../data/adm1Mapping";
+
+// Pre-extract US states GeoJSON feature collection and mesh
+const US_STATES_GEO = topojson.feature(usAtlas, usAtlas.objects.states);
+const US_STATES_MESH = topojson.mesh(usAtlas, usAtlas.objects.states, (a, b) => a !== b);
 
 /**
  * CountryAdm1Map
@@ -27,7 +33,7 @@ export default function CountryAdm1Map({
   nationColor = "#06b6d4",
   economicSubdivisions = [],
 }) {
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [geoData, setGeoData] = useState(null);
   const [layerMode, setLayerMode] = useState("administrative"); // "administrative" | "economic"
@@ -38,12 +44,15 @@ export default function CountryAdm1Map({
   const dragStartRef = useRef({ x: 0, y: 0, panX: 0, panY: 0 });
 
   const iso3 = useMemo(() => resolveIso3(nation?.id || nation?.name), [nation]);
+  const isUsa = iso3 === "USA";
 
-  // Load country ADM1 GeoJSON when active nation changes
+  // Map Dimensions
+  const width = 640;
+  const height = 400;
+
+  // Load country ADM1 GeoJSON when active nation changes (for non-US nations)
   useEffect(() => {
     let active = true;
-    setLoading(true);
-    setError(null);
     setHoveredFeature(null);
     setZoom(1);
     setPan({ x: 0, y: 0 });
@@ -52,6 +61,16 @@ export default function CountryAdm1Map({
       setLoading(false);
       return;
     }
+
+    if (isUsa) {
+      setGeoData(US_STATES_GEO);
+      setLoading(false);
+      setError(null);
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
 
     loadCountryAdm1(nation.id || nation.name).then((res) => {
       if (!active) return;
@@ -68,18 +87,51 @@ export default function CountryAdm1Map({
     return () => {
       active = false;
     };
-  }, [nation]);
-
-  // Map Dimensions
-  const width = 640;
-  const height = 400;
+  }, [nation, isUsa]);
 
   // D3 Projection and Path Generator fitted to the country bounds
-  const { pathGenerator, computedFeatures } = useMemo(() => {
-    if (!geoData || !geoData.features || geoData.features.length === 0) {
-      return { pathGenerator: null, computedFeatures: [] };
+  const { pathGenerator, computedFeatures, meshPath } = useMemo(() => {
+    if (isUsa) {
+      // Official Albers USA composite projection: lower 48 large & centered, Alaska/Hawaii neatly in corner
+      const proj = geoAlbersUsa().fitExtent(
+        [
+          [20, 20],
+          [width - 20, height - 20],
+        ],
+        US_STATES_GEO
+      );
+      const pathGen = geoPath(proj);
+      const mesh = pathGen(US_STATES_MESH);
+
+      const featuresWithSvg = US_STATES_GEO.features.map((f) => {
+        const d = pathGen(f);
+        const centroid = pathGen.centroid(f);
+        const bounds = pathGen.bounds(f);
+        const name = f.properties.name;
+        const meta = getUsaStateData(name);
+        return {
+          id: f.id || name,
+          properties: {
+            name,
+            code: meta?.code || "",
+            region: meta?.region || "State",
+            type: "State",
+            iso: `US-${meta?.code || ""}`,
+          },
+          svgPath: d,
+          centroid: Number.isFinite(centroid[0]) ? centroid : [width / 2, height / 2],
+          bounds,
+        };
+      }).filter((f) => Boolean(f.svgPath));
+
+      return { pathGenerator: pathGen, computedFeatures: featuresWithSvg, meshPath: mesh };
     }
 
+    if (!geoData || !geoData.features || geoData.features.length === 0) {
+      return { pathGenerator: null, computedFeatures: [], meshPath: null };
+    }
+
+    // For sovereign nations (COD, DEU, GBR, FRA, JPN, BRA, etc.), fit Mercator to bounds
     const projection = geoMercator().fitExtent(
       [
         [24, 24],
@@ -90,20 +142,21 @@ export default function CountryAdm1Map({
 
     const pathGen = geoPath(projection);
 
-    const featuresWithSvg = geoData.features.map((f) => {
+    const featuresWithSvg = geoData.features.map((f, i) => {
       const d = pathGen(f);
       const centroid = pathGen.centroid(f);
       const bounds = pathGen.bounds(f);
       return {
         ...f,
+        id: f.id || `${iso3}_${i}`,
         svgPath: d,
         centroid: Number.isFinite(centroid[0]) ? centroid : [width / 2, height / 2],
         bounds,
       };
-    });
+    }).filter((f) => Boolean(f.svgPath));
 
-    return { pathGenerator: pathGen, computedFeatures: featuresWithSvg };
-  }, [geoData]);
+    return { pathGenerator: pathGen, computedFeatures: featuresWithSvg, meshPath: null };
+  }, [geoData, isUsa, iso3]);
 
   // Mouse Wheel Zoom & Pan handlers
   const handleWheel = (e) => {
@@ -128,8 +181,8 @@ export default function CountryAdm1Map({
     const dx = (e.clientX - dragStartRef.current.x) / zoom;
     const dy = (e.clientY - dragStartRef.current.y) / zoom;
     setPan({
-      x: Math.max(-250, Math.min(250, dragStartRef.current.panX + dx)),
-      y: Math.max(-180, Math.min(180, dragStartRef.current.panY + dy)),
+      x: Math.max(-280, Math.min(280, dragStartRef.current.panX + dx)),
+      y: Math.max(-200, Math.min(200, dragStartRef.current.panY + dy)),
     });
   };
 
@@ -149,9 +202,9 @@ export default function CountryAdm1Map({
             <MapPin className="w-3.5 h-3.5 text-cyan-400" />
             {nation?.name}
           </span>
-          {geoData && (
+          {computedFeatures.length > 0 && (
             <span className="text-[11px] px-2 py-0.5 rounded-full bg-cyan-500/10 text-cyan-300 border border-cyan-500/30 font-mono-num font-bold">
-              {geoData.featureCount || computedFeatures.length} First-Level Units (ADM1)
+              {computedFeatures.length} First-Level Units (ADM1)
             </span>
           )}
         </div>
@@ -258,14 +311,24 @@ export default function CountryAdm1Map({
                 const isSelected = selectedSubdivision === name;
                 const isHovered = hoveredFeature?.properties?.name === name;
 
-                // Color tinting: Sovereign base color with subtle deterministic brightness offset
-                const baseHueShift = ((index * 37) % 30) - 15;
-                const linkedEcon = getLinkedSubdivision(iso3, name);
+                // Check for secession
+                const directOwner =
+                  name === "Georgia"
+                    ? territoryMap["Georgia (USA)"] || territoryMap["Georgia:Atlanta"] || territoryMap["Georgia"]
+                    : territoryMap[name];
+                const isSeceded = directOwner && directOwner !== nation?.id && directOwner !== "usa";
 
-                const fillColor = isSelected
+                const linkedEcon = getLinkedSubdivision(iso3, name);
+                const regionTint = isUsa ? REGION_TINTS[feat.properties.region] : null;
+
+                const fillColor = isSeceded
+                  ? "#f59e0b"
+                  : isSelected
                   ? "#38bdf8"
                   : isHovered
                   ? "#22d3ee"
+                  : isUsa && regionTint
+                  ? regionTint
                   : layerMode === "economic" && linkedEcon
                   ? "#0284c7"
                   : nationColor;
@@ -276,10 +339,10 @@ export default function CountryAdm1Map({
                     d={feat.svgPath}
                     fill={fillColor}
                     fillOpacity={
-                      isSelected ? 0.95 : isHovered ? 0.88 : 0.72 + (index % 5) * 0.03
+                      isSelected ? 0.98 : isHovered ? 0.92 : isSeceded ? 0.95 : 0.82
                     }
-                    stroke={isSelected ? "#ffffff" : isHovered ? "#38bdf8" : "#0f172a"}
-                    strokeWidth={isSelected ? 2.0 / zoom : 0.9 / zoom}
+                    stroke={isSelected ? "#ffffff" : isHovered ? "#38bdf8" : isSeceded ? "#fef08a" : "#0f172a"}
+                    strokeWidth={isSelected ? 2.0 / zoom : 0.85 / zoom}
                     className="transition-colors duration-150 hover:brightness-125 cursor-pointer"
                     onMouseEnter={() => setHoveredFeature(feat)}
                     onMouseLeave={() => setHoveredFeature(null)}
@@ -295,51 +358,86 @@ export default function CountryAdm1Map({
             </g>
 
             {/* Mesh Boundaries Overlay */}
-            <g className="pointer-events-none">
-              {computedFeatures.map((feat, index) => (
-                <path
-                  key={`mesh_${feat.id || index}`}
-                  d={feat.svgPath}
-                  fill="none"
-                  stroke="#ffffff"
-                  strokeOpacity={0.25}
-                  strokeWidth={0.5 / zoom}
-                />
-              ))}
-            </g>
+            {meshPath ? (
+              <path
+                d={meshPath}
+                fill="none"
+                stroke="#ffffff"
+                strokeOpacity={0.65}
+                strokeWidth={0.8 / zoom}
+                strokeDasharray={`${2.5 / zoom},${1.5 / zoom}`}
+                pointerEvents="none"
+              />
+            ) : (
+              <g className="pointer-events-none">
+                {computedFeatures.map((feat, index) => (
+                  <path
+                    key={`mesh_${feat.id || index}`}
+                    d={feat.svgPath}
+                    fill="none"
+                    stroke="#ffffff"
+                    strokeOpacity={0.4}
+                    strokeWidth={0.6 / zoom}
+                  />
+                ))}
+              </g>
+            )}
 
-            {/* Province Centroid Labels */}
-            <g className="pointer-events-none">
+            {/* Postal Codes for USA or Clean Labels for Selected / Zoomed in Provinces */}
+            <g className="pointer-events-none select-none">
               {computedFeatures.map((feat, index) => {
                 const [cx, cy] = feat.centroid;
                 const name = feat.properties.name;
                 const isSelected = selectedSubdivision === name;
-                if (!cx || !cy || isNaN(cx) || isNaN(cy)) return null;
+                if (!cx || !cy || isNaN(cx) || isNaN(cy) || cx <= 0) return null;
 
-                return (
-                  <text
-                    key={`lbl_${feat.id || index}`}
-                    x={cx}
-                    y={cy}
-                    textAnchor="middle"
-                    dominantBaseline="middle"
-                    fill={isSelected ? "#ffffff" : "#f1f5f9"}
-                    fontSize={Math.max(5.5, 9 / Math.sqrt(zoom))}
-                    fontWeight={isSelected ? "bold" : "600"}
-                    className="drop-shadow-[0_1px_3px_rgba(0,0,0,0.9)] select-none"
-                    style={{ textShadow: "0 1px 3px #020617" }}
-                  >
-                    {name.length > 14 && zoom < 1.8 ? `${name.slice(0, 12)}…` : name}
-                  </text>
-                );
+                // For USA: Clean, un-overlapping 2-letter postal code
+                if (isUsa && feat.properties.code) {
+                  return (
+                    <text
+                      key={`lbl_${feat.id || index}`}
+                      x={cx}
+                      y={cy + 3.5}
+                      textAnchor="middle"
+                      fill={isSelected ? "#ffffff" : "#f1f5f9"}
+                      fontSize={Math.max(6.5, 9 / Math.sqrt(zoom))}
+                      fontWeight="bold"
+                      fontFamily="monospace"
+                      className="drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]"
+                    >
+                      {feat.properties.code}
+                    </text>
+                  );
+                }
+
+                // For other countries: Only show label if selected, hovered, or user zooms in
+                if (isSelected || (zoom >= 1.8 && name.length <= 15)) {
+                  return (
+                    <text
+                      key={`lbl_${feat.id || index}`}
+                      x={cx}
+                      y={cy + 3}
+                      textAnchor="middle"
+                      fill={isSelected ? "#ffffff" : "#f1f5f9"}
+                      fontSize={Math.max(6, 8.5 / Math.sqrt(zoom))}
+                      fontWeight={isSelected ? "bold" : "600"}
+                      fontFamily="sans-serif"
+                      className="drop-shadow-[0_1px_3px_rgba(0,0,0,0.95)]"
+                    >
+                      {name}
+                    </text>
+                  );
+                }
+
+                return null;
               })}
             </g>
           </svg>
         )}
 
-        {/* Hover / Selection Context Badge */}
+        {/* Hover / Selection Context Badge at bottom-left */}
         {hoveredFeature && (
-          <div className="absolute bottom-3 left-3 bg-slate-900/90 backdrop-blur-md px-3 py-2 rounded-xl border border-slate-700 shadow-xl pointer-events-none flex flex-col gap-0.5 z-20 animate-in fade-in duration-100">
+          <div className="absolute bottom-3 left-3 bg-slate-900/90 backdrop-blur-md px-3.5 py-2.5 rounded-xl border border-slate-700 shadow-xl pointer-events-none flex flex-col gap-0.5 z-20 animate-in fade-in duration-100">
             <span className="text-xs font-bold text-white flex items-center gap-1.5">
               <CheckCircle2 className="w-3.5 h-3.5 text-cyan-400" />
               {hoveredFeature.properties.name}
@@ -352,7 +450,7 @@ export default function CountryAdm1Map({
             {(() => {
               const linked = getLinkedSubdivision(iso3, hoveredFeature.properties.name);
               return linked ? (
-                <div className="text-[10px] text-amber-300 bg-amber-500/10 px-1.5 py-0.5 rounded border border-amber-500/30 mt-0.5">
+                <div className="text-[10px] text-amber-300 bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/30 mt-1">
                   Simulation Zone: <strong>{linked.zoneName}</strong> ({linked.role})
                 </div>
               ) : null;
@@ -362,10 +460,9 @@ export default function CountryAdm1Map({
 
         {/* Metadata Source Footer */}
         <div className="absolute bottom-1 right-2 text-[9px] text-slate-500 pointer-events-none">
-          Cartography: geoBoundaries gbOpen (CC-BY 4.0)
+          Cartography: {isUsa ? "US Census / Natural Earth" : "geoBoundaries gbOpen (CC-BY 4.0)"}
         </div>
       </div>
     </div>
   );
 }
-

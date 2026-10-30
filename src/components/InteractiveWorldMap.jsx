@@ -39,6 +39,7 @@ import {
 } from "lucide-react";
 import BufferedRangeSlider from "./BufferedRangeSlider";
 import CountryAdm1Map from "./CountryAdm1Map";
+import { ALL_NATIONS_BY_ID, ALL_NATIONS_BY_NAME } from "../data/nationsCatalog";
 import {
   formatCurrency,
   formatExactCurrency,
@@ -638,6 +639,25 @@ export default function InteractiveWorldMap({
 
   const focusOnCountry = (targetNation) => {
     navigateToCountry(targetNation);
+  };
+
+  // Close the country cartography / subdivisions modal and cleanly return to the regional subcontinent view
+  const closeStatesModal = () => {
+    setShowStatesTableModal(false);
+    setSelectedStateName(null);
+    const subId = getSubcontinentForCountry(activeNation?.id);
+    if (subId && subId !== "all") {
+      setViewTier("subcontinent");
+      setMapLocation({ level: "subcontinent", subcontinentId: subId });
+      const preset = SUBCONTINENT_PRESETS.find((p) => p.id === subId) || SUBCONTINENT_PRESETS[1];
+      setZoom(preset.zoom);
+      setPan(preset.pan);
+    } else {
+      setViewTier("worldwide");
+      setMapLocation({ level: "world" });
+      setZoom(1);
+      setPan({ x: 0, y: 0 });
+    }
   };
 
   // Focus camera on a specific territory / state
@@ -1656,18 +1676,11 @@ export default function InteractiveWorldMap({
 
                     {/* Country Territory Polygons on Earth */}
                     {(() => {
-                      const isUsaCountryFocused =
-                        (mapLocation.level === "country" || viewTier === "country") &&
-                        (activeNation?.id === "usa" || activeNation?.name?.toLowerCase().includes("united states"));
-
                       return (
                         <>
                           {earthFeatures.map((feat) => {
-                            // Only skip USA single polygon when user is actively focused on USA at country level
-                            if (feat.name === "United States of America" && isUsaCountryFocused) return null;
-
                             const ctrlId = territoryMap[feat.name] || (feat.name === "United States of America" ? (territoryMap["United States of America"] || "usa") : null);
-                            const ctrlNation = nationById.get(ctrlId);
+                            const ctrlNation = nationById.get(ctrlId) || (feat.name === "United States of America" ? nationById.get("usa") : null) || ALL_NATIONS_BY_NAME.get(feat.name.toLowerCase());
                             const isSelected =
                               ctrlNation && ctrlNation.id === activeNation?.id;
                             const fill = getTerritoryFill(feat.name);
@@ -1698,7 +1711,7 @@ export default function InteractiveWorldMap({
                                 onMouseLeave={() => setHoveredTerritory(null)}
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  const target = ctrlNation || (feat.name === "United States of America" ? (nationById.get("usa") || nations.find((n) => n.id === "usa")) : null);
+                                  const target = ctrlNation || (feat.name === "United States of America" ? (nationById.get("usa") || nations.find((n) => n.id === "usa")) : null) || ALL_NATIONS_BY_NAME.get(feat.name.toLowerCase());
                                   if (target) {
                                     navigateToCountry(target, true);
                                   } else {
@@ -1709,7 +1722,7 @@ export default function InteractiveWorldMap({
                             );
                           })}
 
-                          {/* United States 50 Individual Constituent States & Seceded Sovereign Republics */}
+                          {/* United States Seceded Sovereign Republics (e.g. California Republic, Texas) rendered on main map ONLY if seceded */}
                           {STATIC_US_STATE_FEATURES.map((stFeat) => {
                             const directOwnerId =
                               stFeat.name === "Georgia"
@@ -1718,26 +1731,24 @@ export default function InteractiveWorldMap({
 
                             const isSeceded = directOwnerId !== "usa" && directOwnerId !== territoryMap["United States of America"];
                             
-                            // If USA is NOT focused at country level, ONLY render seceded states so USA appears as one country on world map!
-                            if (!isUsaCountryFocused && !isSeceded) {
+                            // Never render regular constituent states on main map — they belong strictly in the Country Cartography pop-up!
+                            if (!isSeceded) {
                               return null;
                             }
 
                             const stNation = nationById.get(directOwnerId) || nationById.get("usa");
-                            const isSelected = (stNation && stNation.id === activeNation?.id) || (!isSeceded && activeNation?.id === "usa");
+                            const isSelected = stNation && stNation.id === activeNation?.id;
                             const meta = getUsaStateData(stFeat.name);
 
-                            const fillColor = isSeceded
-                              ? (stNation?.color || "#f59e0b")
-                              : (REGION_TINTS[meta.region] || "#0284c7");
+                            const fillColor = stNation?.color || "#f59e0b";
 
                             return (
                               <path
                                 key={`us_state_${stFeat.name}`}
                                 d={stFeat.d}
                                 fill={fillColor}
-                                fillOpacity={isSelected ? 0.96 : isSeceded ? 0.94 : 0.84}
-                                stroke={isSelected ? "#38bdf8" : isSeceded ? "#ffffff" : "#0f172a"}
+                                fillOpacity={0.94}
+                                stroke={isSelected ? "#38bdf8" : "#ffffff"}
                                 strokeOpacity={0.95}
                                 strokeWidth={(isSelected ? 1.8 : 0.8) / zoom}
                                 className="transition-colors duration-150 hover:brightness-125 cursor-pointer"
@@ -1745,11 +1756,11 @@ export default function InteractiveWorldMap({
                                   setHoveredTerritory({
                                     name: stFeat.name,
                                     isControlled: true,
-                                    controllerName: isSeceded ? (stNation?.name || "Seceded Sovereign State") : "United States of America",
-                                    gdp: isSeceded ? stNation?.computed?.aggregateGdp : (c.aggregateGdp || 25e12) * meta.gdpShare,
-                                    sol: isSeceded ? stNation?.computed?.sol : c.sol,
-                                    pops: isSeceded ? stNation?.computed?.effectiveWorkingPops : Math.round((c.effectiveWorkingPops || 165e6) * meta.popShare),
-                                    status: isSeceded ? "SECEDED SOVEREIGN STATE" : "CONSTITUENT STATE",
+                                    controllerName: stNation?.name || "Seceded Sovereign State",
+                                    gdp: stNation?.computed?.aggregateGdp,
+                                    sol: stNation?.computed?.sol,
+                                    pops: stNation?.computed?.effectiveWorkingPops,
+                                    status: "SECEDED SOVEREIGN STATE",
                                   });
                                 }}
                                 onMouseLeave={() => setHoveredTerritory(null)}
@@ -1761,19 +1772,6 @@ export default function InteractiveWorldMap({
                               />
                             );
                           })}
-
-                          {/* United States Crisp Internal State Boundaries Mesh (Only shown when USA is focused at country level) */}
-                          {isUsaCountryFocused && (
-                            <path
-                              d={STATIC_US_STATES_MESH}
-                              fill="none"
-                              stroke="#ffffff"
-                              strokeOpacity={0.75}
-                              strokeWidth={0.8 / zoom}
-                              strokeDasharray={`${3 / zoom},${1.6 / zoom}`}
-                              pointerEvents="none"
-                            />
-                          )}
                         </>
                       );
                     })()}
@@ -1806,20 +1804,14 @@ export default function InteractiveWorldMap({
                     {/* Capital Markers & Nation Badges on Earth */}
                     {earthFeatures
                       .filter((f) => {
-                        const isUsaCountryFocused =
-                          (mapLocation.level === "country" || viewTier === "country") &&
-                          (activeNation?.id === "usa" || activeNation?.name?.toLowerCase().includes("united states"));
-
-                        if (f.name === "United States of America" && isUsaCountryFocused) return false;
                         const ctrlId = territoryMap[f.name] || (f.name === "United States of America" ? "usa" : null);
-                        const n = nationById.get(ctrlId);
+                        const n = nationById.get(ctrlId) || (f.name === "United States of America" ? nationById.get("usa") : null) || ALL_NATIONS_BY_NAME.get(f.name.toLowerCase());
                         if (!n) return false;
-                        if (n.id === "european_union" && f.name === "France") return true;
-                        return n.name.toLowerCase() === f.name.toLowerCase() || (n.id === "usa" && f.name === "United States of America");
+                        return n.name?.toLowerCase() === f.name.toLowerCase() || (n.id === "usa" && f.name === "United States of America");
                       })
                       .map((f) => {
-                        const ctrlId = territoryMap[f.name];
-                        const n = nationById.get(ctrlId);
+                        const ctrlId = territoryMap[f.name] || (f.name === "United States of America" ? "usa" : null);
+                        const n = nationById.get(ctrlId) || (f.name === "United States of America" ? nationById.get("usa") : null) || ALL_NATIONS_BY_NAME.get(f.name.toLowerCase());
                         const [cx, cy] = f.centroid;
                         const isSelected = n.id === activeNation?.id;
                         return (
@@ -3062,7 +3054,7 @@ export default function InteractiveWorldMap({
                   </button>
                 )}
                 <button
-                  onClick={() => setShowStatesTableModal(false)}
+                  onClick={closeStatesModal}
                   className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition cursor-pointer text-base"
                   title="Close Pop Up"
                 >
@@ -3442,7 +3434,7 @@ export default function InteractiveWorldMap({
                 <strong className="text-cyan-300">{activeNation.name}</strong>
               </div>
               <button
-                onClick={() => setShowStatesTableModal(false)}
+                onClick={closeStatesModal}
                 className="px-4 py-2 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs cursor-pointer transition shadow-md"
               >
                 Close & View Interactive Map
