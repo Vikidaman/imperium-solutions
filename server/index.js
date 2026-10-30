@@ -26,6 +26,9 @@ import {
   triggerElectionAction,
   triggerLawAction,
   queueConstruction,
+  setNationPolicyRate,
+  issueSovereignBond,
+  repaySovereignBond,
   resolveNewsDilemma,
   publishCustomNews,
 } from "./engine.js";
