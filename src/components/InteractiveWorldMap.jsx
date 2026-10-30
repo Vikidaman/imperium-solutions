@@ -2229,8 +2229,7 @@ export default function InteractiveWorldMap({
             <div className="bg-amber-950/20 border border-amber-500/30 rounded-xl p-3.5 space-y-2.5 text-xs">
               <div className="flex items-center justify-between">
                 <span className="font-bold uppercase tracking-wider text-amber-300">
-                  #{activeNation.capacities?.globalRank || 1}{" "}
-                  {activeNation.capacities?.rankTitle || "Great Power"} •{" "}
+                  {activeNation.governmentSystem || "Sovereign Republic"} •{" "}
                   {activeNation.laws?.governance || "Universal Suffrage"}
                 </span>
                 <span className="font-mono-num text-emerald-400 font-bold">

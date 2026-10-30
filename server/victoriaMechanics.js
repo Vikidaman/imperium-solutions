@@ -1108,18 +1108,6 @@ export function evaluateVictoriaMechanics(state) {
       })
       .sort((a, b) => b.projectedVoteShare - a.projectedVoteShare);
   }
-
-  // 2. Assign Global Power Ranks by Prestige
-  const sortedByPrestige = [...(state.nations || [])].sort(
-    (a, b) => (b.capacities?.prestige || 0) - (a.capacities?.prestige || 0)
-  );
-  sortedByPrestige.forEach((n, index) => {
-    const rank = index + 1;
-    n.capacities.globalRank = rank;
-    if (rank <= 3) n.capacities.rankTitle = "Great Power";
-    else if (rank <= 7) n.capacities.rankTitle = "Major Power";
-    else n.capacities.rankTitle = "Regional Power";
-  });
 }
 
 export function executeGeneralElection(state, nation, dateStr) {
