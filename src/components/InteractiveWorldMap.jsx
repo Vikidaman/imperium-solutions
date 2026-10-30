@@ -1554,44 +1554,50 @@ export default function InteractiveWorldMap({
                         );
                       })}
 
-                    {/* Individual US State Labels & Pins (Tier 3 Country View) */}
-                    {viewTier === "country" && activeNation?.id === "usa" && (
-                      <g key="us_state_labels_layer" className="pointer-events-none">
-                        {STATIC_US_STATE_FEATURES.map((stFeat) => {
-                          const meta = getUsaStateData(stFeat.name);
-                          if (!meta || !meta.code) return null;
-                          const [cx, cy] = stFeat.centroid;
-                          if (!cx || !cy || cx <= 0) return null;
-                          const isStSelected = selectedStateName === stFeat.name;
+                    {/* Seceded Nation Capital Pins & Labels on Earth */}
+                    {STATIC_US_STATE_FEATURES.map((stFeat) => {
+                      const directOwnerId = territoryMap[stFeat.name];
+                      const usaOwnerId = territoryMap["United States of America"] || "usa";
+                      if (!directOwnerId || directOwnerId === usaOwnerId) return null;
 
-                          return (
-                            <g
-                              key={`st_label_${stFeat.name}`}
-                              transform={`translate(${cx}, ${cy})`}
-                            >
-                              <circle
-                                r={(isStSelected ? 3.0 : 1.8) / Math.sqrt(zoom)}
-                                fill={isStSelected ? "#ffffff" : "#22d3ee"}
-                                stroke="#020617"
-                                strokeWidth={0.6 / Math.sqrt(zoom)}
-                              />
-                              <text
-                                y={-3 / Math.sqrt(zoom)}
-                                textAnchor="middle"
-                                fill="#ffffff"
-                                fontSize={(isStSelected ? 8.5 : 7.2) / Math.sqrt(zoom)}
-                                fontWeight="700"
-                                style={{
-                                  textShadow: "0 1px 3px rgba(0,0,0,0.95)",
-                                }}
-                              >
-                                {meta.code}
-                              </text>
-                            </g>
-                          );
-                        })}
-                      </g>
-                    )}
+                      const stNation = nationById.get(directOwnerId);
+                      if (!stNation) return null;
+                      const [cx, cy] = stFeat.centroid;
+                      if (!cx || !cy || cx <= 0) return null;
+                      const isSelected = stNation.id === activeNation?.id;
+
+                      return (
+                        <g
+                          key={`seceded_pin_${stFeat.name}`}
+                          transform={`translate(${cx}, ${cy})`}
+                          className="cursor-pointer group pointer-events-auto"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            focusOnCountry(stNation);
+                            setShowStatesTableModal(true);
+                          }}
+                        >
+                          <circle
+                            r={(isSelected ? 5.0 : 3.8) / Math.sqrt(zoom)}
+                            fill={stNation.color || "#f59e0b"}
+                            stroke="#ffffff"
+                            strokeWidth={1.2 / Math.sqrt(zoom)}
+                          />
+                          <circle r={1.6 / Math.sqrt(zoom)} fill="#020617" />
+                          <text
+                            y={-6 / Math.sqrt(zoom)}
+                            textAnchor="middle"
+                            fill="#ffffff"
+                            fontSize={9 / Math.sqrt(zoom)}
+                            fontWeight="bold"
+                            fontFamily="sans-serif"
+                            className="pointer-events-none drop-shadow-[0_1px_4px_rgba(0,0,0,0.95)]"
+                          >
+                            {stNation.name}
+                          </text>
+                        </g>
+                      );
+                    })}
 
                     {/* Regional Constituent States for Other Major Global Nations */}
                     {viewTier === "country" &&
