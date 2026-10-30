@@ -18,7 +18,17 @@ import {
   Filter,
   Crown,
   TrendingUp,
+  TrendingDown,
   Loader2,
+  Landmark,
+  Percent,
+  ShieldAlert,
+  Building2,
+  DollarSign,
+  CreditCard,
+  ArrowUpRight,
+  Sliders,
+  Flag,
 } from "lucide-react";
 import { formatCurrency, formatCompactNumber } from "../utils/formatters";
 
