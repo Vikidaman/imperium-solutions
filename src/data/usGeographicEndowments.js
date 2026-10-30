@@ -1210,32 +1210,52 @@ export const US_GEOGRAPHIC_ENDOWMENTS = {
 /**
  * Returns geographic resource endowments for a given state name.
  * Strictly assigns 0 to any resource index where empirical deposits do not exist.
+ * Supports dynamic custom overrides (e.g. from Groq AI crisis & disaster simulations).
  */
-export function getUsStateEndowment(stateName) {
-  if (US_GEOGRAPHIC_ENDOWMENTS[stateName]) {
-    return US_GEOGRAPHIC_ENDOWMENTS[stateName];
+export function getUsStateEndowment(stateName, customOverrides = null) {
+  let base = US_GEOGRAPHIC_ENDOWMENTS[stateName];
+  if (!base) {
+    base = {
+      name: stateName,
+      code: stateName ? stateName.slice(0, 2).toUpperCase() : "--",
+      region: "Territory / Non-Core Unit",
+      hydrocarbonIndex: 0,
+      mineralIndex: 0,
+      arableLandIndex: 0,
+      logisticsWaterwayIndex: 0,
+      primaryBasins: [],
+      resources: {
+        hydrocarbons: "None (zero commercial extraction)",
+        criticalMinerals: "None (zero commercial deposits)",
+        agriculture: "Non-commercial / localized subsistence",
+        logistics: "Local roads / air transport only"
+      },
+      modeledIndustrialOutput: "$0 (No primary extractive industry)",
+      modeledAgriculturalOutput: "$0 (Negligible agricultural cash receipts)",
+      sourceAttribution: "USGS / USDA Zero-Baseline Standard"
+    };
   }
 
-  // Strict zero baseline for unlisted territories / foreign entities
-  return {
-    name: stateName,
-    code: stateName ? stateName.slice(0, 2).toUpperCase() : "--",
-    region: "Territory / Non-Core Unit",
-    hydrocarbonIndex: 0,
-    mineralIndex: 0,
-    arableLandIndex: 0,
-    logisticsWaterwayIndex: 0,
-    primaryBasins: [],
-    resources: {
-      hydrocarbons: "None (zero commercial extraction)",
-      criticalMinerals: "None (zero commercial deposits)",
-      agriculture: "Non-commercial / localized subsistence",
-      logistics: "Local roads / air transport only"
-    },
-    modeledIndustrialOutput: "$0 (No primary extractive industry)",
-    modeledAgriculturalOutput: "$0 (Negligible agricultural cash receipts)",
-    sourceAttribution: "USGS / USDA Zero-Baseline Standard"
-  };
+  if (customOverrides && customOverrides[stateName]) {
+    const ov = customOverrides[stateName];
+    const newHydro = Math.max(0, Math.min(100, (base.hydrocarbonIndex ?? 0) + (ov.hydrocarbonIndexDelta ?? 0)));
+    const newMineral = Math.max(0, Math.min(100, (base.mineralIndex ?? 0) + (ov.mineralIndexDelta ?? 0)));
+    const newArable = Math.max(0, Math.min(100, (base.arableLandIndex ?? 0) + (ov.arableLandIndexDelta ?? 0)));
+    const newLogistics = Math.max(0, Math.min(100, (base.logisticsWaterwayIndex ?? 0) + (ov.logisticsWaterwayIndexDelta ?? 0)));
+
+    return {
+      ...base,
+      ...ov,
+      hydrocarbonIndex: newHydro,
+      mineralIndex: newMineral,
+      arableLandIndex: newArable,
+      logisticsWaterwayIndex: newLogistics,
+      isDisrupted: Boolean(ov.isDisrupted || ov.logisticsWaterwayIndexDelta || ov.hydrocarbonIndexDelta),
+      disruptionReason: ov.reason || "Disaster disruption",
+    };
+  }
+
+  return base;
 }
 
 /**

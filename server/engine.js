@@ -703,6 +703,16 @@ export function evaluateSimulation(state) {
         importTariffRate:
           ex.importTariffRate !== undefined ? Number(ex.importTariffRate) : 0.0,
         illegal: Boolean(ex.illegal),
+        freightDelayFriction:
+          ex.freightDelayFriction !== undefined
+            ? Number(ex.freightDelayFriction)
+            : g.freightDelayFriction !== undefined
+            ? Number(g.freightDelayFriction)
+            : nation.freightDelayFriction !== undefined
+            ? Number(nation.freightDelayFriction)
+            : state.globalFreightDelayFriction !== undefined
+            ? Number(state.globalFreightDelayFriction)
+            : 1.0,
         dvgp,
         adjustedPrice,
         postExportPrice,
@@ -893,7 +903,25 @@ export function evaluateSimulation(state) {
             12.5 + (consSent / 100) * 25 + (secSent / 100) * 25 + (goodHype / 100) * 25;
         }
 
-        comp.vgp = emp * localPrice * WORKER_PRODUCTIVITY_SCALER;
+        // Freight delay friction & logistics bottlenecks (e.g. from destroyed ports, hurricanes, or rail strikes)
+        // throttles physical throughput for goods-based industries:
+        const freightFriction = Number(mRow?.freightDelayFriction) || 1.0;
+        const freightThroughputMultiplier = freightFriction > 1.0
+          ? (1.0 / Math.pow(freightFriction, 0.75))
+          : 1.0;
+
+        // Infrastructure disruption penalty from catastrophic events (roads, bridges, energy grid damage)
+        const infraPenalty = nation.infraDisruptionPenalty
+          ? Math.max(0.35, 1.0 - Number(nation.infraDisruptionPenalty))
+          : 1.0;
+
+        // Goods-based industries (Manufacturing and Agriculture) are physically logistics/port-constrained
+        const isGoodsSector = comp.gdpSector === "Industry & Manufacturing GDP" || comp.gdpSector === "Agricultural Sector GDP";
+        const sectorThroughputFactor = isGoodsSector
+          ? (freightThroughputMultiplier * infraPenalty)
+          : (0.7 + 0.3 * infraPenalty);
+
+        comp.vgp = emp * localPrice * WORKER_PRODUCTIVITY_SCALER * sectorThroughputFactor;
         comp.valuation = comp.vgp * comp.hypeFactor;
 
         totalEmployed += emp;
@@ -915,10 +943,23 @@ export function evaluateSimulation(state) {
       for (const [gName, mRow] of mMap.entries()) {
         const emp = sellOrdersByGood.get(gName) || 0;
         const localPrice = mRow.localPrice || 350;
-        const goodVgp = emp * localPrice * WORKER_PRODUCTIVITY_SCALER;
+
+        const freightFriction = Number(mRow?.freightDelayFriction) || 1.0;
+        const freightThroughputMultiplier = freightFriction > 1.0
+          ? (1.0 / Math.pow(freightFriction, 0.75))
+          : 1.0;
+        const infraPenalty = nation.infraDisruptionPenalty
+          ? Math.max(0.35, 1.0 - Number(nation.infraDisruptionPenalty))
+          : 1.0;
+        const sec = mRow.category || "Industry & Manufacturing GDP";
+        const isGoodsSector = sec === "Industry & Manufacturing GDP" || sec === "Agricultural Sector GDP";
+        const sectorThroughputFactor = isGoodsSector
+          ? (freightThroughputMultiplier * infraPenalty)
+          : (0.7 + 0.3 * infraPenalty);
+
+        const goodVgp = emp * localPrice * WORKER_PRODUCTIVITY_SCALER * sectorThroughputFactor;
         vgpByGood.set(gName, goodVgp);
 
-        const sec = mRow.category || "Industry & Manufacturing GDP";
         if (sectorVgp[sec] !== undefined) {
           sectorVgp[sec] += goodVgp;
           sectorEmp[sec] += emp;
@@ -1242,19 +1283,41 @@ export function evaluateSimulation(state) {
       crimePolicy,
       healthcarePolicy,
       servicesEvaluation: ["usa", "japan", "olympus"].includes(nation.id?.toLowerCase()) || nation.name === "USA"
-        ? evaluateServicesProduction({
-            endowment: {
-              humanCapitalIndex: 84,
-              urbanAgglomerationIndex: 86,
-              financialDepthIndex: 92,
-              digitalConnectivityIndex: 88,
-              consumerAmenityIndex: 82,
-            },
-            employedLabor: Math.round(totalEmployed * 0.76),
-            baseWage: (quarterlyWages * 4) || 64000,
-            sol,
-            crimeRate,
-          })
+        ? (() => {
+            let hIndex = 84, aIndex = 86, fIndex = 92, dIndex = 88, cIndex = 82;
+            if (state.customStateEndowments && typeof state.customStateEndowments === "object") {
+              let dH = 0, dA = 0, dF = 0, dD = 0, dC = 0, count = 0;
+              for (const ov of Object.values(state.customStateEndowments)) {
+                if (!ov) continue;
+                dH += Number(ov.humanCapitalIndexDelta || 0);
+                dA += Number(ov.urbanAgglomerationIndexDelta || 0);
+                dF += Number(ov.financialDepthIndexDelta || 0);
+                dD += Number(ov.digitalConnectivityIndexDelta || 0);
+                dC += Number(ov.consumerAmenityIndexDelta || 0);
+                count++;
+              }
+              if (count > 0) {
+                hIndex = Math.max(15, Math.min(100, hIndex + Math.round(dH / 50)));
+                aIndex = Math.max(15, Math.min(100, aIndex + Math.round(dA / 50)));
+                fIndex = Math.max(15, Math.min(100, fIndex + Math.round(dF / 50)));
+                dIndex = Math.max(15, Math.min(100, dIndex + Math.round(dD / 50)));
+                cIndex = Math.max(15, Math.min(100, cIndex + Math.round(dC / 50)));
+              }
+            }
+            return evaluateServicesProduction({
+              endowment: {
+                humanCapitalIndex: hIndex,
+                urbanAgglomerationIndex: aIndex,
+                financialDepthIndex: fIndex,
+                digitalConnectivityIndex: dIndex,
+                consumerAmenityIndex: cIndex,
+              },
+              employedLabor: Math.round(totalEmployed * 0.76),
+              baseWage: (quarterlyWages * 4) || 64000,
+              sol,
+              crimeRate,
+            });
+          })()
         : null,
     };
     nation.computed.forecast = computeGdpForecast(nation, state);

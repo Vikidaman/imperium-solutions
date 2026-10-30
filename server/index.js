@@ -1,3 +1,4 @@
+import "dotenv/config";
 import express from "express";
 import cors from "cors";
 import path from "node:path";
@@ -35,7 +36,12 @@ import {
   resolveNewsDilemma,
   publishCustomNews,
 } from "./engine.js";
-import { generateEconomicAdvisory } from "./aiEconomicAdvisor.js";
+import {
+  generateEconomicAdvisory,
+  simulateEconomicShock,
+  applyEconomicShockToState,
+  restoreEconomicShock,
+} from "./aiEconomicAdvisor.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
@@ -1361,6 +1367,85 @@ app.post("/api/ai/economic-advisory", async (req, res) => {
     res.json(result);
   } catch (err) {
     console.error("AI Economic Advisory failed:", err.message);
+    res.status(500).json({ error: err.message, success: false });
+  }
+});
+
+// Groq AI Macroeconomic Shock & Disaster Simulator
+app.post("/api/ai/simulate-shock", async (req, res) => {
+  try {
+    const { prompt, state, nationName, selectedStateName } = req.body || {};
+    const simulation = await simulateEconomicShock({
+      prompt,
+      state,
+      nationName: nationName || "USA",
+      selectedStateName,
+    });
+    res.json(simulation);
+  } catch (err) {
+    console.error("AI Economic Shock Simulation failed:", err.message);
+    res.status(500).json({ error: err.message, success: false });
+  }
+});
+
+// Directly execute an AI shock onto an active session
+app.post("/api/sessions/:id/ai-shock", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const sess = getSession(id);
+    if (!sess) {
+      return res.status(404).json({ error: `Session "${id}" not found.` });
+    }
+
+    const { prompt, selectedStateName, shockResult: providedShock } = req.body || {};
+    let shock = providedShock;
+
+    if (!shock) {
+      const generated = await simulateEconomicShock({
+        prompt,
+        state: sess.state,
+        nationName: sess.state.nations?.[0]?.name || "USA",
+        selectedStateName,
+      });
+      shock = generated.shockResult;
+    }
+
+    const diffResult = applyEconomicShockToState(sess.state, shock);
+    updateSession(id, sess.state);
+
+    res.json({
+      success: true,
+      session: sess,
+      shockResult: shock,
+      beforeAfterDiff: diffResult.beforeAfterDiff,
+      toastMessage: `⚠️ ${shock.headline}`,
+    });
+  } catch (err) {
+    console.error("Session AI Shock execution failed:", err.message);
+    res.status(500).json({ error: err.message, success: false });
+  }
+});
+
+// Restore session infrastructure and baseline endowments
+app.post("/api/sessions/:id/restore-shock", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const sess = getSession(id);
+    if (!sess) {
+      return res.status(404).json({ error: `Session "${id}" not found.` });
+    }
+
+    const result = restoreEconomicShock(sess.state);
+    updateSession(id, sess.state);
+
+    res.json({
+      success: true,
+      session: sess,
+      message: result.message,
+      toastMessage: "✅ Infrastructure and supply chains restored.",
+    });
+  } catch (err) {
+    console.error("Session restore shock failed:", err.message);
     res.status(500).json({ error: err.message, success: false });
   }
 });

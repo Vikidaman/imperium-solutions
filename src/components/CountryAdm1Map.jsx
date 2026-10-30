@@ -53,6 +53,7 @@ export default function CountryAdm1Map({
   territoryMap = {},
   nationColor = "#06b6d4",
   economicSubdivisions = [],
+  customEndowments = null,
 }) {
   const mapContainerRef = useRef(null);
   const leafletMapRef = useRef(null);
@@ -176,7 +177,7 @@ export default function CountryAdm1Map({
               fillColor = "#f59e0b";
               fillOpacity = 0.65;
             } else if (layerMode === "resources" && isUsa) {
-              const endow = getUsStateEndowment(name);
+              const endow = getUsStateEndowment(name, customEndowments);
               if (resourceCategory === "oil_gas") {
                 const val = endow.hydrocarbonIndex || 0;
                 if (val <= 0) {
@@ -228,7 +229,7 @@ export default function CountryAdm1Map({
                 }
               }
             } else if (layerMode === "services" && isUsa) {
-              const srvEndow = getUsStateServicesEndowment(name);
+              const srvEndow = getUsStateServicesEndowment(name, customEndowments);
               if (serviceCategory === "tech") {
                 const val = ((srvEndow.digitalConnectivityIndex || 50) + (srvEndow.humanCapitalIndex || 50)) / 2;
                 const ratio = val / 100;
@@ -262,6 +263,8 @@ export default function CountryAdm1Map({
               fillOpacity = 0.28;
             }
 
+            const isDisrupted = isUsa && customEndowments && customEndowments[name]?.isDisrupted;
+
             if (isSelected) {
               fillColor = "#38bdf8";
               fillOpacity = 0.68;
@@ -270,10 +273,10 @@ export default function CountryAdm1Map({
             return {
               fillColor,
               fillOpacity,
-              color: isSelected ? "#ffffff" : isSeceded ? "#fef08a" : "#38bdf8",
-              weight: isSelected ? 2.5 : 1.2,
+              color: isSelected ? "#ffffff" : isSeceded ? "#fef08a" : isDisrupted ? "#f43f5e" : "#38bdf8",
+              weight: isSelected ? 2.5 : isDisrupted ? 2.2 : 1.2,
               opacity: 0.85,
-              dashArray: isSeceded ? "4, 3" : "",
+              dashArray: isSeceded ? "4, 3" : isDisrupted ? "4, 4" : "",
             };
           },
 
@@ -307,11 +310,11 @@ export default function CountryAdm1Map({
               geoLayer.resetStyle(layer);
             });
 
-            // Clean Tooltip
-            const endow = isUsa ? getUsStateEndowment(name) : null;
-            const srvEndow = isUsa ? getUsStateServicesEndowment(name) : null;
+            // Clean High-Contrast Tooltip
+            const endow = isUsa ? getUsStateEndowment(name, customEndowments) : null;
+            const srvEndow = isUsa ? getUsStateServicesEndowment(name, customEndowments) : null;
             const stateMeta = isUsa ? getUsaStateData(name) : null;
-            let tooltipContent = `<div style="background: #090e17; color: #f8fafc; border-radius: 10px;" class="p-2.5 min-w-[220px] max-w-[280px] font-sans text-xs">
+            let tooltipContent = `<div style="background: #090e17; color: #f8fafc; border-radius: 10px; border: 1px solid rgba(56, 189, 248, 0.4);" class="p-2.5 min-w-[220px] max-w-[280px] font-sans text-xs shadow-2xl">
               <div class="flex items-center justify-between gap-2 pb-1 border-b border-slate-700/60">
                 <span class="font-bold text-white text-sm tracking-wide">${name}</span>
                 ${stateMeta?.code ? `<span class="text-[10px] bg-cyan-500/25 text-cyan-200 border border-cyan-400/50 font-mono font-bold px-1.5 py-0.5 rounded shadow-sm">${stateMeta.code}</span>` : ""}
@@ -322,6 +325,14 @@ export default function CountryAdm1Map({
                 <span class="text-slate-400">Capital:</span>
                 <strong class="text-white font-semibold">${stateMeta.capital}</strong>
               </div>`;
+            }
+
+            if (endow?.isDisrupted) {
+              tooltipContent += `
+                <div class="mt-2 p-1.5 rounded-md bg-rose-950/95 border border-rose-500/60 flex items-start gap-1.5 text-[10.5px] text-rose-200 shadow-sm animate-pulse">
+                  <span class="text-rose-400 font-bold shrink-0">⚠️ CRISIS:</span>
+                  <span class="leading-tight">${endow.disruptionReason || "Infrastructure disrupted"}</span>
+                </div>`;
             }
 
             if (srvEndow && layerMode === "services") {
@@ -570,7 +581,7 @@ export default function CountryAdm1Map({
     return () => {
       active = false;
     };
-  }, [geoData, mapProvider, layerMode, resourceCategory, serviceCategory, isUsa, nation, selectedSubdivision, nationColor]);
+  }, [geoData, mapProvider, layerMode, resourceCategory, serviceCategory, isUsa, nation, selectedSubdivision, nationColor, customEndowments]);
 
   // Clean-up on unmount
   useEffect(() => {
@@ -860,7 +871,7 @@ export default function CountryAdm1Map({
             {isUsa && (
               (() => {
                 if (layerMode === "services") {
-                  const srvEndow = getUsStateServicesEndowment(hoveredFeature.properties?.name);
+                  const srvEndow = getUsStateServicesEndowment(hoveredFeature.properties?.name, customEndowments);
                   return (
                     <div className="mt-1 pt-1 border-t border-slate-800 text-[10px] space-y-0.5">
                       <div className="text-slate-300 font-mono-num">
@@ -869,13 +880,18 @@ export default function CountryAdm1Map({
                       <div className="text-slate-300 font-mono-num">
                         🏦 Finance: <strong className="text-emerald-300">{srvEndow.financialDepthIndex}%</strong> | 🍸 Amenities: <strong className="text-rose-300">{srvEndow.consumerAmenityIndex}%</strong>
                       </div>
+                      {srvEndow.isDisrupted && (
+                        <div className="text-rose-400 font-semibold text-[9.5px]">
+                          ⚠️ Crisis Disrupted: {srvEndow.disruptionReason}
+                        </div>
+                      )}
                       <div className="text-slate-400 text-[9px] pt-0.5 font-mono">
                         {srvEndow.modeledServicesOutput}
                       </div>
                     </div>
                   );
                 }
-                const endow = getUsStateEndowment(hoveredFeature.properties?.name);
+                const endow = getUsStateEndowment(hoveredFeature.properties?.name, customEndowments);
                 return (
                   <div className="mt-1 pt-1 border-t border-slate-800 text-[10px] space-y-0.5">
                     <div className="text-slate-300 font-mono-num">
@@ -884,6 +900,11 @@ export default function CountryAdm1Map({
                     <div className="text-slate-300 font-mono-num">
                       🌾 Arable: <strong className="text-emerald-400">{endow.arableLandIndex}%</strong> | ⚓ Ports: <strong className="text-cyan-400">{endow.logisticsWaterwayIndex}%</strong>
                     </div>
+                    {endow.isDisrupted && (
+                      <div className="text-rose-400 font-semibold text-[9.5px]">
+                        ⚠️ Crisis Disrupted: {endow.disruptionReason}
+                      </div>
+                    )}
                   </div>
                 );
               })()

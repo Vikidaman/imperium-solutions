@@ -14,6 +14,12 @@ import {
   resolveNewsDilemma,
   publishCustomNews,
 } from "./server/engine.js";
+import {
+  generateEconomicAdvisory,
+  simulateEconomicShock,
+  applyEconomicShockToState,
+  restoreEconomicShock,
+} from "./server/aiEconomicAdvisor.js";
 
 const CHUNK_SIZE = 350000; // 350 KB per D1 row (well below D1's 1 MB limit)
 
@@ -683,6 +689,37 @@ export default {
           },
           403
         );
+      }
+    }
+
+    // --- GROQ AI ECONOMIC INTELLIGENCE & SHOCK ROUTES ---
+    if (parts[1] === "ai") {
+      const groqKey = env.GROQ_API_KEY || (typeof process !== "undefined" && process.env?.GROQ_API_KEY) || "";
+
+      if (parts[2] === "economic-advisory" && request.method === "POST") {
+        try {
+          const body = await request.json().catch(() => ({}));
+          const advisory = await generateEconomicAdvisory({
+            ...body,
+            apiKey: groqKey,
+          });
+          return jsonResponse(advisory);
+        } catch (err) {
+          return jsonResponse({ error: err.message, success: false }, 500);
+        }
+      }
+
+      if (parts[2] === "simulate-shock" && request.method === "POST") {
+        try {
+          const body = await request.json().catch(() => ({}));
+          const result = await simulateEconomicShock({
+            ...body,
+            apiKey: groqKey,
+          });
+          return jsonResponse(result);
+        } catch (err) {
+          return jsonResponse({ error: err.message, success: false }, 500);
+        }
       }
     }
 
@@ -1612,6 +1649,68 @@ export default {
         return jsonResponse({
           session: sess,
           toastMessage: result.toastMessage || result.action,
+          activityLog: await getActivityLog(db, sessionId, 60),
+        });
+      }
+
+      // POST /api/sessions/:id/ai-shock
+      if (parts[3] === "ai-shock" && request.method === "POST") {
+        const body = await request.json().catch(() => ({}));
+        const groqKey = env.GROQ_API_KEY || (typeof process !== "undefined" && process.env?.GROQ_API_KEY) || "";
+        const { prompt, selectedStateName, shockResult: providedShock, actor = "Director" } = body;
+
+        let shock = providedShock;
+        if (!shock) {
+          const generated = await simulateEconomicShock({
+            prompt,
+            state: sess.state,
+            nationName: sess.state.nations?.[0]?.name || "USA",
+            selectedStateName,
+            apiKey: groqKey,
+          });
+          shock = generated.shockResult;
+        }
+
+        const diffResult = applyEconomicShockToState(sess.state, shock);
+        await saveStateToD1(db, sess);
+        await logActivity(
+          db,
+          sessionId,
+          actor,
+          "AI Economic Shock",
+          `${shock.headline} (Goods GDP delta: ${diffResult.beforeAfterDiff.goodsPctChange.toFixed(1)}%)`
+        );
+
+        return jsonResponse({
+          success: true,
+          session: sess,
+          shockResult: shock,
+          beforeAfterDiff: diffResult.beforeAfterDiff,
+          toastMessage: `⚠️ ${shock.headline}`,
+          activityLog: await getActivityLog(db, sessionId, 60),
+        });
+      }
+
+      // POST /api/sessions/:id/restore-shock
+      if (parts[3] === "restore-shock" && request.method === "POST") {
+        const body = await request.json().catch(() => ({}));
+        const { actor = "Director" } = body;
+
+        const result = restoreEconomicShock(sess.state);
+        await saveStateToD1(db, sess);
+        await logActivity(
+          db,
+          sessionId,
+          actor,
+          "Disaster Recovery",
+          "Restored infrastructure, cleared freight friction, recovered ports."
+        );
+
+        return jsonResponse({
+          success: true,
+          session: sess,
+          message: result.message,
+          toastMessage: "✅ Infrastructure and supply chains restored.",
           activityLog: await getActivityLog(db, sessionId, 60),
         });
       }

@@ -2415,39 +2415,67 @@ export const US_SERVICES_ENDOWMENTS = {
 /**
  * Retrieves the services endowments for a given US state.
  * Returns grounded 5-dimensional services rating with zero fictional baselines.
+ * Supports dynamic custom overrides (e.g. from Groq AI crisis & disaster simulations).
  */
-export function getUsStateServicesEndowment(stateName) {
+export function getUsStateServicesEndowment(stateName, customOverrides = null) {
   if (!stateName) return null;
-  const match = US_SERVICES_ENDOWMENTS[stateName];
-  if (match) return match;
+  let endow = US_SERVICES_ENDOWMENTS[stateName];
 
-  const clean = stateName.toLowerCase().trim();
-  for (const [name, endow] of Object.entries(US_SERVICES_ENDOWMENTS)) {
-    if (name.toLowerCase() === clean || endow.code.toLowerCase() === clean) {
-      return endow;
+  if (!endow) {
+    const clean = stateName.toLowerCase().trim();
+    for (const [name, e] of Object.entries(US_SERVICES_ENDOWMENTS)) {
+      if (name.toLowerCase() === clean || e.code.toLowerCase() === clean) {
+        endow = e;
+        break;
+      }
     }
   }
 
   // Fallback for non-state territories (e.g. Puerto Rico, Guam)
-  return {
-    name: stateName,
-    code: stateName.slice(0, 2).toUpperCase(),
-    region: "Dependent Territory",
-    humanCapitalIndex: 50,
-    urbanAgglomerationIndex: 50,
-    financialDepthIndex: 45,
-    digitalConnectivityIndex: 55,
-    consumerAmenityIndex: 75,
-    primaryClusters: [],
-    servicesProfile: {
-      techAndDefense: "Local IT and telecommunications services",
-      banking: "Community banking and retail commerce",
-      healthcare: "Regional municipal clinics and hospitals",
-      hospitality: "Island tourism and local dining services"
-    },
-    modeledServicesOutput: "$8B (Local Services)",
-    sourceAttribution: "BEA Regional Economic Accounts"
-  };
+  if (!endow) {
+    endow = {
+      name: stateName,
+      code: stateName.slice(0, 2).toUpperCase(),
+      region: "Dependent Territory",
+      humanCapitalIndex: 50,
+      urbanAgglomerationIndex: 50,
+      financialDepthIndex: 45,
+      digitalConnectivityIndex: 55,
+      consumerAmenityIndex: 75,
+      primaryClusters: [],
+      servicesProfile: {
+        techAndDefense: "Local IT and telecommunications services",
+        banking: "Community banking and retail commerce",
+        healthcare: "Regional municipal clinics and hospitals",
+        hospitality: "Island tourism and local dining services"
+      },
+      modeledServicesOutput: "$8B (Local Services)",
+      sourceAttribution: "BEA Regional Economic Accounts"
+    };
+  }
+
+  if (customOverrides && customOverrides[stateName]) {
+    const ov = customOverrides[stateName];
+    const newH = Math.max(0, Math.min(100, (endow.humanCapitalIndex ?? 50) + (ov.humanCapitalIndexDelta ?? 0)));
+    const newA = Math.max(0, Math.min(100, (endow.urbanAgglomerationIndex ?? 50) + (ov.urbanAgglomerationIndexDelta ?? 0)));
+    const newF = Math.max(0, Math.min(100, (endow.financialDepthIndex ?? 50) + (ov.financialDepthIndexDelta ?? 0)));
+    const newD = Math.max(0, Math.min(100, (endow.digitalConnectivityIndex ?? 50) + (ov.digitalConnectivityIndexDelta ?? 0)));
+    const newC = Math.max(0, Math.min(100, (endow.consumerAmenityIndex ?? 50) + (ov.consumerAmenityIndexDelta ?? 0)));
+
+    return {
+      ...endow,
+      ...ov,
+      humanCapitalIndex: newH,
+      urbanAgglomerationIndex: newA,
+      financialDepthIndex: newF,
+      digitalConnectivityIndex: newD,
+      consumerAmenityIndex: newC,
+      isDisrupted: Boolean(ov.isDisrupted || ov.consumerAmenityIndexDelta || ov.urbanAgglomerationIndexDelta),
+      disruptionReason: ov.reason || "Disaster disruption",
+    };
+  }
+
+  return endow;
 }
 
 /**

@@ -578,6 +578,50 @@ export default function App() {
     }
   };
 
+  const handleAiShock = async ({ prompt, selectedStateName, shockResult }) => {
+    if (guardReadOnly()) return;
+    lastMutationTimeRef.current = Date.now();
+    const res = await fetch(`/api/sessions/${activeSessionId}/ai-shock`, {
+      method: "POST",
+      headers: getMutationHeaders(),
+      body: JSON.stringify({ prompt, selectedStateName, shockResult, actor: actorName }),
+    });
+    if (res.ok) {
+      const data = await res.json();
+      setSessionData(data.session);
+      setActivityLog(data.activityLog || []);
+      if (data.toastMessage) {
+        showToast(data.toastMessage);
+      }
+      return data;
+    } else {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || "Failed to execute crisis shock.");
+    }
+  };
+
+  const handleRestoreShock = async () => {
+    if (guardReadOnly()) return;
+    lastMutationTimeRef.current = Date.now();
+    const res = await fetch(`/api/sessions/${activeSessionId}/restore-shock`, {
+      method: "POST",
+      headers: getMutationHeaders(),
+      body: JSON.stringify({ actor: actorName }),
+    });
+    if (res.ok) {
+      const data = await res.json();
+      setSessionData(data.session);
+      setActivityLog(data.activityLog || []);
+      if (data.toastMessage) {
+        showToast(data.toastMessage);
+      }
+      return data;
+    } else {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || "Failed to restore infrastructure.");
+    }
+  };
+
   const handleUpdateDirectorConfig = async (payload) => {
     if (guardReadOnly()) return;
     lastMutationTimeRef.current = Date.now();
@@ -940,6 +984,8 @@ export default function App() {
                 onCreateNation={handleCreateNation}
                 onJumpToTab={handleJumpToTab}
                 onVictoriaAction={handleVictoriaAction}
+                onAiShock={handleAiShock}
+                onRestoreShock={handleRestoreShock}
                 isReadOnly={isReadOnly}
               />
             )}

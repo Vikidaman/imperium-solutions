@@ -44,6 +44,13 @@ import {
   Laptop,
   GraduationCap,
   UtensilsCrossed,
+  Zap,
+  Flame,
+  AlertTriangle,
+  X,
+  Activity,
+  FileText,
+  RefreshCw,
 } from "lucide-react";
 import BufferedRangeSlider from "./BufferedRangeSlider";
 import CountryAdm1Map from "./CountryAdm1Map";
@@ -535,6 +542,8 @@ export default function InteractiveWorldMap({
   onCreateNation,
   onJumpToTab,
   onVictoriaAction,
+  onAiShock,
+  onRestoreShock,
   isReadOnly = false,
 }) {
   const nations = state.nations || [];
@@ -559,6 +568,14 @@ export default function InteractiveWorldMap({
   const [hoveredModalState, setHoveredModalState] = useState(null);
   const tooltipRef = useRef(null);
   const setHoveredTerritory = (val) => tooltipRef.current?.setHover(val);
+
+  // Groq AI Macroeconomic Shock & Crisis Engine state
+  const [showShockModal, setShowShockModal] = useState(false);
+  const [shockPrompt, setShockPrompt] = useState("");
+  const [shockLoading, setShockLoading] = useState(false);
+  const [shockError, setShockError] = useState(null);
+  const [shockResultData, setShockResultData] = useState(null);
+  const [shockDiffData, setShockDiffData] = useState(null);
 
   // Groq AI Economic Advisory state
   const [aiAdvisory, setAiAdvisory] = useState(null);
@@ -585,6 +602,102 @@ export default function InteractiveWorldMap({
       setAiAdvisory("Failed to generate AI advisory: " + err.message);
     } finally {
       setAiLoading(false);
+    }
+  };
+
+  const SHOCK_PRESETS = [
+    {
+      id: "katrina",
+      title: "🌪️ Category 5 Hurricane Katrina",
+      badge: "Gulf Disaster",
+      desc: "Massive storm surge breaches New Orleans levees, flooding Port of South Louisiana and Port of New Orleans (-70% port logistics), shutting down regional oil refineries (-40% hydrocarbons), and increasing national freight transit delay by 2.5x.",
+      prompt: "Category 5 Hurricane Katrina strikes the Louisiana and Mississippi Gulf Coast. Severe storm surges flood the Port of South Louisiana and Port of New Orleans deepwater berths (-70% logistics waterway index), knock offline regional oil refineries and Gulf platforms (-40% hydrocarbons), destroy coastal amenities, and spike national freight delay friction to 2.5x normal, heavily contracting goods-based manufacturing output.",
+    },
+    {
+      id: "opec",
+      title: "🛢️ 1970s OPEC Oil Embargo",
+      badge: "Energy Shock",
+      desc: "OPEC cartel announces an immediate crude export embargo and extraction quota cuts, driving energy spot prices up +45%, creating severe refinery feed shortages, and spiking transportation freight friction.",
+      prompt: "Geopolitical conflict triggers a severe OPEC oil embargo and production cut. Crude oil spot prices spike +45%, refined fuel and diesel supply plummets, freight delay friction rises to 2.2x, and petrochemical manufacturing and heavy industries contract nationwide.",
+    },
+    {
+      id: "drought",
+      title: "🌾 Great Plains Mega-Drought",
+      badge: "Agriculture",
+      desc: "Severe contiguous drought and heatwave across Kansas, Nebraska, Iowa, and the Midwest. Arable land crop yields plummet -60%, shallow river navigation restricts grain barge shipping, and food prices spike.",
+      prompt: "A historic contiguous megadrought hits Kansas, Nebraska, Iowa, and the Midwest grain belt. Arable land output plummets -60%, shallow river levels restrict barge grain exports along the Mississippi-Missouri system, and agricultural GDP drops steeply.",
+    },
+    {
+      id: "cyber",
+      title: "💻 Colonial Pipeline & Grid Cyberattack",
+      badge: "Cyber Warfare",
+      desc: "Catastrophic nation-state cyber offensive disables Eastern fuel pipelines and regional power substations, crippling freight logistics and digital infrastructure.",
+      prompt: "A catastrophic state-sponsored cyberattack strikes Eastern pipeline SCADA networks and regional grid substations. Refined product pipelines halt, digital connectivity drops -30%, freight delay increases to 2.4x, and industrial assembly plants are paralyzed.",
+    },
+    {
+      id: "strike",
+      title: "⚓ West Coast Longshoremen Strike",
+      badge: "Supply Chain",
+      desc: "Coordinated labor shutdown at Port of Los Angeles and Port of Long Beach. Over 100 container ships stranded at anchor, causing 3.0x freight delay for manufactured goods.",
+      prompt: "A total labor strike paralyzes the Port of Los Angeles and Port of Long Beach in California. Container terminals shut down completely (-75% Pacific logistics), freight delay friction escalates to 3.0x, and manufacturing assembly lines stall for lack of intermediate components.",
+    },
+  ];
+
+  const handleExecuteShock = async (overridePrompt = null) => {
+    const text = overridePrompt || shockPrompt;
+    if (!text || !text.trim()) {
+      setShockError("Please enter a disaster or crisis description, or select a preset.");
+      return;
+    }
+    setShockLoading(true);
+    setShockError(null);
+
+    try {
+      if (onAiShock) {
+        const res = await onAiShock({
+          prompt: text.trim(),
+          selectedStateName: selectedStateName || undefined,
+        });
+        setShockResultData(res.shockResult);
+        setShockDiffData(res.beforeAfterDiff);
+      } else {
+        // Fallback direct endpoint call
+        const res = await fetch("/api/ai/simulate-shock", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            prompt: text.trim(),
+            state,
+            nationName: activeNation?.name || "USA",
+            selectedStateName: selectedStateName || undefined,
+          }),
+        });
+        const json = await res.json();
+        if (!res.ok) throw new Error(json.error || "Shock simulation failed.");
+        setShockResultData(json.shockResult);
+      }
+    } catch (err) {
+      setShockError(err.message || "Failed to simulate economic shock.");
+    } finally {
+      setShockLoading(false);
+    }
+  };
+
+  const handleRestoreInfrastructure = async () => {
+    setShockLoading(true);
+    try {
+      if (onRestoreShock) {
+        await onRestoreShock();
+      } else {
+        await fetch("/api/ai/restore-shock", { method: "POST" });
+      }
+      setShockResultData(null);
+      setShockDiffData(null);
+      setShowShockModal(false);
+    } catch (err) {
+      setShockError(err.message || "Failed to restore infrastructure.");
+    } finally {
+      setShockLoading(false);
     }
   };
 
@@ -1499,6 +1612,15 @@ export default function InteractiveWorldMap({
               States Table Pop-Up
             </button>
 
+            <button
+              onClick={() => setShowShockModal(true)}
+              className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-rose-600 via-amber-600 to-rose-700 hover:from-rose-500 hover:to-amber-500 text-white font-bold text-xs flex items-center gap-1.5 shadow-lg shadow-rose-950/50 border border-rose-400/50 cursor-pointer transition active:scale-95"
+              title="Trigger an economic shock, natural disaster, or port shutdown using Groq AI"
+            >
+              <Zap className="w-3.5 h-3.5 text-amber-200 fill-amber-300" />
+              ⚡ Groq AI Crisis Simulator
+            </button>
+
             {!isReadOnly && (
               <button
                 onClick={() => setShowProvinceManager(true)}
@@ -1667,6 +1789,47 @@ export default function InteractiveWorldMap({
         )}
       </div>
 
+      {/* Active Crisis Alert Banner */}
+      {state?.activeEconomicShock && (
+        <div className="bg-gradient-to-r from-rose-950/95 via-slate-900/95 to-amber-950/95 border border-rose-500/70 rounded-2xl p-4 flex flex-wrap items-center justify-between gap-4 text-xs shadow-2xl animate-in fade-in duration-200">
+          <div className="flex items-center gap-3.5">
+            <div className="flex h-3.5 w-3.5 relative shrink-0">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-3.5 w-3.5 bg-rose-500"></span>
+            </div>
+            <div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="font-mono text-[10px] font-bold uppercase tracking-wider text-rose-300 bg-rose-900/80 px-2 py-0.5 rounded border border-rose-600/60 shadow-sm">
+                  {state.activeEconomicShock.severity || "HIGH"} CRISIS
+                </span>
+                <strong className="text-white font-bold text-sm tracking-wide">
+                  {state.activeEconomicShock.headline}
+                </strong>
+              </div>
+              <p className="text-rose-200/90 text-xs mt-1 leading-snug max-w-4xl">
+                {state.activeEconomicShock.sitrep}
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              onClick={() => setShowShockModal(true)}
+              className="px-3.5 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-cyan-300 border border-cyan-500/40 text-xs font-semibold cursor-pointer transition shadow"
+            >
+              Inspect SitRep
+            </button>
+            <button
+              onClick={handleRestoreInfrastructure}
+              disabled={shockLoading}
+              className="px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold shadow-lg cursor-pointer transition flex items-center gap-1.5 active:scale-95"
+            >
+              <CheckCircle2 className="w-3.5 h-3.5" />
+              Rebuild Infrastructure
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Main Split View: Interactive Map Canvas (Left 7 Cols) + Nation Command Drawer (Right 5 Cols) */}
       {viewTier === "country" && activeNation ? (
         /* TIER 3: COUNTRY & CONSTITUENT STATES DEDICATED IN-PAGE VIEW */
@@ -1681,6 +1844,7 @@ export default function InteractiveWorldMap({
                 territoryMap={territoryMap}
                 nationColor={nationColorMap.get(activeNation.id) || activeNation.color || "#06b6d4"}
                 economicSubdivisions={nationalStatesList}
+                customEndowments={state?.customStateEndowments}
               />
             </div>
 
@@ -3710,6 +3874,7 @@ export default function InteractiveWorldMap({
                   territoryMap={territoryMap}
                   nationColor={nationColorMap.get(activeNation.id) || activeNation.color || "#06b6d4"}
                   economicSubdivisions={nationalStatesList}
+                  customEndowments={state?.customStateEndowments}
                 />
               </div>
 
@@ -4569,6 +4734,342 @@ export default function InteractiveWorldMap({
                 className="px-5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold cursor-pointer"
               >
                 Close Province Manager
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================
+          GROQ AI CRISIS & MACROECONOMIC SHOCK SIMULATOR MODAL
+         ======================================================== */}
+      {showShockModal && (
+        <div className="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-6 animate-in fade-in duration-150">
+          <div className="bg-slate-900 border border-rose-500/50 rounded-3xl max-w-5xl w-full shadow-2xl overflow-hidden flex flex-col max-h-[92vh]">
+            {/* Modal Header */}
+            <div className="p-5 border-b border-slate-800 bg-gradient-to-r from-rose-950/80 via-slate-950/90 to-amber-950/80 flex flex-wrap items-center justify-between gap-4">
+              <div className="flex items-center gap-3.5">
+                <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-rose-600 to-amber-600 flex items-center justify-center text-white shadow-xl shadow-rose-950/80">
+                  <Zap className="w-6 h-6 text-amber-200 fill-amber-300" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h2 className="text-xl font-bold text-white tracking-wide flex items-center gap-2">
+                      Groq AI Crisis & Economic Shock Simulator
+                    </h2>
+                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-rose-500/25 text-rose-300 border border-rose-400/50 font-mono-num font-bold uppercase tracking-wider">
+                      Ultra-Fast LLM Inference
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-400 mt-0.5">
+                    Describe any real or hypothetical disaster, port strike, or embargo. Groq AI mutates state endowments, bottlenecks freight, and dampens goods GDP.
+                  </p>
+                </div>
+              </div>
+
+              <button
+                onClick={() => setShowShockModal(false)}
+                className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition cursor-pointer"
+                title="Close Crisis Terminal"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="p-5 overflow-y-auto space-y-5 text-xs text-slate-200">
+              {/* Quick Crisis Scenario Presets */}
+              <div>
+                <label className="text-xs font-bold text-slate-300 uppercase tracking-wider block mb-2 flex items-center gap-1.5">
+                  <Flame className="w-3.5 h-3.5 text-amber-400" />
+                  Quick Scenario Presets
+                </label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
+                  {SHOCK_PRESETS.map((p) => {
+                    const isSelected = shockPrompt === p.prompt;
+                    return (
+                      <div
+                        key={p.id}
+                        onClick={() => {
+                          setShockPrompt(p.prompt);
+                          setShockError(null);
+                        }}
+                        className={`p-3 rounded-xl border cursor-pointer transition flex flex-col justify-between gap-1.5 ${
+                          isSelected
+                            ? "bg-rose-950/70 border-rose-500 shadow-md ring-1 ring-rose-500/50"
+                            : "bg-slate-950/60 border-slate-800 hover:border-slate-700 hover:bg-slate-900/80"
+                        }`}
+                      >
+                        <div>
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="font-bold text-white text-xs">{p.title}</span>
+                            <span className="text-[9px] px-1.5 py-0.2 rounded bg-slate-800 text-amber-300 font-mono">
+                              {p.badge}
+                            </span>
+                          </div>
+                          <p className="text-[11px] text-slate-400 mt-1 leading-snug line-clamp-3">
+                            {p.desc}
+                          </p>
+                        </div>
+                        <div className="flex items-center justify-between pt-1 border-t border-slate-800/80 text-[10px] text-cyan-400 font-semibold">
+                          <span>Load scenario</span>
+                          <span>→</span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Natural Language Prompt & Target Selector */}
+              <div className="bg-slate-950/70 border border-slate-800 rounded-2xl p-4 space-y-3">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <label className="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
+                    <Activity className="w-3.5 h-3.5 text-cyan-400" />
+                    Custom Disaster or Shock Prompt:
+                  </label>
+                  <div className="flex items-center gap-2 text-xs">
+                    <span className="text-slate-400">Epicenter State (optional):</span>
+                    <select
+                      value={selectedStateName || ""}
+                      onChange={(e) => setSelectedStateName(e.target.value || null)}
+                      className="px-2.5 py-1 rounded-lg bg-slate-900 border border-slate-700 text-xs text-white"
+                    >
+                      <option value="">National / Multi-State</option>
+                      {nationalStatesList.map((st) => (
+                        <option key={st.name} value={st.name}>
+                          {st.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                <textarea
+                  rows={3}
+                  value={shockPrompt}
+                  onChange={(e) => setShockPrompt(e.target.value)}
+                  placeholder="e.g., A major earthquake strikes Southern California, fracturing highway overpasses, closing the Port of Long Beach, and halting semiconductor distribution..."
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-rose-500 font-sans leading-relaxed"
+                />
+
+                {shockError && (
+                  <div className="p-2.5 rounded-xl bg-rose-950/80 border border-rose-500 text-rose-200 text-xs flex items-center gap-2">
+                    <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0" />
+                    <span>{shockError}</span>
+                  </div>
+                )}
+
+                <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
+                  <span className="text-[11px] text-slate-400">
+                    Groq will extract damaged ports, severed waterways, hydrocarbon refinery loss, and calculate Leontief goods GDP contraction.
+                  </span>
+                  <button
+                    onClick={() => handleExecuteShock()}
+                    disabled={shockLoading || !shockPrompt.trim()}
+                    className={`px-5 py-2.5 rounded-xl font-bold text-xs flex items-center gap-2 shadow-xl transition active:scale-95 cursor-pointer ${
+                      shockLoading || !shockPrompt.trim()
+                        ? "bg-slate-800 text-slate-500 border border-slate-700 cursor-not-allowed"
+                        : "bg-gradient-to-r from-rose-600 via-amber-600 to-rose-700 hover:from-rose-500 hover:to-amber-500 text-white border border-rose-400/50 shadow-rose-950/50"
+                    }`}
+                  >
+                    {shockLoading ? (
+                      <>
+                        <div className="w-4 h-4 rounded-full border-2 border-white border-t-transparent animate-spin" />
+                        <span>Simulating Economic Shockwave...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Zap className="w-4 h-4 text-amber-200 fill-amber-300" />
+                        <span>Simulate & Execute Shock</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+
+              {/* Simulation Result / SitRep / Quantitative Damage Diff */}
+              {(shockResultData || state?.activeEconomicShock) && (
+                (() => {
+                  const shock = shockResultData || state.activeEconomicShock;
+                  const diff = shockDiffData;
+                  return (
+                    <div className="bg-slate-950/80 border border-rose-500/60 rounded-2xl p-5 space-y-4 animate-in fade-in duration-200 shadow-2xl">
+                      {/* SitRep Header */}
+                      <div className="flex flex-wrap items-start justify-between gap-3 pb-3 border-b border-slate-800">
+                        <div>
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="font-mono text-[10px] font-bold uppercase tracking-wider text-rose-300 bg-rose-900/80 px-2 py-0.5 rounded border border-rose-600/60">
+                              {shock.severity || "HIGH"} CRISIS
+                            </span>
+                            <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-800 text-slate-300">
+                              {shock.category}
+                            </span>
+                            <h3 className="text-base font-extrabold text-white tracking-wide">
+                              {shock.headline}
+                            </h3>
+                          </div>
+                          <p className="text-xs text-rose-200/90 mt-2 leading-relaxed max-w-4xl font-sans">
+                            {shock.sitrep}
+                          </p>
+                        </div>
+
+                        <button
+                          onClick={handleRestoreInfrastructure}
+                          disabled={shockLoading}
+                          className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center gap-1.5 shadow-lg cursor-pointer transition shrink-0 active:scale-95"
+                        >
+                          <CheckCircle2 className="w-3.5 h-3.5" />
+                          Rebuild Infrastructure
+                        </button>
+                      </div>
+
+                      {/* Quantitative Macroeconomic Aftermath Diff */}
+                      <div>
+                        <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-2 font-mono">
+                          Macroeconomic Aftermath & Goods Contraction:
+                        </span>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 font-mono-num">
+                          <div className="p-3 rounded-xl bg-slate-900/90 border border-slate-800 flex flex-col justify-between">
+                            <span className="text-slate-400 text-[11px]">Total National GDP</span>
+                            <div className="mt-1">
+                              <div className="text-base font-bold text-white">
+                                {diff ? formatCurrency(diff.postGdp) : formatCurrency(activeNation?.computed?.aggregateGdp || 0)}
+                              </div>
+                              {diff && (
+                                <div className={`text-[11px] font-bold ${diff.gdpDelta < 0 ? "text-rose-400" : "text-emerald-400"}`}>
+                                  {diff.gdpDelta < 0 ? "▼" : "▲"} {formatCurrency(Math.abs(diff.gdpDelta))} ({diff.gdpPctChange.toFixed(1)}%)
+                                </div>
+                              )}
+                            </div>
+                          </div>
+
+                          <div className="p-3 rounded-xl bg-slate-900/90 border border-rose-500/40 flex flex-col justify-between">
+                            <span className="text-rose-300 text-[11px] font-semibold">Goods Output (Mfg + Agri)</span>
+                            <div className="mt-1">
+                              <div className="text-base font-bold text-rose-200">
+                                {diff ? formatCurrency(diff.postGoodsGdp) : formatCurrency((activeNation?.computed?.industryGdp || 0) + (activeNation?.computed?.agriculturalGdp || 0))}
+                              </div>
+                              {diff && (
+                                <div className={`text-[11px] font-bold ${diff.goodsGdpDelta < 0 ? "text-rose-400" : "text-emerald-400"}`}>
+                                  {diff.goodsGdpDelta < 0 ? "▼" : "▲"} {formatCurrency(Math.abs(diff.goodsGdpDelta))} ({diff.goodsPctChange.toFixed(1)}%)
+                                </div>
+                              )}
+                            </div>
+                          </div>
+
+                          <div className="p-3 rounded-xl bg-slate-900/90 border border-amber-500/40 flex flex-col justify-between">
+                            <span className="text-amber-300 text-[11px] font-semibold">Freight Transit Delay</span>
+                            <div className="mt-1">
+                              <div className="text-base font-bold text-amber-200">
+                                {shock.macroMutations?.freightDelayFriction || 2.0}x
+                              </div>
+                              <span className="text-[10px] text-slate-400">
+                                Transit bottleneck / port blockage
+                              </span>
+                            </div>
+                          </div>
+
+                          <div className="p-3 rounded-xl bg-slate-900/90 border border-slate-800 flex flex-col justify-between">
+                            <span className="text-slate-400 text-[11px]">Treasury Emergency Aid</span>
+                            <div className="mt-1">
+                              <div className="text-base font-bold text-cyan-300">
+                                {formatCurrency(shock.macroMutations?.emergencyReliefCost || 50000000000)}
+                              </div>
+                              <span className="text-[10px] text-slate-400">
+                                Disbursed from federal reserve
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Affected States & Damaged Endowments */}
+                      {Array.isArray(shock.affectedStates) && shock.affectedStates.length > 0 && (
+                        <div>
+                          <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-2 font-mono">
+                            Disrupted Constituent States & Damaged Infrastructure:
+                          </span>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                            {shock.affectedStates.map((st, idx) => (
+                              <div
+                                key={idx}
+                                className="p-3 rounded-xl bg-slate-900/80 border border-slate-800 space-y-1.5"
+                              >
+                                <div className="flex items-center justify-between">
+                                  <span className="font-bold text-white text-xs flex items-center gap-1.5">
+                                    <MapPin className="w-3.5 h-3.5 text-rose-400" />
+                                    {st.stateName}
+                                  </span>
+                                  <span className="text-[10px] px-2 py-0.5 rounded bg-rose-500/20 text-rose-300 border border-rose-500/40 font-mono font-bold">
+                                    Disrupted
+                                  </span>
+                                </div>
+
+                                <div className="flex flex-wrap gap-2 text-[10.5px] font-mono-num text-slate-300 pt-1">
+                                  {st.logisticsWaterwayIndexDelta !== 0 && (
+                                    <span className="px-1.5 py-0.5 rounded bg-cyan-950/80 border border-cyan-500/40 text-cyan-200">
+                                      ⚓ Ports: <strong>{st.logisticsWaterwayIndexDelta}%</strong>
+                                    </span>
+                                  )}
+                                  {st.hydrocarbonIndexDelta !== 0 && (
+                                    <span className="px-1.5 py-0.5 rounded bg-amber-950/80 border border-amber-500/40 text-amber-200">
+                                      🛢️ Oil/Gas: <strong>{st.hydrocarbonIndexDelta}%</strong>
+                                    </span>
+                                  )}
+                                  {st.arableLandIndexDelta !== 0 && (
+                                    <span className="px-1.5 py-0.5 rounded bg-emerald-950/80 border border-emerald-500/40 text-emerald-200">
+                                      🌾 Crops: <strong>{st.arableLandIndexDelta}%</strong>
+                                    </span>
+                                  )}
+                                  {st.consumerAmenityIndexDelta !== 0 && (
+                                    <span className="px-1.5 py-0.5 rounded bg-rose-950/80 border border-rose-500/40 text-rose-200">
+                                      🍸 Hospitality: <strong>{st.consumerAmenityIndexDelta}%</strong>
+                                    </span>
+                                  )}
+                                </div>
+
+                                {st.reason && (
+                                  <p className="text-[11px] text-slate-400 leading-snug pt-0.5">
+                                    {st.reason}
+                                  </p>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Sovereign Directives */}
+                      {shock.recommendedAction && (
+                        <div className="p-3.5 rounded-xl bg-slate-900 border border-cyan-500/30 flex items-start gap-2.5">
+                          <CheckCircle2 className="w-4 h-4 text-cyan-400 shrink-0 mt-0.5" />
+                          <div>
+                            <span className="font-bold text-cyan-300 text-xs block">
+                              Sovereign Executive Directive:
+                            </span>
+                            <p className="text-xs text-slate-300 mt-0.5 leading-relaxed">
+                              {shock.recommendedAction}
+                            </p>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()
+              )}
+            </div>
+
+            {/* Modal Footer */}
+            <div className="p-4 border-t border-slate-800 bg-slate-950/80 flex items-center justify-between">
+              <span className="text-[11px] text-slate-400 font-mono">
+                Map polygons update in real time with red warning boundaries when shocks are active.
+              </span>
+              <button
+                onClick={() => setShowShockModal(false)}
+                className="px-5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold cursor-pointer transition"
+              >
+                Close Terminal
               </button>
             </div>
           </div>
