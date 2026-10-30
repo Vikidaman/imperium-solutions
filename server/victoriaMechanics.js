@@ -1075,7 +1075,7 @@ export function evaluateVictoriaMechanics(state) {
     const govCloutSum = inGovIgs.reduce((acc, ig) => acc + ig.clout, 0);
     const cohesionPenalty = Math.max(0, (inGovIgs.length - 3) * 8);
     const solLegitBonus = Math.max(-10, Math.min(15, (avgV3Sol - 15) * 0.8));
-    const legitimacy = Math.round(
+    let legitimacy = Math.round(
       Math.max(10, Math.min(100, govCloutSum * 1.15 + 22 - cohesionPenalty + solLegitBonus))
     );
 
