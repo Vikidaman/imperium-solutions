@@ -486,6 +486,30 @@ export const INTEREST_GROUP_TEMPLATES = [
   },
 ];
 
+export const SOVEREIGN_CREDIT_RATINGS = [
+  { rating: "AAA", maxDebtGdp: 0.35, spread: 0.004, label: "Prime Investment Grade", color: "text-emerald-400" },
+  { rating: "AA", maxDebtGdp: 0.60, spread: 0.0085, label: "High Grade Sovereign", color: "text-cyan-400" },
+  { rating: "A", maxDebtGdp: 0.80, spread: 0.014, label: "Upper Medium Grade", color: "text-blue-400" },
+  { rating: "BBB", maxDebtGdp: 1.00, spread: 0.022, label: "Moderate Credit Risk", color: "text-amber-400" },
+  { rating: "BB", maxDebtGdp: 1.20, spread: 0.038, label: "Speculative / High Yield", color: "text-orange-400" },
+  { rating: "B", maxDebtGdp: 1.40, spread: 0.055, label: "Highly Speculative", color: "text-rose-400" },
+  { rating: "CCC", maxDebtGdp: 1.60, spread: 0.080, label: "Substantial Default Risk", color: "text-rose-500" },
+  { rating: "D", maxDebtGdp: Infinity, spread: 0.120, label: "Sovereign Default / Insolvency", color: "text-red-600" },
+];
+
+export function getSovereignCreditRating(debtToGdp) {
+  for (const cr of SOVEREIGN_CREDIT_RATINGS) {
+    if (debtToGdp <= cr.maxDebtGdp) return cr;
+  }
+  return SOVEREIGN_CREDIT_RATINGS[SOVEREIGN_CREDIT_RATINGS.length - 1];
+}
+
+export function calculateTaylorRuleRate(inflationRate = 0.024, unemploymentRate = 0.045, neutralRate = 0.03) {
+  // Taylor Rule: r_target = r_neutral + 1.5 * (inflation - 0.02) - 0.5 * (unemp - 0.045)
+  const target = neutralRate + 1.5 * (inflationRate - 0.02) - 0.5 * (unemploymentRate - 0.045);
+  return Number(Math.max(0.005, Math.min(0.18, target)).toFixed(4));
+}
+
 export const CONSTRUCTION_BUILDINGS = [
   {
     id: "industrial_complex",
