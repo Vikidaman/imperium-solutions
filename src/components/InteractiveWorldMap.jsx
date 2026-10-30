@@ -2697,7 +2697,7 @@ export default function InteractiveWorldMap({
         <div className="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-6 animate-in fade-in duration-150">
           <div className="bg-slate-900 border border-slate-700/80 rounded-3xl max-w-6xl w-full shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
             {/* Modal Header */}
-            <div className="p-5 border-b border-slate-800 bg-slate-950/60 flex flex-wrap items-center justify-between gap-4">
+            <div className="p-5 border-b border-slate-800 bg-slate-950/80 flex flex-wrap items-center justify-between gap-4">
               <div className="flex items-center gap-3.5">
                 <div
                   className="w-12 h-12 rounded-2xl flex items-center justify-center text-slate-950 font-black text-lg shadow-lg"
@@ -2709,15 +2709,26 @@ export default function InteractiveWorldMap({
                 </div>
                 <div>
                   <div className="flex items-center gap-2 flex-wrap">
-                    <h2 className="text-lg font-bold text-white">
-                      {activeNation.name} — Constituent States & Dependent Territories
+                    <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                      {activeNation.name}
+                      <span className="text-xs px-2.5 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 font-mono-num font-bold">
+                        {activeNation.governmentSystem || activeNation.laws?.governance || "Presidential Republic"}
+                      </span>
                     </h2>
-                    <span className="text-[11px] px-2.5 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 font-mono-num font-bold">
+                    <span className="text-[11px] px-2.5 py-0.5 rounded-full bg-slate-800 text-slate-300 border border-slate-700 font-mono-num font-bold">
                       {nationalStatesList.length} Total Subdivisions
                     </span>
                   </div>
-                  <p className="text-xs text-slate-400 mt-0.5">
-                    Aggregate GDP: <strong className="text-emerald-400 font-mono-num">{formatCurrency(c.aggregateGdp)}</strong> • Working Population: <strong className="text-white font-mono-num">{formatCompactNumber(c.effectiveWorkingPops)}</strong> • Theater: <strong className="text-slate-300">{activeNation.planet || "Earth"}</strong>
+                  <p className="text-xs text-slate-400 mt-1 flex items-center gap-2.5 flex-wrap">
+                    <span>Capital: <strong className="text-slate-200">{activeNation.capital || "National Capital"}</strong></span>
+                    <span>•</span>
+                    <span>Ruling Party: <strong className="text-cyan-300">{activeNation.rulingParty || "Civic Alliance"}</strong></span>
+                    <span>•</span>
+                    <span>GDP: <strong className="text-emerald-400 font-mono-num">{formatCurrency(c.aggregateGdp)}</strong></span>
+                    <span>•</span>
+                    <span>Pops: <strong className="text-white font-mono-num">{formatCompactNumber(c.effectiveWorkingPops)}</strong></span>
+                    <span>•</span>
+                    <span>Treasury: <strong className="text-amber-400 font-mono-num">{formatCurrency(activeNation.treasuryBalance || 25e9)}</strong></span>
                   </p>
                 </div>
               </div>
@@ -2740,6 +2751,172 @@ export default function InteractiveWorldMap({
                 >
                   ✕
                 </button>
+              </div>
+            </div>
+
+            {/* Interactive State-by-State Cartography Panel Inside Modal */}
+            <div className="p-4 bg-slate-950/70 border-b border-slate-800 flex flex-col md:flex-row gap-4 items-center justify-between">
+              <div className="w-full md:w-3/5 relative bg-slate-950 rounded-2xl border border-slate-800/80 p-2 overflow-hidden shadow-inner flex flex-col items-center">
+                <div className="w-full flex items-center justify-between px-2 py-1 text-[11px] text-slate-400 border-b border-slate-800/60 mb-1.5">
+                  <span className="font-bold uppercase tracking-wider text-cyan-400 flex items-center gap-1.5">
+                    <MapPin className="w-3.5 h-3.5" />
+                    {activeNation.name} — Constituent Cartography
+                  </span>
+                  {selectedStateName && (
+                    <span className="text-[11px] font-bold text-amber-300 bg-amber-500/10 px-2 py-0.5 rounded-lg border border-amber-500/30">
+                      Selected: {selectedStateName}
+                    </span>
+                  )}
+                </div>
+
+                {/* State Map SVG */}
+                {(activeNation.id === "usa" || activeNation.name.toLowerCase().includes("united states") || activeNation.name.toLowerCase().includes("california") || activeNation.name.toLowerCase().includes("texas")) ? (
+                  <svg viewBox="170 110 152 82" className="w-full h-44 sm:h-56">
+                    {STATIC_US_STATE_FEATURES.map((stFeat) => {
+                      const directOwner = territoryMap[stFeat.name];
+                      const isSecededFromUsa = directOwner && directOwner !== "usa" && directOwner !== territoryMap["United States of America"];
+                      const stNation = directOwner ? nationById.get(directOwner) : null;
+                      const isStSelected = selectedStateName === stFeat.name;
+                      const stMeta = getUsaStateData(stFeat.name);
+
+                      const fillColor = isSecededFromUsa
+                        ? (stNation?.color || "#f59e0b")
+                        : isStSelected
+                        ? "#38bdf8"
+                        : (REGION_TINTS[stMeta.region] || "#0284c7");
+
+                      const strokeColor = isStSelected
+                        ? "#ffffff"
+                        : isSecededFromUsa
+                        ? "#fef08a"
+                        : "#0f172a";
+
+                      return (
+                        <path
+                          key={`modal_st_${stFeat.name}`}
+                          d={stFeat.d}
+                          fill={fillColor}
+                          fillOpacity={isSecededFromUsa ? 1.0 : isStSelected ? 1.0 : 0.85}
+                          stroke={strokeColor}
+                          strokeWidth={isStSelected ? 1.4 : isSecededFromUsa ? 1.0 : 0.6}
+                          className="transition-colors duration-150 hover:brightness-135 cursor-pointer"
+                          onClick={() => setSelectedStateName(stFeat.name)}
+                          onMouseEnter={() => {
+                            setHoveredModalState({
+                              name: stFeat.name,
+                              code: stMeta.code,
+                              region: stMeta.region,
+                              isSeceded: Boolean(isSecededFromUsa),
+                              sovereignName: stNation?.name || (isSecededFromUsa ? "Seceded Sovereign State" : activeNation.name),
+                              gdp: (c.aggregateGdp || 25e12) * stMeta.gdpShare,
+                              pops: Math.round((c.effectiveWorkingPops || 165e6) * stMeta.popShare),
+                            });
+                          }}
+                          onMouseLeave={() => setHoveredModalState(null)}
+                        />
+                      );
+                    })}
+
+                    {/* State Boundaries Mesh */}
+                    <path
+                      d={STATIC_US_STATES_MESH}
+                      fill="none"
+                      stroke="#ffffff"
+                      strokeOpacity={0.7}
+                      strokeWidth={0.5}
+                      strokeDasharray="1.5,1"
+                      pointerEvents="none"
+                    />
+
+                    {/* State Centroid Postal Labels */}
+                    {STATIC_US_STATE_FEATURES.map((stFeat) => {
+                      const meta = getUsaStateData(stFeat.name);
+                      if (!meta || !meta.code) return null;
+                      const [cx, cy] = stFeat.centroid;
+                      if (!cx || !cy || cx < 172 || cx > 320 || cy < 112 || cy > 190) return null;
+                      const isStSelected = selectedStateName === stFeat.name;
+                      const isSecededFromUsa = territoryMap[stFeat.name] && territoryMap[stFeat.name] !== "usa" && territoryMap[stFeat.name] !== territoryMap["United States of America"];
+
+                      return (
+                        <g key={`modal_lbl_${stFeat.name}`} transform={`translate(${cx}, ${cy})`} className="pointer-events-none">
+                          <text
+                            x={0}
+                            y={1.2}
+                            textAnchor="middle"
+                            fill={isSecededFromUsa ? "#fef08a" : isStSelected ? "#ffffff" : "#f1f5f9"}
+                            fontSize={3.2}
+                            fontWeight="bold"
+                            fontFamily="monospace"
+                            className="drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]"
+                          >
+                            {meta.code}
+                          </text>
+                        </g>
+                      );
+                    })}
+                  </svg>
+                ) : (
+                  /* Silhouette & Regional States for Other Sovereign Nations */
+                  <div className="w-full h-44 sm:h-56 flex flex-col items-center justify-center p-4 text-center">
+                    <div
+                      className="w-16 h-16 rounded-2xl flex items-center justify-center text-slate-950 font-black text-2xl shadow-lg mb-2"
+                      style={{
+                        backgroundColor: nationColorMap.get(activeNation.id) || "#06b6d4",
+                      }}
+                    >
+                      {activeNation.name.slice(0, 2).toUpperCase()}
+                    </div>
+                    <h4 className="text-base font-bold text-white">{activeNation.name}</h4>
+                    <span className="text-xs px-2.5 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 font-bold mt-1">
+                      {activeNation.governmentSystem || "Sovereign Republic"}
+                    </span>
+                    <p className="text-xs text-slate-400 mt-2 max-w-sm">
+                      Capital: {activeNation.capital || "Metropolis"} • {nationalStatesList.length} Constituent Internal Divisions
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              {/* Hovered State or Country Quick Dossier Card */}
+              <div className="w-full md:w-2/5 glass-panel rounded-2xl p-4 border border-slate-800 text-xs space-y-2">
+                {hoveredModalState ? (
+                  <div className="space-y-2 animate-in fade-in duration-100">
+                    <div className="flex items-center justify-between">
+                      <span className="font-bold text-white text-sm flex items-center gap-1.5">
+                        {hoveredModalState.name}
+                        {hoveredModalState.code && (
+                          <span className="px-1.5 py-0.5 rounded bg-cyan-500/20 text-cyan-300 font-mono-num text-[10px] font-bold">
+                            {hoveredModalState.code}
+                          </span>
+                        )}
+                      </span>
+                      {hoveredModalState.isSeceded && (
+                        <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40 text-[10px] font-bold">
+                          ★ Seceded Sovereign
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-[11px] text-slate-400">{hoveredModalState.region || "Economic Corridor"}</p>
+                    <div className="grid grid-cols-2 gap-2 pt-1 font-mono-num text-[11px]">
+                      <div className="bg-slate-900/80 p-2.5 rounded-xl border border-slate-800">
+                        <span className="text-slate-400 block text-[10px]">Estimated GDP:</span>
+                        <strong className="text-emerald-400">{formatCurrency(hoveredModalState.gdp)}</strong>
+                      </div>
+                      <div className="bg-slate-900/80 p-2.5 rounded-xl border border-slate-800">
+                        <span className="text-slate-400 block text-[10px]">Working Population:</span>
+                        <strong className="text-white">{formatCompactNumber(hoveredModalState.pops)}</strong>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="p-3 text-center text-slate-400 space-y-1">
+                    <Compass className="w-5 h-5 mx-auto text-cyan-400/80" />
+                    <p className="font-medium text-slate-300 text-xs">Interactive Cartography Overview</p>
+                    <p className="text-[11px] text-slate-500">
+                      Hover over any constituent state on the map to preview its economic metrics, or click to select and manage in the table below.
+                    </p>
+                  </div>
+                )}
               </div>
             </div>
 
