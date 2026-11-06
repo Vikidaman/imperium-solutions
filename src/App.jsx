@@ -278,19 +278,43 @@ export default function App() {
   const handleTimeAction = async (body) => {
     if (guardReadOnly()) return;
     lastMutationTimeRef.current = Date.now();
-    const res = await fetch(`/api/sessions/${activeSessionId}/time`, {
-      method: "POST",
-      headers: getMutationHeaders(),
-      body: JSON.stringify({ ...body, actor: actorName }),
-    });
-    if (res.ok) {
-      const data = await res.json();
-      setSessionData(data.session);
-      setLedgerHistory(data.ledgerHistory || []);
-      setActivityLog(data.activityLog || []);
-      if (data.toastMessage) {
-        showToast(data.toastMessage);
+
+    // Optimistic UI response for Start / Pause / Auto toggles
+    if (body.command === "LOAD" || body.command === "LOCK") {
+      const nextLive = body.command === "LOAD";
+      setSessionData((prev) => {
+        if (!prev?.state?.timeManager) return prev;
+        return {
+          ...prev,
+          state: {
+            ...prev.state,
+            timeManager: {
+              ...prev.state.timeManager,
+              isLive: nextLive,
+              liveStatus: nextLive ? "TRUE" : "FALSE",
+            },
+          },
+        };
+      });
+    }
+
+    try {
+      const res = await fetch(`/api/sessions/${activeSessionId}/time`, {
+        method: "POST",
+        headers: getMutationHeaders(),
+        body: JSON.stringify({ ...body, actor: actorName }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setSessionData(data.session);
+        setLedgerHistory(data.ledgerHistory || []);
+        setActivityLog(data.activityLog || []);
+        if (data.toastMessage) {
+          showToast(data.toastMessage);
+        }
       }
+    } catch (err) {
+      console.error("Time action error:", err);
     }
   };
 
@@ -310,7 +334,7 @@ export default function App() {
       } finally {
         inFlight = false;
       }
-    }, 1500);
+    }, 3000);
 
     return () => clearInterval(interval);
   }, [sessionData?.state?.timeManager?.isLive, isReadOnly, activeSessionId]);
