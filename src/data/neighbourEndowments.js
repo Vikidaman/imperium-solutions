@@ -471,6 +471,37 @@ export const NEIGHBOUR_PROVINCES = {
 };
 
 /**
+ * Authoritative Resource Markers for Canadian Provinces and Mexican States.
+ */
+export const ALL_NEIGHBOUR_RESOURCE_MARKERS = [
+  { name: "Sudbury Nickel-Copper Complex", type: "mineral", coords: [-81.0, 46.5], desc: "World-class polymetallic deposit; major nickel, copper, platinum group metals", state: "Ontario", stateCode: "ON" },
+  { name: "St. Lawrence Seaway Corridor", type: "port", coords: [-73.55, 45.5], desc: "Critical inland maritime shipping corridor linking Great Lakes to Atlantic", state: "Quebec", stateCode: "QC" },
+  { name: "Athabasca Oil Sands", type: "oil_gas", coords: [-111.38, 56.73], desc: "World-scale bitumen reserves; Canada's largest hydrocarbon formation", state: "Alberta", stateCode: "AB" },
+  { name: "Port of Vancouver Gateway", type: "port", coords: [-123.1, 49.3], desc: "Canada's largest port; premier trans-Pacific bulk and container conduit", state: "British Columbia", stateCode: "BC" },
+  { name: "Saskatchewan Potash & Uranium Basin", type: "mineral", coords: [-106.67, 52.13], desc: "Supplies over 30% of global potash fertilizer; premier high-grade uranium deposits", state: "Saskatchewan", stateCode: "SK" },
+  { name: "Cananea Buenavista Copper Pit", type: "mineral", coords: [-110.30, 30.98], desc: "One of the largest open-pit copper mines in the world; over 80% of Mexico's copper", state: "Sonora", stateCode: "SON" },
+  { name: "Port of Ensenada", type: "port", coords: [-116.62, 31.86], desc: "Pacific maritime gateway for Baja California manufacturing and trans-Pacific cargo", state: "Baja California", stateCode: "BCN" },
+  { name: "Burgos Basin Natural Gas Play", type: "oil_gas", coords: [-98.3, 26.0], desc: "Continuous with Eagle Ford shale; major non-associated natural gas reserves", state: "Tamaulipas", stateCode: "TAM" },
+  { name: "Port of Altamira Maritime Terminal", type: "port", coords: [-97.9, 22.4], desc: "Deep-water Gulf terminal; petrochemical processing and heavy equipment hub", state: "Tamaulipas", stateCode: "TAM" },
+];
+
+/**
+ * Authoritative Service Clusters for Canadian Provinces and Mexican States.
+ */
+export const ALL_NEIGHBOUR_SERVICE_CLUSTERS = [
+  { name: "Toronto Bay Street Financial District & TSX", type: "finance", coords: [-79.38, 43.65], desc: "Big Five Canadian banks, asset management, and Toronto Stock Exchange", state: "Ontario", stateCode: "ON" },
+  { name: "Toronto–Waterloo Innovation Tech Corridor", type: "tech", coords: [-80.52, 43.47], desc: "Vector Institute AI research, BlackBerry hub, quantum computing, enterprise software", state: "Ontario", stateCode: "ON" },
+  { name: "Montreal AI & Deep Learning Institute (Mila)", type: "research", coords: [-73.57, 45.50], desc: "World-renowned academic AI ecosystem, Yoshua Bengio lab, aerospace engineering", state: "Quebec", stateCode: "QC" },
+  { name: "Vancouver Digital Media & VFX Studios", type: "tech", coords: [-123.12, 49.28], desc: "Top global hub for film VFX, animation, AAA gaming studios, clean-tech ventures", state: "British Columbia", stateCode: "BC" },
+  { name: "Calgary Energy Capital & Corporate HQ Bourse", type: "finance", coords: [-114.07, 51.05], desc: "Corporate headquarters for upstream oil and gas, pipeline financing, commodity trading", state: "Alberta", stateCode: "AB" },
+  { name: "Tijuana Medical Device & Electronics Maquiladora Cluster", type: "tech", coords: [-117.03, 32.51], desc: "North America's largest concentration of medical device manufacturing and aerospace electronics", state: "Baja California", stateCode: "BCN" },
+  { name: "Monterrey Industrial & Nearshoring Corporate Hub", type: "finance", coords: [-100.31, 25.68], desc: "Industrial capital of Mexico; Latin American headquarters, advanced manufacturing conglomerates", state: "Nuevo León", stateCode: "NLE" },
+  { name: "Nuevo Laredo International Trade Logistics Bourse", type: "finance", coords: [-99.51, 27.48], desc: "Busiest inland port of entry in North America; >40% of all US–Mexico cross-border freight", state: "Tamaulipas", stateCode: "TAM" },
+  { name: "Los Cabos Luxury Resort Corridor", type: "hospitality", coords: [-109.70, 22.89], desc: "Premier international luxury tourism destination, yachting, golf resort corridor", state: "Baja California Sur", stateCode: "BCS" },
+  { name: "Mazatlán Historic Port & Beach Resort Corridor", type: "hospitality", coords: [-106.42, 23.23], desc: "Colonial historic center, international boardwalk, deep-sea fishing fleet, Pacific beaches", state: "Sinaloa", stateCode: "SIN" },
+];
+
+/**
  * Returns geographic endowments for a neighbouring province (e.g. Canadian province or Mexican state).
  */
 export function getNeighbourProvinceEndowments(name) {

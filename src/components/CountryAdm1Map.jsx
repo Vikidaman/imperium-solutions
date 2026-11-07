@@ -12,6 +12,10 @@ import {
   getUsStateServicesEndowment,
   ALL_US_SERVICE_CLUSTERS,
 } from "../data/usServicesEndowments";
+import {
+  ALL_NEIGHBOUR_RESOURCE_MARKERS,
+  ALL_NEIGHBOUR_SERVICE_CLUSTERS,
+} from "../data/neighbourEndowments";
 import { MAP_PROVIDERS } from "../data/mapProviders";
 import {
   Layers,
@@ -54,6 +58,8 @@ export default function CountryAdm1Map({
   nationColor = "#06b6d4",
   economicSubdivisions = [],
   customEndowments = null,
+  interactionMode = "inspect",
+  onTransferTerritory = null,
 }) {
   const mapContainerRef = useRef(null);
   const leafletMapRef = useRef(null);
@@ -85,6 +91,57 @@ export default function CountryAdm1Map({
     }
 
     if (isUsa) {
+      if (interactionMode === "annex") {
+        setLoading(true);
+        Promise.all([loadCountryAdm1("CAN"), loadCountryAdm1("MEX")]).then(([canRes, mexRes]) => {
+          if (!active) return;
+          const canFeats = canRes.success && canRes.geojson?.features ? canRes.geojson.features : [];
+          const mexFeats = mexRes.success && mexRes.geojson?.features ? mexRes.geojson.features : [];
+          setGeoData({
+            type: "FeatureCollection",
+            features: [...US_STATES_GEO.features, ...canFeats, ...mexFeats],
+          });
+          setError(null);
+          setLoading(false);
+        }).catch(() => {
+          if (!active) return;
+          setGeoData(US_STATES_GEO);
+          setLoading(false);
+        });
+        return;
+      }
+
+      // If not in annex mode, check if any Canadian or Mexican province was annexed into USA
+      const foreignAnnexedNames = Object.keys(territoryMap).filter(
+        (key) => (territoryMap[key] === nation?.id || territoryMap[key] === "usa") &&
+                 !US_STATES_GEO.features.some((f) => f.properties?.name === key)
+      );
+
+      if (foreignAnnexedNames.length > 0) {
+        setLoading(true);
+        Promise.all([loadCountryAdm1("CAN"), loadCountryAdm1("MEX")]).then(([canRes, mexRes]) => {
+          if (!active) return;
+          const allNeighbourFeats = [
+            ...(canRes.success && canRes.geojson?.features ? canRes.geojson.features : []),
+            ...(mexRes.success && mexRes.geojson?.features ? mexRes.geojson.features : []),
+          ];
+          const annexedFeats = allNeighbourFeats.filter((f) =>
+            foreignAnnexedNames.includes(f.properties?.name)
+          );
+          setGeoData({
+            type: "FeatureCollection",
+            features: [...US_STATES_GEO.features, ...annexedFeats],
+          });
+          setError(null);
+          setLoading(false);
+        }).catch(() => {
+          if (!active) return;
+          setGeoData(US_STATES_GEO);
+          setLoading(false);
+        });
+        return;
+      }
+
       setGeoData(US_STATES_GEO);
       setError(null);
       return;
@@ -108,7 +165,7 @@ export default function CountryAdm1Map({
     return () => {
       active = false;
     };
-  }, [nation, isUsa]);
+  }, [nation?.id, isUsa, interactionMode]);
 
   // Initialize or update Leaflet Map
   useEffect(() => {
@@ -162,21 +219,41 @@ export default function CountryAdm1Map({
             const region = feature.properties?.region;
             const regionTint = isUsa ? REGION_TINTS[region] : null;
 
-            // Secession check
+            const isForeignNeighbour = feature.properties?.countryIso3 === "CAN" || feature.properties?.countryIso3 === "MEX";
+
+            // Secession & direct owner check
             const directOwner =
               name === "Georgia"
                 ? territoryMap["Georgia (USA)"] || territoryMap["Georgia:Atlanta"] || territoryMap["Georgia"]
                 : territoryMap[name];
-            const isSeceded = directOwner && directOwner !== nation?.id && directOwner !== "usa";
 
-            // Color based on layer mode
+            const isControlledByActiveNation =
+              directOwner === nation?.id ||
+              (!directOwner && !isForeignNeighbour && (nation?.id === "usa" || isUsa)) ||
+              (directOwner === "usa" && isUsa);
+
+            const isSeceded = !isForeignNeighbour && directOwner && directOwner !== nation?.id && directOwner !== "usa";
+
+            // 1. Foreign unannexed neighbour styling (dashed amber border)
+            if (isForeignNeighbour && !isControlledByActiveNation) {
+              return {
+                fillColor: isSelected ? "#38bdf8" : "#f59e0b",
+                fillOpacity: isSelected ? 0.65 : 0.16,
+                color: isSelected ? "#ffffff" : "#f59e0b",
+                weight: isSelected ? 2.5 : 1.5,
+                opacity: 0.9,
+                dashArray: "4, 4",
+              };
+            }
+
+            // 2. Color based on layer mode (for core states + annexed neighbour provinces)
             let fillColor = nationColor;
             let fillOpacity = 0.28;
 
             if (isSeceded) {
               fillColor = "#f59e0b";
               fillOpacity = 0.65;
-            } else if (layerMode === "resources" && isUsa) {
+            } else if (layerMode === "resources" && (isUsa || isControlledByActiveNation)) {
               const endow = getUsStateEndowment(name, customEndowments);
               if (resourceCategory === "oil_gas") {
                 const val = endow.hydrocarbonIndex || 0;
@@ -228,7 +305,7 @@ export default function CountryAdm1Map({
                   fillOpacity = Math.max(0.35, totalEndow * 0.8);
                 }
               }
-            } else if (layerMode === "services" && isUsa) {
+            } else if (layerMode === "services" && (isUsa || isControlledByActiveNation)) {
               const srvEndow = getUsStateServicesEndowment(name, customEndowments);
               if (serviceCategory === "tech") {
                 const val = ((srvEndow.digitalConnectivityIndex || 50) + (srvEndow.humanCapitalIndex || 50)) / 2;
@@ -255,7 +332,7 @@ export default function CountryAdm1Map({
                 fillColor = `hsl(205, 90%, ${Math.round(25 + composite * 35)}%)`;
                 fillOpacity = Math.max(0.35, composite * 0.85);
               }
-            } else if (isUsa && regionTint) {
+            } else if (isUsa && regionTint && !isForeignNeighbour) {
               fillColor = regionTint;
               fillOpacity = 0.32;
             } else {
@@ -314,16 +391,25 @@ export default function CountryAdm1Map({
             const endow = isUsa ? getUsStateEndowment(name, customEndowments) : null;
             const srvEndow = isUsa ? getUsStateServicesEndowment(name, customEndowments) : null;
             const stateMeta = isUsa ? getUsaStateData(name) : null;
-            let tooltipContent = `<div style="background: #090e17; color: #f8fafc; border-radius: 10px; border: 1px solid rgba(56, 189, 248, 0.4);" class="p-2.5 min-w-[220px] max-w-[280px] font-sans text-xs shadow-2xl">
-              <div class="flex items-center justify-between gap-2 pb-1 border-b border-slate-700/60">
-                <span class="font-bold text-white text-sm tracking-wide">${name}</span>
-                ${stateMeta?.code ? `<span class="text-[10px] bg-cyan-500/25 text-cyan-200 border border-cyan-400/50 font-mono font-bold px-1.5 py-0.5 rounded shadow-sm">${stateMeta.code}</span>` : ""}
+            const countryTag = feature.properties?.countryName || (feature.properties?.countryIso3 === "CAN" ? "Canada" : feature.properties?.countryIso3 === "MEX" ? "Mexico" : "");
+
+            let tooltipContent = `<div style="background-color: #090e17 !important; color: #f8fafc !important; border-radius: 10px; border: 1px solid rgba(56, 189, 248, 0.45); padding: 10px; font-family: ui-sans-serif, system-ui, sans-serif; box-shadow: 0 14px 35px rgba(0,0,0,0.85);" class="min-w-[220px] max-w-[290px] text-xs">
+              <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; padding-bottom: 6px; border-bottom: 1px solid rgba(100, 116, 139, 0.5);">
+                <span style="font-weight: bold; color: #ffffff; font-size: 13px; letter-spacing: 0.02em;">${name}</span>
+                ${stateMeta?.code ? `<span style="font-size: 10px; background-color: rgba(6, 182, 212, 0.25); color: #a5f3fc; border: 1px solid rgba(34, 211, 238, 0.5); font-family: ui-monospace, monospace; font-weight: bold; padding: 2px 6px; border-radius: 4px;">${stateMeta.code}</span>` : ""}
               </div>`;
 
-            if (stateMeta?.capital) {
-              tooltipContent += `<div class="text-[11px] text-slate-300 mt-1 flex items-center justify-between">
-                <span class="text-slate-400">Capital:</span>
-                <strong class="text-white font-semibold">${stateMeta.capital}</strong>
+            if (isForeignNeighbour && !isControlledByActiveNation) {
+              tooltipContent += `
+                <div style="margin-top: 6px; padding: 6px 8px; border-radius: 6px; background-color: rgba(245, 158, 11, 0.15); border: 1px solid rgba(245, 158, 11, 0.45); font-size: 11px; color: #fef08a;">
+                  <strong style="color: #fbbf24; display: block;">📍 ${countryTag} Border Province</strong>
+                  <span style="font-size: 10px; color: #f1f5f9; display: block; margin-top: 2px;">⚔️ Click to inspect & Annex into ${nation?.name || "United States"}</span>
+                </div>
+              `;
+            } else if (stateMeta?.capital) {
+              tooltipContent += `<div style="font-size: 11px; color: #cbd5e1; margin-top: 6px; display: flex; align-items: center; justify-content: space-between;">
+                <span style="color: #94a3b8;">Capital:</span>
+                <strong style="color: #ffffff; font-weight: 600;">${stateMeta.capital}</strong>
               </div>`;
             }
 
@@ -445,7 +531,8 @@ export default function CountryAdm1Map({
       if (layerMode === "resources" && isUsa) {
         const markerGroup = L.layerGroup();
 
-        const filteredMarkers = ALL_US_RESOURCE_MARKERS.filter((m) => {
+        const combinedResourceMarkers = [...ALL_US_RESOURCE_MARKERS, ...ALL_NEIGHBOUR_RESOURCE_MARKERS];
+        const filteredMarkers = combinedResourceMarkers.filter((m) => {
           if (resourceCategory === "all") return true;
           return m.type === resourceCategory;
         });
@@ -513,7 +600,8 @@ export default function CountryAdm1Map({
       if (layerMode === "services" && isUsa) {
         const markerGroup = L.layerGroup();
 
-        const filteredMarkers = ALL_US_SERVICE_CLUSTERS.filter((m) => {
+        const combinedServiceClusters = [...ALL_US_SERVICE_CLUSTERS, ...ALL_NEIGHBOUR_SERVICE_CLUSTERS];
+        const filteredMarkers = combinedServiceClusters.filter((m) => {
           if (serviceCategory === "all") return true;
           return m.type === serviceCategory;
         });
@@ -581,7 +669,7 @@ export default function CountryAdm1Map({
     return () => {
       active = false;
     };
-  }, [geoData, mapProvider, layerMode, resourceCategory, serviceCategory, isUsa, nation, selectedSubdivision, nationColor, customEndowments]);
+  }, [geoData, mapProvider, layerMode, resourceCategory, serviceCategory, isUsa, nation?.id, selectedSubdivision, nationColor, customEndowments, territoryMap]);
 
   // Clean-up on unmount
   useEffect(() => {
@@ -771,7 +859,7 @@ export default function CountryAdm1Map({
             </button>
           </div>
           <span className="text-[10px] text-slate-400 font-mono-num">
-            {ALL_US_RESOURCE_MARKERS.filter((m) => resourceCategory === "all" || m.type === resourceCategory).length} Key Formations
+            {[...ALL_US_RESOURCE_MARKERS, ...ALL_NEIGHBOUR_RESOURCE_MARKERS].filter((m) => resourceCategory === "all" || m.type === resourceCategory).length} Key Formations
           </span>
         </div>
       )}
@@ -826,7 +914,7 @@ export default function CountryAdm1Map({
             </button>
           </div>
           <span className="text-[10px] text-slate-400 font-mono-num">
-            {ALL_US_SERVICE_CLUSTERS.filter((m) => serviceCategory === "all" || m.type === serviceCategory).length} Metro Clusters
+            {[...ALL_US_SERVICE_CLUSTERS, ...ALL_NEIGHBOUR_SERVICE_CLUSTERS].filter((m) => serviceCategory === "all" || m.type === serviceCategory).length} Metro Clusters
           </span>
         </div>
       )}

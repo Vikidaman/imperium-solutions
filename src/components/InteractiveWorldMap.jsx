@@ -1505,7 +1505,12 @@ export default function InteractiveWorldMap({
           {!isReadOnly && (
             <>
               <button
-                onClick={() => setInteractionMode("annex")}
+                onClick={() => {
+                  setInteractionMode("annex");
+                  if (activeNation && viewTier !== "country") {
+                    focusOnCountry(activeNation);
+                  }
+                }}
                 className={`px-3 py-1.5 rounded-lg font-semibold flex items-center gap-1.5 transition cursor-pointer ${
                   interactionMode === "annex"
                     ? "bg-amber-500 text-slate-950 shadow-sm shadow-amber-500/30"
@@ -1518,7 +1523,12 @@ export default function InteractiveWorldMap({
               </button>
 
               <button
-                onClick={() => setInteractionMode("release")}
+                onClick={() => {
+                  setInteractionMode("release");
+                  if (activeNation && viewTier !== "country") {
+                    focusOnCountry(activeNation);
+                  }
+                }}
                 className={`px-3 py-1.5 rounded-lg font-semibold flex items-center gap-1.5 transition cursor-pointer ${
                   interactionMode === "release"
                     ? "bg-purple-500 text-slate-950 shadow-sm shadow-purple-500/30"
@@ -1847,6 +1857,8 @@ export default function InteractiveWorldMap({
                 nationColor={nationColorMap.get(activeNation.id) || activeNation.color || "#06b6d4"}
                 economicSubdivisions={nationalStatesList}
                 customEndowments={state?.customStateEndowments}
+                interactionMode={interactionMode}
+                onTransferTerritory={onTransferTerritory}
               />
             </div>
 
@@ -1870,6 +1882,28 @@ export default function InteractiveWorldMap({
                   const popSharePercent = stateMeta ? (stateMeta.popShare * 100).toFixed(1) : (c.effectiveWorkingPops > 0 ? ((statePops / c.effectiveWorkingPops) * 100).toFixed(1) : "0.0");
                   const capital = activeDossier.capital || stateMeta?.capital || (activeDossier.name === "Georgia" ? "Atlanta" : "");
 
+                  const directOwner =
+                    activeDossier.name === "Georgia"
+                      ? territoryMap["Georgia (USA)"] || territoryMap["Georgia:Atlanta"] || territoryMap["Georgia"]
+                      : territoryMap[activeDossier.name];
+
+                  const isForeignNeighbour =
+                    stateMeta?.region?.includes("Canada") ||
+                    stateMeta?.region?.includes("Mexico") ||
+                    stateMeta?.code === "ON" ||
+                    stateMeta?.code === "BCN" ||
+                    stateMeta?.code === "QC" ||
+                    stateMeta?.code === "AB" ||
+                    stateMeta?.code === "SON" ||
+                    stateMeta?.code === "CHH" ||
+                    stateMeta?.code === "NLE" ||
+                    stateMeta?.code === "TAM";
+
+                  const isControlledByActiveNation =
+                    directOwner === activeNation.id ||
+                    (!directOwner && !isForeignNeighbour && (activeNation.id === "usa" || isUsa)) ||
+                    (directOwner === "usa" && isUsa);
+
                   return (
                     <div className="space-y-3 animate-in fade-in duration-100">
                       <div className="flex items-center justify-between pb-2 border-b border-slate-800">
@@ -1892,6 +1926,10 @@ export default function InteractiveWorldMap({
                           <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40 text-[10px] font-bold">
                             ★ Seceded Sovereign
                           </span>
+                        ) : isForeignNeighbour && !isControlledByActiveNation ? (
+                          <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40 text-[10px] font-bold">
+                            Border Province
+                          </span>
                         ) : (
                           <span className="px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 text-[10px] font-bold">
                             {activeDossier.status || "STATE"}
@@ -1902,6 +1940,112 @@ export default function InteractiveWorldMap({
                       <p className="text-xs text-slate-400">
                         {activeDossier.region || activeDossier.role || "Constituent Sovereign State"}
                       </p>
+
+                      {/* Annexation Action Banner (When in Annex Mode) */}
+                      {interactionMode === "annex" && (
+                        <div className="p-3 rounded-xl bg-amber-950/60 border border-amber-500/40 space-y-2">
+                          <div className="flex items-center justify-between text-xs font-bold text-amber-300">
+                            <span className="flex items-center gap-1.5">
+                              <Landmark className="w-4 h-4 text-amber-400" /> Annexation Action
+                            </span>
+                            <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-200 uppercase font-mono font-bold">
+                              {isControlledByActiveNation ? "Annexed Territory" : "Available to Annex"}
+                            </span>
+                          </div>
+                          <p className="text-[11px] text-slate-300 leading-relaxed">
+                            {isControlledByActiveNation
+                              ? `${activeDossier.name} is currently under active jurisdiction of ${activeNation.name}.`
+                              : `Claim administrative jurisdiction and incorporate ${activeDossier.name} into ${activeNation.name}.`}
+                          </p>
+                          {!isControlledByActiveNation && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                onTransferTerritory({
+                                  territoryName: activeDossier.name,
+                                  targetNationId: activeNation.id,
+                                  mode: "ANNEX",
+                                  planet: activeNation.planet || "Earth",
+                                });
+                              }}
+                              className="w-full py-2 px-3 rounded-lg bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-lg transition cursor-pointer"
+                            >
+                              ⚔️ Switch Active Control of {activeDossier.name} to {activeNation.name}
+                            </button>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Release / Awaken State Action Banner (When in Release Mode) */}
+                      {interactionMode === "release" && (
+                        <div className="p-3 rounded-xl bg-purple-950/60 border border-purple-500/40 space-y-2.5">
+                          <div className="flex items-center justify-between text-xs font-bold text-purple-300">
+                            <span className="flex items-center gap-1.5">
+                              <Globe2 className="w-4 h-4 text-purple-400" /> Release & Awaken State
+                            </span>
+                            <span className="text-[10px] px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-200 uppercase font-mono font-bold">
+                              Release Mode
+                            </span>
+                          </div>
+                          <p className="text-[11px] text-slate-300 leading-relaxed">
+                            Grant sovereign independence to <strong>{activeDossier.name}</strong> as an awakened nation, or transfer control of this province to an adjacent neighbour.
+                          </p>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              onTransferTerritory({
+                                territoryName: activeDossier.name,
+                                mode: "RELEASE",
+                                planet: activeNation.planet || "Earth",
+                              });
+                            }}
+                            className="w-full py-2 px-3 rounded-lg bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-lg transition cursor-pointer"
+                          >
+                            👑 Create as Separate Country (Awaken {activeDossier.name})
+                          </button>
+
+                          <div className="pt-2 border-t border-purple-500/20 space-y-1.5">
+                            <span className="text-[10.5px] font-semibold text-slate-300 block">
+                              Transfer Control to Neighbour Nation:
+                            </span>
+                            <div className="flex items-center gap-2">
+                              <select
+                                value={transferTargetNationId}
+                                onChange={(e) => setTransferTargetNationId(e.target.value)}
+                                className="flex-1 bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-white focus:outline-none focus:border-cyan-400"
+                              >
+                                <option value="">Select Neighbour Nation...</option>
+                                {nations
+                                  .filter((n) => n.id !== activeNation.id)
+                                  .map((n) => {
+                                    const isDirectBorder = n.id === "can" || n.id === "mex" || n.name?.toLowerCase().includes("canada") || n.name?.toLowerCase().includes("mexico");
+                                    return (
+                                      <option key={n.id} value={n.id}>
+                                        {n.name} {isDirectBorder ? "★ (Direct Border Neighbour)" : ""}
+                                      </option>
+                                    );
+                                  })}
+                              </select>
+                              <button
+                                type="button"
+                                disabled={!transferTargetNationId}
+                                onClick={() => {
+                                  if (!transferTargetNationId) return;
+                                  onTransferTerritory({
+                                    territoryName: activeDossier.name,
+                                    targetNationId: transferTargetNationId,
+                                    mode: "ANNEX",
+                                    planet: activeNation.planet || "Earth",
+                                  });
+                                }}
+                                className="py-1.5 px-3 rounded-lg bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold text-xs flex items-center gap-1 transition cursor-pointer shrink-0"
+                              >
+                                🤝 Transfer Control
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      )}
 
                       <div className="grid grid-cols-2 gap-2 pt-1 font-mono-num text-xs">
                         <div className="bg-slate-900/80 p-3 rounded-xl border border-slate-800">
@@ -2010,6 +2154,74 @@ export default function InteractiveWorldMap({
                                 <div className="whitespace-pre-line text-slate-300 pt-0.5">{aiAdvisory}</div>
                               </div>
                             )}
+                          </div>
+                        );
+                      })()}
+
+                      {/* Services & Knowledge Endowments Breakdown (BEA, BLS) */}
+                      {isUsa && (() => {
+                        const srvEndow = getUsStateServicesEndowment(activeDossier.name);
+                        if (!srvEndow) return null;
+                        return (
+                          <div className="mt-2 pt-2 border-t border-slate-800/90 space-y-1.5">
+                            <div className="flex items-center justify-between text-[10px] text-slate-400 font-bold uppercase tracking-wider">
+                              <span className="text-indigo-400 flex items-center gap-1">
+                                <Briefcase className="w-3 h-3 text-indigo-400" />
+                                Services & Knowledge Endowments:
+                              </span>
+                              {onJumpToTab ? (
+                                <button
+                                  type="button"
+                                  onClick={() => onJumpToTab("sources")}
+                                  className="text-indigo-400 hover:text-indigo-200 underline underline-offset-2 font-mono-num text-[10px] cursor-pointer flex items-center gap-1 transition"
+                                  title="Inspect full historical and empirical sources"
+                                >
+                                  BEA / BLS <ExternalLink className="w-2.5 h-2.5" />
+                                </button>
+                              ) : (
+                                <span className="text-slate-500 font-mono-num">BEA / BLS</span>
+                              )}
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-1.5 text-[10px] font-mono-num">
+                              <div className="p-2 rounded-lg bg-cyan-500/10 border border-cyan-500/25 text-cyan-200">
+                                <span className="text-[9px] text-cyan-400 block font-bold flex items-center gap-1">
+                                  <GraduationCap className="w-3 h-3" /> 🧠 STEM / Talent:
+                                </span>
+                                <strong>{srvEndow.humanCapitalIndex}%</strong>
+                              </div>
+                              <div className="p-2 rounded-lg bg-blue-500/10 border border-blue-500/25 text-blue-200">
+                                <span className="text-[9px] text-blue-400 block font-bold flex items-center gap-1">
+                                  <Laptop className="w-3 h-3" /> 🏙️ Urban Agglom:
+                                </span>
+                                <strong>{srvEndow.urbanAgglomerationIndex}%</strong>
+                              </div>
+                              <div className="p-2 rounded-lg bg-emerald-500/10 border border-emerald-500/25 text-emerald-200">
+                                <span className="text-[9px] text-emerald-400 block font-bold flex items-center gap-1">
+                                  <Building2 className="w-3 h-3" /> 🏦 Finance Depth:
+                                </span>
+                                <strong>{srvEndow.financialDepthIndex}%</strong>
+                              </div>
+                              <div className="p-2 rounded-lg bg-rose-500/10 border border-rose-500/25 text-rose-200">
+                                <span className="text-[9px] text-rose-400 block font-bold flex items-center gap-1">
+                                  <UtensilsCrossed className="w-3 h-3" /> 🍸 Hospitality:
+                                </span>
+                                <strong>{srvEndow.consumerAmenityIndex}%</strong>
+                              </div>
+                            </div>
+
+                            <div className="p-2.5 rounded-xl bg-slate-950/80 border border-slate-800 text-[10px] space-y-1">
+                              <p className="text-slate-300">
+                                <strong className="text-blue-300">Tech & Knowledge:</strong> {srvEndow.servicesProfile?.techAndDefense || "Regional enterprise IT and business services"}
+                              </p>
+                              <p className="text-slate-300">
+                                <strong className="text-emerald-300">Finance & Banking:</strong> {srvEndow.servicesProfile?.banking || "Commercial banking & local finance"}
+                              </p>
+                              <div className="pt-1 mt-1 border-t border-slate-800/80 flex items-center justify-between text-[9px] text-slate-400">
+                                <span>Digital Infra: <strong className="text-indigo-300">{srvEndow.digitalConnectivityIndex}%</strong></span>
+                                <span>Services Output: <strong className="text-cyan-300">{srvEndow.modeledServicesOutput}</strong></span>
+                              </div>
+                            </div>
                           </div>
                         );
                       })()}
@@ -3888,6 +4100,8 @@ export default function InteractiveWorldMap({
                   nationColor={nationColorMap.get(activeNation.id) || activeNation.color || "#06b6d4"}
                   economicSubdivisions={nationalStatesList}
                   customEndowments={state?.customStateEndowments}
+                  interactionMode={interactionMode}
+                  onTransferTerritory={onTransferTerritory}
                 />
               </div>
 
@@ -3902,6 +4116,28 @@ export default function InteractiveWorldMap({
                         role: "Constituent Sovereign State",
                         status: "STATE",
                       } : null);
+
+                  const directOwner =
+                    activeDossier.name === "Georgia"
+                      ? territoryMap["Georgia (USA)"] || territoryMap["Georgia:Atlanta"] || territoryMap["Georgia"]
+                      : territoryMap[activeDossier.name];
+
+                  const isForeignNeighbour =
+                    stateMeta?.region?.includes("Canada") ||
+                    stateMeta?.region?.includes("Mexico") ||
+                    stateMeta?.code === "ON" ||
+                    stateMeta?.code === "BCN" ||
+                    stateMeta?.code === "QC" ||
+                    stateMeta?.code === "AB" ||
+                    stateMeta?.code === "SON" ||
+                    stateMeta?.code === "CHH" ||
+                    stateMeta?.code === "NLE" ||
+                    stateMeta?.code === "TAM";
+
+                  const isControlledByActiveNation =
+                    directOwner === activeNation.id ||
+                    (!directOwner && !isForeignNeighbour && (activeNation.id === "usa" || isUsa)) ||
+                    (directOwner === "usa" && isUsa);
 
                   if (activeDossier) {
                     const stateMeta = isUsa ? getUsaStateData(activeDossier.name) : null;
@@ -3927,15 +4163,129 @@ export default function InteractiveWorldMap({
                               </span>
                             )}
                           </span>
-                          {activeDossier.isSeceded && (
+                          {activeDossier.isSeceded ? (
                             <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40 text-[10px] font-bold">
                               ★ Seceded Sovereign
+                            </span>
+                          ) : isForeignNeighbour && !isControlledByActiveNation ? (
+                            <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40 text-[10px] font-bold">
+                              Border Province
+                            </span>
+                          ) : (
+                            <span className="px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 text-[10px] font-bold">
+                              {activeDossier.status || "STATE"}
                             </span>
                           )}
                         </div>
                         <p className="text-[11px] text-slate-400">
                           {activeDossier.region || activeDossier.role || "Constituent Sovereign State"}
                         </p>
+
+                        {/* Annexation Action Banner (When in Annex Mode) */}
+                        {interactionMode === "annex" && (
+                          <div className="p-2.5 rounded-xl bg-amber-950/60 border border-amber-500/40 space-y-1.5">
+                            <div className="flex items-center justify-between text-xs font-bold text-amber-300">
+                              <span className="flex items-center gap-1.5">
+                                <Landmark className="w-3.5 h-3.5 text-amber-400" /> Annexation Action
+                              </span>
+                              <span className="text-[9px] px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-200 uppercase font-mono font-bold">
+                                {isControlledByActiveNation ? "Annexed Territory" : "Available to Annex"}
+                              </span>
+                            </div>
+                            <p className="text-[10.5px] text-slate-300 leading-tight">
+                              {isControlledByActiveNation
+                                ? `${activeDossier.name} is currently under active jurisdiction of ${activeNation.name}.`
+                                : `Claim administrative jurisdiction and incorporate ${activeDossier.name} into ${activeNation.name}.`}
+                            </p>
+                            {!isControlledByActiveNation && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  onTransferTerritory({
+                                    territoryName: activeDossier.name,
+                                    targetNationId: activeNation.id,
+                                    mode: "ANNEX",
+                                    planet: activeNation.planet || "Earth",
+                                  });
+                                }}
+                                className="w-full py-1.5 px-3 rounded-lg bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-lg transition cursor-pointer"
+                              >
+                                ⚔️ Switch Active Control of {activeDossier.name} to {activeNation.name}
+                              </button>
+                            )}
+                          </div>
+                        )}
+
+                        {/* Release / Awaken State Action Banner (When in Release Mode) */}
+                        {interactionMode === "release" && (
+                          <div className="p-2.5 rounded-xl bg-purple-950/60 border border-purple-500/40 space-y-2">
+                            <div className="flex items-center justify-between text-xs font-bold text-purple-300">
+                              <span className="flex items-center gap-1.5">
+                                <Globe2 className="w-3.5 h-3.5 text-purple-400" /> Release & Awaken State
+                              </span>
+                              <span className="text-[9px] px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-200 uppercase font-mono font-bold">
+                                Release Mode
+                              </span>
+                            </div>
+                            <p className="text-[10.5px] text-slate-300 leading-tight">
+                              Grant sovereign independence to <strong>{activeDossier.name}</strong> as an awakened nation, or transfer control to a neighbour.
+                            </p>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                onTransferTerritory({
+                                  territoryName: activeDossier.name,
+                                  mode: "RELEASE",
+                                  planet: activeNation.planet || "Earth",
+                                });
+                              }}
+                              className="w-full py-1.5 px-3 rounded-lg bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-lg transition cursor-pointer"
+                            >
+                              👑 Create as Separate Country (Awaken {activeDossier.name})
+                            </button>
+
+                            <div className="pt-1.5 border-t border-purple-500/20 space-y-1">
+                              <span className="text-[10px] font-semibold text-slate-300 block">
+                                Transfer Control to Neighbour:
+                              </span>
+                              <div className="flex items-center gap-1.5">
+                                <select
+                                  value={transferTargetNationId}
+                                  onChange={(e) => setTransferTargetNationId(e.target.value)}
+                                  className="flex-1 bg-slate-900 border border-slate-700 rounded-lg px-2 py-1 text-[11px] text-white focus:outline-none focus:border-cyan-400"
+                                >
+                                  <option value="">Select Neighbour...</option>
+                                  {nations
+                                    .filter((n) => n.id !== activeNation.id)
+                                    .map((n) => {
+                                      const isDirectBorder = n.id === "can" || n.id === "mex" || n.name?.toLowerCase().includes("canada") || n.name?.toLowerCase().includes("mexico");
+                                      return (
+                                        <option key={n.id} value={n.id}>
+                                          {n.name} {isDirectBorder ? "★ (Direct Border)" : ""}
+                                        </option>
+                                      );
+                                    })}
+                                </select>
+                                <button
+                                  type="button"
+                                  disabled={!transferTargetNationId}
+                                  onClick={() => {
+                                    if (!transferTargetNationId) return;
+                                    onTransferTerritory({
+                                      territoryName: activeDossier.name,
+                                      targetNationId: transferTargetNationId,
+                                      mode: "ANNEX",
+                                      planet: activeNation.planet || "Earth",
+                                    });
+                                  }}
+                                  className="py-1 px-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold text-xs flex items-center gap-1 transition cursor-pointer shrink-0"
+                                >
+                                  🤝 Transfer
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        )}
                         <div className="grid grid-cols-2 gap-2 pt-1 font-mono-num text-[11px]">
                           <div className="bg-slate-900/80 p-2.5 rounded-xl border border-slate-800">
                             <span className="text-slate-400 block text-[10px]">State GDP & National Share:</span>
