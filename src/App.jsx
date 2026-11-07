@@ -342,21 +342,90 @@ export default function App() {
   const handleTransferTerritory = async (payload) => {
     if (guardReadOnly()) return;
     lastMutationTimeRef.current = Date.now();
-    const res = await fetch(`/api/sessions/${activeSessionId}/territories`, {
-      method: "POST",
-      headers: getMutationHeaders(),
-      body: JSON.stringify({ ...payload, actor: actorName }),
-    });
-    if (res.ok) {
-      const data = await res.json();
-      setSessionData(data.session);
-      setActivityLog(data.activityLog || []);
-      if (data.nationId) {
-        setSelectedNationId(data.nationId);
+
+    // Instant optimistic UI update so map & dossier reflect RELEASE / ANNEX with zero lag
+    const { territoryName, targetNationId, mode = "ANNEX", planet = "Earth", capital } = payload || {};
+    if (territoryName && sessionData?.state) {
+      const slug =
+        territoryName.toLowerCase().trim() === "georgia"
+          ? "georgia_atlanta"
+          : territoryName.toLowerCase().replace(/[^a-z0-9]+/g, "_");
+
+      setSessionData((prev) => {
+        if (!prev?.state) return prev;
+        const nextTerritoryMap = { ...(prev.state.territoryMap || {}) };
+        let nextNations = [...(prev.state.nations || [])];
+
+        if (mode === "RELEASE") {
+          nextTerritoryMap[territoryName] = slug;
+          if (territoryName === "Georgia") {
+            nextTerritoryMap["Georgia (USA)"] = slug;
+          }
+          if (!nextNations.some((n) => n.id === slug)) {
+            const template =
+              nextNations.find((n) => n.id === (payload.sourceNationId || selectedNationId)) ||
+              nextNations[0] ||
+              {};
+            nextNations.push({
+              ...template,
+              id: slug,
+              name: territoryName,
+              capital: capital || `${territoryName} City`,
+              planet: planet || template.planet || "Earth",
+              isSeceded: true,
+              originTerritory: territoryName,
+              workingPops: Math.max(1500000, Math.round((Number(template.workingPops) || 30000000) * 0.04)),
+              treasuryBalance: 25000000000,
+              companies: [],
+            });
+          }
+        } else if (targetNationId) {
+          nextTerritoryMap[territoryName] = targetNationId;
+          if (territoryName === "Georgia") {
+            nextTerritoryMap["Georgia (USA)"] = targetNationId;
+          }
+        }
+
+        return {
+          ...prev,
+          state: {
+            ...prev.state,
+            territoryMap: nextTerritoryMap,
+            nations: nextNations,
+          },
+        };
+      });
+
+      if (mode === "RELEASE") {
+        showToast(`👑 Awakened Independent Sovereign Nation: ${territoryName}`);
+      } else if (targetNationId) {
+        const targetObj = sessionData.state.nations?.find((n) => n.id === targetNationId);
+        showToast(`⚔️ Transferred active control of ${territoryName} to ${targetObj?.name || targetNationId}`);
       }
-      if (data.toastMessage) {
-        showToast(data.toastMessage);
+    }
+
+    try {
+      const res = await fetch(`/api/sessions/${activeSessionId}/territories`, {
+        method: "POST",
+        headers: getMutationHeaders(),
+        body: JSON.stringify({ ...payload, actor: actorName }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setSessionData(data.session);
+        setActivityLog(data.activityLog || []);
+        if (payload?.switchToNation && data.nationId) {
+          setSelectedNationId(data.nationId);
+        }
+        if (data.toastMessage) {
+          showToast(data.toastMessage);
+        }
+      } else {
+        const errData = await res.json().catch(() => ({}));
+        showToast(errData.error || `Territory update failed (${res.status})`);
       }
+    } catch (err) {
+      showToast(`Network error updating territory: ${err.message || "Failed"}`);
     }
   };
 

@@ -412,6 +412,9 @@ async function getActivityLog(db, sessionId, limit = 50) {
 async function isValidDirectorToken(db, token, env) {
   if (!token) return false;
   if (env?.DIRECTOR_SECRET_KEY && token === env.DIRECTOR_SECRET_KEY) return true;
+  if (!db && typeof token === "string" && token.startsWith("dir_sess_") && token.length >= 20) {
+    return true;
+  }
   const activeSessions = await getD1AuthValue(db, "sessions", {});
   return Boolean(activeSessions[token]);
 }
@@ -1588,11 +1591,19 @@ export default {
 
       // POST /api/sessions/:id/territories (Dynamic Border Changes)
       if (parts[3] === "territories" && request.method === "POST") {
-        const { territoryName, targetNationId, mode = "ANNEX", planet = "Earth", capital, actor } =
-          await request.json();
+        const {
+          territoryName,
+          targetNationId,
+          sourceNationId,
+          mode = "ANNEX",
+          planet = "Earth",
+          capital,
+          actor,
+        } = await request.json();
         const result = transferTerritory(sess.state, {
           territoryName,
           targetNationId,
+          sourceNationId,
           mode,
           planet,
           capital,

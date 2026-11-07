@@ -264,14 +264,22 @@ function getCachedSession(sessionId) {
   return sessionCache.get(sessionId);
 }
 
-function persistAndBroadcast(sessionId, actor, action, details = "") {
+function persistAndBroadcast(sessionId, actor, action, details = "", skipEvaluate = false) {
   const sess = sessionCache.get(sessionId);
   if (!sess) return;
-  evaluateSimulation(sess.state);
-  saveSessionState(sessionId, sess.state);
-  if (action) {
-    logActivity(sessionId, actor || "Director", action, details);
+  if (!skipEvaluate) {
+    evaluateSimulation(sess.state);
   }
+  setImmediate(() => {
+    try {
+      saveSessionState(sessionId, sess.state);
+      if (action) {
+        logActivity(sessionId, actor || "Director", action, details);
+      }
+    } catch (e) {
+      console.error("Background persistence error:", e);
+    }
+  });
   broadcastSessionUpdate(sessionId, {
     type: "STATE_UPDATED",
     actor: actor || "Director",
@@ -1290,8 +1298,15 @@ app.post("/api/sessions/:id/territories", (req, res) => {
   const sess = getCachedSession(id);
   if (!sess) return res.status(404).json({ error: "Session not found" });
 
-  const { territoryName, targetNationId, mode = "ANNEX", planet = "Earth", capital, actor } =
-    req.body;
+  const {
+    territoryName,
+    targetNationId,
+    sourceNationId,
+    mode = "ANNEX",
+    planet = "Earth",
+    capital,
+    actor,
+  } = req.body;
   if (!territoryName) {
     return res.status(400).json({ error: "territoryName is required" });
   }
@@ -1299,12 +1314,13 @@ app.post("/api/sessions/:id/territories", (req, res) => {
   const result = transferTerritory(sess.state, {
     territoryName,
     targetNationId,
+    sourceNationId,
     mode,
     planet,
     capital,
   });
 
-  persistAndBroadcast(id, actor, result.action, `Territory: ${territoryName}`);
+  persistAndBroadcast(id, actor, result.action, `Territory: ${territoryName}`, true);
   res.json({
     session: sess,
     nationId: result.nationId,

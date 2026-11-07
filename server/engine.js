@@ -19,6 +19,7 @@ import {
 } from "./victoriaMechanics.js";
 import { HISTORICAL_ERAS, getHistoricalEraForDate } from "./historicalEras.js";
 import { ALL_SOVEREIGN_NATIONS, ALL_NATIONS_BY_ID, ALL_NATIONS_BY_NAME } from "../src/data/nationsCatalog.js";
+import { US_STATES_CATALOG, getUsaStateData } from "../src/data/usStatesData.js";
 import { computeGdpForecast, applyForecastGrowth } from "./forecastingEngine.js";
 import { COMMODITY_PRICE_BENCHMARKS } from "./empiricalPriceCatalog.js";
 import {
@@ -335,10 +336,16 @@ export function applyHistoricalEra(state, eraIdOrDate) {
  * - mode === "INTEGRATE": Integrates an unincorporated territory into full Constituent Statehood
  * - mode === "RELEASE": Releases a state as a unitary sovereign nation with NO internal sub-provinces
  */
-export function transferTerritory(state, { territoryName, targetNationId, mode = "ANNEX", planet = "Earth", capital, newCountryName }) {
+export function transferTerritory(state, { territoryName, targetNationId, mode = "ANNEX", planet = "Earth", capital, newCountryName, sourceNationId }) {
   ensureTerritoryMap(state);
   if (!state.territoryStatusMap) state.territoryStatusMap = {};
-  const prevControllerId = state.territoryMap[territoryName];
+  const stateMeta = getUsaStateData(territoryName);
+  const isUsCoreState = Boolean(US_STATES_CATALOG[territoryName]);
+  const prevControllerId =
+    territoryName.toLowerCase() === "georgia" &&
+    (sourceNationId === "usa" || state.territoryMap["Georgia (USA)"] === "usa" || territoryName.includes("USA"))
+      ? "usa"
+      : state.territoryMap[territoryName] || sourceNationId || (isUsCoreState ? "usa" : null);
   const prevNation = (state.nations || []).find((n) => n.id === prevControllerId);
 
   // 1. SECESSION / RELEASE:
@@ -355,6 +362,7 @@ export function transferTerritory(state, { territoryName, targetNationId, mode =
       else if (isGeorgia) capitalName = "Tbilisi";
       else if (isCalifornia) capitalName = "Sacramento";
       else if (isTexas) capitalName = "Austin";
+      else if (stateMeta?.capital) capitalName = stateMeta.capital;
       else capitalName = `${territoryName} City`;
     }
 
@@ -392,10 +400,13 @@ export function transferTerritory(state, { territoryName, targetNationId, mode =
       (n) =>
         n.id === newId ||
         n.id === countryTag ||
-        n.name.toLowerCase() === territoryName.toLowerCase() ||
+        (!isUsaGeorgia && n.name.toLowerCase() === territoryName.toLowerCase()) ||
         n.name.toLowerCase() === nationName.toLowerCase()
     );
     if (existing) {
+      existing.isSeceded = true;
+      existing.isUnitaryState = true;
+      existing.originTerritory = territoryName;
       state.territoryMap[territoryName] = existing.id;
       if (isUsaGeorgia) {
         state.territoryMap["Georgia (USA)"] = existing.id;
@@ -411,9 +422,10 @@ export function transferTerritory(state, { territoryName, targetNationId, mode =
     let newPops = planet === "Mars" ? 4500000 : 18000000;
 
     if (prevNation) {
-      const popShare = Math.round((prevNation.workingPops || 20000000) * 0.12);
+      const shareRatio = stateMeta?.popShare || 0.12;
+      const popShare = Math.round((prevNation.workingPops || 20000000) * shareRatio);
       prevNation.workingPops = Math.max(1000000, prevNation.workingPops - popShare);
-      newPops = Math.max(2500000, popShare);
+      newPops = Math.max(500000, popShare);
       if (prevNation.constituentStates) {
         prevNation.constituentStates = prevNation.constituentStates.filter((s) => s.name !== territoryName);
       }
@@ -426,6 +438,7 @@ export function transferTerritory(state, { territoryName, targetNationId, mode =
     const newNation = {
       id: newId,
       name: nationName,
+      originTerritory: territoryName,
       planet,
       capital: capitalName,
       governmentSystem: "Presidential Republic",

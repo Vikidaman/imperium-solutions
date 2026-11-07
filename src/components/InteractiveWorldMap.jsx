@@ -1875,7 +1875,7 @@ export default function InteractiveWorldMap({
                     } : null);
 
                 if (activeDossier) {
-                  const stateMeta = isUsa ? getUsaStateData(activeDossier.name) : null;
+                  const stateMeta = getUsaStateData(activeDossier.name);
                   const stateGdp = activeDossier.gdp || (stateMeta ? (c.aggregateGdp || 0) * stateMeta.gdpShare : 0);
                   const statePops = activeDossier.pops || (stateMeta ? Math.round((c.effectiveWorkingPops || 0) * stateMeta.popShare) : 0);
                   const gdpSharePercent = stateMeta ? (stateMeta.gdpShare * 100).toFixed(1) : (c.aggregateGdp > 0 ? ((stateGdp / c.aggregateGdp) * 100).toFixed(1) : "0.0");
@@ -1886,6 +1886,8 @@ export default function InteractiveWorldMap({
                     activeDossier.name === "Georgia"
                       ? territoryMap["Georgia (USA)"] || territoryMap["Georgia:Atlanta"] || territoryMap["Georgia"]
                       : territoryMap[activeDossier.name];
+
+                  const ownerNation = directOwner ? nationById.get(directOwner) : null;
 
                   const isForeignNeighbour =
                     stateMeta?.region?.includes("Canada") ||
@@ -1903,6 +1905,17 @@ export default function InteractiveWorldMap({
                     directOwner === activeNation.id ||
                     (!directOwner && !isForeignNeighbour && (activeNation.id === "usa" || isUsa)) ||
                     (directOwner === "usa" && isUsa);
+
+                  const isSecededOrTransferred = Boolean(
+                    directOwner &&
+                    directOwner !== activeNation.id &&
+                    !(isUsa && directOwner === "usa")
+                  );
+                  const isIndependentAwakened = Boolean(
+                    activeDossier.isSeceded ||
+                    ownerNation?.isSeceded ||
+                    (isSecededOrTransferred && ownerNation && ownerNation.name?.toLowerCase() === activeDossier.name?.toLowerCase())
+                  );
 
                   return (
                     <div className="space-y-3 animate-in fade-in duration-100">
@@ -1922,9 +1935,13 @@ export default function InteractiveWorldMap({
                             </span>
                           )}
                         </div>
-                        {activeDossier.isSeceded ? (
-                          <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40 text-[10px] font-bold">
-                            ★ Seceded Sovereign
+                        {isIndependentAwakened ? (
+                          <span className="px-2 py-0.5 rounded-full bg-purple-500/25 text-purple-200 border border-purple-400/50 text-[10px] font-bold">
+                            👑 Sovereign Country
+                          </span>
+                        ) : isSecededOrTransferred && ownerNation ? (
+                          <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-[10px] font-bold">
+                            🤝 Controlled by {ownerNation.name}
                           </span>
                         ) : isForeignNeighbour && !isControlledByActiveNation ? (
                           <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40 text-[10px] font-bold">
@@ -1938,7 +1955,11 @@ export default function InteractiveWorldMap({
                       </div>
 
                       <p className="text-xs text-slate-400">
-                        {activeDossier.region || activeDossier.role || "Constituent Sovereign State"}
+                        {isIndependentAwakened
+                          ? `Independent Sovereign Nation (Capital: ${capital || ownerNation?.capital || activeDossier.name})`
+                          : isSecededOrTransferred && ownerNation
+                          ? `Under Administrative Control of ${ownerNation.name}`
+                          : activeDossier.region || activeDossier.role || "Constituent Sovereign State"}
                       </p>
 
                       {/* Annexation Action Banner (When in Annex Mode) */}
@@ -1964,6 +1985,7 @@ export default function InteractiveWorldMap({
                                 onTransferTerritory({
                                   territoryName: activeDossier.name,
                                   targetNationId: activeNation.id,
+                                  sourceNationId: directOwner || activeNation.id,
                                   mode: "ANNEX",
                                   planet: activeNation.planet || "Earth",
                                 });
@@ -1984,25 +2006,64 @@ export default function InteractiveWorldMap({
                               <Globe2 className="w-4 h-4 text-purple-400" /> Release & Awaken State
                             </span>
                             <span className="text-[10px] px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-200 uppercase font-mono font-bold">
-                              Release Mode
+                              {isIndependentAwakened ? "Awakened Sovereign" : "Release Mode"}
                             </span>
                           </div>
-                          <p className="text-[11px] text-slate-300 leading-relaxed">
-                            Grant sovereign independence to <strong>{activeDossier.name}</strong> as an awakened nation, or transfer control of this province to an adjacent neighbour.
-                          </p>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              onTransferTerritory({
-                                territoryName: activeDossier.name,
-                                mode: "RELEASE",
-                                planet: activeNation.planet || "Earth",
-                              });
-                            }}
-                            className="w-full py-2 px-3 rounded-lg bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-lg transition cursor-pointer"
-                          >
-                            👑 Create as Separate Country (Awaken {activeDossier.name})
-                          </button>
+
+                          {isIndependentAwakened ? (
+                            <div className="p-2.5 rounded-lg bg-emerald-950/70 border border-emerald-500/40 space-y-2">
+                              <p className="text-[11px] text-emerald-200 font-semibold leading-relaxed">
+                                ✅ <strong>{activeDossier.name}</strong> is now an Independent Sovereign Country{ownerNation ? ` (${ownerNation.name})` : ""}.
+                              </p>
+                              <div className="flex flex-col sm:flex-row gap-2">
+                                {ownerNation && (
+                                  <button
+                                    type="button"
+                                    onClick={() => onSelectNation(ownerNation.id)}
+                                    className="flex-1 py-1.5 px-2.5 rounded-lg bg-purple-600 hover:bg-purple-500 text-white font-bold text-[11px] flex items-center justify-center gap-1.5 shadow transition cursor-pointer"
+                                  >
+                                    🏛️ Inspect {ownerNation.name} Nation View
+                                  </button>
+                                )}
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    onTransferTerritory({
+                                      territoryName: activeDossier.name,
+                                      targetNationId: activeNation.id,
+                                      sourceNationId: directOwner || ownerNation?.id,
+                                      mode: "ANNEX",
+                                      planet: activeNation.planet || "Earth",
+                                    });
+                                  }}
+                                  className="py-1.5 px-2.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-600 font-semibold text-[11px] flex items-center justify-center gap-1 transition cursor-pointer"
+                                >
+                                  🔄 Re-Integrate into {activeNation.name}
+                                </button>
+                              </div>
+                            </div>
+                          ) : (
+                            <>
+                              <p className="text-[11px] text-slate-300 leading-relaxed">
+                                Grant sovereign independence to <strong>{activeDossier.name}</strong> as an awakened nation, or transfer control of this province to an adjacent neighbour.
+                              </p>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  onTransferTerritory({
+                                    territoryName: activeDossier.name,
+                                    sourceNationId: activeNation.id,
+                                    capital: capital || undefined,
+                                    mode: "RELEASE",
+                                    planet: activeNation.planet || "Earth",
+                                  });
+                                }}
+                                className="w-full py-2 px-3 rounded-lg bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-lg transition cursor-pointer"
+                              >
+                                👑 Create as Separate Country (Awaken {activeDossier.name})
+                              </button>
+                            </>
+                          )}
 
                           <div className="pt-2 border-t border-purple-500/20 space-y-1.5">
                             <span className="text-[10.5px] font-semibold text-slate-300 block">
@@ -2034,6 +2095,7 @@ export default function InteractiveWorldMap({
                                   onTransferTerritory({
                                     territoryName: activeDossier.name,
                                     targetNationId: transferTargetNationId,
+                                    sourceNationId: activeNation.id,
                                     mode: "ANNEX",
                                     planet: activeNation.planet || "Earth",
                                   });
@@ -4145,7 +4207,7 @@ export default function InteractiveWorldMap({
                       } : null);
 
                   if (activeDossier) {
-                    const stateMeta = isUsa ? getUsaStateData(activeDossier.name) : null;
+                    const stateMeta = getUsaStateData(activeDossier.name);
                     const stateGdp = activeDossier.gdp || (stateMeta ? (c.aggregateGdp || 0) * stateMeta.gdpShare : 0);
                     const statePops = activeDossier.pops || (stateMeta ? Math.round((c.effectiveWorkingPops || 0) * stateMeta.popShare) : 0);
                     const gdpSharePercent = stateMeta ? (stateMeta.gdpShare * 100).toFixed(1) : (c.aggregateGdp > 0 ? ((stateGdp / c.aggregateGdp) * 100).toFixed(1) : "0.0");
@@ -4156,6 +4218,8 @@ export default function InteractiveWorldMap({
                       activeDossier.name === "Georgia"
                         ? territoryMap["Georgia (USA)"] || territoryMap["Georgia:Atlanta"] || territoryMap["Georgia"]
                         : territoryMap[activeDossier.name];
+
+                    const ownerNation = directOwner ? nationById.get(directOwner) : null;
 
                     const isForeignNeighbour =
                       stateMeta?.region?.includes("Canada") ||
@@ -4174,6 +4238,17 @@ export default function InteractiveWorldMap({
                       (!directOwner && !isForeignNeighbour && (activeNation.id === "usa" || isUsa)) ||
                       (directOwner === "usa" && isUsa);
 
+                    const isSecededOrTransferred = Boolean(
+                      directOwner &&
+                      directOwner !== activeNation.id &&
+                      !(isUsa && directOwner === "usa")
+                    );
+                    const isIndependentAwakened = Boolean(
+                      activeDossier.isSeceded ||
+                      ownerNation?.isSeceded ||
+                      (isSecededOrTransferred && ownerNation && ownerNation.name?.toLowerCase() === activeDossier.name?.toLowerCase())
+                    );
+
                     return (
                       <div className="space-y-2 animate-in fade-in duration-100">
                         <div className="flex items-center justify-between">
@@ -4190,9 +4265,13 @@ export default function InteractiveWorldMap({
                               </span>
                             )}
                           </span>
-                          {activeDossier.isSeceded ? (
-                            <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40 text-[10px] font-bold">
-                              ★ Seceded Sovereign
+                          {isIndependentAwakened ? (
+                            <span className="px-2 py-0.5 rounded-full bg-purple-500/25 text-purple-200 border border-purple-400/50 text-[10px] font-bold">
+                              👑 Sovereign Country
+                            </span>
+                          ) : isSecededOrTransferred && ownerNation ? (
+                            <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-[10px] font-bold">
+                              🤝 Controlled by {ownerNation.name}
                             </span>
                           ) : isForeignNeighbour && !isControlledByActiveNation ? (
                             <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40 text-[10px] font-bold">
@@ -4205,7 +4284,11 @@ export default function InteractiveWorldMap({
                           )}
                         </div>
                         <p className="text-[11px] text-slate-400">
-                          {activeDossier.region || activeDossier.role || "Constituent Sovereign State"}
+                          {isIndependentAwakened
+                            ? `Independent Sovereign Nation (Capital: ${capital || ownerNation?.capital || activeDossier.name})`
+                            : isSecededOrTransferred && ownerNation
+                            ? `Under Administrative Control of ${ownerNation.name}`
+                            : activeDossier.region || activeDossier.role || "Constituent Sovereign State"}
                         </p>
 
                         {/* Annexation Action Banner (When in Annex Mode) */}
@@ -4231,6 +4314,7 @@ export default function InteractiveWorldMap({
                                   onTransferTerritory({
                                     territoryName: activeDossier.name,
                                     targetNationId: activeNation.id,
+                                    sourceNationId: directOwner || activeNation.id,
                                     mode: "ANNEX",
                                     planet: activeNation.planet || "Earth",
                                   });
@@ -4251,25 +4335,64 @@ export default function InteractiveWorldMap({
                                 <Globe2 className="w-3.5 h-3.5 text-purple-400" /> Release & Awaken State
                               </span>
                               <span className="text-[9px] px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-200 uppercase font-mono font-bold">
-                                Release Mode
+                                {isIndependentAwakened ? "Awakened Sovereign" : "Release Mode"}
                               </span>
                             </div>
-                            <p className="text-[10.5px] text-slate-300 leading-tight">
-                              Grant sovereign independence to <strong>{activeDossier.name}</strong> as an awakened nation, or transfer control to a neighbour.
-                            </p>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                onTransferTerritory({
-                                  territoryName: activeDossier.name,
-                                  mode: "RELEASE",
-                                  planet: activeNation.planet || "Earth",
-                                });
-                              }}
-                              className="w-full py-1.5 px-3 rounded-lg bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-lg transition cursor-pointer"
-                            >
-                              👑 Create as Separate Country (Awaken {activeDossier.name})
-                            </button>
+
+                            {isIndependentAwakened ? (
+                              <div className="p-2 rounded-lg bg-emerald-950/70 border border-emerald-500/40 space-y-1.5">
+                                <p className="text-[10.5px] text-emerald-200 font-semibold leading-tight">
+                                  ✅ <strong>{activeDossier.name}</strong> is now an Independent Sovereign Country{ownerNation ? ` (${ownerNation.name})` : ""}.
+                                </p>
+                                <div className="flex gap-1.5">
+                                  {ownerNation && (
+                                    <button
+                                      type="button"
+                                      onClick={() => onSelectNation(ownerNation.id)}
+                                      className="flex-1 py-1 px-2 rounded-lg bg-purple-600 hover:bg-purple-500 text-white font-bold text-[10.5px] flex items-center justify-center gap-1 shadow transition cursor-pointer"
+                                    >
+                                      🏛️ Inspect {ownerNation.name}
+                                    </button>
+                                  )}
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      onTransferTerritory({
+                                        territoryName: activeDossier.name,
+                                        targetNationId: activeNation.id,
+                                        sourceNationId: directOwner || ownerNation?.id,
+                                        mode: "ANNEX",
+                                        planet: activeNation.planet || "Earth",
+                                      });
+                                    }}
+                                    className="py-1 px-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-600 font-semibold text-[10.5px] flex items-center justify-center gap-1 transition cursor-pointer"
+                                  >
+                                    🔄 Re-Integrate
+                                  </button>
+                                </div>
+                              </div>
+                            ) : (
+                              <>
+                                <p className="text-[10.5px] text-slate-300 leading-tight">
+                                  Grant sovereign independence to <strong>{activeDossier.name}</strong> as an awakened nation, or transfer control to a neighbour.
+                                </p>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    onTransferTerritory({
+                                      territoryName: activeDossier.name,
+                                      sourceNationId: activeNation.id,
+                                      capital: capital || undefined,
+                                      mode: "RELEASE",
+                                      planet: activeNation.planet || "Earth",
+                                    });
+                                  }}
+                                  className="w-full py-1.5 px-3 rounded-lg bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-lg transition cursor-pointer"
+                                >
+                                  👑 Create as Separate Country (Awaken {activeDossier.name})
+                                </button>
+                              </>
+                            )}
 
                             <div className="pt-1.5 border-t border-purple-500/20 space-y-1">
                               <span className="text-[10px] font-semibold text-slate-300 block">
@@ -4301,6 +4424,7 @@ export default function InteractiveWorldMap({
                                     onTransferTerritory({
                                       territoryName: activeDossier.name,
                                       targetNationId: transferTargetNationId,
+                                      sourceNationId: activeNation.id,
                                       mode: "ANNEX",
                                       planet: activeNation.planet || "Earth",
                                     });

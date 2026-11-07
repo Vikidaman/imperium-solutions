@@ -147,6 +147,27 @@ export default function CountryAdm1Map({
       return;
     }
 
+    // If this nation is a newly awakened / seceded US state or North American province,
+    // render its polygon(s) directly from US_STATES_GEO / CAN / MEX so it never fails ISO-3 lookup
+    const matchingUsFeats = US_STATES_GEO.features.filter((f) => {
+      const fName = f.properties?.name || "";
+      return (
+        fName.toLowerCase() === (nation.name || "").toLowerCase() ||
+        fName.toLowerCase() === (nation.originTerritory || "").toLowerCase() ||
+        territoryMap[fName] === nation.id
+      );
+    });
+
+    if (matchingUsFeats.length > 0) {
+      setGeoData({
+        type: "FeatureCollection",
+        features: matchingUsFeats,
+      });
+      setError(null);
+      setLoading(false);
+      return;
+    }
+
     setLoading(true);
     setError(null);
 
@@ -156,8 +177,37 @@ export default function CountryAdm1Map({
         setGeoData(res.geojson);
         setError(null);
       } else {
-        setGeoData(null);
-        setError(res.reason || "ADM1 geographic boundary dataset unavailable.");
+        // Fallback check in CAN / MEX ADM1 for awakened Canadian or Mexican provinces
+        Promise.all([loadCountryAdm1("CAN"), loadCountryAdm1("MEX")])
+          .then(([canRes, mexRes]) => {
+            if (!active) return;
+            const allFeats = [
+              ...(canRes.success && canRes.geojson?.features ? canRes.geojson.features : []),
+              ...(mexRes.success && mexRes.geojson?.features ? mexRes.geojson.features : []),
+            ];
+            const matched = allFeats.filter((f) => {
+              const fName = f.properties?.name || "";
+              return (
+                fName.toLowerCase() === (nation.name || "").toLowerCase() ||
+                fName.toLowerCase() === (nation.originTerritory || "").toLowerCase() ||
+                territoryMap[fName] === nation.id
+              );
+            });
+            if (matched.length > 0) {
+              setGeoData({ type: "FeatureCollection", features: matched });
+              setError(null);
+            } else {
+              setGeoData(null);
+              setError(res.reason || "ADM1 geographic boundary dataset unavailable.");
+            }
+            setLoading(false);
+          })
+          .catch(() => {
+            if (!active) return;
+            setGeoData(null);
+            setError(res.reason || "ADM1 geographic boundary dataset unavailable.");
+            setLoading(false);
+          });
       }
       setLoading(false);
     });
@@ -388,9 +438,9 @@ export default function CountryAdm1Map({
             });
 
             // Clean High-Contrast Tooltip
-            const endow = isUsa ? getUsStateEndowment(name, customEndowments) : null;
-            const srvEndow = isUsa ? getUsStateServicesEndowment(name, customEndowments) : null;
-            const stateMeta = isUsa ? getUsaStateData(name) : null;
+            const endow = getUsStateEndowment(name, customEndowments);
+            const srvEndow = getUsStateServicesEndowment(name, customEndowments);
+            const stateMeta = getUsaStateData(name);
             const isForeignNeighbour =
               feature.properties?.countryIso3 === "CAN" || feature.properties?.countryIso3 === "MEX";
             const directOwner =
@@ -401,6 +451,7 @@ export default function CountryAdm1Map({
               directOwner === nation?.id ||
               (!directOwner && !isForeignNeighbour && (nation?.id === "usa" || isUsa)) ||
               (directOwner === "usa" && isUsa);
+            const isSeceded = !isForeignNeighbour && directOwner && directOwner !== nation?.id && directOwner !== "usa";
             const countryTag = feature.properties?.countryName || (feature.properties?.countryIso3 === "CAN" ? "Canada" : feature.properties?.countryIso3 === "MEX" ? "Mexico" : "");
 
             let tooltipContent = `<div style="background-color: #090e17 !important; color: #f8fafc !important; border-radius: 10px; border: 1px solid rgba(56, 189, 248, 0.45); padding: 10px; font-family: ui-sans-serif, system-ui, sans-serif; box-shadow: 0 14px 35px rgba(0,0,0,0.85);" class="min-w-[220px] max-w-[290px] text-xs">
@@ -409,7 +460,14 @@ export default function CountryAdm1Map({
                 ${stateMeta?.code ? `<span style="font-size: 10px; background-color: rgba(6, 182, 212, 0.25); color: #a5f3fc; border: 1px solid rgba(34, 211, 238, 0.5); font-family: ui-monospace, monospace; font-weight: bold; padding: 2px 6px; border-radius: 4px;">${stateMeta.code}</span>` : ""}
               </div>`;
 
-            if (isForeignNeighbour && !isControlledByActiveNation) {
+            if (isSeceded) {
+              tooltipContent += `
+                <div style="margin-top: 6px; padding: 6px 8px; border-radius: 6px; background-color: rgba(168, 85, 247, 0.2); border: 1px solid rgba(192, 132, 252, 0.55); font-size: 11px; color: #f3e8ff;">
+                  <strong style="color: #e9d5ff; display: block;">👑 Independent / Transferred State</strong>
+                  <span style="font-size: 10px; color: #f1f5f9; display: block; margin-top: 2px;">Active Jurisdiction: <strong>${String(directOwner).toUpperCase()}</strong></span>
+                </div>
+              `;
+            } else if (isForeignNeighbour && !isControlledByActiveNation) {
               tooltipContent += `
                 <div style="margin-top: 6px; padding: 6px 8px; border-radius: 6px; background-color: rgba(245, 158, 11, 0.15); border: 1px solid rgba(245, 158, 11, 0.45); font-size: 11px; color: #fef08a;">
                   <strong style="color: #fbbf24; display: block;">📍 ${countryTag} Border Province</strong>
