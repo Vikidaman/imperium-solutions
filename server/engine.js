@@ -343,11 +343,21 @@ export function transferTerritory(state, { territoryName, targetNationId, mode =
   state.lastModifiedAt = Date.now();
   const stateMeta = getUsaStateData(territoryName);
   const isUsCoreState = Boolean(US_STATES_CATALOG[territoryName]);
+  const inferredForeignOwner =
+    !isUsCoreState && stateMeta?.region?.includes("Canada")
+      ? "canada"
+      : !isUsCoreState && stateMeta?.region?.includes("Mexico")
+      ? "mexico"
+      : null;
+  const safeSourceNationId =
+    (mode === "ANNEX" || mode === "INTEGRATE") && sourceNationId === targetNationId
+      ? null
+      : sourceNationId;
   const prevControllerId =
     territoryName.toLowerCase() === "georgia" &&
-    (sourceNationId === "usa" || state.territoryMap["Georgia (USA)"] === "usa" || territoryName.includes("USA"))
+    (safeSourceNationId === "usa" || state.territoryMap["Georgia (USA)"] === "usa" || territoryName.includes("USA"))
       ? "usa"
-      : state.territoryMap[territoryName] || sourceNationId || (isUsCoreState ? "usa" : null);
+      : state.territoryMap[territoryName] || safeSourceNationId || (isUsCoreState ? "usa" : inferredForeignOwner);
   const prevNation = (state.nations || []).find((n) => n.id === prevControllerId);
 
   // 1. SECESSION / RELEASE:
@@ -551,7 +561,11 @@ export function transferTerritory(state, { territoryName, targetNationId, mode =
   const targetNation = (state.nations || []).find((n) => n.id === targetNationId);
   if (!targetNation) return { state, action: "Target nation not found" };
 
-  if (prevControllerId === targetNationId) {
+  const alreadyExplicitlyControlled =
+    state.territoryMap[territoryName] === targetNationId ||
+    (isUsCoreState && !state.territoryMap[territoryName] && targetNationId === "usa");
+  if (alreadyExplicitlyControlled && prevControllerId === targetNationId) {
+    state.territoryMap[territoryName] = targetNationId;
     return { state, nationId: targetNationId, action: `${territoryName} is already controlled by ${targetNation.name}` };
   }
 

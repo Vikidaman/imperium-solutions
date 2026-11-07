@@ -444,7 +444,12 @@ export default function App() {
           }
         } else if (targetNationId) {
           nextTerritoryMap[territoryName] = targetNationId;
-          nextTerritoryStatusMap[territoryName] = payload.territoryStatus || "STATE";
+          const isUsCore = Boolean(usStateMeta && !isForeignMeta);
+          const isReturning =
+            (isUsCore && targetNationId === "usa") ||
+            (!isUsCore && (targetNationId === "mexico" || targetNationId === "canada"));
+          nextTerritoryStatusMap[territoryName] =
+            payload.territoryStatus || (isReturning ? "STATE" : "TERRITORY");
           if (territoryName === "Georgia") {
             nextTerritoryMap["Georgia (USA)"] = targetNationId;
             nextTerritoryMap["Georgia:Atlanta"] = targetNationId;

@@ -2039,7 +2039,13 @@ export default function InteractiveWorldMap({
                                 onTransferTerritory({
                                   territoryName: activeDossier.name,
                                   targetNationId: activeNation.id,
-                                  sourceNationId: directOwner || activeNation.id,
+                                  sourceNationId:
+                                    directOwner ||
+                                    (stateMeta?.region?.includes("Canada")
+                                      ? "canada"
+                                      : stateMeta?.region?.includes("Mexico")
+                                      ? "mexico"
+                                      : undefined),
                                   mode: "ANNEX",
                                   planet: activeNation.planet || "Earth",
                                 });
@@ -4461,7 +4467,13 @@ export default function InteractiveWorldMap({
                                   onTransferTerritory({
                                     territoryName: activeDossier.name,
                                     targetNationId: activeNation.id,
-                                    sourceNationId: directOwner || activeNation.id,
+                                    sourceNationId:
+                                      directOwner ||
+                                      (stateMeta?.region?.includes("Canada")
+                                        ? "canada"
+                                        : stateMeta?.region?.includes("Mexico")
+                                        ? "mexico"
+                                        : undefined),
                                     mode: "ANNEX",
                                     planet: activeNation.planet || "Earth",
                                   });

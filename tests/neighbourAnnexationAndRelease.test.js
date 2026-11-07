@@ -76,6 +76,31 @@ test("Neighbour Province Endowments & Annexation Integration", async (t) => {
     assert.ok(mockState.nations[0].unincorporatedTerritories.some((t) => t.name === "Ontario"));
   });
 
+  await t.test("transferTerritory annexes unmapped neighbour province even when territoryMap entry is undefined and sourceNationId equals targetNationId", () => {
+    const mockState = {
+      nations: [
+        { id: "usa", name: "USA", workingPops: 160000000, constituentStates: [], unincorporatedTerritories: [] },
+        { id: "canada", name: "Canada", workingPops: 20000000, constituentStates: [], unincorporatedTerritories: [] },
+      ],
+      territoryMap: {},
+      territoryStatusMap: {},
+      newsFeed: [],
+    };
+
+    const res = transferTerritory(mockState, {
+      territoryName: "Ontario",
+      targetNationId: "usa",
+      sourceNationId: "usa",
+      mode: "ANNEX",
+      planet: "Earth",
+    });
+
+    assert.ok(res);
+    assert.equal(mockState.territoryMap["Ontario"], "usa");
+    assert.equal(mockState.territoryStatusMap["Ontario"], "TERRITORY");
+    assert.ok(!res.action.includes("already controlled"));
+  });
+
   await t.test("transferTerritory successfully releases a province into a sovereign republic", () => {
     const mockState = {
       nations: [
