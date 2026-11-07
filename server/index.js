@@ -267,6 +267,11 @@ function getCachedSession(sessionId) {
 function persistAndBroadcast(sessionId, actor, action, details = "", skipEvaluate = false) {
   const sess = sessionCache.get(sessionId);
   if (!sess) return;
+  if (sess.state) {
+    sess.state.version = (Number(sess.state.version) || 0) + 1;
+    sess.state.lastModifiedAt = Date.now();
+  }
+  sess.updatedAt = new Date().toISOString();
   if (!skipEvaluate) {
     evaluateSimulation(sess.state);
   }

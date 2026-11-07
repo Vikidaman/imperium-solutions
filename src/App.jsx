@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import InteractiveWorldMap from "./components/InteractiveWorldMap";
 import DirectorLoginPortal from "./components/DirectorLoginPortal";
+import { getUsaStateData } from "./data/usStatesData";
 
 const MarketsAndTechView = lazy(() => import("./components/MarketsAndTechView"));
 const LedgerAndTimeView = lazy(() => import("./components/LedgerAndTimeView"));
@@ -111,6 +112,8 @@ export default function App() {
   const [showStartDatePicker, setShowStartDatePicker] = useState(false);
   const [customStartDateInput, setCustomStartDateInput] = useState("1836-01-01");
   const lastMutationTimeRef = useRef(0);
+  const mutationInFlightRef = useRef(0);
+  const stateVersionRef = useRef(0);
 
   const handleJumpToTab = useCallback((tabId) => {
     let resolved = tabId;
@@ -209,11 +212,35 @@ export default function App() {
     }
   }, []);
 
-  const fetchSessionDetail = useCallback(async (id) => {
+  const fetchSessionDetail = useCallback(async (id, isBackgroundPoll = false) => {
+    const fetchStartedAt = Date.now();
     try {
-      const res = await fetch(`/api/sessions/${id}`);
+      const res = await fetch(`/api/sessions/${id}`, { cache: "no-store" });
       if (!res.ok) return;
       const data = await res.json();
+
+      if (
+        isBackgroundPoll &&
+        (mutationInFlightRef.current > 0 ||
+          fetchStartedAt < lastMutationTimeRef.current ||
+          Date.now() - lastMutationTimeRef.current < 8000)
+      ) {
+        return;
+      }
+
+      const incomingVersion = Number(data.session?.state?.version) || 0;
+      if (
+        isBackgroundPoll &&
+        incomingVersion > 0 &&
+        stateVersionRef.current > 0 &&
+        incomingVersion < stateVersionRef.current
+      ) {
+        return;
+      }
+      if (incomingVersion > stateVersionRef.current) {
+        stateVersionRef.current = incomingVersion;
+      }
+
       setSessionData(data.session);
       setLedgerHistory(data.ledgerHistory || []);
       setActivityLog(data.activityLog || []);
@@ -237,7 +264,8 @@ export default function App() {
 
   useEffect(() => {
     setLoading(true);
-    fetchSessionDetail(activeSessionId);
+    stateVersionRef.current = 0;
+    fetchSessionDetail(activeSessionId, false);
 
     const es = new EventSource(`/api/sessions/${activeSessionId}/stream`);
     es.onmessage = (event) => {
@@ -246,9 +274,12 @@ export default function App() {
         if (payload.type === "CONNECTED" || payload.type === "PRESENCE") {
           setOnlineCount(payload.onlineCount || 1);
         } else if (payload.type === "STATE_UPDATED") {
-          // Skip redundant full-state refetch if we just mutated locally within 1200ms
-          if (Date.now() - lastMutationTimeRef.current > 1200) {
-            fetchSessionDetail(activeSessionId);
+          // Skip redundant full-state refetch if we just mutated locally
+          if (
+            mutationInFlightRef.current === 0 &&
+            Date.now() - lastMutationTimeRef.current > 8000
+          ) {
+            fetchSessionDetail(activeSessionId, true);
           }
           if (payload.action) {
             showToast(`${payload.actor}: ${payload.action}`);
@@ -262,11 +293,14 @@ export default function App() {
     // Resilient fallback polling for multiplayer spectators when SSE is quiet
     const pollInterval = setInterval(() => {
       if (typeof document !== "undefined" && !document.hidden) {
-        if (Date.now() - lastMutationTimeRef.current > 3000) {
-          fetchSessionDetail(activeSessionId);
+        if (
+          mutationInFlightRef.current === 0 &&
+          Date.now() - lastMutationTimeRef.current > 8000
+        ) {
+          fetchSessionDetail(activeSessionId, true);
         }
       }
-    }, 4500);
+    }, 6000);
 
     return () => {
       es.close();
@@ -342,24 +376,44 @@ export default function App() {
   const handleTransferTerritory = async (payload) => {
     if (guardReadOnly()) return;
     lastMutationTimeRef.current = Date.now();
+    mutationInFlightRef.current += 1;
 
     // Instant optimistic UI update so map & dossier reflect RELEASE / ANNEX with zero lag
     const { territoryName, targetNationId, mode = "ANNEX", planet = "Earth", capital } = payload || {};
     if (territoryName && sessionData?.state) {
+      const usStateMeta = getUsaStateData(territoryName);
+      const isForeignMeta =
+        usStateMeta?.region?.includes("Canada") ||
+        usStateMeta?.region?.includes("Mexico") ||
+        ["ON", "BCN", "QC", "AB", "SON", "CHH", "NLE", "TAM"].includes(usStateMeta?.code);
+      const capitalName = capital || usStateMeta?.capital || `${territoryName} City`;
+      const clean = (s) => (s || "").toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "");
       const slug =
         territoryName.toLowerCase().trim() === "georgia"
           ? "georgia_atlanta"
-          : territoryName.toLowerCase().replace(/[^a-z0-9]+/g, "_");
+          : `${clean(territoryName)}_${clean(capitalName)}`;
+      const nationName = usStateMeta && !isForeignMeta ? `${territoryName} Republic` : territoryName;
 
       setSessionData((prev) => {
         if (!prev?.state) return prev;
         const nextTerritoryMap = { ...(prev.state.territoryMap || {}) };
-        let nextNations = [...(prev.state.nations || [])];
+        const nextTerritoryStatusMap = { ...(prev.state.territoryStatusMap || {}) };
+        let nextNations = (prev.state.nations || []).map((n) => ({
+          ...n,
+          constituentStates: Array.isArray(n.constituentStates)
+            ? n.constituentStates.filter((s) => (typeof s === "string" ? s : s.name) !== territoryName)
+            : n.constituentStates,
+          unincorporatedTerritories: Array.isArray(n.unincorporatedTerritories)
+            ? n.unincorporatedTerritories.filter((s) => (typeof s === "string" ? s : s.name) !== territoryName)
+            : n.unincorporatedTerritories,
+        }));
 
         if (mode === "RELEASE") {
           nextTerritoryMap[territoryName] = slug;
+          nextTerritoryStatusMap[territoryName] = "STATE";
           if (territoryName === "Georgia") {
             nextTerritoryMap["Georgia (USA)"] = slug;
+            nextTerritoryMap["Georgia:Atlanta"] = slug;
           }
           if (!nextNations.some((n) => n.id === slug)) {
             const template =
@@ -369,35 +423,53 @@ export default function App() {
             nextNations.push({
               ...template,
               id: slug,
-              name: territoryName,
-              capital: capital || `${territoryName} City`,
+              name: nationName,
+              capital: capitalName,
               planet: planet || template.planet || "Earth",
               isSeceded: true,
               originTerritory: territoryName,
-              workingPops: Math.max(1500000, Math.round((Number(template.workingPops) || 30000000) * 0.04)),
+              constituentStates: [
+                {
+                  name: territoryName,
+                  role: `Sovereign Core Territory (Capital: ${capitalName})`,
+                  capital: capitalName,
+                  status: "STATE",
+                },
+              ],
+              unincorporatedTerritories: [],
+              workingPops: Math.max(1500000, Math.round((Number(template.workingPops) || 30000000) * (usStateMeta?.popShare || 0.04))),
               treasuryBalance: 25000000000,
               companies: [],
             });
           }
         } else if (targetNationId) {
           nextTerritoryMap[territoryName] = targetNationId;
+          nextTerritoryStatusMap[territoryName] = payload.territoryStatus || "STATE";
           if (territoryName === "Georgia") {
             nextTerritoryMap["Georgia (USA)"] = targetNationId;
+            nextTerritoryMap["Georgia:Atlanta"] = targetNationId;
           }
+          // Remove seceded nation entity if re-annexed into another nation
+          nextNations = nextNations.filter(
+            (n) => !(n.isSeceded && n.originTerritory === territoryName && n.id !== targetNationId)
+          );
         }
 
         return {
           ...prev,
           state: {
             ...prev.state,
+            version: (Number(prev.state.version) || 0) + 1,
+            lastModifiedAt: Date.now(),
             territoryMap: nextTerritoryMap,
+            territoryStatusMap: nextTerritoryStatusMap,
             nations: nextNations,
           },
         };
       });
 
       if (mode === "RELEASE") {
-        showToast(`👑 Awakened Independent Sovereign Nation: ${territoryName}`);
+        showToast(`👑 Awakened Independent Sovereign Nation: ${nationName}`);
       } else if (targetNationId) {
         const targetObj = sessionData.state.nations?.find((n) => n.id === targetNationId);
         showToast(`⚔️ Transferred active control of ${territoryName} to ${targetObj?.name || targetNationId}`);
@@ -412,6 +484,11 @@ export default function App() {
       });
       if (res.ok) {
         const data = await res.json();
+        const incomingVersion = Number(data.session?.state?.version) || 0;
+        if (incomingVersion > stateVersionRef.current) {
+          stateVersionRef.current = incomingVersion;
+        }
+        lastMutationTimeRef.current = Date.now();
         setSessionData(data.session);
         setActivityLog(data.activityLog || []);
         if (payload?.switchToNation && data.nationId) {
@@ -426,6 +503,9 @@ export default function App() {
       }
     } catch (err) {
       showToast(`Network error updating territory: ${err.message || "Failed"}`);
+    } finally {
+      mutationInFlightRef.current = Math.max(0, mutationInFlightRef.current - 1);
+      lastMutationTimeRef.current = Date.now();
     }
   };
 

@@ -339,6 +339,8 @@ export function applyHistoricalEra(state, eraIdOrDate) {
 export function transferTerritory(state, { territoryName, targetNationId, mode = "ANNEX", planet = "Earth", capital, newCountryName, sourceNationId }) {
   ensureTerritoryMap(state);
   if (!state.territoryStatusMap) state.territoryStatusMap = {};
+  state.version = (Number(state.version) || 0) + 1;
+  state.lastModifiedAt = Date.now();
   const stateMeta = getUsaStateData(territoryName);
   const isUsCoreState = Boolean(US_STATES_CATALOG[territoryName]);
   const prevControllerId =
@@ -396,6 +398,17 @@ export function transferTerritory(state, { territoryName, targetNationId, mode =
       : `${clean(territoryName)}_${clean(capitalName)}`;
 
     const newId = targetNationId || countryTag;
+
+    // Remove this released territory from all existing nations' constituentStates & unincorporatedTerritories
+    for (const n of state.nations || []) {
+      if (n.constituentStates) {
+        n.constituentStates = n.constituentStates.filter((s) => s.name !== territoryName);
+      }
+      if (n.unincorporatedTerritories) {
+        n.unincorporatedTerritories = n.unincorporatedTerritories.filter((t) => t.name !== territoryName);
+      }
+    }
+
     const existing = (state.nations || []).find(
       (n) =>
         n.id === newId ||
@@ -417,7 +430,6 @@ export function transferTerritory(state, { territoryName, targetNationId, mode =
       return { state, nationId: existing.id, action: `Restored sovereignty to ${existing.name}` };
     }
 
-    const templateNation = prevNation || state.nations[0];
     let transferredCompanies = [];
     let newPops = planet === "Mars" ? 4500000 : 18000000;
 
@@ -426,12 +438,6 @@ export function transferTerritory(state, { territoryName, targetNationId, mode =
       const popShare = Math.round((prevNation.workingPops || 20000000) * shareRatio);
       prevNation.workingPops = Math.max(1000000, prevNation.workingPops - popShare);
       newPops = Math.max(500000, popShare);
-      if (prevNation.constituentStates) {
-        prevNation.constituentStates = prevNation.constituentStates.filter((s) => s.name !== territoryName);
-      }
-      if (prevNation.unincorporatedTerritories) {
-        prevNation.unincorporatedTerritories = prevNation.unincorporatedTerritories.filter((t) => t.name !== territoryName);
-      }
     }
 
     // A seceded state is a unitary sovereign entity with NO internal sub-states/provinces
@@ -463,7 +469,7 @@ export function transferTerritory(state, { territoryName, targetNationId, mode =
       healthcarePolicy: "State-run Healthcare",
       highImmigration: false,
       companies: transferredCompanies,
-      market: (templateNation?.market || []).map((m) => ({ ...m })),
+      market: [],
       laws: {
         governance: "Presidential Republic",
         economy: "Laissez-Faire",
@@ -549,15 +555,29 @@ export function transferTerritory(state, { territoryName, targetNationId, mode =
     return { state, nationId: targetNationId, action: `${territoryName} is already controlled by ${targetNation.name}` };
   }
 
+  // Remove this territory from all other nations' constituentStates & unincorporatedTerritories
+  for (const n of state.nations || []) {
+    if (n.id !== targetNation.id) {
+      if (n.constituentStates) {
+        n.constituentStates = n.constituentStates.filter((s) => s.name !== territoryName);
+      }
+      if (n.unincorporatedTerritories) {
+        n.unincorporatedTerritories = n.unincorporatedTerritories.filter((t) => t.name !== territoryName);
+      }
+    }
+  }
+
   if (prevNation && prevNation.id !== targetNation.id) {
     const popShift = Math.max(500000, Math.round((prevNation.workingPops || 10000000) * 0.08));
     prevNation.workingPops = Math.max(500000, Math.round(prevNation.workingPops - popShift));
     targetNation.workingPops = Math.round((targetNation.workingPops || 10000000) + popShift);
-    if (prevNation.constituentStates) {
-      prevNation.constituentStates = prevNation.constituentStates.filter((s) => s.name !== territoryName);
-    }
-    if (prevNation.unincorporatedTerritories) {
-      prevNation.unincorporatedTerritories = prevNation.unincorporatedTerritories.filter((t) => t.name !== territoryName);
+    // If prevNation was a single-state seceded republic that just got re-integrated/annexed, remove the seceded entity
+    if (
+      prevNation.isSeceded &&
+      (prevNation.originTerritory === territoryName ||
+        prevNation.name.toLowerCase().includes(territoryName.toLowerCase()))
+    ) {
+      state.nations = state.nations.filter((n) => n.id !== prevNation.id);
     }
   } else {
     // Annexing neutral/unclaimed territory adds frontier workforce
@@ -566,15 +586,37 @@ export function transferTerritory(state, { territoryName, targetNationId, mode =
   }
 
   state.territoryMap[territoryName] = targetNation.id;
-  // Mark as unincorporated territory first!
-  state.territoryStatusMap[territoryName] = "TERRITORY";
-  targetNation.unincorporatedTerritories = targetNation.unincorporatedTerritories || [];
-  if (!targetNation.unincorporatedTerritories.some((t) => t.name === territoryName)) {
-    targetNation.unincorporatedTerritories.push({
-      name: territoryName,
-      role: "Annexed Unincorporated Territory",
-      status: "TERRITORY",
-    });
+  if (territoryName.toLowerCase() === "georgia" && targetNation.id === "usa") {
+    state.territoryMap["Georgia (USA)"] = "usa";
+    state.territoryMap["Georgia:Atlanta"] = "usa";
+  }
+
+  const isReturningToHomeNation =
+    (isUsCoreState && targetNation.id === "usa") ||
+    (!isUsCoreState &&
+      (targetNation.id === "mexico" ||
+        targetNation.id === "canada" ||
+        targetNation.name?.toLowerCase().includes("mexico") ||
+        targetNation.name?.toLowerCase().includes("canada")));
+
+  if (isReturningToHomeNation) {
+    state.territoryStatusMap[territoryName] = US_STATES_CATALOG[territoryName]?.status || "STATE";
+    if (targetNation.unincorporatedTerritories) {
+      targetNation.unincorporatedTerritories = targetNation.unincorporatedTerritories.filter(
+        (t) => t.name !== territoryName
+      );
+    }
+  } else {
+    // Mark as unincorporated territory first!
+    state.territoryStatusMap[territoryName] = "TERRITORY";
+    targetNation.unincorporatedTerritories = targetNation.unincorporatedTerritories || [];
+    if (!targetNation.unincorporatedTerritories.some((t) => t.name === territoryName)) {
+      targetNation.unincorporatedTerritories.push({
+        name: territoryName,
+        role: "Annexed Unincorporated Territory",
+        status: "TERRITORY",
+      });
+    }
   }
 
   ensureVictoriaState(state);
@@ -583,18 +625,26 @@ export function transferTerritory(state, { territoryName, targetNationId, mode =
     date: state.timeManager?.crisisDate || "2025-01-01",
     quarter: state.timeManager?.quarterNumber || 1,
     category: "DIPLOMATIC PLAY",
-    headline: `Territory Annexed: ${targetNation.name} Claims Jurisdiction over ${territoryName}!`,
-    summary: `${territoryName} has been incorporated as a dependent territory of ${targetNation.name}${
-      prevNation ? ` following diplomatic transfer from ${prevNation.name}` : ""
-    }. It is designated as an unincorporated territory pending formal statehood integration.`,
+    headline: isReturningToHomeNation
+      ? `Territory Re-Integrated: ${territoryName} Restored to ${targetNation.name}!`
+      : `Territory Annexed: ${targetNation.name} Claims Jurisdiction over ${territoryName}!`,
+    summary: isReturningToHomeNation
+      ? `${territoryName} has been returned to the sovereign administrative jurisdiction of ${targetNation.name}.`
+      : `${territoryName} has been incorporated as a dependent territory of ${targetNation.name}${
+          prevNation ? ` following diplomatic transfer from ${prevNation.name}` : ""
+        }. It is designated as an unincorporated territory pending formal statehood integration.`,
     nationName: targetNation.name,
-    impact: `${territoryName} → ${targetNation.name} (Unincorporated Territory)`,
+    impact: isReturningToHomeNation
+      ? `${territoryName} → ${targetNation.name} (Restored State)`
+      : `${territoryName} → ${targetNation.name} (Unincorporated Territory)`,
   });
   evaluateSimulation(state);
   return {
     state,
     nationId: targetNation.id,
-    action: `${targetNation.name} annexed ${territoryName} as an unincorporated territory`,
+    action: isReturningToHomeNation
+      ? `Restored control of ${territoryName} to ${targetNation.name}`
+      : `${targetNation.name} annexed ${territoryName} as an unincorporated territory`,
   };
 }
 
@@ -679,10 +729,47 @@ export function evaluateSimulation(state) {
     }
   }
 
+  const PRIMARY_MARKET_NATIONS = new Set([
+    "usa",
+    "china",
+    "japan",
+    "germany",
+    "united_kingdom",
+    "france",
+    "india",
+    "russia",
+    "brazil",
+    "canada",
+    "mexico",
+    "australia",
+    "south_korea",
+    "italy",
+    "spain",
+    "olympus",
+    "heinan",
+    "mitsubishi",
+    "sumitomo",
+    "ifc",
+  ]);
+
+  const isCustomOrPrimaryNation = (nation, idx) =>
+    idx < 20 ||
+    PRIMARY_MARKET_NATIONS.has(nation.id) ||
+    Boolean(nation.isSeceded) ||
+    (Array.isArray(nation.companies) && nation.companies.length > 0) ||
+    (Array.isArray(nation.market) && nation.market.length > 0) ||
+    (Number(nation.kFactorScaler) && Number(nation.kFactorScaler) !== 1500) ||
+    Boolean(nation.freightDelayFriction && Number(nation.freightDelayFriction) !== 1.0) ||
+    Boolean(nation.infraDisruptionPenalty && Number(nation.infraDisruptionPenalty) > 0);
+
   // Compute DVGP & Adjusted Domestic Price & Export Price for each Nation's Market in 1 pass
   const nationMarketMap = new Map(); // nation.id -> Map(goodName -> marketRow)
 
-  for (const nation of state.nations || []) {
+  for (let idx = 0; idx < (state.nations || []).length; idx++) {
+    const nation = state.nations[idx];
+    if (!isCustomOrPrimaryNation(nation, idx)) {
+      continue;
+    }
     // Normalized technology scaler (1500 base = 1.0)
     const rawScaler = Number(nation.kFactorScaler) || 1500;
     const kScaler = rawScaler / 1500;
@@ -736,34 +823,33 @@ export function evaluateSimulation(state) {
   }
 
   // 5. Step B: Compute Global Market AMEP for each good
-  // Note: In Interstellar 2.0 Global Market, D2 = AVERAGEIF(E2:F2, ">0") (USA & Japan primary benchmark, or all exporting nations if modified).
-  // We compute AMEP across USA & Japan if unchanged, or across all nations with weight so any nation's tariff/DD changes affect global trade,
-  // while matching the exact initial spreadsheet benchmark!
   const globalMarket = [];
-  const usaNation = state.nations.find((n) => n.name === "USA") || state.nations[0];
-  const japNation = state.nations.find((n) => n.name === "Japan") || state.nations[1] || usaNation;
+  const usaNation = state.nations.find((n) => n.name === "USA" || n.id === "usa") || state.nations[0];
+  const japNation = state.nations.find((n) => n.name === "Japan" || n.id === "japan") || state.nations[1] || usaNation;
 
   for (const g of state.goodsCatalog || []) {
     const exportPrices = {};
     let sumAll = 0;
     let countAll = 0;
 
-    for (const nation of state.nations || []) {
-      const mRow = nationMarketMap.get(nation.id)?.get(g.name);
+    for (const [nId, mMap] of nationMarketMap.entries()) {
+      const nationObj = state.nations.find((n) => n.id === nId);
+      const mRow = mMap.get(g.name);
       const p = mRow ? mRow.postExportPrice : 0;
-      exportPrices[nation.name] = p;
+      if (nationObj) {
+        exportPrices[nationObj.name] = p;
+      }
       if (p > 0) {
         sumAll += p;
         countAll++;
       }
     }
 
-    let amep = countAll > 0 ? sumAll / countAll : 0;
+    let amep = countAll > 0 ? sumAll / countAll : (unitDvgpMap.get(g.name) ?? 350);
     if (usaNation && japNation && state.nations.length >= 2) {
       const pUsa = exportPrices[usaNation.name] || 0;
       const pJap = exportPrices[japNation.name] || 0;
       if (pUsa > 0 && pJap > 0) {
-        // In Interstellar 2.0 sheet, D2 is AVERAGEIF(E2:F2, ">0")
         amep = (pUsa + pJap) / 2;
       }
     }
@@ -779,113 +865,96 @@ export function evaluateSimulation(state) {
   }
   const globalPriceMap = new Map(globalMarket.map((gm) => [gm.goodName, gm.amep]));
 
+  // Precompute unit-population reference totals for unmodified background catalog nations (O(1) fast path)
+  const WORKER_PRODUCTIVITY_SCALER = 223.7;
+  const REF_POPS = 100000000;
+  let refTotals = null;
+  {
+    const refSectorWeights = {
+      "Agricultural Sector GDP": 0.12,
+      "Industry & Manufacturing GDP": 0.58,
+      "Hospitality & Tourist Services GDP": 0.08,
+      "Office & Corporate Services GDP": 0.22,
+    };
+    const refSectorCounts = {};
+    for (const g of state.goodsCatalog || []) {
+      const sec = g.sector || "Industry & Manufacturing GDP";
+      refSectorCounts[sec] = (refSectorCounts[sec] || 0) + 1;
+    }
+    const refTotalEmp = REF_POPS * 0.95;
+    const refSellByGood = new Map();
+    const refLocalPriceByGood = new Map();
+    for (const g of state.goodsCatalog || []) {
+      const sec = g.sector || "Industry & Manufacturing GDP";
+      const emp = Math.round((refTotalEmp * (refSectorWeights[sec] || 0.25)) / Math.max(1, refSectorCounts[sec] || 1));
+      refSellByGood.set(g.name, emp);
+      const dvgp = unitDvgpMap.get(g.name) ?? 350;
+      const gp = globalPriceMap.get(g.name) || dvgp;
+      refLocalPriceByGood.set(g.name, Math.min(gp, dvgp));
+    }
+    const refDemandByInput = new Map();
+    for (const g of state.goodsCatalog || []) {
+      const sell = refSellByGood.get(g.name) || 0;
+      if (sell > 0) {
+        const inputs = goodsMap.get(g.name)?.activeInputs || [];
+        for (const inp of inputs) {
+          refDemandByInput.set(inp, (refDemandByInput.get(inp) || 0) + sell);
+        }
+      }
+    }
+    const gFriction = Number(state.globalFreightDelayFriction) || 1.0;
+    const gFreightMult = gFriction > 1.0 ? 1.0 / Math.pow(gFriction, 0.75) : 1.0;
+    const refSectorVgp = {
+      "Agricultural Sector GDP": 0,
+      "Industry & Manufacturing GDP": 0,
+      "Hospitality & Tourist Services GDP": 0,
+      "Office & Corporate Services GDP": 0,
+    };
+    const refSectorEmp = {
+      "Agricultural Sector GDP": 0,
+      "Industry & Manufacturing GDP": 0,
+      "Hospitality & Tourist Services GDP": 0,
+      "Office & Corporate Services GDP": 0,
+    };
+    let refExports = 0;
+    let refImports = 0;
+    let refEmpSum = 0;
+    for (const g of state.goodsCatalog || []) {
+      const emp = refSellByGood.get(g.name) || 0;
+      const lp = refLocalPriceByGood.get(g.name) || 350;
+      const sec = g.sector || "Industry & Manufacturing GDP";
+      const isGoods = sec === "Industry & Manufacturing GDP" || sec === "Agricultural Sector GDP";
+      const vgp = emp * lp * WORKER_PRODUCTIVITY_SCALER * (isGoods ? gFreightMult : 1.0);
+      if (refSectorVgp[sec] !== undefined) {
+        refSectorVgp[sec] += vgp;
+        refSectorEmp[sec] += emp;
+      } else {
+        refSectorVgp["Industry & Manufacturing GDP"] += vgp;
+        refSectorEmp["Industry & Manufacturing GDP"] += emp;
+      }
+      refExports += vgp;
+      const rawIn = refDemandByInput.get(g.name) || 0;
+      const gp = globalPriceMap.get(g.name) || lp;
+      refImports += Math.max(0, rawIn * gp * WORKER_PRODUCTIVITY_SCALER);
+      refEmpSum += emp;
+    }
+    refTotals = {
+      sectorVgp: refSectorVgp,
+      sectorEmp: refSectorEmp,
+      totalEmployed: refEmpSum,
+      totalExportsValue: refExports,
+      totalImportsValue: refImports,
+    };
+  }
+
   // 6. Step C: Complete each Nation's Market (Local Price, Sell Orders, Import Orders, TBPF) & Companies
-  for (const nation of state.nations || []) {
+  for (let idx = 0; idx < (state.nations || []).length; idx++) {
+    const nation = state.nations[idx];
     const mMap = nationMarketMap.get(nation.id);
 
-    // Compute aggregate sell orders (L) by good
-    const sellOrdersByGood = new Map();
-    let hasInternationalTradeCompany = false;
-
-    // Macroeconomic baseline distribution when companies array is empty
     const nationWorkingPops = Math.max(1000000, Number(nation.workingPops) || 280000000);
     const hasCompanies = Array.isArray(nation.companies) && nation.companies.length > 0;
 
-    if (hasCompanies) {
-      for (const comp of nation.companies) {
-        const gName = comp.flagshipGood;
-        const mRow = mMap.get(gName);
-        if (mRow) {
-          comp.gdpSector = mRow.category;
-          comp.productionMethod = mRow.productionMethod;
-          comp.illegal = Boolean(mRow.illegal);
-        }
-        if (gName === "International Trade" || gName === "Retail, Trade & Logistics") {
-          hasInternationalTradeCompany = true;
-        }
-        const emp = Math.max(0, Number(comp.employedPops) || 0);
-        sellOrdersByGood.set(gName, (sellOrdersByGood.get(gName) || 0) + emp);
-      }
-    } else {
-      // Direct macroeconomic distribution: 95% employed pops across 60 simplified goods
-      hasInternationalTradeCompany = true;
-      const totalBaseEmp = nationWorkingPops * 0.95;
-      const goodsCount = Math.max(1, mMap.size);
-      
-      // Sector allocation weights
-      const sectorWeights = {
-        "Agricultural Sector GDP": 0.12,
-        "Industry & Manufacturing GDP": 0.58,
-        "Hospitality & Tourist Services GDP": 0.08,
-        "Office & Corporate Services GDP": 0.22,
-      };
-
-      // Count goods per sector
-      const sectorGoodsCounts = {};
-      for (const mRow of mMap.values()) {
-        const sec = mRow.category || "Industry & Manufacturing GDP";
-        sectorGoodsCounts[sec] = (sectorGoodsCounts[sec] || 0) + 1;
-      }
-
-      for (const [gName, mRow] of mMap.entries()) {
-        const sec = mRow.category || "Industry & Manufacturing GDP";
-        const secWeight = sectorWeights[sec] || 0.25;
-        const countInSec = Math.max(1, sectorGoodsCounts[sec] || 1);
-        const empForGood = Math.round((totalBaseEmp * secWeight) / countInSec);
-        sellOrdersByGood.set(gName, empForGood);
-      }
-    }
-
-    // Set K (Global Price), U (Post-Import Tariff Price), F (Local Price), L (Sell Orders)
-    for (const [gName, mRow] of mMap.entries()) {
-      const globalPrice = globalPriceMap.get(gName) || mRow.adjustedPrice;
-      mRow.globalPrice = globalPrice;
-      mRow.postImportPrice = globalPrice * (1 + mRow.importTariffRate);
-      mRow.localPrice = Math.min(mRow.postImportPrice, mRow.adjustedPrice);
-      mRow.sellOrders = sellOrdersByGood.get(gName) || 0;
-    }
-
-    // Compute R (Import orders needed), S (Net Balance of Goods), E (TBPF)
-    // In Excel: R_b = (SUM of L_k for all goods k whose productionMethod includes b) * (1 - T_b * J_b)
-    const rawDemandByInput = new Map();
-    for (const mRow of mMap.values()) {
-      if (mRow.sellOrders > 0) {
-        for (const inp of mRow.inputsList) {
-          rawDemandByInput.set(inp, (rawDemandByInput.get(inp) || 0) + mRow.sellOrders);
-        }
-      }
-    }
-
-    // Output productivity multiplier calibrated from Hugging Face & World Bank Pink Sheet benchmarks
-    // Ensures modern US GDP scales to ~$28.0 Trillion and Kansas state GDP scales to ~$224 Billion (0.8%)
-    const WORKER_PRODUCTIVITY_SCALER = 223.7;
-
-    for (const [gName, mRow] of mMap.entries()) {
-      const rawInputDemand = rawDemandByInput.get(gName) || 0;
-      mRow.receivedFromGlobalMarket = hasInternationalTradeCompany && rawInputDemand > 0;
-      mRow.importOrdersNeeded = Math.max(
-        0,
-        rawInputDemand * (1 - mRow.importTariffRate * mRow.ddMultiplier)
-      );
-      mRow.netBalanceOfGoods =
-        mRow.importOrdersNeeded > 0
-          ? (mRow.sellOrders - mRow.importOrdersNeeded) / mRow.importOrdersNeeded
-          : 0;
-      mRow.tbpf =
-        mRow.globalPrice > 0
-          ? ((mRow.globalPrice - mRow.adjustedPrice) / mRow.globalPrice) *
-            mRow.ddMultiplier *
-            mRow.netBalanceOfGoods
-          : 0;
-      mRow.importedFromGlobalMarket = Math.max(
-        0,
-        mRow.importOrdersNeeded * mRow.postImportPrice * WORKER_PRODUCTIVITY_SCALER
-      );
-      mRow.importTariffRevenues = mRow.importTariffRate * mRow.importedFromGlobalMarket;
-    }
-
-    // Compute Company & National Sector VGP (H = I * LocalPrice * WorkerProductivity) and Valuation
-    const vgpByGood = new Map();
     let totalEmployed = 0;
     let numberOfCriminals = 0;
     const sectorVgp = {
@@ -900,110 +969,212 @@ export function evaluateSimulation(state) {
       "Hospitality & Tourist Services GDP": 0,
       "Office & Corporate Services GDP": 0,
     };
-
-    if (hasCompanies) {
-      for (const comp of nation.companies) {
-        const mRow = mMap.get(comp.flagshipGood);
-        const localPrice = mRow ? mRow.localPrice : 350;
-        const emp = Math.max(0, Number(comp.employedPops) || 0);
-
-        if (!comp.hypeFactor || comp.hypeFactor <= 0) {
-          const secCfg = sectorMap.get(comp.gdpSector);
-          const secSent = secCfg ? Number(secCfg.sentiment) : 50;
-          const goodHype = mRow ? Number(mRow.hype) : 50;
-          const consSent = Number(nation.consumerSentiment) || 50;
-          comp.hypeFactor =
-            12.5 + (consSent / 100) * 25 + (secSent / 100) * 25 + (goodHype / 100) * 25;
-        }
-
-        // Freight delay friction & logistics bottlenecks (e.g. from destroyed ports, hurricanes, or rail strikes)
-        // throttles physical throughput for goods-based industries:
-        const freightFriction = Number(mRow?.freightDelayFriction) || 1.0;
-        const freightThroughputMultiplier = freightFriction > 1.0
-          ? (1.0 / Math.pow(freightFriction, 0.75))
-          : 1.0;
-
-        // Infrastructure disruption penalty from catastrophic events (roads, bridges, energy grid damage)
-        const infraPenalty = nation.infraDisruptionPenalty
-          ? Math.max(0.35, 1.0 - Number(nation.infraDisruptionPenalty))
-          : 1.0;
-
-        // Goods-based industries (Manufacturing and Agriculture) are physically logistics/port-constrained
-        const isGoodsSector = comp.gdpSector === "Industry & Manufacturing GDP" || comp.gdpSector === "Agricultural Sector GDP";
-        const sectorThroughputFactor = isGoodsSector
-          ? (freightThroughputMultiplier * infraPenalty)
-          : (0.7 + 0.3 * infraPenalty);
-
-        comp.vgp = emp * localPrice * WORKER_PRODUCTIVITY_SCALER * sectorThroughputFactor;
-        comp.valuation = comp.vgp * comp.hypeFactor;
-
-        totalEmployed += emp;
-        if (comp.illegal) {
-          numberOfCriminals += emp;
-        }
-        vgpByGood.set(comp.flagshipGood, (vgpByGood.get(comp.flagshipGood) || 0) + comp.vgp);
-
-        if (sectorVgp[comp.gdpSector] !== undefined) {
-          sectorVgp[comp.gdpSector] += comp.vgp;
-          sectorEmp[comp.gdpSector] += emp;
-        } else {
-          sectorVgp["Industry & Manufacturing GDP"] += comp.vgp;
-          sectorEmp["Industry & Manufacturing GDP"] += emp;
-        }
-      }
-    } else {
-      // Macroeconomic evaluation from sellOrdersByGood
-      for (const [gName, mRow] of mMap.entries()) {
-        const emp = sellOrdersByGood.get(gName) || 0;
-        const localPrice = mRow.localPrice || 350;
-
-        const freightFriction = Number(mRow?.freightDelayFriction) || 1.0;
-        const freightThroughputMultiplier = freightFriction > 1.0
-          ? (1.0 / Math.pow(freightFriction, 0.75))
-          : 1.0;
-        const infraPenalty = nation.infraDisruptionPenalty
-          ? Math.max(0.35, 1.0 - Number(nation.infraDisruptionPenalty))
-          : 1.0;
-        const sec = mRow.category || "Industry & Manufacturing GDP";
-        const isGoodsSector = sec === "Industry & Manufacturing GDP" || sec === "Agricultural Sector GDP";
-        const sectorThroughputFactor = isGoodsSector
-          ? (freightThroughputMultiplier * infraPenalty)
-          : (0.7 + 0.3 * infraPenalty);
-
-        const goodVgp = emp * localPrice * WORKER_PRODUCTIVITY_SCALER * sectorThroughputFactor;
-        vgpByGood.set(gName, goodVgp);
-
-        if (sectorVgp[sec] !== undefined) {
-          sectorVgp[sec] += goodVgp;
-          sectorEmp[sec] += emp;
-        } else {
-          sectorVgp["Industry & Manufacturing GDP"] += goodVgp;
-          sectorEmp["Industry & Manufacturing GDP"] += emp;
-        }
-        totalEmployed += emp;
-        if (mRow.illegal) {
-          numberOfCriminals += emp;
-        }
-      }
-    }
-
-    // Complete Exported to Global Market (O) and Export Tariff Revenues (P)
     let totalExportTariffRevenues = 0;
     let totalImportTariffRevenues = 0;
     let totalExportsValue = 0;
     let totalImportsValue = 0;
 
-    for (const [gName, mRow] of mMap.entries()) {
-      const goodTotalVgp = vgpByGood.get(gName) || 0;
-      mRow.exportedToGlobalMarket = goodTotalVgp * (1 - mRow.exportTariffRate);
-      mRow.exportTariffRevenues = mRow.exportedToGlobalMarket * mRow.exportTariffRate;
-      totalExportTariffRevenues += mRow.exportTariffRevenues;
-      totalImportTariffRevenues += mRow.importTariffRevenues;
-      totalExportsValue += mRow.exportedToGlobalMarket;
-      totalImportsValue += mRow.importedFromGlobalMarket;
-    }
+    if (!mMap && refTotals) {
+      // O(1) Fast path for unmodified background catalog nations
+      const popScale = nationWorkingPops / REF_POPS;
+      for (const sec of Object.keys(sectorVgp)) {
+        sectorVgp[sec] = refTotals.sectorVgp[sec] * popScale;
+        sectorEmp[sec] = Math.round(refTotals.sectorEmp[sec] * popScale);
+      }
+      totalEmployed = Math.round(refTotals.totalEmployed * popScale);
+      totalExportsValue = refTotals.totalExportsValue * popScale;
+      totalImportsValue = refTotals.totalImportsValue * popScale;
+      nation.marketComputed = undefined;
+    } else {
+      // Compute aggregate sell orders (L) by good
+      const sellOrdersByGood = new Map();
+      let hasInternationalTradeCompany = false;
 
-    nation.marketComputed = Array.from(mMap.values());
+      if (hasCompanies) {
+        for (const comp of nation.companies) {
+          const gName = comp.flagshipGood;
+          const mRow = mMap.get(gName);
+          if (mRow) {
+            comp.gdpSector = mRow.category;
+            comp.productionMethod = mRow.productionMethod;
+            comp.illegal = Boolean(mRow.illegal);
+          }
+          if (gName === "International Trade" || gName === "Retail, Trade & Logistics") {
+            hasInternationalTradeCompany = true;
+          }
+          const emp = Math.max(0, Number(comp.employedPops) || 0);
+          sellOrdersByGood.set(gName, (sellOrdersByGood.get(gName) || 0) + emp);
+        }
+      } else {
+        // Direct macroeconomic distribution: 95% employed pops across 60 simplified goods
+        hasInternationalTradeCompany = true;
+        const totalBaseEmp = nationWorkingPops * 0.95;
+
+        // Sector allocation weights
+        const sectorWeights = {
+          "Agricultural Sector GDP": 0.12,
+          "Industry & Manufacturing GDP": 0.58,
+          "Hospitality & Tourist Services GDP": 0.08,
+          "Office & Corporate Services GDP": 0.22,
+        };
+
+        // Count goods per sector
+        const sectorGoodsCounts = {};
+        for (const mRow of mMap.values()) {
+          const sec = mRow.category || "Industry & Manufacturing GDP";
+          sectorGoodsCounts[sec] = (sectorGoodsCounts[sec] || 0) + 1;
+        }
+
+        for (const [gName, mRow] of mMap.entries()) {
+          const sec = mRow.category || "Industry & Manufacturing GDP";
+          const secWeight = sectorWeights[sec] || 0.25;
+          const countInSec = Math.max(1, sectorGoodsCounts[sec] || 1);
+          const empForGood = Math.round((totalBaseEmp * secWeight) / countInSec);
+          sellOrdersByGood.set(gName, empForGood);
+        }
+      }
+
+      // Set K (Global Price), U (Post-Import Tariff Price), F (Local Price), L (Sell Orders)
+      for (const [gName, mRow] of mMap.entries()) {
+        const globalPrice = globalPriceMap.get(gName) || mRow.adjustedPrice;
+        mRow.globalPrice = globalPrice;
+        mRow.postImportPrice = globalPrice * (1 + mRow.importTariffRate);
+        mRow.localPrice = Math.min(mRow.postImportPrice, mRow.adjustedPrice);
+        mRow.sellOrders = sellOrdersByGood.get(gName) || 0;
+      }
+
+      // Compute R (Import orders needed), S (Net Balance of Goods), E (TBPF)
+      const rawDemandByInput = new Map();
+      for (const mRow of mMap.values()) {
+        if (mRow.sellOrders > 0) {
+          for (const inp of mRow.inputsList) {
+            rawDemandByInput.set(inp, (rawDemandByInput.get(inp) || 0) + mRow.sellOrders);
+          }
+        }
+      }
+
+      for (const [gName, mRow] of mMap.entries()) {
+        const rawInputDemand = rawDemandByInput.get(gName) || 0;
+        mRow.receivedFromGlobalMarket = hasInternationalTradeCompany && rawInputDemand > 0;
+        mRow.importOrdersNeeded = Math.max(
+          0,
+          rawInputDemand * (1 - mRow.importTariffRate * mRow.ddMultiplier)
+        );
+        mRow.netBalanceOfGoods =
+          mRow.importOrdersNeeded > 0
+            ? (mRow.sellOrders - mRow.importOrdersNeeded) / mRow.importOrdersNeeded
+            : 0;
+        mRow.tbpf =
+          mRow.globalPrice > 0
+            ? ((mRow.globalPrice - mRow.adjustedPrice) / mRow.globalPrice) *
+              mRow.ddMultiplier *
+              mRow.netBalanceOfGoods
+            : 0;
+        mRow.importedFromGlobalMarket = Math.max(
+          0,
+          mRow.importOrdersNeeded * mRow.postImportPrice * WORKER_PRODUCTIVITY_SCALER
+        );
+        mRow.importTariffRevenues = mRow.importTariffRate * mRow.importedFromGlobalMarket;
+      }
+
+      // Compute Company & National Sector VGP (H = I * LocalPrice * WorkerProductivity) and Valuation
+      const vgpByGood = new Map();
+
+      if (hasCompanies) {
+        for (const comp of nation.companies) {
+          const mRow = mMap.get(comp.flagshipGood);
+          const localPrice = mRow ? mRow.localPrice : 350;
+          const emp = Math.max(0, Number(comp.employedPops) || 0);
+
+          if (!comp.hypeFactor || comp.hypeFactor <= 0) {
+            const secCfg = sectorMap.get(comp.gdpSector);
+            const secSent = secCfg ? Number(secCfg.sentiment) : 50;
+            const goodHype = mRow ? Number(mRow.hype) : 50;
+            const consSent = Number(nation.consumerSentiment) || 50;
+            comp.hypeFactor =
+              12.5 + (consSent / 100) * 25 + (secSent / 100) * 25 + (goodHype / 100) * 25;
+          }
+
+          const freightFriction = Number(mRow?.freightDelayFriction) || 1.0;
+          const freightThroughputMultiplier = freightFriction > 1.0
+            ? (1.0 / Math.pow(freightFriction, 0.75))
+            : 1.0;
+
+          const infraPenalty = nation.infraDisruptionPenalty
+            ? Math.max(0.35, 1.0 - Number(nation.infraDisruptionPenalty))
+            : 1.0;
+
+          const isGoodsSector = comp.gdpSector === "Industry & Manufacturing GDP" || comp.gdpSector === "Agricultural Sector GDP";
+          const sectorThroughputFactor = isGoodsSector
+            ? (freightThroughputMultiplier * infraPenalty)
+            : (0.7 + 0.3 * infraPenalty);
+
+          comp.vgp = emp * localPrice * WORKER_PRODUCTIVITY_SCALER * sectorThroughputFactor;
+          comp.valuation = comp.vgp * comp.hypeFactor;
+
+          totalEmployed += emp;
+          if (comp.illegal) {
+            numberOfCriminals += emp;
+          }
+          vgpByGood.set(comp.flagshipGood, (vgpByGood.get(comp.flagshipGood) || 0) + comp.vgp);
+
+          if (sectorVgp[comp.gdpSector] !== undefined) {
+            sectorVgp[comp.gdpSector] += comp.vgp;
+            sectorEmp[comp.gdpSector] += emp;
+          } else {
+            sectorVgp["Industry & Manufacturing GDP"] += comp.vgp;
+            sectorEmp["Industry & Manufacturing GDP"] += emp;
+          }
+        }
+      } else {
+        // Macroeconomic evaluation from sellOrdersByGood
+        for (const [gName, mRow] of mMap.entries()) {
+          const emp = sellOrdersByGood.get(gName) || 0;
+          const localPrice = mRow.localPrice || 350;
+
+          const freightFriction = Number(mRow?.freightDelayFriction) || 1.0;
+          const freightThroughputMultiplier = freightFriction > 1.0
+            ? (1.0 / Math.pow(freightFriction, 0.75))
+            : 1.0;
+          const infraPenalty = nation.infraDisruptionPenalty
+            ? Math.max(0.35, 1.0 - Number(nation.infraDisruptionPenalty))
+            : 1.0;
+          const sec = mRow.category || "Industry & Manufacturing GDP";
+          const isGoodsSector = sec === "Industry & Manufacturing GDP" || sec === "Agricultural Sector GDP";
+          const sectorThroughputFactor = isGoodsSector
+            ? (freightThroughputMultiplier * infraPenalty)
+            : (0.7 + 0.3 * infraPenalty);
+
+          const goodVgp = emp * localPrice * WORKER_PRODUCTIVITY_SCALER * sectorThroughputFactor;
+          vgpByGood.set(gName, goodVgp);
+
+          if (sectorVgp[sec] !== undefined) {
+            sectorVgp[sec] += goodVgp;
+            sectorEmp[sec] += emp;
+          } else {
+            sectorVgp["Industry & Manufacturing GDP"] += goodVgp;
+            sectorEmp["Industry & Manufacturing GDP"] += emp;
+          }
+          totalEmployed += emp;
+          if (mRow.illegal) {
+            numberOfCriminals += emp;
+          }
+        }
+      }
+
+      // Complete Exported to Global Market (O) and Export Tariff Revenues (P)
+      for (const [gName, mRow] of mMap.entries()) {
+        const goodTotalVgp = vgpByGood.get(gName) || 0;
+        mRow.exportedToGlobalMarket = goodTotalVgp * (1 - mRow.exportTariffRate);
+        mRow.exportTariffRevenues = mRow.exportedToGlobalMarket * mRow.exportTariffRate;
+        totalExportTariffRevenues += mRow.exportTariffRevenues;
+        totalImportTariffRevenues += mRow.importTariffRevenues;
+        totalExportsValue += mRow.exportedToGlobalMarket;
+        totalImportsValue += mRow.importedFromGlobalMarket;
+      }
+
+      nation.marketComputed = Array.from(mMap.values());
+    }
 
     // 7. Nation Demographics, Politics & Macro Indicators
     const party = partyMap.get(nation.rulingParty) || defaultParty;

@@ -59,7 +59,24 @@ export default function MarketsAndTechView({
   const nation =
     nations.find((n) => n.id === selectedNationId) || nations[0];
 
-  const marketRows = nation?.marketComputed || [];
+  const marketRows = useMemo(() => {
+    if (nation?.marketComputed?.length > 0) return nation.marketComputed;
+    const refRows = nations[0]?.marketComputed || [];
+    if (refRows.length === 0 || !nation) return [];
+    const scale =
+      Math.max(100000, Number(nation.workingPops) || 10000000) /
+      Math.max(100000, Number(nations[0]?.workingPops) || 100000000);
+    return refRows.map((m) => ({
+      ...m,
+      domesticDemand: (m.domesticDemand || 0) * scale,
+      domesticSupply: (m.domesticSupply || 0) * scale,
+      supplyDeficit: (m.supplyDeficit || 0) * scale,
+      imports: (m.imports || 0) * scale,
+      exports: (m.exports || 0) * scale,
+      importTaxIncome: (m.importTaxIncome || 0) * scale,
+      exportTaxIncome: (m.exportTaxIncome || 0) * scale,
+    }));
+  }, [nation, nations]);
   const marketByName = useMemo(
     () => new Map(marketRows.map((m) => [m.goodName, m])),
     [marketRows]

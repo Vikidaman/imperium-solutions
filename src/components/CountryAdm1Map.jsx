@@ -112,12 +112,22 @@ export default function CountryAdm1Map({
       }
 
       // If not in annex mode, check if any Canadian or Mexican province was annexed into USA
+      // or is currently selected in the dossier (e.g. right after returning control to Mexico/Canada)
       const foreignAnnexedNames = Object.keys(territoryMap).filter(
         (key) => (territoryMap[key] === nation?.id || territoryMap[key] === "usa") &&
                  !US_STATES_GEO.features.some((f) => f.properties?.name === key)
       );
+      const isSelectedNonUsProvince =
+        selectedSubdivision &&
+        !US_STATES_GEO.features.some((f) => f.properties?.name === selectedSubdivision);
+      const foreignNamesToInclude = Array.from(
+        new Set([
+          ...foreignAnnexedNames,
+          ...(isSelectedNonUsProvince ? [selectedSubdivision] : []),
+        ])
+      );
 
-      if (foreignAnnexedNames.length > 0) {
+      if (foreignNamesToInclude.length > 0) {
         setLoading(true);
         Promise.all([loadCountryAdm1("CAN"), loadCountryAdm1("MEX")]).then(([canRes, mexRes]) => {
           if (!active) return;
@@ -125,12 +135,12 @@ export default function CountryAdm1Map({
             ...(canRes.success && canRes.geojson?.features ? canRes.geojson.features : []),
             ...(mexRes.success && mexRes.geojson?.features ? mexRes.geojson.features : []),
           ];
-          const annexedFeats = allNeighbourFeats.filter((f) =>
-            foreignAnnexedNames.includes(f.properties?.name)
+          const includedFeats = allNeighbourFeats.filter((f) =>
+            foreignNamesToInclude.includes(f.properties?.name)
           );
           setGeoData({
             type: "FeatureCollection",
-            features: [...US_STATES_GEO.features, ...annexedFeats],
+            features: [...US_STATES_GEO.features, ...includedFeats],
           });
           setError(null);
           setLoading(false);
@@ -215,7 +225,7 @@ export default function CountryAdm1Map({
     return () => {
       active = false;
     };
-  }, [nation?.id, isUsa, interactionMode, territoryMap]);
+  }, [nation?.id, isUsa, interactionMode, territoryMap, selectedSubdivision]);
 
   // Initialize or update Leaflet Map
   useEffect(() => {
@@ -287,8 +297,8 @@ export default function CountryAdm1Map({
             // 1. Foreign unannexed neighbour styling (dashed amber border)
             if (isForeignNeighbour && !isControlledByActiveNation) {
               return {
-                fillColor: isSelected ? "#38bdf8" : "#f59e0b",
-                fillOpacity: isSelected ? 0.65 : 0.16,
+                fillColor: isSelected ? "#d97706" : "#f59e0b",
+                fillOpacity: isSelected ? 0.52 : 0.16,
                 color: isSelected ? "#ffffff" : "#f59e0b",
                 weight: isSelected ? 2.5 : 1.5,
                 opacity: 0.9,
@@ -301,9 +311,9 @@ export default function CountryAdm1Map({
             let fillOpacity = 0.28;
 
             if (isSeceded) {
-              fillColor = "#f59e0b";
-              fillOpacity = 0.65;
-            } else if (layerMode === "resources" && (isUsa || isControlledByActiveNation)) {
+              fillColor = "#a855f7";
+              fillOpacity = 0.55;
+            } else if (layerMode === "resources" && isControlledByActiveNation) {
               const endow = getUsStateEndowment(name, customEndowments);
               if (resourceCategory === "oil_gas") {
                 const val = endow.hydrocarbonIndex || 0;
@@ -355,7 +365,7 @@ export default function CountryAdm1Map({
                   fillOpacity = Math.max(0.35, totalEndow * 0.8);
                 }
               }
-            } else if (layerMode === "services" && (isUsa || isControlledByActiveNation)) {
+            } else if (layerMode === "services" && isControlledByActiveNation) {
               const srvEndow = getUsStateServicesEndowment(name, customEndowments);
               if (serviceCategory === "tech") {
                 const val = ((srvEndow.digitalConnectivityIndex || 50) + (srvEndow.humanCapitalIndex || 50)) / 2;
@@ -382,7 +392,7 @@ export default function CountryAdm1Map({
                 fillColor = `hsl(205, 90%, ${Math.round(25 + composite * 35)}%)`;
                 fillOpacity = Math.max(0.35, composite * 0.85);
               }
-            } else if (isUsa && regionTint && !isForeignNeighbour) {
+            } else if (isUsa && regionTint && !isForeignNeighbour && isControlledByActiveNation) {
               fillColor = regionTint;
               fillOpacity = 0.32;
             } else {
@@ -392,16 +402,19 @@ export default function CountryAdm1Map({
 
             const isDisrupted = isUsa && customEndowments && customEndowments[name]?.isDisrupted;
 
-            if (isSelected) {
+            if (isSelected && !isSeceded) {
               fillColor = "#38bdf8";
               fillOpacity = 0.68;
+            } else if (isSelected && isSeceded) {
+              fillColor = "#c084fc";
+              fillOpacity = 0.72;
             }
 
             return {
               fillColor,
               fillOpacity,
-              color: isSelected ? "#ffffff" : isSeceded ? "#fef08a" : isDisrupted ? "#f43f5e" : "#38bdf8",
-              weight: isSelected ? 2.5 : isDisrupted ? 2.2 : 1.2,
+              color: isSelected ? "#ffffff" : isSeceded ? "#e9d5ff" : isDisrupted ? "#f43f5e" : "#38bdf8",
+              weight: isSelected ? 2.5 : isSeceded ? 2 : isDisrupted ? 2.2 : 1.2,
               opacity: 0.85,
               dashArray: isSeceded ? "4, 3" : isDisrupted ? "4, 4" : "",
             };
@@ -541,7 +554,7 @@ export default function CountryAdm1Map({
                   <span class="text-slate-400">Ind: <strong class="text-cyan-300">${endow.modeledIndustrialOutput?.split(' ')[0] || '-'}</strong></span>
                   <span class="text-slate-400">Agri: <strong class="text-emerald-300">${endow.modeledAgriculturalOutput?.split(' ')[0] || '-'}</strong></span>
                 </div>`;
-            } else if (stateMeta) {
+            } else if (stateMeta && isControlledByActiveNation) {
               tooltipContent += `
                 <div class="mt-2 pt-1.5 border-t border-slate-700/60 flex items-center justify-between text-[11px] font-mono-num">
                   <span class="text-slate-400">Share of US GDP:</span>
@@ -600,7 +613,12 @@ export default function CountryAdm1Map({
         const markerGroup = L.layerGroup();
 
         const combinedResourceMarkers = [
-          ...ALL_US_RESOURCE_MARKERS,
+          ...ALL_US_RESOURCE_MARKERS.filter(
+            (m) =>
+              !territoryMap[m.state] ||
+              territoryMap[m.state] === nation?.id ||
+              territoryMap[m.state] === "usa"
+          ),
           ...ALL_NEIGHBOUR_RESOURCE_MARKERS.filter(
             (m) =>
               interactionMode === "annex" ||
@@ -677,7 +695,12 @@ export default function CountryAdm1Map({
         const markerGroup = L.layerGroup();
 
         const combinedServiceClusters = [
-          ...ALL_US_SERVICE_CLUSTERS,
+          ...ALL_US_SERVICE_CLUSTERS.filter(
+            (m) =>
+              !territoryMap[m.state] ||
+              territoryMap[m.state] === nation?.id ||
+              territoryMap[m.state] === "usa"
+          ),
           ...ALL_NEIGHBOUR_SERVICE_CLUSTERS.filter(
             (m) =>
               interactionMode === "annex" ||

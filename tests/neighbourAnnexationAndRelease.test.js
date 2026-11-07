@@ -4,7 +4,7 @@ import { getNeighbourProvinceEndowments, ALL_NEIGHBOUR_RESOURCE_MARKERS, ALL_NEI
 import { getUsStateEndowment } from "../src/data/usGeographicEndowments.js";
 import { getUsStateServicesEndowment } from "../src/data/usServicesEndowments.js";
 import { getUsaStateData } from "../src/data/usStatesData.js";
-import { transferTerritory } from "../server/engine.js";
+import { transferTerritory, evaluateSimulation } from "../server/engine.js";
 
 test("Neighbour Province Endowments & Annexation Integration", async (t) => {
   await t.test("Canadian and Mexican provinces return authentic empirical endowments", () => {
@@ -118,6 +118,52 @@ test("Neighbour Province Endowments & Annexation Integration", async (t) => {
     assert.ok(res);
     assert.equal(mockState.territoryMap["Maine"], "can");
     assert.equal(mockState.territoryStatusMap["Maine"], "TERRITORY");
+  });
+
+  await t.test("Florida release and Chihuahua return to Mexico persist across evaluateSimulation cycles without reverting", () => {
+    const mockState = {
+      version: 1,
+      nations: [
+        { id: "usa", name: "United States of America", workingPops: 160000000, constituentStates: [{ name: "Florida" }], unincorporatedTerritories: [{ name: "Chihuahua" }] },
+        { id: "mexico", name: "Mexico", workingPops: 60000000, constituentStates: [], unincorporatedTerritories: [] },
+      ],
+      territoryMap: { Florida: "usa", Chihuahua: "usa" },
+      territoryStatusMap: { Florida: "STATE", Chihuahua: "STATE" },
+      newsFeed: [],
+    };
+
+    // 1. Release Florida
+    const relRes = transferTerritory(mockState, {
+      territoryName: "Florida",
+      sourceNationId: "usa",
+      mode: "RELEASE",
+      planet: "Earth",
+    });
+    assert.equal(relRes.nationId, "florida_tallahassee");
+    assert.equal(mockState.territoryMap["Florida"], "florida_tallahassee");
+    assert.ok(mockState.nations.some((n) => n.id === "florida_tallahassee" && n.isSeceded));
+    assert.ok(!mockState.nations[0].constituentStates.some((s) => s.name === "Florida"));
+
+    // 2. Return Chihuahua to Mexico
+    const retRes = transferTerritory(mockState, {
+      territoryName: "Chihuahua",
+      sourceNationId: "usa",
+      targetNationId: "mexico",
+      mode: "ANNEX",
+      planet: "Earth",
+    });
+    assert.equal(retRes.nationId, "mexico");
+    assert.equal(mockState.territoryMap["Chihuahua"], "mexico");
+    assert.equal(mockState.territoryStatusMap["Chihuahua"], "STATE");
+    assert.ok(!mockState.nations[0].unincorporatedTerritories.some((s) => s.name === "Chihuahua"));
+    assert.ok(!mockState.nations[0].constituentStates.some((s) => s.name === "Chihuahua"));
+
+    // 3. Run multiple evaluateSimulation cycles and verify nothing reverts
+    evaluateSimulation(mockState);
+    evaluateSimulation(mockState);
+    assert.equal(mockState.territoryMap["Florida"], "florida_tallahassee");
+    assert.equal(mockState.territoryMap["Chihuahua"], "mexico");
+    assert.ok(mockState.version >= 3);
   });
 });
 

@@ -27,6 +27,7 @@ const CHUNK_SIZE = 350000; // 350 KB per D1 row (well below D1's 1 MB limit)
 const memorySessions = new Map();
 const memoryAuth = new Map();
 let schemaInitialized = false;
+let defaultSessionsSeeded = false;
 
 async function ensureSchema(db) {
   if (schemaInitialized || !db) return;
@@ -173,9 +174,14 @@ function stripComputedBeforeSave(state) {
 }
 
 async function saveStateToD1(db, session) {
-  if (!db) return;
   const now = new Date().toISOString();
   session.updatedAt = now;
+  if (session.state) {
+    session.state.version = (Number(session.state.version) || 0) + 1;
+    session.state.lastModifiedAt = Date.now();
+  }
+  memorySessions.set(session.id, session);
+  if (!db) return;
   const raw = stripComputedBeforeSave(session.state);
   const chunks = [];
   for (let i = 0; i < raw.length; i += CHUNK_SIZE) {
@@ -225,29 +231,22 @@ async function loadSeedFromAssets(env, requestUrl, scenarioType = "interstellar"
 }
 
 async function ensureDefaultSessions(env, requestUrl) {
+  if (defaultSessionsSeeded) return;
   const db = env.DB;
   await ensureSchema(db);
 
   if (db) {
-    const chunkRows = await db
-      .prepare(
-        "SELECT data FROM session_chunks WHERE session_id = 'interstellar-default' ORDER BY chunk_idx ASC"
-      )
-      .all();
-    if (chunkRows?.results?.length > 0) {
-      try {
-        const rawJson = chunkRows.results.map((r) => r.data).join("");
-        const parsed = JSON.parse(rawJson);
-        if (parsed?.nations?.length > 0 && parsed?.timeManager) {
-          return;
-        }
-      } catch {
-        // reseed if corrupted
-      }
+    const existingMeta = await db
+      .prepare("SELECT id FROM sessions_meta WHERE id = 'interstellar-default' LIMIT 1")
+      .first();
+    if (existingMeta?.id) {
+      defaultSessionsSeeded = true;
+      return;
     }
   } else if (memorySessions.size > 0) {
     const existing = memorySessions.get("interstellar-default");
     if (existing?.state?.nations?.length > 0 && existing?.state?.timeManager) {
+      defaultSessionsSeeded = true;
       return;
     }
   }
@@ -282,6 +281,7 @@ async function ensureDefaultSessions(env, requestUrl) {
     state: vietnamState,
   };
   memorySessions.set(s2.id, s2);
+  defaultSessionsSeeded = true;
 
   if (db) {
     await saveStateToD1(db, s1);
@@ -305,24 +305,36 @@ async function ensureDefaultSessions(env, requestUrl) {
   }
 }
 
-async function getSession(env, requestUrl, sessionId) {
+async function getSession(env, requestUrl, sessionId, skipEvaluate = false) {
   await ensureDefaultSessions(env, requestUrl);
-  if (memorySessions.has(sessionId)) {
-    const cached = memorySessions.get(sessionId);
-    if (!cached.state.planetsSummary) {
-      evaluateSimulation(cached.state);
-    }
-    return cached;
-  }
-
   const db = env.DB;
-  if (!db) return null;
+
+  if (!db) {
+    if (memorySessions.has(sessionId)) {
+      const cached = memorySessions.get(sessionId);
+      if (!skipEvaluate && !cached.state.planetsSummary) {
+        evaluateSimulation(cached.state);
+      }
+      return cached;
+    }
+    return null;
+  }
 
   const meta = await db
     .prepare("SELECT * FROM sessions_meta WHERE id = ?")
     .bind(sessionId)
     .first();
-  if (!meta) return null;
+  if (!meta) {
+    return memorySessions.get(sessionId) || null;
+  }
+
+  const cached = memorySessions.get(sessionId);
+  if (cached && cached.updatedAt === meta.updated_at) {
+    if (!skipEvaluate && !cached.state.planetsSummary) {
+      evaluateSimulation(cached.state);
+    }
+    return cached;
+  }
 
   const chunkRows = await db
     .prepare(
@@ -332,7 +344,8 @@ async function getSession(env, requestUrl, sessionId) {
     .all();
 
   const rawJson = (chunkRows.results || []).map((r) => r.data).join("");
-  const state = evaluateSimulation(JSON.parse(rawJson));
+  const parsed = JSON.parse(rawJson);
+  const state = skipEvaluate ? parsed : evaluateSimulation(parsed);
   const sess = {
     id: meta.id,
     name: meta.name,
@@ -424,6 +437,7 @@ function jsonResponse(data, status = 200) {
     status,
     headers: {
       "Content-Type": "application/json",
+      "Cache-Control": "no-store, no-cache, must-revalidate",
       "Access-Control-Allow-Origin": "*",
       "Access-Control-Allow-Methods": "GET, POST, PATCH, DELETE, OPTIONS",
       "Access-Control-Allow-Headers": "Content-Type, X-Director-Key",
@@ -817,7 +831,11 @@ export default {
         });
       }
 
-      const sess = await getSession(env, request.url, sessionId);
+      const skipInitialEval =
+        ["POST", "PATCH", "DELETE", "PUT"].includes(request.method) &&
+        parts[3] !== "time" &&
+        parts[3] !== "ai-shock";
+      const sess = await getSession(env, request.url, sessionId, skipInitialEval);
       if (!sess) return jsonResponse({ error: "Session not found" }, 404);
 
       // GET /api/sessions/:id
