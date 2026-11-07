@@ -165,7 +165,7 @@ export default function CountryAdm1Map({
     return () => {
       active = false;
     };
-  }, [nation?.id, isUsa, interactionMode]);
+  }, [nation?.id, isUsa, interactionMode, territoryMap]);
 
   // Initialize or update Leaflet Map
   useEffect(() => {
@@ -391,6 +391,16 @@ export default function CountryAdm1Map({
             const endow = isUsa ? getUsStateEndowment(name, customEndowments) : null;
             const srvEndow = isUsa ? getUsStateServicesEndowment(name, customEndowments) : null;
             const stateMeta = isUsa ? getUsaStateData(name) : null;
+            const isForeignNeighbour =
+              feature.properties?.countryIso3 === "CAN" || feature.properties?.countryIso3 === "MEX";
+            const directOwner =
+              name === "Georgia"
+                ? territoryMap["Georgia (USA)"] || territoryMap["Georgia:Atlanta"] || territoryMap["Georgia"]
+                : territoryMap[name];
+            const isControlledByActiveNation =
+              directOwner === nation?.id ||
+              (!directOwner && !isForeignNeighbour && (nation?.id === "usa" || isUsa)) ||
+              (directOwner === "usa" && isUsa);
             const countryTag = feature.properties?.countryName || (feature.properties?.countryIso3 === "CAN" ? "Canada" : feature.properties?.countryIso3 === "MEX" ? "Mexico" : "");
 
             let tooltipContent = `<div style="background-color: #090e17 !important; color: #f8fafc !important; border-radius: 10px; border: 1px solid rgba(56, 189, 248, 0.45); padding: 10px; font-family: ui-sans-serif, system-ui, sans-serif; box-shadow: 0 14px 35px rgba(0,0,0,0.85);" class="min-w-[220px] max-w-[290px] text-xs">
@@ -531,7 +541,15 @@ export default function CountryAdm1Map({
       if (layerMode === "resources" && isUsa) {
         const markerGroup = L.layerGroup();
 
-        const combinedResourceMarkers = [...ALL_US_RESOURCE_MARKERS, ...ALL_NEIGHBOUR_RESOURCE_MARKERS];
+        const combinedResourceMarkers = [
+          ...ALL_US_RESOURCE_MARKERS,
+          ...ALL_NEIGHBOUR_RESOURCE_MARKERS.filter(
+            (m) =>
+              interactionMode === "annex" ||
+              territoryMap[m.state] === nation?.id ||
+              territoryMap[m.state] === "usa"
+          ),
+        ];
         const filteredMarkers = combinedResourceMarkers.filter((m) => {
           if (resourceCategory === "all") return true;
           return m.type === resourceCategory;
@@ -600,7 +618,15 @@ export default function CountryAdm1Map({
       if (layerMode === "services" && isUsa) {
         const markerGroup = L.layerGroup();
 
-        const combinedServiceClusters = [...ALL_US_SERVICE_CLUSTERS, ...ALL_NEIGHBOUR_SERVICE_CLUSTERS];
+        const combinedServiceClusters = [
+          ...ALL_US_SERVICE_CLUSTERS,
+          ...ALL_NEIGHBOUR_SERVICE_CLUSTERS.filter(
+            (m) =>
+              interactionMode === "annex" ||
+              territoryMap[m.state] === nation?.id ||
+              territoryMap[m.state] === "usa"
+          ),
+        ];
         const filteredMarkers = combinedServiceClusters.filter((m) => {
           if (serviceCategory === "all") return true;
           return m.type === serviceCategory;
@@ -669,7 +695,7 @@ export default function CountryAdm1Map({
     return () => {
       active = false;
     };
-  }, [geoData, mapProvider, layerMode, resourceCategory, serviceCategory, isUsa, nation?.id, selectedSubdivision, nationColor, customEndowments, territoryMap]);
+  }, [geoData, mapProvider, layerMode, resourceCategory, serviceCategory, isUsa, nation?.id, selectedSubdivision, nationColor, customEndowments, territoryMap, interactionMode]);
 
   // Clean-up on unmount
   useEffect(() => {
