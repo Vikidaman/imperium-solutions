@@ -1,8 +1,4 @@
-import fs from "fs";
-import path from "path";
-import { fileURLToPath } from "url";
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
+import { US_STATES_CATALOG } from "../src/data/usStatesData.js";
 
 export const SIMPLIFIED_60_GOODS = [
   // 1-8 Mining & Metals
@@ -80,154 +76,171 @@ export const SIMPLIFIED_60_GOODS = [
   { id: 60, name: "Controlled & Illicit Goods", sector: "Hospitality & Tourist Services GDP", era: "Wooden Tools", basePrice: 3200, inputs: ["Chemicals & Explosives", "Water"] }
 ];
 
-export const OLD_TO_SIMPLIFIED_MAP = {
-  // Rare Earths
-  "Barium": "Rare Earth Metals", "Magnesium": "Rare Earth Metals", "Neodymium": "Rare Earth Metals",
-  "Neodymium Magnets": "Rare Earth Metals", "Cobalt": "Rare Earth Metals", "Cobalt Ore": "Rare Earth Metals",
-  "Lithium": "Lithium & Batteries", "Lithium Ore": "Lithium & Batteries", "Li-ion Batteries": "Lithium & Batteries",
-  
-  // Basic Minerals
-  "Iron Ore": "Iron Ore", "Copper Ore": "Copper", "Copper": "Copper",
-  "Lead Ore": "Lead & Heavy Metals", "Lead": "Lead & Heavy Metals", "Tin Ore": "Lead & Heavy Metals", "Tin": "Lead & Heavy Metals",
-  "Aluminimum Ore": "Aluminium", "Aluminium": "Aluminium", "Gold": "Gold & Precious Metals",
-  "Silicon": "Silicon & Quartz", "Sand": "Silicon & Quartz",
-  "Coal": "Coal & Carbon", "Graphite": "Coal & Carbon",
-  "Stone": "Stone & Minerals", "Limestone": "Stone & Minerals", "Clay": "Stone & Minerals",
-  
-  // Chemicals & Fuels
-  "Niter": "Chemicals & Explosives", "Sulphur": "Chemicals & Explosives", "Gunpowder": "Chemicals & Explosives",
-  "Explosives": "Chemicals & Explosives", "Synthetic Organic Chemicals": "Chemicals & Explosives", "Brine": "Chemicals & Explosives", "Salt": "Chemicals & Explosives",
-  "Pesticide": "Fertilizer & Agrochem", "Fertilizer": "Fertilizer & Agrochem", "Phosphate": "Fertilizer & Agrochem",
-  "Crude Oil": "Crude Oil", "Petroleum": "Refined Petroleum & Fuels", "Diesel": "Refined Petroleum & Fuels",
-  "Bitumen": "Refined Petroleum & Fuels", "Asphalt": "Refined Petroleum & Fuels", "Natural Gas": "Natural Gas",
-  "Electricity": "Electricity & Grid", "Hydroelectricity": "Electricity & Grid",
-  "Uranium Ore": "Uranium & Nuclear", "Uranium": "Uranium & Nuclear", "Atomic": "Uranium & Nuclear",
-  "Turbine": "Heavy Engines & Turbines", "Solar Panels": "Solar & Clean Energy",
+export function buildSimplifiedSeed(originalSeed = {}) {
+  const constituentStates = [];
+  const unincorporatedTerritories = [];
+  const territoryMap = { "United States of America": "usa", "United States": "usa" };
+  const territoryStatusMap = {};
 
-  // Agriculture & Livestock
-  "Water": "Water", "Wheat": "Grain", "Rice": "Grain", "Corn": "Grain", "Canned Corn": "Grain",
-  "Potatoes": "Fresh Produce", "Preserved Vegetables": "Fresh Produce", "Onions": "Fresh Produce", "Tomatoes": "Fresh Produce",
-  "Mangoes": "Fruit & Cash Crops", "Juices": "Fruit & Cash Crops",
-  "Sugarcane": "Sugar & Confectionery", "Sugar": "Sugar & Confectionery",
-  "Coffee": "Coffee & Tea", "Tea": "Coffee & Tea",
-  "Tobacco": "Tobacco & Spirits", "Cigarettes": "Tobacco & Spirits", "Alcohol": "Tobacco & Spirits",
-  "Cotton": "Cotton & Natural Fibres", "Indigofera": "Cotton & Natural Fibres", "Dye": "Cotton & Natural Fibres",
-  "Silk": "Cotton & Natural Fibres", "Raw Rubber": "Rubber & Polymers", "Rubber": "Rubber & Polymers",
-  "Beef": "Meat & Livestock", "Corned Beef": "Meat & Livestock", "Pork": "Meat & Livestock", "Chicken": "Meat & Livestock",
-  "Fish": "Fisheries & Seafood", "Milk": "Dairy Products", "Soybeans": "Fresh Produce",
-
-  // Heavy Industry
-  "Wood": "Wood & Timber", "Paper": "Paper & Publishing", "Cardboard": "Paper & Publishing", "Ink": "Paper & Publishing",
-  "Books": "Paper & Publishing", "Pencil": "Paper & Publishing", "Pen": "Paper & Publishing", "Newspaper": "Paper & Publishing", "Printing Press": "Paper & Publishing",
-  "Iron": "Steel & Iron", "Iron (Smelted Goods)": "Steel & Iron", "Steel": "Steel & Iron", "Steel (Industry 1.0)": "Steel & Iron",
-  "Construction": "Construction Materials", "Bricks": "Construction Materials", "Concrete": "Construction Materials",
-  "Glass": "Glass & Ceramics", "Porcelain": "Glass & Ceramics", "Pipes": "Industrial Hardware & Pipes",
-  "Plastic": "Plastics & Synthetics", "Tools": "Machine Tools & Machinery",
-  "Steam Engine": "Heavy Engines & Turbines", "Diesel Engine": "Heavy Engines & Turbines", "Petroleum Engine": "Heavy Engines & Turbines", "Electric Engines": "Heavy Engines & Turbines",
-
-  // Tech, Electronics & Vehicles
-  "Semi-Conductor": "Semiconductors & Chips", "Motherboard": "Computers & Electronics", "Computer": "Computers & Electronics", "Screens": "Computers & Electronics",
-  "Radio": "Telecommunications & Optics", "Telephone": "Telecommunications & Optics", "Telephone (Electronics)": "Telecommunications & Optics",
-  "Radar": "Telecommunications & Optics", "GPS": "Telecommunications & Optics", "Camera": "Telecommunications & Optics",
-  "Lightbulb": "Electrical Consumer Appliances", "Speaker": "Electrical Consumer Appliances", "Television": "Electrical Consumer Appliances",
-  "Refridgerator": "Electrical Consumer Appliances", "Air-Conditioning": "Electrical Consumer Appliances", "Electric Oven": "Electrical Consumer Appliances",
-  "Toys": "Apparel & Footwear", "Clothes": "Apparel & Footwear", "Fabric": "Apparel & Footwear", "Leather": "Apparel & Footwear",
-  "Vehicular Chassis": "Automobiles & Transport Equipment", "Tyre": "Automobiles & Transport Equipment", "Early Car": "Automobiles & Transport Equipment",
-  "Passenger Car": "Automobiles & Transport Equipment", "Bicycle": "Automobiles & Transport Equipment", "Truck": "Automobiles & Transport Equipment", "ZIL-130 Truck": "Automobiles & Transport Equipment", "Tractor": "Automobiles & Transport Equipment",
-  "Rail Tracks": "Railways & Rolling Stock", "Steam Train": "Railways & Rolling Stock", "Diesel Train": "Railways & Rolling Stock", "Railway Transport": "Railways & Rolling Stock",
-  "Boats": "Ships & Marine Vessels", "River Transport": "Ships & Marine Vessels",
-  "Airplane": "Aerospace & Aviation", "Aircraft Maintenance": "Aerospace & Aviation",
-  "Rocket": "Spacecraft & Propulsion", "Rocket Engine": "Spacecraft & Propulsion", "Ion-Drive Engine": "Spacecraft & Propulsion", "Space Age": "Spacecraft & Propulsion",
-
-  // Defense
-  "Sword": "Small Arms & Munitions", "Bow & Arrow": "Small Arms & Munitions", "AK-47": "Small Arms & Munitions", "Ammunition": "Small Arms & Munitions", "Combat Rations": "Small Arms & Munitions",
-  "82mm Mortars": "Heavy Armaments & Artillery", "122mm Field Gun": "Heavy Armaments & Artillery", "PT-76 Light Tank": "Heavy Armaments & Artillery",
-  "T-54 Tank": "Heavy Armaments & Artillery", "Surface-Air Missile Systems": "Heavy Armaments & Artillery", "I1-28 Bomber": "Heavy Armaments & Artillery", "MiG-17": "Heavy Armaments & Artillery", "Nuclear Submarines": "Heavy Armaments & Artillery",
-
-  // Health, Consumer & Public Services
-  "Penicillin": "Pharmaceuticals & Medicine", "Quinine": "Pharmaceuticals & Medicine", "Micro-Organisms": "Pharmaceuticals & Medicine", "Bandages": "Pharmaceuticals & Medicine",
-  "MRI": "Medical Technology & Services", "Medical Services": "Medical Technology & Services",
-  "Bread": "Processed Foods & Hospitality", "Bread (Smelted Goods)": "Processed Foods & Hospitality", "Carbonated Drinks": "Processed Foods & Hospitality",
-  "Fast Food": "Processed Foods & Hospitality", "Hamburger": "Processed Foods & Hospitality", "Hotelling Services": "Processed Foods & Hospitality", "Luxury Resorts": "Processed Foods & Hospitality",
-  "Hiking": "Processed Foods & Hospitality", "Skiing": "Processed Foods & Hospitality",
-  "Groceries": "Retail, Trade & Logistics", "Domestic Trade": "Retail, Trade & Logistics", "International Trade": "Retail, Trade & Logistics",
-  "Roads": "Retail, Trade & Logistics", "Road Transport": "Retail, Trade & Logistics", "Taxi Service": "Retail, Trade & Logistics",
-  "Housing": "Housing & Real Estate",
-  "Internet": "Media, Internet & Software", "AI": "Media, Internet & Software", "Computer Software": "Media, Internet & Software", "Data Analytics": "Media, Internet & Software", "Movies": "Media, Internet & Software", "Streaming Services": "Media, Internet & Software",
-  "University Degrees": "Banking & Financial Services", "Research": "Banking & Financial Services", "Financial Services": "Banking & Financial Services", "Credit Cards": "Banking & Financial Services",
-  "Headhunting Services": "Banking & Financial Services", "Legal Services": "Banking & Financial Services",
-  "State Offices": "Public Administration & Governance", "State Dept": "Public Administration & Governance", "Treasury Dept": "Public Administration & Governance", "Interior Dept": "Public Administration & Governance", "Agriculture Dept": "Public Administration & Governance", "Justice Dept": "Public Administration & Governance", "Waste Management": "Public Administration & Governance",
-  "Opium": "Controlled & Illicit Goods", "Marijuana": "Controlled & Illicit Goods", "Fentanyl": "Controlled & Illicit Goods", "Mafia": "Controlled & Illicit Goods", "Prostitution": "Controlled & Illicit Goods"
-};
-
-export function buildSimplifiedSeed(originalSeed) {
-  const seed = JSON.parse(JSON.stringify(originalSeed));
-  seed.goodsCatalog = SIMPLIFIED_60_GOODS.map(g => ({
-    id: g.id,
-    name: g.name,
-    sector: g.sector,
-    goodType: g.name,
-    era: g.era,
-    inputs: g.inputs,
-    basePrice: g.basePrice
-  }));
-
-  for (const nation of seed.nations || []) {
-    // Purge companies completely
-    nation.companies = [];
-
-    // Map old market configs to simplified goods
-    const existingMarketByGood = new Map((nation.market || []).map(m => [m.goodName, m]));
-    const newMarket = SIMPLIFIED_60_GOODS.map(g => {
-      // Find an existing entry if exact name matched, or inherit average values
-      const existing = existingMarketByGood.get(g.name);
-      return {
-        goodName: g.name,
-        hype: existing ? existing.hype : 50,
-        ddMultiplier: existing ? existing.ddMultiplier : 1.0,
-        exportTariffRate: existing ? existing.exportTariffRate : 0.0,
-        importTariffRate: existing ? existing.importTariffRate : 0.1,
-        illegal: g.name === "Controlled & Illicit Goods" ? true : Boolean(existing?.illegal)
-      };
-    });
-    nation.market = newMarket;
+  for (const [stateName, meta] of Object.entries(US_STATES_CATALOG)) {
+    const isTerritory = meta.status === "TERRITORY";
+    territoryMap[stateName] = "usa";
+    territoryStatusMap[stateName] = isTerritory ? "TERRITORY" : "STATE";
+    const entry = {
+      name: stateName,
+      code: meta.code,
+      capital: meta.capital,
+      region: meta.region,
+      role: meta.role,
+      gdpShare: meta.gdpShare,
+      popShare: meta.popShare,
+      status: isTerritory ? "TERRITORY" : "STATE",
+    };
+    if (isTerritory) {
+      unincorporatedTerritories.push(entry);
+    } else {
+      constituentStates.push(entry);
+    }
   }
 
-  // Power Blocs removed — states in Europe and globally are represented as sovereign nations
-  seed.powerBlocs = [];
+  const origUsa = (originalSeed.nations || []).find(
+    (n) => n.id === "usa" || n.name === "USA" || n.name === "United States"
+  ) || {};
+  const existingMarketByGood = new Map(
+    (origUsa.market || []).map((m) => [m.goodName, m])
+  );
 
-  if (!seed.planetsConfig) {
-    seed.planetsConfig = [
+  const market = SIMPLIFIED_60_GOODS.map((g) => {
+    const existing = existingMarketByGood.get(g.name);
+    return {
+      goodName: g.name,
+      hype: existing ? existing.hype : 50,
+      ddMultiplier: existing ? existing.ddMultiplier : 1.0,
+      exportTariffRate: existing ? existing.exportTariffRate : 0.0,
+      importTariffRate: existing ? existing.importTariffRate : 0.05,
+      illegal: g.name === "Controlled & Illicit Goods" ? true : Boolean(existing?.illegal),
+    };
+  });
+
+  return {
+    timeManager: originalSeed.timeManager || {
+      intervalDaysPerHour: 90,
+      daysElapsed: 0,
+      quarterNumber: 1,
+      crisisStartDate: "2025-01-01",
+      crisisDate: "2025-01-01",
+      nextPaymentDate: "2025-04-01",
+      isLive: false,
+    },
+    politicalParties: originalSeed.politicalParties || [
       {
-        id: "Earth",
-        name: "Earth",
-        description: "Birthplace of humanity, planetary cradle and primary center of agriculture and heavy industry.",
-        freightTariffRate: 0.05,
-        transitDays: 0,
-        habitability: 1.0,
-        independenceDesire: 0
+        nation: "USA",
+        name: "Democratic",
+        currentSupport: 0.48,
+        incomeTaxPreference: 0.28,
+        salesTaxPreference: 0.06,
+        corporateTaxRate: 0.25,
+        workerShareOfGdp: 0.55,
+        budgetAsPercentOfGdp: 0.22,
+        localCrimePolicy: "Beat Cops",
+        healthcarePolicy: "Subsidized Healthcare",
+        politicalAlignment: "Centre-Left",
       },
       {
-        id: "Mars",
-        name: "Mars",
-        description: "Red Planet industrial and colonial frontier, specialized in rare metals and orbital propulsion.",
-        freightTariffRate: 0.15,
-        transitDays: 90,
-        habitability: 0.65,
-        independenceDesire: 42
+        nation: "USA",
+        name: "Republican",
+        currentSupport: 0.48,
+        incomeTaxPreference: 0.21,
+        salesTaxPreference: 0.08,
+        corporateTaxRate: 0.17,
+        workerShareOfGdp: 0.48,
+        budgetAsPercentOfGdp: 0.18,
+        localCrimePolicy: "Profiling",
+        healthcarePolicy: "Private Healthcare",
+        politicalAlignment: "Centre-Right",
       },
       {
-        id: "Luna",
-        name: "Luna (The Moon)",
-        description: "Earth orbital satellite, mass driver hub and vacuum solar foundry network.",
-        freightTariffRate: 0.08,
-        transitDays: 7,
-        habitability: 0.35,
-        independenceDesire: 20
-      }
-    ];
-  }
-
-  return seed;
+        nation: "USA",
+        name: "Libertarian",
+        currentSupport: 0.02,
+        incomeTaxPreference: 0.10,
+        salesTaxPreference: 0.05,
+        corporateTaxRate: 0.10,
+        workerShareOfGdp: 0.50,
+        budgetAsPercentOfGdp: 0.12,
+        localCrimePolicy: "Gentle Touch",
+        healthcarePolicy: "Private Healthcare",
+        politicalAlignment: "Libertarian",
+      },
+      {
+        nation: "USA",
+        name: "Green",
+        currentSupport: 0.02,
+        incomeTaxPreference: 0.35,
+        salesTaxPreference: 0.08,
+        corporateTaxRate: 0.32,
+        workerShareOfGdp: 0.62,
+        budgetAsPercentOfGdp: 0.26,
+        localCrimePolicy: "Gentle Touch",
+        healthcarePolicy: "State-run Healthcare",
+        politicalAlignment: "Progressive",
+      },
+    ],
+    sectorsConfig: originalSeed.sectorsConfig || [
+      { name: "Agricultural Sector GDP", sentiment: 55, kFactorBonus: 0.3, cbpf: 0 },
+      { name: "Industry & Manufacturing GDP", sentiment: 80, kFactorBonus: 0.7, cbpf: 0 },
+      { name: "Hospitality & Tourist Services GDP", sentiment: 68, kFactorBonus: 0.3, cbpf: 0 },
+      { name: "Office & Corporate Services GDP", sentiment: 78, kFactorBonus: 0.9, cbpf: 0 },
+    ],
+    techEras: originalSeed.techEras || [
+      { name: "Wooden Tools", unlocked: true },
+      { name: "Stone Tools", unlocked: true },
+      { name: "Iron Tools", unlocked: true },
+      { name: "Tools", unlocked: true },
+      { name: "Semi-conductors", unlocked: true },
+      { name: "Atomic", unlocked: true },
+      { name: "Internet", unlocked: true },
+      { name: "AI", unlocked: false },
+      { name: "Space Age", unlocked: false },
+    ],
+    goodsCatalog: SIMPLIFIED_60_GOODS.map((g) => ({
+      id: g.id,
+      name: g.name,
+      sector: g.sector,
+      goodType: g.name,
+      era: g.era,
+      inputs: g.inputs,
+      basePrice: g.basePrice,
+    })),
+    nations: [
+      {
+        id: "usa",
+        name: "United States",
+        capital: "Washington D.C.",
+        planet: "Earth",
+        color: "#06b6d4",
+        stockExchangeName: "New York Stock Exchange",
+        consumerSentiment: 65,
+        kFactorScaler: 1500,
+        workingPops: 168000000,
+        literacyRate: 0.92,
+        urbanisationIndex: 0.83,
+        infrastructureEfficiency: 0.82,
+        rulingParty: "Democratic",
+        federalCooperativity: 0.1,
+        diplomaticExpenses: 0,
+        treasuryBalance: 850000000000,
+        specializedIndustry: "No Specialization",
+        crimePolicy: "Beat Cops",
+        healthcarePolicy: "Private Healthcare",
+        highImmigration: true,
+        companies: [],
+        constituentStates,
+        unincorporatedTerritories,
+        market,
+      },
+    ],
+    territoryMap,
+    territoryStatusMap,
+  };
 }
-

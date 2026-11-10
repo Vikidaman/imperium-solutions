@@ -2417,8 +2417,6 @@ export const US_SERVICES_ENDOWMENTS = {
  * Returns grounded 5-dimensional services rating with zero fictional baselines.
  * Supports dynamic custom overrides (e.g. from Groq AI crisis & disaster simulations).
  */
-import { getNeighbourProvinceEndowments } from "./neighbourEndowments.js";
-
 export function getUsStateServicesEndowment(stateName, customOverrides = null) {
   if (!stateName) return null;
   let endow = US_SERVICES_ENDOWMENTS[stateName];
@@ -2430,32 +2428,6 @@ export function getUsStateServicesEndowment(stateName, customOverrides = null) {
         endow = e;
         break;
       }
-    }
-  }
-
-  // Check neighbour provinces (Canada & Mexico)
-  if (!endow) {
-    const neighbour = getNeighbourProvinceEndowments(stateName);
-    if (neighbour && neighbour.services) {
-      endow = {
-        name: neighbour.name,
-        code: neighbour.code,
-        region: `${neighbour.countryName} Province / Border Unit`,
-        humanCapitalIndex: neighbour.services.humanCapitalIndex,
-        urbanAgglomerationIndex: neighbour.services.urbanAgglomerationIndex,
-        financialDepthIndex: neighbour.services.financialDepthIndex,
-        digitalConnectivityIndex: neighbour.services.digitalConnectivityIndex,
-        consumerAmenityIndex: neighbour.services.consumerAmenityIndex,
-        primaryClusters: neighbour.services.primaryClusters || [],
-        servicesProfile: neighbour.services.servicesProfile || {
-          techAndDefense: "Regional technology services and engineering",
-          banking: "Commercial banking and cross-border trade finance",
-          healthcare: "Provincial clinical networks and medical centers",
-          hospitality: "Regional hotels, restaurants, and eco-tourism",
-        },
-        modeledServicesOutput: neighbour.services.modeledServicesOutput,
-        sourceAttribution: neighbour.services.sourceAttribution,
-      };
     }
   }
 

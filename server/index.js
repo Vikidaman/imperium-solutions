@@ -17,31 +17,13 @@ import {
   rollbackSession,
   getAuthValue,
   setAuthValue,
-  recordForecastEntry,
-  getForecastRecords,
 } from "./db.js";
 import {
   evaluateSimulation,
   advanceSimulationTime,
   runBudgetAndDividendUpdater,
-  transferTerritory,
-  applyHistoricalEra,
-  setCustomStartDate,
-  triggerElectionAction,
-  triggerLawAction,
-  queueConstruction,
-  setNationPolicyRate,
-  issueSovereignBond,
-  repaySovereignBond,
-  resolveNewsDilemma,
-  publishCustomNews,
+  addDaysToSimDate,
 } from "./engine.js";
-import {
-  generateEconomicAdvisory,
-  simulateEconomicShock,
-  applyEconomicShockToState,
-  restoreEconomicShock,
-} from "./aiEconomicAdvisor.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
@@ -153,7 +135,7 @@ app.post("/api/auth/login", async (req, res) => {
   });
 
   const text =
-    `🏛 *IMPERIUM WORLD SIMULATOR — 2FA LOGIN*\n\n` +
+    `🏛 *IMPERIUM US SIMULATOR — 2FA LOGIN*\n\n` +
     `👤 *Director:* \`${username.trim() || "Director"}\`\n` +
     `🔐 *Your 6-Digit 2FA Code:* \`${code}\`\n\n` +
     `_Expires in 5 minutes. Enter this code in the Private Director Portal to unlock edit access._`;
@@ -227,9 +209,9 @@ app.post("/api/auth/logout", (req, res) => {
   res.json({ ok: true });
 });
 
-// Enforce Read-Only Public Mode vs. Private Director Mode on all mutating API endpoints
+// Enforce Read-Only Public Mode vs. Private Director Mode on mutating API endpoints
 app.use("/api", (req, res, next) => {
-  if (req.path.startsWith("/auth/") || req.path.startsWith("/ai/")) {
+  if (req.path.startsWith("/auth/")) {
     return next();
   }
   if (["POST", "PATCH", "DELETE", "PUT"].includes(req.method)) {
@@ -247,11 +229,8 @@ app.use("/api", (req, res, next) => {
 
 ensureDefaultSessions();
 
-// In-memory cache of active session states for instant 15ms evaluations
 const sessionCache = new Map();
-// SSE clients per sessionId
 const sseClients = new Map();
-// Active live timers per sessionId
 const liveTimers = new Map();
 
 function getCachedSession(sessionId) {
@@ -318,8 +297,6 @@ function syncLiveTimer(sessionId) {
   }
 
   if (tm && tm.isLive) {
-    // Matches Timer() from Apps Script:
-    // var daystoadd = interval.getValue()/60;
     const timer = setInterval(() => {
       const currentSess = getCachedSession(sessionId);
       if (!currentSess || !currentSess.state.timeManager?.isLive) {
@@ -327,22 +304,17 @@ function syncLiveTimer(sessionId) {
         liveTimers.delete(sessionId);
         return;
       }
-      const intervalVal =
-        Number(currentSess.state.timeManager.intervalDaysPerHour) || 90;
+      const intervalVal = Number(currentSess.state.timeManager.intervalDaysPerHour) || 90;
       const daysToAdd = intervalVal / 60;
-      const { quartersCrossed } = advanceSimulationTime(
-        currentSess.state,
-        daysToAdd,
-        true
-      );
+      const { quartersCrossed } = advanceSimulationTime(currentSess.state, daysToAdd);
       if (quartersCrossed > 0) {
         recordLedgerSnapshot(sessionId, currentSess.state);
       }
       persistAndBroadcast(
         sessionId,
-        "Timer() / NuevoGDPManager()",
+        "Auto-Clock",
         quartersCrossed > 0
-          ? `NuevoGDPManager: BudgetUpdater & DividendUpdater executed (Q${currentSess.state.timeManager.quarterNumber})`
+          ? `Quarterly Settlement Executed (Q${currentSess.state.timeManager.quarterNumber})`
           : `Timer Tick (+${daysToAdd.toFixed(2)}d)`,
         `Date: ${currentSess.state.timeManager.crisisDate}`
       );
@@ -353,14 +325,12 @@ function syncLiveTimer(sessionId) {
 
 // --- API ROUTES ---
 
-// 1. List all sessions
 app.get("/api/sessions", (req, res) => {
   res.json({ sessions: listSessions() });
 });
 
-// 2. Create a new session
 app.post("/api/sessions", (req, res) => {
-  const { name, description, scenarioType, customState, startDate, electionIntervalDays, actor } = req.body;
+  const { name, description, customState, actor } = req.body;
   if (!name) {
     return res.status(400).json({ error: "Session name is required" });
   }
@@ -371,26 +341,16 @@ app.post("/api/sessions", (req, res) => {
     id,
     name,
     description,
-    scenarioType: scenarioType || "interstellar",
+    scenarioType: "usa",
     customState,
   });
-  if (startDate) {
-    setCustomStartDate(created.state, {
-      startDate,
-      resetCurrentDate: true,
-      electionIntervalDays,
-    });
-    evaluateSimulation(created.state);
-    saveSessionState(id, created.state);
-  }
   sessionCache.set(id, created);
   if (actor) {
-    logActivity(id, actor, "Created Scenario", `${name}${startDate ? ` (Start: ${startDate})` : ""}`);
+    logActivity(id, actor, "Created Scenario", name);
   }
   res.json({ session: created });
 });
 
-// 3. Get full session state, ledger history, and activity log
 app.get("/api/sessions/:id", (req, res) => {
   const sess = getCachedSession(req.params.id);
   if (!sess) {
@@ -403,7 +363,6 @@ app.get("/api/sessions/:id", (req, res) => {
   });
 });
 
-// 4. Reset session to initial spreadsheet state
 app.post("/api/sessions/:id/reset", (req, res) => {
   const id = req.params.id;
   if (liveTimers.has(id)) {
@@ -428,7 +387,6 @@ app.post("/api/sessions/:id/reset", (req, res) => {
   });
 });
 
-// 4b. Rollback session to a prior quarter or snapshot ID
 app.post("/api/sessions/:id/rollback", (req, res) => {
   const id = req.params.id;
   const { targetQuarter, targetId, actor } = req.body || {};
@@ -453,18 +411,15 @@ app.post("/api/sessions/:id/rollback", (req, res) => {
   }
 });
 
-// 4c. Ledger history endpoint
 app.get("/api/sessions/:id/ledger", (req, res) => {
   res.json({ ledgerHistory: getLedgerHistory(req.params.id) });
 });
 
-// 4d. Activity log endpoint
 app.get("/api/sessions/:id/activity", (req, res) => {
   const limit = Math.min(200, parseInt(req.query.limit, 10) || 60);
   res.json({ activityLog: getActivityLog(req.params.id, limit) });
 });
 
-// 5. SSE Stream for multiplayer real-time sync
 app.get("/api/sessions/:id/stream", (req, res) => {
   const id = req.params.id;
   res.setHeader("Content-Type", "text/event-stream");
@@ -485,7 +440,6 @@ app.get("/api/sessions/:id/stream", (req, res) => {
     })}\n\n`
   );
 
-  // Broadcast updated player count
   broadcastSessionUpdate(id, {
     type: "PRESENCE",
     onlineCount: clients.size,
@@ -500,7 +454,6 @@ app.get("/api/sessions/:id/stream", (req, res) => {
   });
 });
 
-// 6. Time Manager & Engine Mode Controls (Implements Load, Lock, Reset, Timer, NuevoGDPManager, Summarizer)
 app.post("/api/sessions/:id/time", (req, res) => {
   const id = req.params.id;
   const sess = getCachedSession(id);
@@ -509,11 +462,9 @@ app.post("/api/sessions/:id/time", (req, res) => {
   const {
     command,
     daysToAdd,
-    randomizeHype,
     isLive,
     intervalDaysPerHour,
     crisisStartDate,
-    strictSheetQuirks,
     actor,
   } = req.body;
 
@@ -522,73 +473,51 @@ app.post("/api/sessions/:id/time", (req, res) => {
   let toastMessage = null;
 
   if (command === "LOAD") {
-    // Exact Load() from Apps Script (Checkbox I2)
     if (tm.liveStatus === "VIRGIN") {
       tm.crisisDate = tm.crisisStartDate || "2025-01-01";
     }
     tm.isLive = true;
     tm.liveStatus = "TRUE";
     syncLiveTimer(id);
-    toastMessage = "Sheets started. God bless us all!";
-    actionDesc = "Load() [I2]: Sheets started. God bless us all!";
+    toastMessage = "Auto-Clock started.";
+    actionDesc = "Started Auto-Clock";
   } else if (command === "LOCK") {
-    // Exact Lock() from Apps Script (Checkbox I3)
     tm.isLive = false;
     tm.liveStatus = "FALSE";
     syncLiveTimer(id);
-    toastMessage = "Sheets stopped. Enjoy your state-sanctioned break!";
-    actionDesc = "Lock() [I3]: Sheets stopped. Enjoy your state-sanctioned break!";
+    toastMessage = "Auto-Clock paused.";
+    actionDesc = "Paused Auto-Clock";
   } else if (command === "RESET_TIMER") {
-    // Exact Reset() from Apps Script (Checkbox I4)
     tm.isLive = false;
     tm.liveStatus = "VIRGIN";
     syncLiveTimer(id);
     const startStr = tm.crisisStartDate || "2025-01-01";
     tm.crisisDate = startStr;
-    const nextDt = new Date(`${startStr}T00:00:00Z`);
-    nextDt.setUTCDate(nextDt.getUTCDate() + 90);
-    tm.nextPaymentDate = nextDt.toISOString().split("T")[0];
-    toastMessage = "Time Manager reset to VIRGIN state & Next Payment Date +90d.";
-    actionDesc = "Reset() [I4]: Reset Time Manager to VIRGIN";
+    tm.nextPaymentDate = addDaysToSimDate(startStr, 90);
+    toastMessage = "Time Manager reset to start date.";
+    actionDesc = "Reset Time Manager";
   } else if (command === "TIMER_TICK") {
-    // Exact single Timer() tick: daystoadd = interval / 60
     const d = (Number(tm.intervalDaysPerHour) || 90) / 60;
-    const { quartersCrossed } = advanceSimulationTime(
-      sess.state,
-      d,
-      Boolean(randomizeHype)
-    );
+    const { quartersCrossed } = advanceSimulationTime(sess.state, d);
     if (quartersCrossed > 0) {
       recordLedgerSnapshot(id, sess.state);
     }
-    actionDesc = `Timer() Tick (+${d.toFixed(2)} days)`;
+    actionDesc = `Timer Tick (+${d.toFixed(2)} days)`;
   } else if (command === "NUEVO_GDP_MANAGER") {
-    // Direct invocation of NuevoGDPManager() -> +90d Next Payment Date + BudgetUpdater() + DividendUpdater()
-    const nextDt = new Date(
-      `${tm.nextPaymentDate || "2025-04-01"}T00:00:00Z`
-    );
-    nextDt.setUTCDate(nextDt.getUTCDate() + 90);
-    tm.nextPaymentDate = nextDt.toISOString().split("T")[0];
-    runBudgetAndDividendUpdater(sess.state, Boolean(randomizeHype));
+    tm.nextPaymentDate = addDaysToSimDate(tm.nextPaymentDate || "2025-04-01", 90);
+    runBudgetAndDividendUpdater(sess.state);
     recordLedgerSnapshot(id, sess.state);
-    toastMessage =
-      "NuevoGDPManager executed: BudgetUpdater & DividendUpdater completed!";
-    actionDesc = "NuevoGDPManager(): Updated Budgets, Pops, Employment & Dividends";
+    toastMessage = "Quarterly budget & macroeconomic settlement executed!";
+    actionDesc = "Quarterly Settlement Executed";
   } else if (command === "SET_START_DATE") {
-    const resStart = setCustomStartDate(sess.state, {
-      startDate: crisisStartDate || req.body.startDate || "2025-01-01",
-      resetCurrentDate: req.body.resetCurrentDate !== false,
-      electionIntervalDays: req.body.electionIntervalDays,
-    });
-    toastMessage = resStart.toastMessage;
-    actionDesc = resStart.action;
-  }
-
-  if (strictSheetQuirks !== undefined) {
-    sess.state.strictSheetQuirks = Boolean(strictSheetQuirks);
-    actionDesc = `Switched Engine to ${
-      strictSheetQuirks ? "Strict Sheet Formula Mode" : "Balanced VGP Mode"
-    }`;
+    const startDate = crisisStartDate || req.body.startDate || "2025-01-01";
+    tm.crisisStartDate = startDate;
+    tm.crisisDate = startDate;
+    tm.nextPaymentDate = addDaysToSimDate(startDate, 90);
+    tm.quarterNumber = 1;
+    tm.daysElapsed = 0;
+    toastMessage = `Start date set to ${startDate}`;
+    actionDesc = `Set Start Date to ${startDate}`;
   }
 
   if (crisisStartDate !== undefined && command !== "SET_START_DATE") {
@@ -600,42 +529,26 @@ app.post("/api/sessions/:id/time", (req, res) => {
   }
 
   if (isLive !== undefined && !command) {
-    if (isLive && tm.liveStatus === "VIRGIN") {
-      tm.crisisDate = tm.crisisStartDate || "2025-01-01";
-    }
     tm.isLive = Boolean(isLive);
     tm.liveStatus = isLive ? "TRUE" : "FALSE";
-    toastMessage = isLive
-      ? "Sheets started. God bless us all!"
-      : "Sheets stopped. Enjoy your state-sanctioned break!";
-    actionDesc = toastMessage;
     syncLiveTimer(id);
   }
 
   if (daysToAdd && Number(daysToAdd) !== 0) {
     const d = Number(daysToAdd);
-    const { quartersCrossed } = advanceSimulationTime(
-      sess.state,
-      d,
-      Boolean(randomizeHype)
-    );
+    const { quartersCrossed } = advanceSimulationTime(sess.state, d);
     if (quartersCrossed > 0) {
       recordLedgerSnapshot(id, sess.state);
     }
     actionDesc =
       quartersCrossed > 0
-        ? `Advanced +${d} days — NuevoGDPManager triggered (Q${sess.state.timeManager.quarterNumber})`
+        ? `Advanced +${d} days — Quarter Q${sess.state.timeManager.quarterNumber} Settled`
         : `Advanced +${d} days (${sess.state.timeManager.crisisDate})`;
   } else {
     evaluateSimulation(sess.state);
   }
 
-  persistAndBroadcast(
-    id,
-    actor,
-    actionDesc,
-    `Date: ${sess.state.timeManager.crisisDate}`
-  );
+  persistAndBroadcast(id, actor, actionDesc, `Date: ${sess.state.timeManager.crisisDate}`);
   res.json({
     session: sess,
     toastMessage,
@@ -644,20 +557,17 @@ app.post("/api/sessions/:id/time", (req, res) => {
   });
 });
 
-// 7. Update Nation Parameters & Policies
 app.patch("/api/sessions/:id/nations/:nationId", (req, res) => {
   const { id, nationId } = req.params;
   const sess = getCachedSession(id);
   if (!sess) return res.status(404).json({ error: "Session not found" });
 
-  const nation = sess.state.nations.find((n) => n.id === nationId);
+  const nation = sess.state.nations.find((n) => n.id === nationId) || sess.state.nations[0];
   if (!nation) return res.status(404).json({ error: "Nation not found" });
 
   const { actor, ...updates } = req.body;
   const allowedFields = [
     "name",
-    "planet",
-    "stockExchangeName",
     "consumerSentiment",
     "kFactorScaler",
     "workingPops",
@@ -690,7 +600,7 @@ app.patch("/api/sessions/:id/nations/:nationId", (req, res) => {
   persistAndBroadcast(
     id,
     actor,
-    `Updated ${nation.name}`,
+    `Updated ${nation.name} Policy`,
     `Modified: ${changedKeys.join(", ")}`
   );
 
@@ -700,357 +610,17 @@ app.patch("/api/sessions/:id/nations/:nationId", (req, res) => {
   });
 });
 
-// 8. Create a New Country / Colony or Declare Independence
-app.post("/api/sessions/:id/nations", (req, res) => {
-  const { id } = req.params;
-  const sess = getCachedSession(id);
-  if (!sess) return res.status(404).json({ error: "Session not found" });
-
-  const {
-    name,
-    planet = "Earth",
-    templateNationId,
-    workingPops = 25000000,
-    literacyRate = 0.85,
-    urbanisationIndex = 0.75,
-    infrastructureEfficiency = 0.8,
-    rulingParty,
-    specializedIndustry = "Industry & Manufacturing GDP",
-    crimePolicy = "Beat Cops",
-    healthcarePolicy = "State-run Healthcare",
-    kFactorScaler = 1500,
-    companyCount = 25,
-    actor,
-  } = req.body;
-
-  if (!name) return res.status(400).json({ error: "Nation name is required" });
-
-  const newId = `${name.toLowerCase().replace(/[^a-z0-9]+/g, "_")}_${Date.now()
-    .toString(36)
-    .slice(-4)}`;
-
-  const templateNation =
-    sess.state.nations.find((n) => n.id === templateNationId) ||
-    sess.state.nations[0];
-
-  const market = (templateNation?.market || []).map((m) => ({
-    ...m,
-  }));
-
-  const companies = [];
-
-  const newNation = {
-    id: newId,
-    name: name.trim(),
-    planet: planet.trim(),
-    stockExchangeName: `${name.trim()} Exchange`,
-    consumerSentiment: 55,
-    kFactorScaler: Number(kFactorScaler) || 1500,
-    workingPops: Number(workingPops) || 25000000,
-    literacyRate: Number(literacyRate) || 0.85,
-    urbanisationIndex: Number(urbanisationIndex) || 0.75,
-    infrastructureEfficiency: Number(infrastructureEfficiency) || 0.8,
-    rulingParty:
-      rulingParty || sess.state.politicalParties?.[0]?.name || "Republican",
-    federalCooperativity: 0.1,
-    diplomaticExpenses: 0,
-    treasuryBalance: 50000000000,
-    specializedIndustry,
-    crimePolicy,
-    healthcarePolicy,
-    highImmigration: true,
-    companies,
-    market,
-  };
-
-  sess.state.nations.push(newNation);
-  if (!sess.state.territoryMap) sess.state.territoryMap = {};
-  sess.state.territoryMap[newNation.name] = newNation.id;
-  persistAndBroadcast(
-    id,
-    actor,
-    `Founded ${newNation.name}`,
-    `Planet/Region: ${newNation.planet}, Pops: ${newNation.workingPops.toLocaleString()}`
-  );
-
-  res.json({
-    session: sess,
-    newNationId: newId,
-    activityLog: getActivityLog(id, 60),
-  });
-});
-
-// 9. Delete a Nation
-app.delete("/api/sessions/:id/nations/:nationId", (req, res) => {
-  const { id, nationId } = req.params;
-  const sess = getCachedSession(id);
-  if (!sess) return res.status(404).json({ error: "Session not found" });
-  if (sess.state.nations.length <= 1) {
-    return res.status(400).json({ error: "Cannot delete the last remaining nation" });
-  }
-  const idx = sess.state.nations.findIndex((n) => n.id === nationId);
-  if (idx === -1) return res.status(404).json({ error: "Nation not found" });
-  const removed = sess.state.nations.splice(idx, 1)[0];
-
-  persistAndBroadcast(id, req.body?.actor, `Dissolved ${removed.name}`, "");
-  res.json({ session: sess, activityLog: getActivityLog(id, 60) });
-});
-
-// 10. Create a Company in a Nation
-app.post("/api/sessions/:id/nations/:nationId/companies", (req, res) => {
-  const { id, nationId } = req.params;
-  const sess = getCachedSession(id);
-  if (!sess) return res.status(404).json({ error: "Session not found" });
-
-  const nation = sess.state.nations.find((n) => n.id === nationId);
-  if (!nation) return res.status(404).json({ error: "Nation not found" });
-
-  const {
-    name,
-    flagshipGood = "Tools",
-    employedPops = 25000,
-    hypeFactor = 55,
-    numberOfShares = 50000000,
-    govtOwnedShares = 0,
-    dividendEfficiency = 0.6,
-    subsidised = false,
-    targetGrowth = 0.03,
-    actor,
-  } = req.body;
-
-  const compId = `${nation.id}_comp_${Date.now().toString(36)}`;
-  const newComp = {
-    id: compId,
-    name: (name || `${nation.name} Corp ${nation.companies.length + 1}`).trim(),
-    hqCountry: nation.name,
-    flagshipGood,
-    gdpSector: "Industry & Manufacturing GDP",
-    hypeFactor: Number(hypeFactor) || 50,
-    valuation: 0,
-    vgp: 0,
-    employedPops: Math.max(1, Number(employedPops) || 25000),
-    projectedRealGrowth: 0,
-    govtOwnedShares: Math.max(0, Number(govtOwnedShares) || 0),
-    numberOfShares: Math.max(1, Number(numberOfShares) || 50000000),
-    dividendEfficiency: Number(dividendEfficiency) ?? 0.6,
-    dividendsPerShare: 0,
-    productionMethod: "Tools",
-    subsidised: Boolean(subsidised),
-    targetGrowth: Number(targetGrowth) || 0.03,
-    illegal: false,
-  };
-
-  nation.companies.unshift(newComp);
-  persistAndBroadcast(
-    id,
-    actor,
-    `Incorporated ${newComp.name}`,
-    `HQ: ${nation.name}, Good: ${flagshipGood}`
-  );
-
-  res.json({ session: sess, company: newComp, activityLog: getActivityLog(id, 60) });
-});
-
-// 11. Update a Company
-app.patch("/api/sessions/:id/nations/:nationId/companies/:companyId", (req, res) => {
-  const { id, nationId, companyId } = req.params;
-  const sess = getCachedSession(id);
-  if (!sess) return res.status(404).json({ error: "Session not found" });
-
-  const nation = sess.state.nations.find((n) => n.id === nationId);
-  if (!nation) return res.status(404).json({ error: "Nation not found" });
-
-  const comp = nation.companies.find((c) => c.id === companyId);
-  if (!comp) return res.status(404).json({ error: "Company not found" });
-
-  const { actor, ...updates } = req.body;
-  const allowed = [
-    "name",
-    "flagshipGood",
-    "hypeFactor",
-    "employedPops",
-    "govtOwnedShares",
-    "numberOfShares",
-    "dividendEfficiency",
-    "subsidised",
-    "targetGrowth",
-  ];
-  for (const k of allowed) {
-    if (updates[k] !== undefined) {
-      comp[k] = updates[k];
-    }
-  }
-
-  persistAndBroadcast(
-    id,
-    actor,
-    `Updated ${comp.name} (${nation.name})`,
-    `Good: ${comp.flagshipGood}, Emp: ${Number(comp.employedPops).toLocaleString()}`
-  );
-
-  res.json({ session: sess, company: comp, activityLog: getActivityLog(id, 60) });
-});
-
-// 12. Delete a Company
-app.delete("/api/sessions/:id/nations/:nationId/companies/:companyId", (req, res) => {
-  const { id, nationId, companyId } = req.params;
-  const sess = getCachedSession(id);
-  if (!sess) return res.status(404).json({ error: "Session not found" });
-
-  const nation = sess.state.nations.find((n) => n.id === nationId);
-  if (!nation) return res.status(404).json({ error: "Nation not found" });
-
-  const idx = nation.companies.findIndex((c) => c.id === companyId);
-  if (idx === -1) return res.status(404).json({ error: "Company not found" });
-  const removed = nation.companies.splice(idx, 1)[0];
-
-  persistAndBroadcast(
-    id,
-    req.body?.actor,
-    `Liquidated ${removed.name}`,
-    `HQ: ${nation.name}`
-  );
-  res.json({ session: sess, activityLog: getActivityLog(id, 60) });
-});
-
-// 12b. Update Director Configuration (Planets & Power Blocs)
-app.patch("/api/sessions/:id/director-config", (req, res) => {
-  const { id } = req.params;
-  const sess = getCachedSession(id);
-  if (!sess) return res.status(404).json({ error: "Session not found" });
-
-  const { actor, planetsConfig, powerBlocs, actionType, blocData, planetData } = req.body || {};
-
-  if (planetsConfig) {
-    sess.state.planetsConfig = planetsConfig;
-  }
-  if (powerBlocs) {
-    sess.state.powerBlocs = powerBlocs;
-  }
-
-  // Helper action: add or update power bloc
-  if (actionType === "SAVE_BLOC" && blocData) {
-    sess.state.powerBlocs = sess.state.powerBlocs || [];
-    const idx = sess.state.powerBlocs.findIndex((b) => b.id === blocData.id);
-    if (idx >= 0) {
-      sess.state.powerBlocs[idx] = { ...sess.state.powerBlocs[idx], ...blocData };
-    } else {
-      sess.state.powerBlocs.push({
-        id: blocData.id || `bloc_${Date.now().toString(36)}`,
-        name: blocData.name || "New Power Bloc",
-        type: blocData.type || "TRADE_LEAGUE",
-        leaderNationId: blocData.leaderNationId || "usa",
-        memberNationIds: blocData.memberNationIds || ["usa"],
-        cohesion: Number(blocData.cohesion) || 80,
-        customsUnion: Boolean(blocData.customsUnion),
-        defensivePact: Boolean(blocData.defensivePact),
-        mandate: blocData.mandate || "Mutual economic growth and defense.",
-        federalContributionRate: Number(blocData.federalContributionRate) || 0.08,
-      });
-    }
-  }
-
-  // Helper action: delete power bloc
-  if (actionType === "DELETE_BLOC") {
-    const targetId = req.body.blocId || blocData?.id;
-    if (targetId) {
-      sess.state.powerBlocs = (sess.state.powerBlocs || []).filter((b) => b.id !== targetId);
-    }
-  }
-
-  // Helper action: add or update planet
-  if (actionType === "SAVE_PLANET" && planetData) {
-    sess.state.planetsConfig = sess.state.planetsConfig || [];
-    const idx = sess.state.planetsConfig.findIndex((p) => p.id === planetData.id || p.name === planetData.name);
-    if (idx >= 0) {
-      sess.state.planetsConfig[idx] = { ...sess.state.planetsConfig[idx], ...planetData };
-    } else {
-      sess.state.planetsConfig.push({
-        id: planetData.id || planetData.name,
-        name: planetData.name || "New Planet",
-        description: planetData.description || "Orbital or planetary territory.",
-        freightTariffRate: Number(planetData.freightTariffRate) || 0.1,
-        transitDays: Number(planetData.transitDays) || 30,
-        habitability: Number(planetData.habitability) || 0.5,
-        independenceDesire: Number(planetData.independenceDesire) || 25,
-      });
-    }
-  }
-
-  // Helper action: delete planet / disband colony
-  if (actionType === "DELETE_PLANET") {
-    const targetId = req.body.planetId || planetData?.id || planetData?.name;
-    if (targetId) {
-      const lowerTarget = String(targetId).toLowerCase().trim();
-      const existing = (sess.state.planetsConfig || []).find(
-        (p) =>
-          String(p.id).toLowerCase() === lowerTarget ||
-          p.name?.toLowerCase() === lowerTarget ||
-          p.name?.toLowerCase().includes(lowerTarget)
-      );
-      const planetName = existing?.name || targetId;
-
-      sess.state.planetsConfig = (sess.state.planetsConfig || []).filter(
-        (p) =>
-          String(p.id).toLowerCase() !== lowerTarget &&
-          p.name?.toLowerCase() !== lowerTarget &&
-          !p.name?.toLowerCase().includes(lowerTarget)
-      );
-
-      // Reassign any colonized nations to Earth or the first remaining planet
-      const fallbackPlanet = sess.state.planetsConfig[0]?.name || "Earth";
-      (sess.state.nations || []).forEach((n) => {
-        if (
-          (n.planet || "").toLowerCase() === String(planetName).toLowerCase() ||
-          (n.planet || "").toLowerCase().includes(lowerTarget)
-        ) {
-          n.planet = fallbackPlanet;
-        }
-      });
-
-      sess.state.planetsSummary = (sess.state.planetsSummary || []).filter(
-        (p) =>
-          p.name?.toLowerCase() !== String(planetName).toLowerCase() &&
-          !p.name?.toLowerCase().includes(lowerTarget)
-      );
-    }
-  }
-
-  let toastMessage = "Updated Director Configuration";
-
-  // Helper action: apply historical era borders (500 BC to 2026)
-  if (actionType === "APPLY_HISTORICAL_ERA" || req.body.eraId || req.body.historicalDate) {
-    const eraResult = applyHistoricalEra(
-      sess.state,
-      req.body.eraId || req.body.historicalDate
-    );
-    toastMessage = eraResult.toastMessage || eraResult.action;
-  }
-
-  evaluateSimulation(sess.state);
-  persistAndBroadcast(
-    id,
-    actor || "Director",
-    toastMessage,
-    `Planets: ${sess.state.planetsConfig?.length || 0}, Blocs: ${sess.state.powerBlocs?.length || 0}`
-  );
-
-  res.json({ session: sess, toastMessage, activityLog: getActivityLog(id, 60) });
-});
-
-// 13. Update Nation Local Market (Single Good or Bulk Tariff/DD)
 app.patch("/api/sessions/:id/nations/:nationId/market", (req, res) => {
   const { id, nationId } = req.params;
   const sess = getCachedSession(id);
   if (!sess) return res.status(404).json({ error: "Session not found" });
 
-  const nation = sess.state.nations.find((n) => n.id === nationId);
+  const nation = sess.state.nations.find((n) => n.id === nationId) || sess.state.nations[0];
   if (!nation) return res.status(404).json({ error: "Nation not found" });
 
   const { goodName, updates, bulkUpdate, actor } = req.body;
 
   if (bulkUpdate) {
-    // e.g. { importTariffRate: 0.15, exportTariffRate: 0.05, sector: "Agricultural Sector GDP" }
     const sectorGoodSet = new Set(
       (sess.state.goodsCatalog || [])
         .filter((g) => !bulkUpdate.sector || g.sector === bulkUpdate.sector)
@@ -1113,7 +683,6 @@ app.patch("/api/sessions/:id/nations/:nationId/market", (req, res) => {
   res.json({ session: sess, activityLog: getActivityLog(id, 60) });
 });
 
-// 14. Update Tech Eras & Sector Configurations (Production Methods Companion & Companies Companion)
 app.patch("/api/sessions/:id/companion", (req, res) => {
   const { id } = req.params;
   const sess = getCachedSession(id);
@@ -1152,326 +721,6 @@ app.patch("/api/sessions/:id/companion", (req, res) => {
   res.json({ session: sess, activityLog: getActivityLog(id, 60) });
 });
 
-// 15. Create or Update Political Party
-app.post("/api/sessions/:id/parties", (req, res) => {
-  const { id } = req.params;
-  const sess = getCachedSession(id);
-  if (!sess) return res.status(404).json({ error: "Session not found" });
-
-  const { actor, ...partyData } = req.body;
-  if (!partyData.name) {
-    return res.status(400).json({ error: "Party name is required" });
-  }
-
-  const existing = sess.state.politicalParties.find(
-    (p) => p.name.toLowerCase() === partyData.name.toLowerCase()
-  );
-  if (existing) {
-    Object.assign(existing, partyData);
-    persistAndBroadcast(id, actor, `Updated Party: ${existing.name}`, "");
-  } else {
-    const newParty = {
-      nation: partyData.nation || "Global",
-      name: partyData.name.trim(),
-      currentSupport: Number(partyData.currentSupport) ?? 0.25,
-      incomeTaxPreference: Number(partyData.incomeTaxPreference) ?? 0.2,
-      salesTaxPreference: Number(partyData.salesTaxPreference) ?? 0.1,
-      corporateTaxRate: Number(partyData.corporateTaxRate) ?? 0.2,
-      subsidyPreference: partyData.subsidyPreference || "None",
-      nationalizationPreference:
-        partyData.nationalizationPreference || "No Nationalization",
-      workerShareOfGdp: Number(partyData.workerShareOfGdp) ?? 0.45,
-      budgetAsPercentOfGdp: Number(partyData.budgetAsPercentOfGdp) ?? 0.15,
-      federalisedPolicy: partyData.federalisedPolicy || "Confederated",
-      localCrimePolicy: partyData.localCrimePolicy || "Beat Cops",
-      healthcarePolicy: partyData.healthcarePolicy || "Private Healthcare",
-      politicalAlignment: partyData.politicalAlignment || "Centre",
-    };
-    sess.state.politicalParties.push(newParty);
-    persistAndBroadcast(id, actor, `Founded Political Party: ${newParty.name}`, "");
-  }
-
-  res.json({ session: sess, activityLog: getActivityLog(id, 60) });
-});
-
-// 16. Stock Exchange Accounts & Trading
-app.post("/api/sessions/:id/stock-accounts", (req, res) => {
-  const { id } = req.params;
-  const sess = getCachedSession(id);
-  if (!sess) return res.status(404).json({ error: "Session not found" });
-
-  const { holderName, cashBalance = 10000000000, actor } = req.body;
-  if (!holderName) {
-    return res.status(400).json({ error: "Account holder name is required" });
-  }
-
-  const newAcc = {
-    id: `acc_${Date.now().toString(36)}`,
-    holderName: holderName.trim(),
-    dividendPot: 0,
-    cashBalance: Number(cashBalance) || 10000000000,
-    holdings: [],
-  };
-  sess.state.stockAccounts.push(newAcc);
-  persistAndBroadcast(id, actor, `Opened Brokerage Account: ${newAcc.holderName}`, "");
-  res.json({ session: sess, account: newAcc, activityLog: getActivityLog(id, 60) });
-});
-
-app.post("/api/sessions/:id/stock-accounts/:accountId/trade", (req, res) => {
-  const { id, accountId } = req.params;
-  const sess = getCachedSession(id);
-  if (!sess) return res.status(404).json({ error: "Session not found" });
-
-  const acc = sess.state.stockAccounts.find((a) => a.id === accountId);
-  if (!acc) return res.status(404).json({ error: "Account not found" });
-
-  const { action, companyName, hqCountry, units, actor } = req.body;
-
-  if (action === "CLAIM_DIVIDENDS") {
-    const claimed = Number(acc.dividendPot) || 0;
-    acc.cashBalance = (Number(acc.cashBalance) || 0) + claimed;
-    acc.dividendPot = 0;
-    persistAndBroadcast(
-      id,
-      actor || acc.holderName,
-      `Claimed Dividends (${acc.holderName})`,
-      `$${Math.round(claimed).toLocaleString()}`
-    );
-    return res.json({ session: sess, activityLog: getActivityLog(id, 60) });
-  }
-
-  const nation = sess.state.nations.find(
-    (n) => n.name.toLowerCase() === (hqCountry || "").toLowerCase()
-  );
-  const comp = nation?.companies?.find(
-    (c) => c.name.toLowerCase() === (companyName || "").toLowerCase()
-  );
-  if (!comp) {
-    return res.status(404).json({ error: "Target company not found" });
-  }
-
-  const numUnits = Math.max(0, Number(units) || 0);
-  const sharePrice = Number(comp.sharePrice) || Number(comp.valuation) / Math.max(1, comp.numberOfShares);
-  const totalCost = numUnits * sharePrice;
-
-  let holding = acc.holdings.find(
-    (h) =>
-      h.companyName.toLowerCase() === comp.name.toLowerCase() &&
-      h.hqCountry.toLowerCase() === nation.name.toLowerCase()
-  );
-
-  if (action === "BUY") {
-    acc.cashBalance = (Number(acc.cashBalance) || 0) - totalCost;
-    if (holding) {
-      holding.units += numUnits;
-    } else {
-      acc.holdings.push({
-        companyName: comp.name,
-        hqCountry: nation.name,
-        units: numUnits,
-      });
-    }
-    persistAndBroadcast(
-      id,
-      actor || acc.holderName,
-      `Bought ${numUnits.toLocaleString()} shares of ${comp.name}`,
-      `Account: ${acc.holderName}`
-    );
-  } else if (action === "SELL") {
-    if (!holding || holding.units < numUnits) {
-      return res.status(400).json({ error: "Insufficient shares in portfolio" });
-    }
-    holding.units -= numUnits;
-    acc.cashBalance = (Number(acc.cashBalance) || 0) + totalCost;
-    if (holding.units <= 0) {
-      acc.holdings = acc.holdings.filter((h) => h !== holding);
-    }
-    persistAndBroadcast(
-      id,
-      actor || acc.holderName,
-      `Sold ${numUnits.toLocaleString()} shares of ${comp.name}`,
-      `Account: ${acc.holderName}`
-    );
-  }
-
-  res.json({ session: sess, activityLog: getActivityLog(id, 60) });
-});
-
-// 17. Dynamic Border Changes: Annex / Transfer Territory or Release Independent Nation
-app.post("/api/sessions/:id/territories", (req, res) => {
-  const { id } = req.params;
-  const sess = getCachedSession(id);
-  if (!sess) return res.status(404).json({ error: "Session not found" });
-
-  const {
-    territoryName,
-    targetNationId,
-    sourceNationId,
-    mode = "ANNEX",
-    planet = "Earth",
-    capital,
-    actor,
-  } = req.body;
-  if (!territoryName) {
-    return res.status(400).json({ error: "territoryName is required" });
-  }
-
-  const result = transferTerritory(sess.state, {
-    territoryName,
-    targetNationId,
-    sourceNationId,
-    mode,
-    planet,
-    capital,
-  });
-
-  persistAndBroadcast(id, actor, result.action, `Territory: ${territoryName}`, true);
-  res.json({
-    session: sess,
-    nationId: result.nationId,
-    toastMessage: result.action,
-    activityLog: getActivityLog(id, 60),
-  });
-});
-
-// 18. National Statecraft: Elections, Laws, Construction Queue, Gazette Dispatches & Dilemmas
-const handleStatecraftRequest = (req, res) => {
-  const { id } = req.params;
-  const sess = getCachedSession(id);
-  if (!sess) return res.status(404).json({ error: "Session not found" });
-
-  const { type, actor } = req.body;
-  let result = { action: "Updated statecraft", toastMessage: null };
-
-  if (type === "ELECTION_ACTION") {
-    result = triggerElectionAction(sess.state, req.body);
-  } else if (type === "LAW_ACTION") {
-    result = triggerLawAction(sess.state, req.body);
-  } else if (type === "QUEUE_CONSTRUCTION") {
-    result = queueConstruction(sess.state, req.body);
-  } else if (type === "SET_POLICY_RATE") {
-    result = setNationPolicyRate(sess.state, req.body);
-  } else if (type === "ISSUE_SOVEREIGN_BOND") {
-    result = issueSovereignBond(sess.state, req.body);
-  } else if (type === "REPAY_SOVEREIGN_BOND") {
-    result = repaySovereignBond(sess.state, req.body);
-  } else if (type === "RESOLVE_DILEMMA") {
-    result = resolveNewsDilemma(sess.state, req.body);
-  } else if (type === "PUBLISH_NEWS") {
-    result = publishCustomNews(sess.state, req.body);
-  } else if (type === "SET_START_DATE") {
-    result = setCustomStartDate(sess.state, req.body);
-  }
-
-  persistAndBroadcast(id, actor, result.action, type || "Statecraft");
-  res.json({
-    session: sess,
-    toastMessage: result.toastMessage || result.action,
-    activityLog: getActivityLog(id, 60),
-  });
-};
-
-app.post("/api/sessions/:id/statecraft", handleStatecraftRequest);
-app.post("/api/sessions/:id/victoria", handleStatecraftRequest);
-
-// Real-Time Groq AI Economic Advisory Engine (openai/gpt-oss-120b & qwen/qwen3.8-27b)
-app.post("/api/ai/economic-advisory", async (req, res) => {
-  try {
-    const { nationName, stateName, stateData, endowments, topic } = req.body || {};
-    const result = await generateEconomicAdvisory({
-      nationName: nationName || "USA",
-      stateName,
-      stateData,
-      endowments,
-      topic,
-    });
-    res.json(result);
-  } catch (err) {
-    console.error("AI Economic Advisory failed:", err.message);
-    res.status(500).json({ error: err.message, success: false });
-  }
-});
-
-// Groq AI Macroeconomic Shock & Disaster Simulator
-app.post("/api/ai/simulate-shock", async (req, res) => {
-  try {
-    const { prompt, state, nationName, selectedStateName } = req.body || {};
-    const simulation = await simulateEconomicShock({
-      prompt,
-      state,
-      nationName: nationName || "USA",
-      selectedStateName,
-    });
-    res.json(simulation);
-  } catch (err) {
-    console.error("AI Economic Shock Simulation failed:", err.message);
-    res.status(500).json({ error: err.message, success: false });
-  }
-});
-
-// Directly execute an AI shock onto an active session
-app.post("/api/sessions/:id/ai-shock", async (req, res) => {
-  try {
-    const { id } = req.params;
-    const sess = getSession(id);
-    if (!sess) {
-      return res.status(404).json({ error: `Session "${id}" not found.` });
-    }
-
-    const { prompt, selectedStateName, shockResult: providedShock } = req.body || {};
-    let shock = providedShock;
-
-    if (!shock) {
-      const generated = await simulateEconomicShock({
-        prompt,
-        state: sess.state,
-        nationName: sess.state.nations?.[0]?.name || "USA",
-        selectedStateName,
-      });
-      shock = generated.shockResult;
-    }
-
-    const diffResult = applyEconomicShockToState(sess.state, shock);
-    updateSession(id, sess.state);
-
-    res.json({
-      success: true,
-      session: sess,
-      shockResult: shock,
-      beforeAfterDiff: diffResult.beforeAfterDiff,
-      toastMessage: `⚠️ ${shock.headline}`,
-    });
-  } catch (err) {
-    console.error("Session AI Shock execution failed:", err.message);
-    res.status(500).json({ error: err.message, success: false });
-  }
-});
-
-// Restore session infrastructure and baseline endowments
-app.post("/api/sessions/:id/restore-shock", async (req, res) => {
-  try {
-    const { id } = req.params;
-    const sess = getSession(id);
-    if (!sess) {
-      return res.status(404).json({ error: `Session "${id}" not found.` });
-    }
-
-    const result = restoreEconomicShock(sess.state);
-    updateSession(id, sess.state);
-
-    res.json({
-      success: true,
-      session: sess,
-      message: result.message,
-      toastMessage: "✅ Infrastructure and supply chains restored.",
-    });
-  } catch (err) {
-    console.error("Session restore shock failed:", err.message);
-    res.status(500).json({ error: err.message, success: false });
-  }
-});
-
-// Mount Vite in development or static dist in production
 async function startServer() {
   const isProd = process.env.NODE_ENV === "production";
   if (!isProd) {
@@ -1492,10 +741,9 @@ async function startServer() {
   const PORT = process.env.PORT || 3000;
   app.listen(PORT, () => {
     console.log(
-      `Imperium Interstellar 2.0 Crisis Engine running at http://localhost:${PORT}`
+      `Imperium United States Macroeconomic Simulator running at http://localhost:${PORT}`
     );
   });
 }
 
 startServer();
-

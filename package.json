@@ -1,5 +1,5 @@
 {
-  "name": "imperium-interstellar-simulator",
+  "name": "imperium-us-macro-simulator",
   "version": "2.0.0",
   "private": true,
   "type": "module",
@@ -16,7 +16,6 @@
     "@tailwindcss/vite": "^4.1.0",
     "@vitejs/plugin-react": "^4.3.4",
     "cors": "^2.8.5",
-    "d3-geo": "^3.1.1",
     "dotenv": "^18.0.9",
     "express": "^5.1.0",
     "leaflet": "^1.9.4",
@@ -24,12 +23,10 @@
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "recharts": "^2.15.1",
-    "sane-topojson": "^4.0.0",
     "tailwindcss": "^4.1.0",
     "topojson-client": "^3.1.0",
     "us-atlas": "^3.0.1",
-    "vite": "^6.2.0",
-    "world-atlas": "^2.0.2"
+    "vite": "^6.2.0"
   },
   "devDependencies": {
     "wrangler": "^4.155.0"

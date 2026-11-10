@@ -1,30 +1,22 @@
-import React, { useState, useEffect, useMemo, useRef } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import * as topojson from "topojson-client";
 import usAtlas from "us-atlas/states-10m.json";
-import { US_STATES_CATALOG, REGION_TINTS, getUsaStateData } from "../data/usStatesData";
+import { REGION_TINTS, getUsaStateData } from "../data/usStatesData";
 import {
-  US_GEOGRAPHIC_ENDOWMENTS,
   getUsStateEndowment,
   ALL_US_RESOURCE_MARKERS,
 } from "../data/usGeographicEndowments";
 import {
-  US_SERVICES_ENDOWMENTS,
   getUsStateServicesEndowment,
   ALL_US_SERVICE_CLUSTERS,
 } from "../data/usServicesEndowments";
-import {
-  ALL_NEIGHBOUR_RESOURCE_MARKERS,
-  ALL_NEIGHBOUR_SERVICE_CLUSTERS,
-} from "../data/neighbourEndowments";
 import { MAP_PROVIDERS } from "../data/mapProviders";
 import {
-  Layers,
   MapPin,
   ZoomIn,
   ZoomOut,
   RotateCcw,
   CheckCircle2,
-  AlertCircle,
   Landmark,
   Globe2,
   Pickaxe,
@@ -38,196 +30,31 @@ import {
   GraduationCap,
   UtensilsCrossed,
 } from "lucide-react";
-import { loadCountryAdm1, resolveIso3, getContinentalBounds } from "../services/boundaryService";
-import { getLinkedSubdivision } from "../data/adm1Mapping";
 
-// Pre-extract US states GeoJSON feature collection and mesh
 const US_STATES_GEO = topojson.feature(usAtlas, usAtlas.objects.states);
+const CONUS_BOUNDS = [
+  [24.396308, -124.848974],
+  [49.384358, -66.885444],
+];
 
-/**
- * CountryAdm1Map
- * High-performance interactive cartography for Country & Constituent States.
- * Powered by multi-provider tile basemaps (CartoDB, Esri Satellite, OSM)
- * and interactive administrative & natural resource endowment overlays.
- */
 export default function CountryAdm1Map({
-  nation,
   selectedSubdivision,
   onSelectSubdivision,
-  territoryMap = {},
   nationColor = "#06b6d4",
-  economicSubdivisions = [],
-  customEndowments = null,
-  interactionMode = "inspect",
-  onTransferTerritory = null,
 }) {
   const mapContainerRef = useRef(null);
   const leafletMapRef = useRef(null);
   const geojsonLayerRef = useRef(null);
   const tileLayerRef = useRef(null);
   const markersLayerRef = useRef(null);
-  const prevNationIdRef = useRef(null);
+  const initializedBoundsRef = useRef(false);
 
-  const [mapProvider, setMapProvider] = useState("osm"); // Default to OpenStreetMap as requested
+  const [mapProvider, setMapProvider] = useState("carto_dark");
   const [layerMode, setLayerMode] = useState("administrative"); // "administrative" | "resources" | "services"
-  const [resourceCategory, setResourceCategory] = useState("all"); // "all" | "oil_gas" | "mineral" | "agri" | "port"
-  const [serviceCategory, setServiceCategory] = useState("all"); // "all" | "tech" | "finance" | "research" | "hospitality"
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
-  const [geoData, setGeoData] = useState(null);
+  const [resourceCategory, setResourceCategory] = useState("all");
+  const [serviceCategory, setServiceCategory] = useState("all");
   const [hoveredFeature, setHoveredFeature] = useState(null);
 
-  const iso3 = useMemo(() => resolveIso3(nation?.id || nation?.name), [nation]);
-  const isUsa = iso3 === "USA";
-
-  // Load country boundary GeoJSON
-  useEffect(() => {
-    let active = true;
-    setHoveredFeature(null);
-
-    if (!nation) {
-      setGeoData(null);
-      return;
-    }
-
-    if (isUsa) {
-      if (interactionMode === "annex") {
-        setLoading(true);
-        Promise.all([loadCountryAdm1("CAN"), loadCountryAdm1("MEX")]).then(([canRes, mexRes]) => {
-          if (!active) return;
-          const canFeats = canRes.success && canRes.geojson?.features ? canRes.geojson.features : [];
-          const mexFeats = mexRes.success && mexRes.geojson?.features ? mexRes.geojson.features : [];
-          setGeoData({
-            type: "FeatureCollection",
-            features: [...US_STATES_GEO.features, ...canFeats, ...mexFeats],
-          });
-          setError(null);
-          setLoading(false);
-        }).catch(() => {
-          if (!active) return;
-          setGeoData(US_STATES_GEO);
-          setLoading(false);
-        });
-        return;
-      }
-
-      // If not in annex mode, check if any Canadian or Mexican province was annexed into USA
-      // or is currently selected in the dossier (e.g. right after returning control to Mexico/Canada)
-      const foreignAnnexedNames = Object.keys(territoryMap).filter(
-        (key) => (territoryMap[key] === nation?.id || territoryMap[key] === "usa") &&
-                 !US_STATES_GEO.features.some((f) => f.properties?.name === key)
-      );
-      const isSelectedNonUsProvince =
-        selectedSubdivision &&
-        !US_STATES_GEO.features.some((f) => f.properties?.name === selectedSubdivision);
-      const foreignNamesToInclude = Array.from(
-        new Set([
-          ...foreignAnnexedNames,
-          ...(isSelectedNonUsProvince ? [selectedSubdivision] : []),
-        ])
-      );
-
-      if (foreignNamesToInclude.length > 0) {
-        setLoading(true);
-        Promise.all([loadCountryAdm1("CAN"), loadCountryAdm1("MEX")]).then(([canRes, mexRes]) => {
-          if (!active) return;
-          const allNeighbourFeats = [
-            ...(canRes.success && canRes.geojson?.features ? canRes.geojson.features : []),
-            ...(mexRes.success && mexRes.geojson?.features ? mexRes.geojson.features : []),
-          ];
-          const includedFeats = allNeighbourFeats.filter((f) =>
-            foreignNamesToInclude.includes(f.properties?.name)
-          );
-          setGeoData({
-            type: "FeatureCollection",
-            features: [...US_STATES_GEO.features, ...includedFeats],
-          });
-          setError(null);
-          setLoading(false);
-        }).catch(() => {
-          if (!active) return;
-          setGeoData(US_STATES_GEO);
-          setLoading(false);
-        });
-        return;
-      }
-
-      setGeoData(US_STATES_GEO);
-      setError(null);
-      return;
-    }
-
-    // If this nation is a newly awakened / seceded US state or North American province,
-    // render its polygon(s) directly from US_STATES_GEO / CAN / MEX so it never fails ISO-3 lookup
-    const matchingUsFeats = US_STATES_GEO.features.filter((f) => {
-      const fName = f.properties?.name || "";
-      return (
-        fName.toLowerCase() === (nation.name || "").toLowerCase() ||
-        fName.toLowerCase() === (nation.originTerritory || "").toLowerCase() ||
-        territoryMap[fName] === nation.id
-      );
-    });
-
-    if (matchingUsFeats.length > 0) {
-      setGeoData({
-        type: "FeatureCollection",
-        features: matchingUsFeats,
-      });
-      setError(null);
-      setLoading(false);
-      return;
-    }
-
-    setLoading(true);
-    setError(null);
-
-    loadCountryAdm1(nation.id || nation.name).then((res) => {
-      if (!active) return;
-      if (res.success && res.geojson) {
-        setGeoData(res.geojson);
-        setError(null);
-      } else {
-        // Fallback check in CAN / MEX ADM1 for awakened Canadian or Mexican provinces
-        Promise.all([loadCountryAdm1("CAN"), loadCountryAdm1("MEX")])
-          .then(([canRes, mexRes]) => {
-            if (!active) return;
-            const allFeats = [
-              ...(canRes.success && canRes.geojson?.features ? canRes.geojson.features : []),
-              ...(mexRes.success && mexRes.geojson?.features ? mexRes.geojson.features : []),
-            ];
-            const matched = allFeats.filter((f) => {
-              const fName = f.properties?.name || "";
-              return (
-                fName.toLowerCase() === (nation.name || "").toLowerCase() ||
-                fName.toLowerCase() === (nation.originTerritory || "").toLowerCase() ||
-                territoryMap[fName] === nation.id
-              );
-            });
-            if (matched.length > 0) {
-              setGeoData({ type: "FeatureCollection", features: matched });
-              setError(null);
-            } else {
-              setGeoData(null);
-              setError(res.reason || "ADM1 geographic boundary dataset unavailable.");
-            }
-            setLoading(false);
-          })
-          .catch(() => {
-            if (!active) return;
-            setGeoData(null);
-            setError(res.reason || "ADM1 geographic boundary dataset unavailable.");
-            setLoading(false);
-          });
-      }
-      setLoading(false);
-    });
-
-    return () => {
-      active = false;
-    };
-  }, [nation?.id, isUsa, interactionMode, territoryMap, selectedSubdivision]);
-
-  // Initialize or update Leaflet Map
   useEffect(() => {
     if (typeof window === "undefined" || !mapContainerRef.current) return;
     let active = true;
@@ -236,7 +63,6 @@ export default function CountryAdm1Map({
       if (!active || !mapContainerRef.current) return;
       const L = LModule.default || LModule;
 
-      // 1. Initialize Leaflet Map Instance if not created
       if (!leafletMapRef.current) {
         const map = L.map(mapContainerRef.current, {
           zoomControl: false,
@@ -244,15 +70,12 @@ export default function CountryAdm1Map({
           fadeAnimation: true,
           markerZoomAnimation: true,
         });
-
-        // Set initial world view
         map.setView([38, -96], 4);
         leafletMapRef.current = map;
       }
 
       const map = leafletMapRef.current;
 
-      // 2. Update Basemap Tile Layer
       if (tileLayerRef.current) {
         map.removeLayer(tileLayerRef.current);
       }
@@ -265,371 +88,255 @@ export default function CountryAdm1Map({
       }).addTo(map);
       tileLayerRef.current = tileLayer;
 
-      // 3. Render GeoJSON Boundaries Layer
       if (geojsonLayerRef.current) {
         map.removeLayer(geojsonLayerRef.current);
         geojsonLayerRef.current = null;
       }
 
-      if (geoData && geoData.features && geoData.features.length > 0) {
-        const geoLayer = L.geoJSON(geoData, {
-          style: (feature) => {
-            const name = feature.properties?.name || "";
-            const isSelected = selectedSubdivision === name;
-            const region = feature.properties?.region;
-            const regionTint = isUsa ? REGION_TINTS[region] : null;
+      const geoLayer = L.geoJSON(US_STATES_GEO, {
+        style: (feature) => {
+          const name = feature.properties?.name || "";
+          const isSelected = selectedSubdivision === name;
+          const stateMeta = getUsaStateData(name);
+          const regionTint = REGION_TINTS[stateMeta?.region];
 
-            const isForeignNeighbour = feature.properties?.countryIso3 === "CAN" || feature.properties?.countryIso3 === "MEX";
+          let fillColor = regionTint || nationColor;
+          let fillOpacity = 0.32;
 
-            // Secession & direct owner check
-            const directOwner =
-              name === "Georgia"
-                ? territoryMap["Georgia (USA)"] || territoryMap["Georgia:Atlanta"] || territoryMap["Georgia"]
-                : territoryMap[name];
-
-            const isControlledByActiveNation =
-              directOwner === nation?.id ||
-              (!directOwner && !isForeignNeighbour && (nation?.id === "usa" || isUsa)) ||
-              (directOwner === "usa" && isUsa);
-
-            const isSeceded = !isForeignNeighbour && directOwner && directOwner !== nation?.id && directOwner !== "usa";
-
-            // 1. Foreign unannexed neighbour styling (dashed amber border)
-            if (isForeignNeighbour && !isControlledByActiveNation) {
-              return {
-                fillColor: isSelected ? "#d97706" : "#f59e0b",
-                fillOpacity: isSelected ? 0.52 : 0.16,
-                color: isSelected ? "#ffffff" : "#f59e0b",
-                weight: isSelected ? 2.5 : 1.5,
-                opacity: 0.9,
-                dashArray: "4, 4",
-              };
-            }
-
-            // 2. Color based on layer mode (for core states + annexed neighbour provinces)
-            let fillColor = nationColor;
-            let fillOpacity = 0.28;
-
-            if (isSeceded) {
-              fillColor = "#a855f7";
-              fillOpacity = 0.55;
-            } else if (layerMode === "resources" && isControlledByActiveNation) {
-              const endow = getUsStateEndowment(name, customEndowments);
-              if (resourceCategory === "oil_gas") {
-                const val = endow.hydrocarbonIndex || 0;
-                if (val <= 0) {
-                  fillColor = "#0f172a";
-                  fillOpacity = 0.35;
-                } else {
-                  const ratio = val / 100;
-                  fillColor = `hsl(38, 92%, ${Math.round(25 + ratio * 35)}%)`;
-                  fillOpacity = Math.max(0.35, ratio * 0.85);
-                }
-              } else if (resourceCategory === "mineral") {
-                const val = endow.mineralIndex || 0;
-                if (val <= 0) {
-                  fillColor = "#0f172a";
-                  fillOpacity = 0.35;
-                } else {
-                  const ratio = val / 100;
-                  fillColor = `hsl(275, 85%, ${Math.round(30 + ratio * 35)}%)`;
-                  fillOpacity = Math.max(0.35, ratio * 0.85);
-                }
-              } else if (resourceCategory === "agri") {
-                const val = endow.arableLandIndex || 0;
-                if (val <= 0) {
-                  fillColor = "#0f172a";
-                  fillOpacity = 0.35;
-                } else {
-                  const ratio = val / 100;
-                  fillColor = `hsl(142, 75%, ${Math.round(25 + ratio * 35)}%)`;
-                  fillOpacity = Math.max(0.35, ratio * 0.85);
-                }
-              } else if (resourceCategory === "port") {
-                const val = endow.logisticsWaterwayIndex || 0;
-                if (val <= 0) {
-                  fillColor = "#0f172a";
-                  fillOpacity = 0.35;
-                } else {
-                  const ratio = val / 100;
-                  fillColor = `hsl(199, 89%, ${Math.round(30 + ratio * 35)}%)`;
-                  fillOpacity = Math.max(0.35, ratio * 0.85);
-                }
+          if (layerMode === "resources") {
+            const endow = getUsStateEndowment(name);
+            if (resourceCategory === "oil_gas") {
+              const val = endow.hydrocarbonIndex || 0;
+              if (val <= 0) {
+                fillColor = "#0f172a";
+                fillOpacity = 0.35;
               } else {
-                const totalEndow = ((endow.hydrocarbonIndex || 0) + (endow.mineralIndex || 0) + (endow.arableLandIndex || 0)) / 300;
-                if (totalEndow <= 0) {
-                  fillColor = "#0f172a";
-                  fillOpacity = 0.35;
-                } else {
-                  fillColor = `hsl(180, 85%, ${Math.round(25 + totalEndow * 35)}%)`;
-                  fillOpacity = Math.max(0.35, totalEndow * 0.8);
-                }
+                const ratio = val / 100;
+                fillColor = `hsl(38, 92%, ${Math.round(25 + ratio * 35)}%)`;
+                fillOpacity = Math.max(0.35, ratio * 0.85);
               }
-            } else if (layerMode === "services" && isControlledByActiveNation) {
-              const srvEndow = getUsStateServicesEndowment(name, customEndowments);
-              if (serviceCategory === "tech") {
-                const val = ((srvEndow.digitalConnectivityIndex || 50) + (srvEndow.humanCapitalIndex || 50)) / 2;
-                const ratio = val / 100;
-                fillColor = `hsl(220, 90%, ${Math.round(25 + ratio * 35)}%)`;
-                fillOpacity = Math.max(0.35, ratio * 0.85);
-              } else if (serviceCategory === "finance") {
-                const val = srvEndow.financialDepthIndex || 0;
-                const ratio = val / 100;
-                fillColor = `hsl(158, 85%, ${Math.round(25 + ratio * 35)}%)`;
-                fillOpacity = Math.max(0.35, ratio * 0.85);
-              } else if (serviceCategory === "research") {
-                const val = srvEndow.humanCapitalIndex || 0;
-                const ratio = val / 100;
-                fillColor = `hsl(270, 85%, ${Math.round(28 + ratio * 35)}%)`;
-                fillOpacity = Math.max(0.35, ratio * 0.85);
-              } else if (serviceCategory === "hospitality") {
-                const val = srvEndow.consumerAmenityIndex || 0;
-                const ratio = val / 100;
-                fillColor = `hsl(340, 85%, ${Math.round(28 + ratio * 35)}%)`;
-                fillOpacity = Math.max(0.35, ratio * 0.85);
+            } else if (resourceCategory === "mineral") {
+              const val = endow.mineralIndex || 0;
+              if (val <= 0) {
+                fillColor = "#0f172a";
+                fillOpacity = 0.35;
               } else {
-                const composite = ((srvEndow.humanCapitalIndex || 50) + (srvEndow.urbanAgglomerationIndex || 50) + (srvEndow.financialDepthIndex || 50) + (srvEndow.digitalConnectivityIndex || 50) + (srvEndow.consumerAmenityIndex || 50)) / 500;
-                fillColor = `hsl(205, 90%, ${Math.round(25 + composite * 35)}%)`;
-                fillOpacity = Math.max(0.35, composite * 0.85);
+                const ratio = val / 100;
+                fillColor = `hsl(275, 85%, ${Math.round(30 + ratio * 35)}%)`;
+                fillOpacity = Math.max(0.35, ratio * 0.85);
               }
-            } else if (isUsa && regionTint && !isForeignNeighbour && isControlledByActiveNation) {
-              fillColor = regionTint;
-              fillOpacity = 0.32;
+            } else if (resourceCategory === "agri") {
+              const val = endow.arableLandIndex || 0;
+              if (val <= 0) {
+                fillColor = "#0f172a";
+                fillOpacity = 0.35;
+              } else {
+                const ratio = val / 100;
+                fillColor = `hsl(142, 75%, ${Math.round(25 + ratio * 35)}%)`;
+                fillOpacity = Math.max(0.35, ratio * 0.85);
+              }
+            } else if (resourceCategory === "port") {
+              const val = endow.logisticsWaterwayIndex || 0;
+              if (val <= 0) {
+                fillColor = "#0f172a";
+                fillOpacity = 0.35;
+              } else {
+                const ratio = val / 100;
+                fillColor = `hsl(199, 89%, ${Math.round(30 + ratio * 35)}%)`;
+                fillOpacity = Math.max(0.35, ratio * 0.85);
+              }
             } else {
-              fillColor = nationColor;
-              fillOpacity = 0.28;
-            }
-
-            const isDisrupted = isUsa && customEndowments && customEndowments[name]?.isDisrupted;
-
-            if (isSelected && !isSeceded) {
-              fillColor = "#38bdf8";
-              fillOpacity = 0.68;
-            } else if (isSelected && isSeceded) {
-              fillColor = "#c084fc";
-              fillOpacity = 0.72;
-            }
-
-            return {
-              fillColor,
-              fillOpacity,
-              color: isSelected ? "#ffffff" : isSeceded ? "#e9d5ff" : isDisrupted ? "#f43f5e" : "#38bdf8",
-              weight: isSelected ? 2.5 : isSeceded ? 2 : isDisrupted ? 2.2 : 1.2,
-              opacity: 0.85,
-              dashArray: isSeceded ? "4, 3" : isDisrupted ? "4, 4" : "",
-            };
-          },
-
-          onEachFeature: (feature, layer) => {
-            const name = feature.properties?.name || "Constituent Unit";
-
-            // Click to select subdivision
-            layer.on("click", (e) => {
-              L.DomEvent.stopPropagation(e);
-              if (onSelectSubdivision) {
-                onSelectSubdivision(name);
+              const totalEndow =
+                ((endow.hydrocarbonIndex || 0) +
+                  (endow.mineralIndex || 0) +
+                  (endow.arableLandIndex || 0)) /
+                300;
+              if (totalEndow <= 0) {
+                fillColor = "#0f172a";
+                fillOpacity = 0.35;
+              } else {
+                fillColor = `hsl(180, 85%, ${Math.round(25 + totalEndow * 35)}%)`;
+                fillOpacity = Math.max(0.35, totalEndow * 0.8);
               }
-            });
-
-            // Hover effects
-            layer.on("mouseover", (e) => {
-              setHoveredFeature(feature);
-              const target = e.target;
-              target.setStyle({
-                weight: 2.5,
-                color: "#22d3ee",
-                fillOpacity: 0.55,
-              });
-              if (!L.Browser.ie && !L.Browser.opera && !L.Browser.edge) {
-                target.bringToFront();
-              }
-            });
-
-            layer.on("mouseout", () => {
-              setHoveredFeature(null);
-              geoLayer.resetStyle(layer);
-            });
-
-            // Clean High-Contrast Tooltip
-            const endow = getUsStateEndowment(name, customEndowments);
-            const srvEndow = getUsStateServicesEndowment(name, customEndowments);
-            const stateMeta = getUsaStateData(name);
-            const isForeignNeighbour =
-              feature.properties?.countryIso3 === "CAN" || feature.properties?.countryIso3 === "MEX";
-            const directOwner =
-              name === "Georgia"
-                ? territoryMap["Georgia (USA)"] || territoryMap["Georgia:Atlanta"] || territoryMap["Georgia"]
-                : territoryMap[name];
-            const isControlledByActiveNation =
-              directOwner === nation?.id ||
-              (!directOwner && !isForeignNeighbour && (nation?.id === "usa" || isUsa)) ||
-              (directOwner === "usa" && isUsa);
-            const isSeceded = !isForeignNeighbour && directOwner && directOwner !== nation?.id && directOwner !== "usa";
-            const countryTag = feature.properties?.countryName || (feature.properties?.countryIso3 === "CAN" ? "Canada" : feature.properties?.countryIso3 === "MEX" ? "Mexico" : "");
-
-            let tooltipContent = `<div style="background-color: #090e17 !important; color: #f8fafc !important; border-radius: 10px; border: 1px solid rgba(56, 189, 248, 0.45); padding: 10px; font-family: ui-sans-serif, system-ui, sans-serif; box-shadow: 0 14px 35px rgba(0,0,0,0.85);" class="min-w-[220px] max-w-[290px] text-xs">
-              <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; padding-bottom: 6px; border-bottom: 1px solid rgba(100, 116, 139, 0.5);">
-                <span style="font-weight: bold; color: #ffffff; font-size: 13px; letter-spacing: 0.02em;">${name}</span>
-                ${stateMeta?.code ? `<span style="font-size: 10px; background-color: rgba(6, 182, 212, 0.25); color: #a5f3fc; border: 1px solid rgba(34, 211, 238, 0.5); font-family: ui-monospace, monospace; font-weight: bold; padding: 2px 6px; border-radius: 4px;">${stateMeta.code}</span>` : ""}
-              </div>`;
-
-            if (isSeceded) {
-              tooltipContent += `
-                <div style="margin-top: 6px; padding: 6px 8px; border-radius: 6px; background-color: rgba(168, 85, 247, 0.2); border: 1px solid rgba(192, 132, 252, 0.55); font-size: 11px; color: #f3e8ff;">
-                  <strong style="color: #e9d5ff; display: block;">👑 Independent / Transferred State</strong>
-                  <span style="font-size: 10px; color: #f1f5f9; display: block; margin-top: 2px;">Active Jurisdiction: <strong>${String(directOwner).toUpperCase()}</strong></span>
-                </div>
-              `;
-            } else if (isForeignNeighbour && !isControlledByActiveNation) {
-              tooltipContent += `
-                <div style="margin-top: 6px; padding: 6px 8px; border-radius: 6px; background-color: rgba(245, 158, 11, 0.15); border: 1px solid rgba(245, 158, 11, 0.45); font-size: 11px; color: #fef08a;">
-                  <strong style="color: #fbbf24; display: block;">📍 ${countryTag} Border Province</strong>
-                  <span style="font-size: 10px; color: #f1f5f9; display: block; margin-top: 2px;">⚔️ Click to inspect & Annex into ${nation?.name || "United States"}</span>
-                </div>
-              `;
-            } else if (stateMeta?.capital) {
-              tooltipContent += `<div style="font-size: 11px; color: #cbd5e1; margin-top: 6px; display: flex; align-items: center; justify-content: space-between;">
-                <span style="color: #94a3b8;">Capital:</span>
-                <strong style="color: #ffffff; font-weight: 600;">${stateMeta.capital}</strong>
-              </div>`;
             }
-
-            if (endow?.isDisrupted) {
-              tooltipContent += `
-                <div class="mt-2 p-1.5 rounded-md bg-rose-950/95 border border-rose-500/60 flex items-start gap-1.5 text-[10.5px] text-rose-200 shadow-sm animate-pulse">
-                  <span class="text-rose-400 font-bold shrink-0">⚠️ CRISIS:</span>
-                  <span class="leading-tight">${endow.disruptionReason || "Infrastructure disrupted"}</span>
-                </div>`;
-            }
-
-            if (srvEndow && layerMode === "services") {
-              tooltipContent += `
-                <div class="grid grid-cols-2 gap-1.5 mt-2 font-mono-num text-[10.5px]">
-                  <div class="px-2 py-1 rounded-md bg-slate-900/90 border border-cyan-500/35 flex items-center justify-between">
-                    <span class="text-cyan-300 font-semibold">🧠 STEM</span>
-                    <strong class="text-white font-bold">${srvEndow.humanCapitalIndex}%</strong>
-                  </div>
-                  <div class="px-2 py-1 rounded-md bg-slate-900/90 border border-indigo-500/35 flex items-center justify-between">
-                    <span class="text-indigo-300 font-semibold">🏙️ Density</span>
-                    <strong class="text-white font-bold">${srvEndow.urbanAgglomerationIndex}%</strong>
-                  </div>
-                  <div class="px-2 py-1 rounded-md bg-slate-900/90 border border-emerald-500/35 flex items-center justify-between">
-                    <span class="text-emerald-300 font-semibold">🏦 Finance</span>
-                    <strong class="text-white font-bold">${srvEndow.financialDepthIndex}%</strong>
-                  </div>
-                  <div class="px-2 py-1 rounded-md bg-slate-900/90 border border-blue-500/35 flex items-center justify-between">
-                    <span class="text-blue-300 font-semibold">⚡ Digital</span>
-                    <strong class="text-white font-bold">${srvEndow.digitalConnectivityIndex}%</strong>
-                  </div>
-                </div>
-                <div class="px-2 py-1 mt-1.5 rounded-md bg-slate-900/90 border border-rose-500/35 flex items-center justify-between font-mono-num text-[10.5px]">
-                  <span class="text-rose-300 font-semibold">🍸 Hospitality</span>
-                  <strong class="text-white font-bold">${srvEndow.consumerAmenityIndex}%</strong>
-                </div>
-                <div class="mt-2 pt-1.5 border-t border-slate-700/60 flex items-center justify-between text-[11px] font-mono-num">
-                  <span class="text-slate-400">Services Output:</span>
-                  <strong class="text-cyan-300 font-bold bg-cyan-950/80 px-1.5 py-0.5 rounded border border-cyan-500/30">${srvEndow.modeledServicesOutput}</strong>
-                </div>`;
-            } else if (endow && layerMode === "resources") {
-              tooltipContent += `
-                <div class="grid grid-cols-2 gap-1.5 mt-2 font-mono-num text-[10.5px]">
-                  <div class="px-2 py-1 rounded-md bg-slate-900/90 border border-amber-500/35 flex items-center justify-between">
-                    <span class="text-amber-300 font-semibold">🛢️ Oil/Gas</span>
-                    <strong class="text-white font-bold">${endow.hydrocarbonIndex}%</strong>
-                  </div>
-                  <div class="px-2 py-1 rounded-md bg-slate-900/90 border border-purple-500/35 flex items-center justify-between">
-                    <span class="text-purple-300 font-semibold">⛏️ Minerals</span>
-                    <strong class="text-white font-bold">${endow.mineralIndex}%</strong>
-                  </div>
-                  <div class="px-2 py-1 rounded-md bg-slate-900/90 border border-emerald-500/35 flex items-center justify-between">
-                    <span class="text-emerald-300 font-semibold">🌾 Arable</span>
-                    <strong class="text-white font-bold">${endow.arableLandIndex}%</strong>
-                  </div>
-                  <div class="px-2 py-1 rounded-md bg-slate-900/90 border border-cyan-500/35 flex items-center justify-between">
-                    <span class="text-cyan-300 font-semibold">⚓ Ports</span>
-                    <strong class="text-white font-bold">${endow.logisticsWaterwayIndex}%</strong>
-                  </div>
-                </div>
-                <div class="mt-2 pt-1.5 border-t border-slate-700/60 flex items-center justify-between text-[10.5px] font-mono-num">
-                  <span class="text-slate-400">Ind: <strong class="text-cyan-300">${endow.modeledIndustrialOutput?.split(' ')[0] || '-'}</strong></span>
-                  <span class="text-slate-400">Agri: <strong class="text-emerald-300">${endow.modeledAgriculturalOutput?.split(' ')[0] || '-'}</strong></span>
-                </div>`;
-            } else if (stateMeta && isControlledByActiveNation) {
-              tooltipContent += `
-                <div class="mt-2 pt-1.5 border-t border-slate-700/60 flex items-center justify-between text-[11px] font-mono-num">
-                  <span class="text-slate-400">Share of US GDP:</span>
-                  <strong class="text-emerald-300 font-bold bg-emerald-950/80 px-1.5 py-0.5 rounded border border-emerald-500/30">${(stateMeta.gdpShare * 100).toFixed(1)}%</strong>
-                </div>`;
+          } else if (layerMode === "services") {
+            const srvEndow = getUsStateServicesEndowment(name);
+            if (serviceCategory === "tech") {
+              const val =
+                ((srvEndow.digitalConnectivityIndex || 50) +
+                  (srvEndow.humanCapitalIndex || 50)) /
+                2;
+              const ratio = val / 100;
+              fillColor = `hsl(220, 90%, ${Math.round(25 + ratio * 35)}%)`;
+              fillOpacity = Math.max(0.35, ratio * 0.85);
+            } else if (serviceCategory === "finance") {
+              const val = srvEndow.financialDepthIndex || 0;
+              const ratio = val / 100;
+              fillColor = `hsl(158, 85%, ${Math.round(25 + ratio * 35)}%)`;
+              fillOpacity = Math.max(0.35, ratio * 0.85);
+            } else if (serviceCategory === "research") {
+              const val = srvEndow.humanCapitalIndex || 0;
+              const ratio = val / 100;
+              fillColor = `hsl(270, 85%, ${Math.round(28 + ratio * 35)}%)`;
+              fillOpacity = Math.max(0.35, ratio * 0.85);
+            } else if (serviceCategory === "hospitality") {
+              const val = srvEndow.consumerAmenityIndex || 0;
+              const ratio = val / 100;
+              fillColor = `hsl(340, 85%, ${Math.round(28 + ratio * 35)}%)`;
+              fillOpacity = Math.max(0.35, ratio * 0.85);
             } else {
-              tooltipContent += `<div class="mt-1.5 text-[10.5px] text-slate-400">Click to inspect constituent unit</div>`;
-            }
-            tooltipContent += `</div>`;
-
-            layer.bindTooltip(tooltipContent, {
-              sticky: true,
-              className: "custom-leaflet-tooltip",
-            });
-          },
-        }).addTo(map);
-
-        geojsonLayerRef.current = geoLayer;
-
-        // Auto-fit bounds ONLY when switching countries or on initial mount.
-        // Clicking a state while zoomed in keeps the view fixed without auto-zooming out!
-        const isNationChange = prevNationIdRef.current !== (nation?.id || nation?.name);
-        if (isNationChange) {
-          prevNationIdRef.current = nation?.id || nation?.name;
-          const continental = getContinentalBounds(iso3);
-          if (continental) {
-            map.fitBounds(continental, {
-              padding: [15, 15],
-              maxZoom: 6,
-              animate: false,
-            });
-          } else {
-            try {
-              const bounds = geoLayer.getBounds();
-              if (bounds.isValid()) {
-                map.fitBounds(bounds, {
-                  padding: [20, 20],
-                  maxZoom: 7,
-                  animate: false,
-                });
-              }
-            } catch {
-              // fallback bounds
+              const composite =
+                ((srvEndow.humanCapitalIndex || 50) +
+                  (srvEndow.urbanAgglomerationIndex || 50) +
+                  (srvEndow.financialDepthIndex || 50) +
+                  (srvEndow.digitalConnectivityIndex || 50) +
+                  (srvEndow.consumerAmenityIndex || 50)) /
+                500;
+              fillColor = `hsl(205, 90%, ${Math.round(25 + composite * 35)}%)`;
+              fillOpacity = Math.max(0.35, composite * 0.85);
             }
           }
-        }
+
+          if (isSelected) {
+            fillColor = "#38bdf8";
+            fillOpacity = 0.68;
+          }
+
+          return {
+            fillColor,
+            fillOpacity,
+            color: isSelected ? "#ffffff" : "#38bdf8",
+            weight: isSelected ? 2.5 : 1.2,
+            opacity: 0.85,
+          };
+        },
+
+        onEachFeature: (feature, layer) => {
+          const name = feature.properties?.name || "State";
+
+          layer.on("click", (e) => {
+            L.DomEvent.stopPropagation(e);
+            if (onSelectSubdivision) {
+              onSelectSubdivision(name);
+            }
+          });
+
+          layer.on("mouseover", (e) => {
+            setHoveredFeature(feature);
+            const target = e.target;
+            target.setStyle({
+              weight: 2.5,
+              color: "#22d3ee",
+              fillOpacity: 0.55,
+            });
+            if (!L.Browser.ie && !L.Browser.opera && !L.Browser.edge) {
+              target.bringToFront();
+            }
+          });
+
+          layer.on("mouseout", () => {
+            setHoveredFeature(null);
+            geoLayer.resetStyle(layer);
+          });
+
+          const endow = getUsStateEndowment(name);
+          const srvEndow = getUsStateServicesEndowment(name);
+          const stateMeta = getUsaStateData(name);
+
+          let tooltipContent = `<div style="background-color: #090e17 !important; color: #f8fafc !important; border-radius: 10px; border: 1px solid rgba(56, 189, 248, 0.45); padding: 10px; font-family: ui-sans-serif, system-ui, sans-serif; box-shadow: 0 14px 35px rgba(0,0,0,0.85);" class="min-w-[220px] max-w-[290px] text-xs">
+            <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; padding-bottom: 6px; border-bottom: 1px solid rgba(100, 116, 139, 0.5);">
+              <span style="font-weight: bold; color: #ffffff; font-size: 13px;">${name}</span>
+              ${stateMeta?.code ? `<span style="font-size: 10px; background-color: rgba(6, 182, 212, 0.25); color: #a5f3fc; border: 1px solid rgba(34, 211, 238, 0.5); font-family: ui-monospace, monospace; font-weight: bold; padding: 2px 6px; border-radius: 4px;">${stateMeta.code}</span>` : ""}
+            </div>`;
+
+          if (stateMeta?.capital) {
+            tooltipContent += `<div style="font-size: 11px; color: #cbd5e1; margin-top: 6px; display: flex; align-items: center; justify-content: space-between;">
+              <span style="color: #94a3b8;">Capital:</span>
+              <strong style="color: #ffffff; font-weight: 600;">${stateMeta.capital}</strong>
+            </div>`;
+          }
+
+          if (srvEndow && layerMode === "services") {
+            tooltipContent += `
+              <div class="grid grid-cols-2 gap-1.5 mt-2 font-mono-num text-[10.5px]">
+                <div class="px-2 py-1 rounded-md bg-slate-900/90 border border-cyan-500/35 flex items-center justify-between">
+                  <span class="text-cyan-300 font-semibold">🧠 STEM</span>
+                  <strong class="text-white font-bold">${srvEndow.humanCapitalIndex}%</strong>
+                </div>
+                <div class="px-2 py-1 rounded-md bg-slate-900/90 border border-indigo-500/35 flex items-center justify-between">
+                  <span class="text-indigo-300 font-semibold">🏙️ Density</span>
+                  <strong class="text-white font-bold">${srvEndow.urbanAgglomerationIndex}%</strong>
+                </div>
+                <div class="px-2 py-1 rounded-md bg-slate-900/90 border border-emerald-500/35 flex items-center justify-between">
+                  <span class="text-emerald-300 font-semibold">🏦 Finance</span>
+                  <strong class="text-white font-bold">${srvEndow.financialDepthIndex}%</strong>
+                </div>
+                <div class="px-2 py-1 rounded-md bg-slate-900/90 border border-blue-500/35 flex items-center justify-between">
+                  <span class="text-blue-300 font-semibold">⚡ Digital</span>
+                  <strong class="text-white font-bold">${srvEndow.digitalConnectivityIndex}%</strong>
+                </div>
+              </div>
+              <div class="mt-2 pt-1.5 border-t border-slate-700/60 flex items-center justify-between text-[11px] font-mono-num">
+                <span class="text-slate-400">Services Output:</span>
+                <strong class="text-cyan-300 font-bold">${srvEndow.modeledServicesOutput}</strong>
+              </div>`;
+          } else if (endow && layerMode === "resources") {
+            tooltipContent += `
+              <div class="grid grid-cols-2 gap-1.5 mt-2 font-mono-num text-[10.5px]">
+                <div class="px-2 py-1 rounded-md bg-slate-900/90 border border-amber-500/35 flex items-center justify-between">
+                  <span class="text-amber-300 font-semibold">🛢️ Oil/Gas</span>
+                  <strong class="text-white font-bold">${endow.hydrocarbonIndex}%</strong>
+                </div>
+                <div class="px-2 py-1 rounded-md bg-slate-900/90 border border-purple-500/35 flex items-center justify-between">
+                  <span class="text-purple-300 font-semibold">⛏️ Minerals</span>
+                  <strong class="text-white font-bold">${endow.mineralIndex}%</strong>
+                </div>
+                <div class="px-2 py-1 rounded-md bg-slate-900/90 border border-emerald-500/35 flex items-center justify-between">
+                  <span class="text-emerald-300 font-semibold">🌾 Arable</span>
+                  <strong class="text-white font-bold">${endow.arableLandIndex}%</strong>
+                </div>
+                <div class="px-2 py-1 rounded-md bg-slate-900/90 border border-cyan-500/35 flex items-center justify-between">
+                  <span class="text-cyan-300 font-semibold">⚓ Ports</span>
+                  <strong class="text-white font-bold">${endow.logisticsWaterwayIndex}%</strong>
+                </div>
+              </div>`;
+          } else if (stateMeta) {
+            tooltipContent += `
+              <div class="mt-2 pt-1.5 border-t border-slate-700/60 flex items-center justify-between text-[11px] font-mono-num">
+                <span class="text-slate-400">Share of US GDP:</span>
+                <strong class="text-emerald-300 font-bold">${(stateMeta.gdpShare * 100).toFixed(1)}%</strong>
+              </div>`;
+          }
+          tooltipContent += `</div>`;
+
+          layer.bindTooltip(tooltipContent, {
+            sticky: true,
+            className: "custom-leaflet-tooltip",
+          });
+        },
+      }).addTo(map);
+
+      geojsonLayerRef.current = geoLayer;
+
+      if (!initializedBoundsRef.current) {
+        initializedBoundsRef.current = true;
+        map.fitBounds(CONUS_BOUNDS, {
+          padding: [15, 15],
+          maxZoom: 6,
+          animate: false,
+        });
       }
 
-      // 4. Render Natural Resource Basin Markers in "resources" mode
       if (markersLayerRef.current) {
         map.removeLayer(markersLayerRef.current);
         markersLayerRef.current = null;
       }
 
-      if (layerMode === "resources" && isUsa) {
+      if (layerMode === "resources") {
         const markerGroup = L.layerGroup();
-
-        const combinedResourceMarkers = [
-          ...ALL_US_RESOURCE_MARKERS.filter(
-            (m) =>
-              !territoryMap[m.state] ||
-              territoryMap[m.state] === nation?.id ||
-              territoryMap[m.state] === "usa"
-          ),
-          ...ALL_NEIGHBOUR_RESOURCE_MARKERS.filter(
-            (m) =>
-              interactionMode === "annex" ||
-              territoryMap[m.state] === nation?.id ||
-              territoryMap[m.state] === "usa"
-          ),
-        ];
-        const filteredMarkers = combinedResourceMarkers.filter((m) => {
-          if (resourceCategory === "all") return true;
-          return m.type === resourceCategory;
-        });
+        const filteredMarkers = ALL_US_RESOURCE_MARKERS.filter((m) =>
+          resourceCategory === "all" ? true : m.type === resourceCategory
+        );
 
         filteredMarkers.forEach((marker) => {
           const [lng, lat] = marker.coords;
@@ -651,7 +358,7 @@ export default function CountryAdm1Map({
           const customIcon = L.divIcon({
             className: "custom-resource-marker",
             html: `
-              <div class="flex items-center justify-center w-7 h-7 rounded-full ${badgeColor} border-2 shadow-lg backdrop-blur-sm cursor-pointer hover:scale-125 transition-transform duration-150 animate-pulse">
+              <div class="flex items-center justify-center w-7 h-7 rounded-full ${badgeColor} border-2 shadow-lg backdrop-blur-sm cursor-pointer hover:scale-125 transition-transform duration-150">
                 <span class="text-xs">${iconEmoji}</span>
               </div>
             `,
@@ -660,8 +367,8 @@ export default function CountryAdm1Map({
           });
 
           const mLayer = L.marker([lat, lng], { icon: customIcon });
-
-          mLayer.bindPopup(`
+          mLayer.bindPopup(
+            `
             <div style="background: #090e17; color: #f8fafc; border-radius: 10px;" class="p-2.5 space-y-1.5 text-xs max-w-xs font-sans">
               <div class="flex items-center gap-1.5 font-bold text-white text-sm">
                 <span>${iconEmoji}</span>
@@ -674,7 +381,9 @@ export default function CountryAdm1Map({
                 ${marker.desc}
               </p>
             </div>
-          `, { className: "custom-leaflet-popup" });
+          `,
+            { className: "custom-leaflet-popup" }
+          );
 
           mLayer.on("click", (e) => {
             L.DomEvent.stopPropagation(e);
@@ -690,28 +399,11 @@ export default function CountryAdm1Map({
         markersLayerRef.current = markerGroup;
       }
 
-      // 5. Render Metropolitan Knowledge & Service Clusters in "services" mode
-      if (layerMode === "services" && isUsa) {
+      if (layerMode === "services") {
         const markerGroup = L.layerGroup();
-
-        const combinedServiceClusters = [
-          ...ALL_US_SERVICE_CLUSTERS.filter(
-            (m) =>
-              !territoryMap[m.state] ||
-              territoryMap[m.state] === nation?.id ||
-              territoryMap[m.state] === "usa"
-          ),
-          ...ALL_NEIGHBOUR_SERVICE_CLUSTERS.filter(
-            (m) =>
-              interactionMode === "annex" ||
-              territoryMap[m.state] === nation?.id ||
-              territoryMap[m.state] === "usa"
-          ),
-        ];
-        const filteredMarkers = combinedServiceClusters.filter((m) => {
-          if (serviceCategory === "all") return true;
-          return m.type === serviceCategory;
-        });
+        const filteredMarkers = ALL_US_SERVICE_CLUSTERS.filter((m) =>
+          serviceCategory === "all" ? true : m.type === serviceCategory
+        );
 
         filteredMarkers.forEach((marker) => {
           const [lng, lat] = marker.coords;
@@ -733,7 +425,7 @@ export default function CountryAdm1Map({
           const customIcon = L.divIcon({
             className: "custom-service-marker",
             html: `
-              <div class="flex items-center justify-center w-7 h-7 rounded-full ${badgeColor} border-2 shadow-lg backdrop-blur-sm cursor-pointer hover:scale-125 transition-transform duration-150 animate-pulse">
+              <div class="flex items-center justify-center w-7 h-7 rounded-full ${badgeColor} border-2 shadow-lg backdrop-blur-sm cursor-pointer hover:scale-125 transition-transform duration-150">
                 <span class="text-xs">${iconEmoji}</span>
               </div>
             `,
@@ -742,8 +434,8 @@ export default function CountryAdm1Map({
           });
 
           const mLayer = L.marker([lat, lng], { icon: customIcon });
-
-          mLayer.bindPopup(`
+          mLayer.bindPopup(
+            `
             <div style="background: #090e17; color: #f8fafc; border-radius: 10px;" class="p-2.5 space-y-1.5 text-xs max-w-xs font-sans">
               <div class="flex items-center gap-1.5 font-bold text-white text-sm">
                 <span>${iconEmoji}</span>
@@ -756,7 +448,9 @@ export default function CountryAdm1Map({
                 ${marker.desc}
               </p>
             </div>
-          `, { className: "custom-leaflet-popup" });
+          `,
+            { className: "custom-leaflet-popup" }
+          );
 
           mLayer.on("click", (e) => {
             L.DomEvent.stopPropagation(e);
@@ -776,9 +470,8 @@ export default function CountryAdm1Map({
     return () => {
       active = false;
     };
-  }, [geoData, mapProvider, layerMode, resourceCategory, serviceCategory, isUsa, nation?.id, selectedSubdivision, nationColor, customEndowments, territoryMap, interactionMode]);
+  }, [mapProvider, layerMode, resourceCategory, serviceCategory, selectedSubdivision, nationColor, onSelectSubdivision]);
 
-  // Clean-up on unmount
   useEffect(() => {
     return () => {
       if (leafletMapRef.current) {
@@ -788,32 +481,6 @@ export default function CountryAdm1Map({
     };
   }, []);
 
-  const handleZoomIn = () => {
-    if (leafletMapRef.current) leafletMapRef.current.zoomIn();
-  };
-
-  const handleZoomOut = () => {
-    if (leafletMapRef.current) leafletMapRef.current.zoomOut();
-  };
-
-  const handleResetBounds = () => {
-    if (leafletMapRef.current) {
-      const continental = getContinentalBounds(iso3);
-      if (continental) {
-        leafletMapRef.current.fitBounds(continental, { padding: [15, 15], maxZoom: 6 });
-      } else if (geojsonLayerRef.current) {
-        try {
-          const bounds = geojsonLayerRef.current.getBounds();
-          if (bounds.isValid()) {
-            leafletMapRef.current.fitBounds(bounds, { padding: [20, 20], maxZoom: 7 });
-          }
-        } catch {
-          leafletMapRef.current.setView([38, -96], 4);
-        }
-      }
-    }
-  };
-
   return (
     <div className="w-full flex flex-col bg-slate-950 rounded-2xl border border-slate-800 overflow-hidden shadow-2xl relative select-none">
       {/* Top Controls Toolbar */}
@@ -821,19 +488,14 @@ export default function CountryAdm1Map({
         <div className="flex items-center gap-2">
           <span className="font-bold text-white flex items-center gap-1.5 uppercase tracking-wider text-xs">
             <MapPin className="w-3.5 h-3.5 text-cyan-400" />
-            {nation?.name}
+            United States (50 States & Territories)
           </span>
-          {geoData?.features && (
-            <span className="text-[10px] px-2 py-0.5 rounded-full bg-cyan-500/15 text-cyan-300 border border-cyan-500/30 font-mono-num font-bold">
-              {geoData.features.length} ADM1 Units
-            </span>
-          )}
         </div>
 
         {/* Map Provider Selector */}
         <div className="flex items-center gap-1.5 bg-slate-950 px-2 py-1 rounded-xl border border-slate-800">
           <Globe2 className="w-3.5 h-3.5 text-cyan-400" />
-          <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Provider:</span>
+          <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Basemap:</span>
           <select
             value={mapProvider}
             onChange={(e) => setMapProvider(e.target.value)}
@@ -847,8 +509,7 @@ export default function CountryAdm1Map({
           </select>
         </div>
 
-        {/* Layer Mode Toggle (Administrative vs Economic vs Natural Endowments) */}
-        {/* Layer Mode: States (Administrative) vs Natural Resources View */}
+        {/* Layer Mode Toggle */}
         <div className="flex items-center gap-1 bg-slate-950 p-1 rounded-xl border border-slate-800">
           <button
             onClick={() => setLayerMode("administrative")}
@@ -857,22 +518,20 @@ export default function CountryAdm1Map({
                 ? "bg-cyan-500 text-slate-950 shadow-sm"
                 : "text-slate-400 hover:text-slate-200"
             }`}
-            title="Real constitutional administrative boundaries and statehood"
           >
             <Landmark className="w-3.5 h-3.5" />
-            States (Administrative)
+            States
           </button>
 
           <button
             onClick={() => setLayerMode("resources")}
             className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition flex items-center gap-1.5 cursor-pointer ${
               layerMode === "resources"
-                ? "bg-emerald-500 text-slate-950 shadow-sm shadow-emerald-500/20"
+                ? "bg-emerald-500 text-slate-950 shadow-sm"
                 : "text-emerald-400 hover:text-emerald-200"
             }`}
-            title="USGS, EIA & USDA naturally occurring geological resources and agricultural endowments"
           >
-            <Sparkles className="w-3.5 h-3.5 text-emerald-300" />
+            <Sparkles className="w-3.5 h-3.5" />
             Natural Resources
           </button>
 
@@ -880,12 +539,11 @@ export default function CountryAdm1Map({
             onClick={() => setLayerMode("services")}
             className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition flex items-center gap-1.5 cursor-pointer ${
               layerMode === "services"
-                ? "bg-indigo-500 text-white shadow-sm shadow-indigo-500/20"
+                ? "bg-indigo-500 text-white shadow-sm"
                 : "text-indigo-400 hover:text-indigo-200"
             }`}
-            title="BEA, BLS, NSF & FDIC services, human capital, finance, and agglomeration clusters"
           >
-            <Briefcase className="w-3.5 h-3.5 text-indigo-300" />
+            <Briefcase className="w-3.5 h-3.5" />
             Services & Knowledge
           </button>
         </div>
@@ -893,36 +551,32 @@ export default function CountryAdm1Map({
         {/* Camera Reset & Zoom Controls */}
         <div className="flex items-center gap-1 bg-slate-950 px-1 py-0.5 rounded-xl border border-slate-800">
           <button
-            onClick={handleZoomIn}
+            onClick={() => leafletMapRef.current?.zoomIn()}
             className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition cursor-pointer"
             title="Zoom In"
           >
             <ZoomIn className="w-3.5 h-3.5" />
           </button>
           <button
-            onClick={handleZoomOut}
+            onClick={() => leafletMapRef.current?.zoomOut()}
             className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition cursor-pointer"
             title="Zoom Out"
           >
             <ZoomOut className="w-3.5 h-3.5" />
           </button>
           <button
-            onClick={handleResetBounds}
+            onClick={() => leafletMapRef.current?.fitBounds(CONUS_BOUNDS, { padding: [15, 15], maxZoom: 6 })}
             className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition cursor-pointer"
-            title="Reset to Country Bounds"
+            title="Reset to Continental US Bounds"
           >
             <RotateCcw className="w-3.5 h-3.5" />
           </button>
         </div>
       </div>
 
-      {/* Sub-bar for Resource Category Filters (Active when layerMode === "resources") */}
-      {layerMode === "resources" && isUsa && (
+      {/* Sub-bar for Resource Category Filters */}
+      {layerMode === "resources" && (
         <div className="px-3.5 py-1.5 bg-slate-950/90 border-b border-emerald-500/30 flex items-center justify-between gap-2 z-10 text-[11px] overflow-x-auto">
-          <span className="text-slate-400 font-bold uppercase tracking-wider text-[10px] flex items-center gap-1">
-            <Sparkles className="w-3 h-3 text-emerald-400" />
-            Endowments:
-          </span>
           <div className="flex items-center gap-1">
             <button
               onClick={() => setResourceCategory("all")}
@@ -938,7 +592,7 @@ export default function CountryAdm1Map({
                 resourceCategory === "oil_gas" ? "bg-amber-500 text-slate-950 font-bold" : "text-amber-400 hover:bg-slate-800"
               }`}
             >
-              <Fuel className="w-3 h-3" /> 🛢️ Oil & Gas
+              <Fuel className="w-3 h-3" /> Oil & Gas
             </button>
             <button
               onClick={() => setResourceCategory("mineral")}
@@ -946,7 +600,7 @@ export default function CountryAdm1Map({
                 resourceCategory === "mineral" ? "bg-purple-500 text-white font-bold" : "text-purple-400 hover:bg-slate-800"
               }`}
             >
-              <Pickaxe className="w-3 h-3" /> ⛏️ Critical Minerals
+              <Pickaxe className="w-3 h-3" /> Critical Minerals
             </button>
             <button
               onClick={() => setResourceCategory("agri")}
@@ -954,7 +608,7 @@ export default function CountryAdm1Map({
                 resourceCategory === "agri" ? "bg-emerald-500 text-slate-950 font-bold" : "text-emerald-400 hover:bg-slate-800"
               }`}
             >
-              <Wheat className="w-3 h-3" /> 🌾 Agriculture
+              <Wheat className="w-3 h-3" /> Agriculture
             </button>
             <button
               onClick={() => setResourceCategory("port")}
@@ -962,22 +616,18 @@ export default function CountryAdm1Map({
                 resourceCategory === "port" ? "bg-cyan-500 text-slate-950 font-bold" : "text-cyan-400 hover:bg-slate-800"
               }`}
             >
-              <Anchor className="w-3 h-3" /> ⚓ Waterways & Ports
+              <Anchor className="w-3 h-3" /> Waterways & Ports
             </button>
           </div>
           <span className="text-[10px] text-slate-400 font-mono-num">
-            {[...ALL_US_RESOURCE_MARKERS, ...ALL_NEIGHBOUR_RESOURCE_MARKERS].filter((m) => resourceCategory === "all" || m.type === resourceCategory).length} Key Formations
+            {ALL_US_RESOURCE_MARKERS.filter((m) => resourceCategory === "all" || m.type === resourceCategory).length} Key Formations
           </span>
         </div>
       )}
 
-      {/* Sub-bar for Services Category Filters (Active when layerMode === "services") */}
-      {layerMode === "services" && isUsa && (
+      {/* Sub-bar for Services Category Filters */}
+      {layerMode === "services" && (
         <div className="px-3.5 py-1.5 bg-slate-950/90 border-b border-indigo-500/30 flex items-center justify-between gap-2 z-10 text-[11px] overflow-x-auto">
-          <span className="text-slate-400 font-bold uppercase tracking-wider text-[10px] flex items-center gap-1">
-            <Briefcase className="w-3 h-3 text-indigo-400" />
-            Services:
-          </span>
           <div className="flex items-center gap-1">
             <button
               onClick={() => setServiceCategory("all")}
@@ -993,7 +643,7 @@ export default function CountryAdm1Map({
                 serviceCategory === "tech" ? "bg-blue-600 text-white font-bold" : "text-blue-400 hover:bg-slate-800"
               }`}
             >
-              <Laptop className="w-3 h-3" /> 💻 High-Tech & Cloud
+              <Laptop className="w-3 h-3" /> High-Tech & Cloud
             </button>
             <button
               onClick={() => setServiceCategory("finance")}
@@ -1001,7 +651,7 @@ export default function CountryAdm1Map({
                 serviceCategory === "finance" ? "bg-emerald-600 text-white font-bold" : "text-emerald-400 hover:bg-slate-800"
               }`}
             >
-              <Building2 className="w-3 h-3" /> 🏦 Finance & Banking
+              <Building2 className="w-3 h-3" /> Finance & Banking
             </button>
             <button
               onClick={() => setServiceCategory("research")}
@@ -1009,7 +659,7 @@ export default function CountryAdm1Map({
                 serviceCategory === "research" ? "bg-purple-600 text-white font-bold" : "text-purple-400 hover:bg-slate-800"
               }`}
             >
-              <GraduationCap className="w-3 h-3" /> 🔬 STEM & R&D
+              <GraduationCap className="w-3 h-3" /> STEM & R&D
             </button>
             <button
               onClick={() => setServiceCategory("hospitality")}
@@ -1017,97 +667,28 @@ export default function CountryAdm1Map({
                 serviceCategory === "hospitality" ? "bg-rose-600 text-white font-bold" : "text-rose-400 hover:bg-slate-800"
               }`}
             >
-              <UtensilsCrossed className="w-3 h-3" /> 🍸 Hospitality & Tourism
+              <UtensilsCrossed className="w-3 h-3" /> Hospitality & Tourism
             </button>
           </div>
           <span className="text-[10px] text-slate-400 font-mono-num">
-            {[...ALL_US_SERVICE_CLUSTERS, ...ALL_NEIGHBOUR_SERVICE_CLUSTERS].filter((m) => serviceCategory === "all" || m.type === serviceCategory).length} Metro Clusters
+            {ALL_US_SERVICE_CLUSTERS.filter((m) => serviceCategory === "all" || m.type === serviceCategory).length} Metro Clusters
           </span>
         </div>
       )}
 
-      {/* Main Interactive Map Viewport (Leaflet Container) */}
-      <div className="relative w-full h-[400px] bg-slate-950 overflow-hidden">
-        {/* Leaflet DOM mounting target */}
+      {/* Main Interactive Map Viewport */}
+      <div className="relative w-full h-[420px] bg-slate-950 overflow-hidden">
         <div ref={mapContainerRef} className="w-full h-full z-0" />
 
-        {/* Loading Overlay */}
-        {loading && (
-          <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center gap-3 z-20">
-            <div className="w-5 h-5 rounded-full border-2 border-cyan-400 border-t-transparent animate-spin" />
-            <span className="text-xs font-semibold text-slate-300">
-              Loading cartographic boundaries...
-            </span>
-          </div>
-        )}
-
-        {/* Error Fallback */}
-        {error && !loading && (
-          <div className="absolute inset-0 bg-slate-950/90 flex flex-col items-center justify-center p-6 text-center z-20 space-y-2">
-            <AlertCircle className="w-8 h-8 text-amber-400" />
-            <h4 className="text-sm font-bold text-white">Geographic Data Unavailable</h4>
-            <p className="text-xs text-slate-400 max-w-sm leading-relaxed">{error}</p>
-          </div>
-        )}
-
-        {/* Hover / Selection Context Badge at bottom-left */}
         {hoveredFeature && (
-          <div className="absolute bottom-3 left-3 bg-slate-900/90 backdrop-blur-md px-3.5 py-2.5 rounded-xl border border-slate-700 shadow-xl pointer-events-none flex flex-col gap-0.5 z-20 animate-in fade-in duration-100 max-w-xs">
+          <div className="absolute bottom-3 left-3 bg-slate-900/90 backdrop-blur-md px-3.5 py-2.5 rounded-xl border border-slate-700 shadow-xl pointer-events-none flex flex-col gap-0.5 z-20 max-w-xs">
             <span className="text-xs font-bold text-white flex items-center gap-1.5">
               <CheckCircle2 className="w-3.5 h-3.5 text-cyan-400" />
               {hoveredFeature.properties?.name}
-              {hoveredFeature.properties?.code && (
-                <span className="text-[10px] font-mono-num font-bold text-cyan-300 bg-cyan-500/20 px-1 py-0.2 rounded">
-                  {hoveredFeature.properties.code}
-                </span>
-              )}
             </span>
-
-            {isUsa && (
-              (() => {
-                if (layerMode === "services") {
-                  const srvEndow = getUsStateServicesEndowment(hoveredFeature.properties?.name, customEndowments);
-                  return (
-                    <div className="mt-1 pt-1 border-t border-slate-800 text-[10px] space-y-0.5">
-                      <div className="text-slate-300 font-mono-num">
-                        🧠 Talent: <strong className="text-cyan-300">{srvEndow.humanCapitalIndex}%</strong> | 🏙️ Density: <strong className="text-indigo-300">{srvEndow.urbanAgglomerationIndex}%</strong>
-                      </div>
-                      <div className="text-slate-300 font-mono-num">
-                        🏦 Finance: <strong className="text-emerald-300">{srvEndow.financialDepthIndex}%</strong> | 🍸 Amenities: <strong className="text-rose-300">{srvEndow.consumerAmenityIndex}%</strong>
-                      </div>
-                      {srvEndow.isDisrupted && (
-                        <div className="text-rose-400 font-semibold text-[9.5px]">
-                          ⚠️ Crisis Disrupted: {srvEndow.disruptionReason}
-                        </div>
-                      )}
-                      <div className="text-slate-400 text-[9px] pt-0.5 font-mono">
-                        {srvEndow.modeledServicesOutput}
-                      </div>
-                    </div>
-                  );
-                }
-                const endow = getUsStateEndowment(hoveredFeature.properties?.name, customEndowments);
-                return (
-                  <div className="mt-1 pt-1 border-t border-slate-800 text-[10px] space-y-0.5">
-                    <div className="text-slate-300 font-mono-num">
-                      🛢️ Oil/Gas: <strong className="text-amber-400">{endow.hydrocarbonIndex}%</strong> | ⛏️ Minerals: <strong className="text-purple-400">{endow.mineralIndex}%</strong>
-                    </div>
-                    <div className="text-slate-300 font-mono-num">
-                      🌾 Arable: <strong className="text-emerald-400">{endow.arableLandIndex}%</strong> | ⚓ Ports: <strong className="text-cyan-400">{endow.logisticsWaterwayIndex}%</strong>
-                    </div>
-                    {endow.isDisrupted && (
-                      <div className="text-rose-400 font-semibold text-[9.5px]">
-                        ⚠️ Crisis Disrupted: {endow.disruptionReason}
-                      </div>
-                    )}
-                  </div>
-                );
-              })()
-            )}
           </div>
         )}
 
-        {/* Metadata Source Footer */}
         <div className="absolute bottom-1 right-2 text-[9px] text-slate-400 pointer-events-none z-10 bg-slate-950/75 px-1.5 py-0.5 rounded border border-slate-800">
           Map: {MAP_PROVIDERS[mapProvider]?.name} • USGS / EIA / USDA / BEA / BLS
         </div>

@@ -18,6 +18,8 @@ export function formatCurrency(val, decimals = 2) {
   return `${sign}$${abs.toFixed(decimals)}`;
 }
 
+export const formatCompactCurrency = formatCurrency;
+
 export function formatExactCurrency(val, decimals = 2) {
   const num = Number(val);
   if (!Number.isFinite(num)) return "$0.00";

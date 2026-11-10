@@ -9,11 +9,6 @@ import {
   Upload,
   RotateCcw,
   Activity,
-  Zap,
-  Globe2,
-  Rocket,
-  BookOpen,
-  ExternalLink,
 } from "lucide-react";
 import {
   LineChart,
@@ -24,11 +19,6 @@ import {
   ResponsiveContainer,
   Legend,
 } from "recharts";
-import {
-  formatCurrency,
-  formatCompactNumber,
-  formatPercent,
-} from "../utils/formatters";
 
 export default function LedgerAndTimeView({
   session,
@@ -37,36 +27,27 @@ export default function LedgerAndTimeView({
   onTimeAction,
   onResetScenario,
   onCreateNewScenario,
-  onJumpToTab,
+  onRollbackSession,
 }) {
   const state = session?.state || {};
   const tm = state.timeManager || {};
   const [randomizeHype, setRandomizeHype] = useState(true);
   const [chartMetric, setChartMetric] = useState("aggregateGdp");
-  const [newScenarioName, setNewScenarioName] = useState("");
-  const [newScenarioType, setNewScenarioType] = useState("interstellar");
 
-  const topNations = (state.nations || []).slice(0, 6);
-  const colors = [
-    "#06b6d4",
-    "#f59e0b",
-    "#10b981",
-    "#a855f7",
-    "#f43f5e",
-    "#3b82f6",
-  ];
+  const usa = state.nations?.[0] || { id: "usa", name: "United States" };
 
   const lineData = (ledgerHistory || []).map((entry) => {
     const row = {
       label: `Q${entry.quarter} (${entry.crisisDate})`,
     };
     for (const nSnap of entry.snapshot?.nations || []) {
+      const seriesName = nSnap.name || "United States";
       if (chartMetric === "aggregateGdp" || chartMetric === "treasuryBalance") {
-        row[nSnap.name] = Number(((nSnap[chartMetric] || 0) / 1e9).toFixed(2));
+        row[seriesName] = Number(((nSnap[chartMetric] || 0) / 1e9).toFixed(2));
       } else if (chartMetric === "unemploymentRate") {
-        row[nSnap.name] = Number(((nSnap[chartMetric] || 0) * 100).toFixed(2));
+        row[seriesName] = Number(((nSnap[chartMetric] || 0) * 100).toFixed(2));
       } else {
-        row[nSnap.name] = Number((nSnap[chartMetric] || 0).toFixed(2));
+        row[seriesName] = Number((nSnap[chartMetric] || 0).toFixed(2));
       }
     }
     return row;
@@ -79,7 +60,7 @@ export default function LedgerAndTimeView({
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `${session.id}-q${tm.quarterNumber}.json`;
+    a.download = `usa-sim-q${tm.quarterNumber || 1}.json`;
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -105,137 +86,17 @@ export default function LedgerAndTimeView({
 
   return (
     <div className="space-y-6">
-      {/* Historical Accounting & Empirical Calibration Attribution Banner */}
-      <div className="p-4 rounded-2xl bg-slate-900/90 border border-slate-800 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-lg">
-        <div className="flex items-center gap-3">
-          <div className="p-2 rounded-xl bg-cyan-500/15 border border-cyan-500/30 text-cyan-400 shrink-0">
-            <BookOpen className="w-4 h-4" />
-          </div>
-          <div className="text-xs">
-            <span className="font-bold text-white block">
-              Historical Timeline, Input-Output Matrices & Empirical Datasets
-            </span>
-            <span className="text-slate-400">
-              Grounded in the <strong>Angus Maddison Project (GGDC)</strong>, <strong>Leontief Input-Output Accounts (BEA)</strong>, and <strong>USGS/EIA/USDA</strong> surveys.
-            </span>
-          </div>
-        </div>
-        {onJumpToTab && (
-          <button
-            type="button"
-            onClick={() => onJumpToTab("sources")}
-            className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-cyan-300 hover:text-cyan-200 border border-slate-700 text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer shrink-0"
-          >
-            <span>Inspect All Historical Sources</span>
-            <ExternalLink className="w-3 h-3" />
-          </button>
-        )}
-      </div>
-
-      {/* Planetary Federation Summary Cards */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-        {(state.planetsSummary || []).map((planet) => {
-          const isMars = planet.name.toLowerCase().includes("mars");
-          return (
-            <div
-              key={planet.name}
-              className={`rounded-2xl border p-5 ${
-                isMars
-                  ? "bg-gradient-to-br from-slate-900 via-slate-900 to-orange-950/30 border-orange-500/30"
-                  : "bg-gradient-to-br from-slate-900 via-slate-900 to-cyan-950/30 border-cyan-500/30"
-              }`}
-            >
-              <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center gap-3">
-                  <div
-                    className={`w-10 h-10 rounded-xl flex items-center justify-center border ${
-                      isMars
-                        ? "bg-orange-500/15 border-orange-500/40 text-orange-400"
-                        : "bg-cyan-500/15 border-cyan-500/40 text-cyan-400"
-                    }`}
-                  >
-                    {isMars ? (
-                      <Rocket className="w-5 h-5" />
-                    ) : (
-                      <Globe2 className="w-5 h-5" />
-                    )}
-                  </div>
-                  <div>
-                    <h3 className="text-base font-bold font-display text-white">
-                      {planet.name} Federation Macroeconomics
-                    </h3>
-                    <p className="text-xs text-slate-400">
-                      {planet.nationCount} Member States •{" "}
-                      {formatCompactNumber(planet.workingPops)} Citizens
-                    </p>
-                  </div>
-                </div>
-                <div className="text-right font-mono-num">
-                  <span className="text-[11px] text-slate-400 block">
-                    Planetary GDP
-                  </span>
-                  <span className="text-xl font-bold text-white">
-                    {formatCurrency(planet.aggregateGdp)}
-                  </span>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-4 gap-2 pt-3 border-t border-slate-800/80 text-xs">
-                <div>
-                  <span className="text-slate-400 block text-[10px]">
-                    Prosperity (SOL)
-                  </span>
-                  <span className="font-mono-num font-bold text-cyan-300">
-                    {planet.sol.toFixed(2)}
-                  </span>
-                </div>
-                <div>
-                  <span className="text-slate-400 block text-[10px]">
-                    Unemployment
-                  </span>
-                  <span className="font-mono-num font-bold text-slate-200">
-                    {formatPercent(planet.unemploymentRate, 1)}
-                  </span>
-                </div>
-                <div>
-                  <span className="text-slate-400 block text-[10px]">
-                    Federal Pool
-                  </span>
-                  <span className="font-mono-num font-bold text-amber-300">
-                    {formatCurrency(planet.totalFedContributions)}
-                  </span>
-                </div>
-                <div>
-                  <span className="text-slate-400 block text-[10px]">
-                    Fiscal Balance
-                  </span>
-                  <span
-                    className={`font-mono-num font-bold ${
-                      planet.netBudgetBalance >= 0
-                        ? "text-emerald-400"
-                        : "text-rose-400"
-                    }`}
-                  >
-                    {formatCurrency(planet.netBudgetBalance)}
-                  </span>
-                </div>
-              </div>
-            </div>
-          );
-        })}
-      </div>
-
-      {/* World Simulation Clock & Scenario Manager */}
+      {/* Simulation Clock & Scenario Manager */}
       <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-5 grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-4">
           <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800 pb-3">
             <div>
               <h3 className="text-sm font-bold uppercase tracking-wider text-cyan-400 flex items-center gap-2">
                 <Clock className="w-4 h-4" />
-                World Simulation Clock & Economic Cycle Engine
+                United States Simulation Clock & Quarterly Cycle Engine
               </h3>
               <p className="text-xs text-slate-400">
-                Every 90-day quarterly settlement compounds national treasuries, demographic growth, corporate expansion, and sovereign fund dividends.
+                Every 90-day quarterly settlement compounds the US federal treasury, workforce demographics, and 4-sector GDP.
               </p>
             </div>
             <div className="flex items-center gap-2">
@@ -253,7 +114,7 @@ export default function LedgerAndTimeView({
 
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
             <div className="bg-slate-950/70 border border-slate-800 rounded-xl p-3">
-              <div className="text-[10px] text-slate-400">World Date</div>
+              <div className="text-[10px] text-slate-400">Simulation Date</div>
               <div className="text-base font-bold font-mono-num text-white mt-0.5">
                 {tm.crisisDate}
               </div>
@@ -294,7 +155,7 @@ export default function LedgerAndTimeView({
 
             <div className="bg-slate-950/70 border border-slate-800 rounded-xl p-3">
               <div className="text-[10px] text-amber-400 font-semibold">
-                Custom Campaign Start Date
+                Simulation Start Date
               </div>
               <input
                 type="date"
@@ -361,7 +222,7 @@ export default function LedgerAndTimeView({
                 onChange={(e) => setRandomizeHype(e.target.checked)}
                 className="accent-cyan-400"
               />
-              Dynamic Market Sentiment Waves (fluctuates corporate brand hype each quarter based on consumer & sector sentiment)
+              Dynamic Market Sentiment Waves (fluctuates commodity consumer hype each quarter)
             </label>
           </div>
         </div>
@@ -369,17 +230,17 @@ export default function LedgerAndTimeView({
         {/* Scenario Save / Load / Reset */}
         <div className="bg-slate-950/60 border border-slate-800 rounded-xl p-4 space-y-3 text-xs">
           <div className="font-bold uppercase tracking-wider text-slate-300">
-            World Save States & Multiplayer Rooms
+            Save States & Snapshots
           </div>
           <div className="flex flex-wrap gap-2">
             <button
               onClick={handleExportJson}
               className="flex-1 px-3 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 flex items-center justify-center gap-1.5 cursor-pointer"
             >
-              <Download className="w-3.5 h-3.5" /> Save World JSON
+              <Download className="w-3.5 h-3.5" /> Export JSON
             </button>
             <label className="flex-1 px-3 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 flex items-center justify-center gap-1.5 cursor-pointer">
-              <Upload className="w-3.5 h-3.5" /> Load World JSON
+              <Upload className="w-3.5 h-3.5" /> Import JSON
               <input
                 type="file"
                 accept=".json"
@@ -389,12 +250,31 @@ export default function LedgerAndTimeView({
             </label>
           </div>
 
+          {onRollbackSession && (ledgerHistory || []).length > 1 && (
+            <div className="pt-2 border-t border-slate-800">
+              <div className="text-[11px] text-slate-400 mb-1.5">
+                Rollback to Previous Quarter Snapshot:
+              </div>
+              <div className="flex flex-wrap gap-1.5 max-h-24 overflow-y-auto">
+                {(ledgerHistory || []).slice(-6).map((snap) => (
+                  <button
+                    key={snap.id || snap.quarter}
+                    onClick={() => onRollbackSession(snap.quarter, snap.id)}
+                    className="px-2.5 py-1 rounded bg-slate-900 hover:bg-amber-500/20 border border-slate-700 hover:border-amber-500/50 text-slate-300 hover:text-amber-300 text-[11px] font-mono cursor-pointer"
+                  >
+                    Q{snap.quarter} ({snap.crisisDate})
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
           <div className="pt-2 border-t border-slate-800">
             <button
               onClick={() => {
                 if (
                   window.confirm(
-                    "Reset this world back to its initial starting borders and economy?"
+                    "Reset the United States simulation back to Quarter 1 baseline?"
                   )
                 ) {
                   onResetScenario();
@@ -402,23 +282,23 @@ export default function LedgerAndTimeView({
               }}
               className="w-full py-2 rounded-lg bg-rose-950/50 hover:bg-rose-900/60 text-rose-300 border border-rose-800/50 flex items-center justify-center gap-1.5 font-medium cursor-pointer"
             >
-              <RotateCcw className="w-3.5 h-3.5" /> Reset World to Starting Era
+              <RotateCcw className="w-3.5 h-3.5" /> Reset Simulation to Baseline
             </button>
           </div>
         </div>
       </div>
 
-      {/* Historical Trajectories Chart & Geopolitical Event Feed */}
+      {/* Historical Trajectories Chart & Event Feed */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 bg-slate-900/80 border border-slate-800 rounded-2xl p-5 space-y-4">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div>
               <h3 className="text-sm font-bold uppercase tracking-wider text-slate-200 flex items-center gap-2">
                 <History className="w-4 h-4 text-cyan-400" />
-                Historical Macroeconomic Trajectories ({ledgerHistory?.length || 1} Quarters)
+                US Historical Macroeconomic Trajectory ({ledgerHistory?.length || 1} Quarters)
               </h3>
               <p className="text-xs text-slate-400">
-                Tracks superpower GDP, prosperity, wages, unemployment, and treasury reserves across quarters
+                Tracks United States GDP, Standard of Living, wages, unemployment, and federal treasury across quarters
               </p>
             </div>
 
@@ -427,11 +307,11 @@ export default function LedgerAndTimeView({
               onChange={(e) => setChartMetric(e.target.value)}
               className="px-3 py-1.5 rounded-lg bg-slate-950 border border-slate-700 text-xs text-white"
             >
-              <option value="aggregateGdp">National GDP ($ Billions)</option>
+              <option value="aggregateGdp">US GDP ($ Billions)</option>
               <option value="sol">Standard of Living (SOL)</option>
               <option value="quarterlyWages">Quarterly Wages ($)</option>
               <option value="unemploymentRate">Unemployment Rate (%)</option>
-              <option value="treasuryBalance">Treasury Reserves ($ Billions)</option>
+              <option value="treasuryBalance">Federal Treasury ($ Billions)</option>
             </select>
           </div>
 
@@ -452,26 +332,23 @@ export default function LedgerAndTimeView({
                   }}
                 />
                 <Legend wrapperStyle={{ fontSize: "12px" }} />
-                {topNations.map((n, idx) => (
-                  <Line
-                    key={n.id}
-                    type="monotone"
-                    dataKey={n.name}
-                    stroke={colors[idx % colors.length]}
-                    strokeWidth={2}
-                    dot={{ r: 3 }}
-                  />
-                ))}
+                <Line
+                  type="monotone"
+                  dataKey={usa.name || "United States"}
+                  stroke="#06b6d4"
+                  strokeWidth={2.5}
+                  dot={{ r: 3.5 }}
+                />
               </LineChart>
             </ResponsiveContainer>
           </div>
         </div>
 
-        {/* World Geopolitical & Economic Event Feed */}
+        {/* Simulation Activity Log */}
         <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-5 flex flex-col max-h-[380px]">
           <h3 className="text-sm font-bold uppercase tracking-wider text-emerald-400 flex items-center gap-2 pb-3 border-b border-slate-800">
             <Activity className="w-4 h-4" />
-            World Geopolitical & Economic Feed
+            US Policy & Simulation Log
           </h3>
 
           <div className="flex-1 overflow-y-auto divide-y divide-slate-800/60 text-xs mt-2">

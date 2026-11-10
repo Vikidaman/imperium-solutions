@@ -71,23 +71,9 @@ export const REGION_TINTS = {
   "Pacific Dependency": "#e11d48",
 };
 
-import { getNeighbourProvinceEndowments } from "./neighbourEndowments.js";
-
 export function getUsaStateData(stateName) {
   if (US_STATES_CATALOG[stateName]) {
     return US_STATES_CATALOG[stateName];
-  }
-  const neighbour = getNeighbourProvinceEndowments(stateName);
-  if (neighbour) {
-    return {
-      code: neighbour.code,
-      capital: neighbour.capital,
-      region: `${neighbour.countryName} Border Province`,
-      role: neighbour.role,
-      gdpShare: neighbour.gdpShare || 0.02,
-      popShare: neighbour.popShare || 0.02,
-      status: "TERRITORY",
-    };
   }
   return {
     code: stateName ? stateName.slice(0, 2).toUpperCase() : "--",

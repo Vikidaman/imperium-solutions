@@ -1207,58 +1207,32 @@ export const US_GEOGRAPHIC_ENDOWMENTS = {
   }
 };
 
-import { getNeighbourProvinceEndowments } from "./neighbourEndowments.js";
-
 /**
  * Returns geographic resource endowments for a given state name.
  * Strictly assigns 0 to any resource index where empirical deposits do not exist.
- * Supports dynamic custom overrides (e.g. from Groq AI crisis & disaster simulations).
  */
 export function getUsStateEndowment(stateName, customOverrides = null) {
   let base = US_GEOGRAPHIC_ENDOWMENTS[stateName];
   if (!base) {
-    const neighbour = getNeighbourProvinceEndowments(stateName);
-    if (neighbour && neighbour.resources) {
-      base = {
-        name: neighbour.name,
-        code: neighbour.code,
-        region: `${neighbour.countryName} Province / Border Unit`,
-        hydrocarbonIndex: neighbour.resources.hydrocarbonIndex,
-        mineralIndex: neighbour.resources.mineralIndex,
-        arableLandIndex: neighbour.resources.arableLandIndex,
-        logisticsWaterwayIndex: neighbour.resources.logisticsWaterwayIndex,
-        primaryBasins: neighbour.resources.primaryBasins || [],
-        resources: {
-          hydrocarbons: neighbour.resources.descriptions?.hydrocarbons || "Regional distribution",
-          criticalMinerals: neighbour.resources.descriptions?.criticalMinerals || "Commercial deposits",
-          agriculture: neighbour.resources.descriptions?.agriculture || "Diversified crops",
-          logistics: neighbour.resources.descriptions?.logistics || "Regional logistics",
-        },
-        modeledIndustrialOutput: neighbour.resources.modeledIndustrialOutput,
-        modeledAgriculturalOutput: neighbour.resources.modeledAgriculturalOutput,
-        sourceAttribution: neighbour.resources.sourceAttribution,
-      };
-    } else {
-      base = {
-        name: stateName,
-        code: stateName ? stateName.slice(0, 2).toUpperCase() : "--",
-        region: "Territory / Non-Core Unit",
-        hydrocarbonIndex: 0,
-        mineralIndex: 0,
-        arableLandIndex: 0,
-        logisticsWaterwayIndex: 0,
-        primaryBasins: [],
-        resources: {
-          hydrocarbons: "None (zero commercial extraction)",
-          criticalMinerals: "None (zero commercial deposits)",
-          agriculture: "Non-commercial / localized subsistence",
-          logistics: "Local roads / air transport only"
-        },
-        modeledIndustrialOutput: "$0 (No primary extractive industry)",
-        modeledAgriculturalOutput: "$0 (Negligible agricultural cash receipts)",
-        sourceAttribution: "USGS / USDA Zero-Baseline Standard"
-      };
-    }
+    base = {
+      name: stateName,
+      code: stateName ? stateName.slice(0, 2).toUpperCase() : "--",
+      region: "Territory / Non-Core Unit",
+      hydrocarbonIndex: 0,
+      mineralIndex: 0,
+      arableLandIndex: 0,
+      logisticsWaterwayIndex: 0,
+      primaryBasins: [],
+      resources: {
+        hydrocarbons: "None (zero commercial extraction)",
+        criticalMinerals: "None (zero commercial deposits)",
+        agriculture: "Non-commercial / localized subsistence",
+        logistics: "Local roads / air transport only"
+      },
+      modeledIndustrialOutput: "$0 (No primary extractive industry)",
+      modeledAgriculturalOutput: "$0 (Negligible agricultural cash receipts)",
+      sourceAttribution: "USGS / USDA Zero-Baseline Standard"
+    };
   }
 
   if (customOverrides && customOverrides[stateName]) {

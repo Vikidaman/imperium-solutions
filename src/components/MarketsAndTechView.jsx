@@ -1,22 +1,14 @@
 import React, { useState, useMemo, useEffect } from "react";
 import {
-  ShoppingBag,
-  Globe,
   Cpu,
   Search,
-  Sliders,
   Lock,
   Unlock,
   Layers,
   ArrowRight,
   GitBranch,
-  ShieldAlert,
-  TrendingUp,
-  Building2,
-  Briefcase,
 } from "lucide-react";
 import {
-  formatCurrency,
   formatExactCurrency,
   formatCompactNumber,
   formatPercent,
@@ -24,27 +16,22 @@ import {
   getShortSectorName,
 } from "../utils/formatters";
 import BufferedRangeSlider from "./BufferedRangeSlider";
-import CompaniesRegistry from "./CompaniesRegistry";
-import PoliticalPartiesAndStockView from "./PoliticalPartiesAndStockView";
 
 export default function MarketsAndTechView({
   state,
-  selectedNationId,
-  onSelectNation,
   onUpdateMarket,
   onUpdateCompanion,
-  onCreateCompany,
-  onUpdateCompany,
-  onDeleteCompany,
-  onSaveParty,
-  onCreateStockAccount,
-  onExecuteTrade,
   initialSubTab = "supplychain",
 }) {
-  const [subTab, setSubTab] = useState(initialSubTab); // "supplychain" | "corporations" | "tech" | "global"
+  const [subTab, setSubTab] = useState(
+    initialSubTab === "tech" ? "tech" : "supplychain"
+  );
   useEffect(() => {
-    if (initialSubTab) setSubTab(initialSubTab);
+    if (initialSubTab === "tech" || initialSubTab === "supplychain") {
+      setSubTab(initialSubTab);
+    }
   }, [initialSubTab]);
+
   const [searchQuery, setSearchQuery] = useState("");
   const [sectorFilter, setSectorFilter] = useState("ALL");
   const [selectedGoodName, setSelectedGoodName] = useState("Tools");
@@ -55,28 +42,13 @@ export default function MarketsAndTechView({
   const [bulkExportTariff, setBulkExportTariff] = useState(0.0);
   const [bulkDdMultiplier, setBulkDdMultiplier] = useState(1.0);
 
-  const nations = state.nations || [];
-  const nation =
-    nations.find((n) => n.id === selectedNationId) || nations[0];
+  const nations = state?.nations || [];
+  const nation = nations[0] || null;
 
   const marketRows = useMemo(() => {
-    if (nation?.marketComputed?.length > 0) return nation.marketComputed;
-    const refRows = nations[0]?.marketComputed || [];
-    if (refRows.length === 0 || !nation) return [];
-    const scale =
-      Math.max(100000, Number(nation.workingPops) || 10000000) /
-      Math.max(100000, Number(nations[0]?.workingPops) || 100000000);
-    return refRows.map((m) => ({
-      ...m,
-      domesticDemand: (m.domesticDemand || 0) * scale,
-      domesticSupply: (m.domesticSupply || 0) * scale,
-      supplyDeficit: (m.supplyDeficit || 0) * scale,
-      imports: (m.imports || 0) * scale,
-      exports: (m.exports || 0) * scale,
-      importTaxIncome: (m.importTaxIncome || 0) * scale,
-      exportTaxIncome: (m.exportTaxIncome || 0) * scale,
-    }));
-  }, [nation, nations]);
+    return nation?.marketComputed || nation?.market || [];
+  }, [nation]);
+
   const marketByName = useMemo(
     () => new Map(marketRows.map((m) => [m.goodName, m])),
     [marketRows]
@@ -85,7 +57,6 @@ export default function MarketsAndTechView({
   const activeGood =
     marketByName.get(selectedGoodName) || marketRows[0] || null;
 
-  // Compute downstream goods that require activeGood as an input
   const downstreamGoods = useMemo(() => {
     if (!activeGood) return [];
     return marketRows.filter((m) =>
@@ -112,6 +83,7 @@ export default function MarketsAndTechView({
   }, [marketRows, searchQuery, sectorFilter]);
 
   const handleApplyBulk = () => {
+    if (!nation || !onUpdateMarket) return;
     onUpdateMarket(nation.id, {
       bulkUpdate: {
         sector: bulkSector || undefined,
@@ -136,19 +108,7 @@ export default function MarketsAndTechView({
             }`}
           >
             <GitBranch className="w-4 h-4" />
-            Supply Chains & Tariffs
-          </button>
-
-          <button
-            onClick={() => setSubTab("corporations")}
-            className={`px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition cursor-pointer ${
-              subTab === "corporations"
-                ? "bg-cyan-500 text-slate-950 shadow-sm shadow-cyan-500/30"
-                : "bg-slate-800 text-slate-300 hover:bg-slate-700"
-            }`}
-          >
-            <Building2 className="w-4 h-4" />
-            Corporations ({nation?.companies?.length || 0})
+            US Supply Chain & Tariffs ({marketRows.length} Commodities)
           </button>
 
           <button
@@ -160,43 +120,19 @@ export default function MarketsAndTechView({
             }`}
           >
             <Cpu className="w-4 h-4" />
-            Tech Tree & Sectors
-          </button>
-
-          <button
-            onClick={() => setSubTab("global")}
-            className={`px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition cursor-pointer ${
-              subTab === "global"
-                ? "bg-cyan-500 text-slate-950 shadow-sm shadow-cyan-500/30"
-                : "bg-slate-800 text-slate-300 hover:bg-slate-700"
-            }`}
-          >
-            <Briefcase className="w-4 h-4" />
-            Global Exchange & Bourse
+            Technology Eras & Sector Productivity
           </button>
         </div>
 
-        {/* Nation Switcher */}
-        <div className="flex items-center gap-2 text-xs">
-          <span className="text-slate-400">Nation:</span>
-          <select
-            value={nation?.id || ""}
-            onChange={(e) => onSelectNation(e.target.value)}
-            className="px-3 py-1.5 rounded-xl bg-slate-950 border border-slate-700 text-white font-semibold cursor-pointer"
-          >
-            {nations.map((n) => (
-              <option key={n.id} value={n.id}>
-                {n.name} ({n.planet})
-              </option>
-            ))}
-          </select>
+        <div className="text-xs text-slate-400">
+          Leontief Input-Output Matrix •{" "}
+          <span className="text-cyan-300 font-semibold">United States</span>
         </div>
       </div>
 
       {/* SUB-TAB 1: VISUAL SUPPLY CHAIN NETWORK & TRADE POLICY */}
       {subTab === "supplychain" && (
         <div className="space-y-5">
-          {/* Interactive Supply Chain Dependency Graph & Inspector for Selected Good */}
           {activeGood && (
             <div className="bg-slate-900/85 border border-slate-800 rounded-2xl p-5 grid grid-cols-1 lg:grid-cols-12 gap-6 shadow-xl">
               {/* Left 7 Cols: Visual Upstream -> Active Commodity -> Downstream Graph */}
@@ -216,10 +152,13 @@ export default function MarketsAndTechView({
                   </div>
                   <div className="text-right font-mono-num">
                     <div className="text-[11px] text-slate-400">
-                      Domestic Clearing Price
+                      US Domestic Clearing Price
                     </div>
                     <div className="text-xl font-bold text-cyan-300">
-                      {formatExactCurrency(activeGood.localPrice, 2)}
+                      {formatExactCurrency(
+                        activeGood.localPrice ?? activeGood.adjustedPrice ?? 0,
+                        2
+                      )}
                     </div>
                   </div>
                 </div>
@@ -249,7 +188,10 @@ export default function MarketsAndTechView({
                             </span>
                             <span className="font-mono-num text-[11px] text-slate-300">
                               {inpRow
-                                ? formatExactCurrency(inpRow.localPrice, 0)
+                                ? formatExactCurrency(
+                                    inpRow.localPrice ?? inpRow.adjustedPrice ?? 0,
+                                    0
+                                  )
                                 : ""}
                             </span>
                           </button>
@@ -267,10 +209,11 @@ export default function MarketsAndTechView({
                       {activeGood.goodName}
                     </div>
                     <div className="text-xs font-mono-num text-emerald-300 mt-2">
-                      Output: {formatCompactNumber(activeGood.sellOrders)} units
+                      Output: {formatCompactNumber(activeGood.sellOrders || 0)} units
                     </div>
                     <div className="text-[11px] font-mono-num text-amber-300 mt-0.5">
-                      Input Demand: {formatCompactNumber(activeGood.importOrdersNeeded)}
+                      Input Demand:{" "}
+                      {formatCompactNumber(activeGood.importOrdersNeeded || 0)}
                     </div>
                   </div>
 
@@ -305,10 +248,14 @@ export default function MarketsAndTechView({
               <div className="lg:col-span-5 bg-slate-950/70 border border-slate-800 rounded-xl p-4 space-y-3.5 text-xs">
                 <div className="flex items-center justify-between border-b border-slate-800 pb-2.5">
                   <span className="font-bold uppercase tracking-wider text-amber-400">
-                    {activeGood.goodName} Policy Levers ({nation?.name})
+                    {activeGood.goodName} US Policy Levers
                   </span>
                   <span className="font-mono-num text-slate-400">
-                    World Price: {formatExactCurrency(activeGood.globalPrice, 2)}
+                    World Benchmark:{" "}
+                    {formatExactCurrency(
+                      activeGood.globalPrice ?? activeGood.dvgp ?? 0,
+                      2
+                    )}
                   </span>
                 </div>
 
@@ -318,14 +265,14 @@ export default function MarketsAndTechView({
                     <div className="flex justify-between mb-1">
                       <span className="text-slate-300">Import Tariff</span>
                       <span className="font-mono-num font-bold text-amber-300">
-                        {formatPercent(activeGood.importTariffRate, 0)}
+                        {formatPercent(activeGood.importTariffRate || 0, 0)}
                       </span>
                     </div>
                     <BufferedRangeSlider
                       min="0"
                       max="1.5"
                       step="0.05"
-                      value={activeGood.importTariffRate}
+                      value={activeGood.importTariffRate || 0}
                       onChangeCommitted={(val) =>
                         onUpdateMarket(nation.id, {
                           goodName: activeGood.goodName,
@@ -342,14 +289,14 @@ export default function MarketsAndTechView({
                     <div className="flex justify-between mb-1">
                       <span className="text-slate-300">Export Tariff</span>
                       <span className="font-mono-num font-bold text-cyan-300">
-                        {formatPercent(activeGood.exportTariffRate, 0)}
+                        {formatPercent(activeGood.exportTariffRate || 0, 0)}
                       </span>
                     </div>
                     <BufferedRangeSlider
                       min="0"
                       max="1.5"
                       step="0.05"
-                      value={activeGood.exportTariffRate}
+                      value={activeGood.exportTariffRate || 0}
                       onChangeCommitted={(val) =>
                         onUpdateMarket(nation.id, {
                           goodName: activeGood.goodName,
@@ -366,14 +313,14 @@ export default function MarketsAndTechView({
                     <div className="flex justify-between mb-1">
                       <span className="text-slate-300">Domestic Demand</span>
                       <span className="font-mono-num font-bold text-emerald-300">
-                        {activeGood.ddMultiplier.toFixed(2)}x
+                        {Number(activeGood.ddMultiplier || 1).toFixed(2)}x
                       </span>
                     </div>
                     <BufferedRangeSlider
                       min="0.2"
                       max="3.0"
                       step="0.05"
-                      value={activeGood.ddMultiplier}
+                      value={activeGood.ddMultiplier || 1}
                       onChangeCommitted={(val) =>
                         onUpdateMarket(nation.id, {
                           goodName: activeGood.goodName,
@@ -390,14 +337,14 @@ export default function MarketsAndTechView({
                     <div className="flex justify-between mb-1">
                       <span className="text-slate-300">Consumer Hype</span>
                       <span className="font-mono-num font-bold text-purple-300">
-                        {activeGood.hype}
+                        {activeGood.hype ?? 50}
                       </span>
                     </div>
                     <BufferedRangeSlider
                       min="5"
                       max="100"
                       step="1"
-                      value={activeGood.hype}
+                      value={activeGood.hype ?? 50}
                       onChangeCommitted={(val) =>
                         onUpdateMarket(nation.id, {
                           goodName: activeGood.goodName,
@@ -415,10 +362,10 @@ export default function MarketsAndTechView({
                 <div className="pt-2 border-t border-slate-800 flex items-center justify-between">
                   <div>
                     <span className="font-semibold text-slate-200 block">
-                      Outlaw / Black-Market Contraband Status
+                      Outlaw / Contraband Prohibition
                     </span>
                     <span className="text-[11px] text-slate-400">
-                      Outlawing this good classifies its workers as illicit syndicate operatives
+                      Prohibiting this commodity shifts its trade into the informal sector
                     </span>
                   </div>
                   <input
@@ -444,7 +391,7 @@ export default function MarketsAndTechView({
                 <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
                 <input
                   type="text"
-                  placeholder="Filter 202 commodities & industries..."
+                  placeholder="Filter US commodities & industries..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="w-full pl-9 pr-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-white"
@@ -503,7 +450,7 @@ export default function MarketsAndTechView({
             </div>
           </div>
 
-          {/* Interactive Commodity Cards Grid (Replaces 13-column spreadsheet table) */}
+          {/* Interactive Commodity Cards Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3.5 max-h-[620px] overflow-y-auto pr-1">
             {filteredMarketRows.map((m) => {
               const isSelected = activeGood?.goodName === m.goodName;
@@ -527,7 +474,10 @@ export default function MarketsAndTechView({
                         {getShortSectorName(m.category)}
                       </span>
                       <span className="font-mono-num text-sm font-bold text-cyan-300">
-                        {formatExactCurrency(m.localPrice, 1)}
+                        {formatExactCurrency(
+                          m.localPrice ?? m.adjustedPrice ?? 0,
+                          1
+                        )}
                       </span>
                     </div>
 
@@ -549,19 +499,19 @@ export default function MarketsAndTechView({
                     <div>
                       <span className="text-slate-500 block">Domestic</span>
                       <span className="text-emerald-300">
-                        {formatCompactNumber(m.sellOrders)}
+                        {formatCompactNumber(m.sellOrders || 0)}
                       </span>
                     </div>
                     <div>
                       <span className="text-slate-500 block">Import Req</span>
                       <span className="text-amber-300">
-                        {formatCompactNumber(m.importOrdersNeeded)}
+                        {formatCompactNumber(m.importOrdersNeeded || 0)}
                       </span>
                     </div>
                     <div className="text-right">
                       <span className="text-slate-500 block">Tariff</span>
                       <span className="text-slate-200">
-                        {formatPercent(m.importTariffRate, 0)}
+                        {formatPercent(m.importTariffRate || 0, 0)}
                       </span>
                     </div>
                   </div>
@@ -572,18 +522,6 @@ export default function MarketsAndTechView({
         </div>
       )}
 
-      {/* SUB-TAB: CORPORATIONS REGISTRY */}
-      {subTab === "corporations" && (
-        <CompaniesRegistry
-          state={state}
-          selectedNationId={selectedNationId}
-          onSelectNation={onSelectNation}
-          onCreateCompany={onCreateCompany}
-          onUpdateCompany={onUpdateCompany}
-          onDeleteCompany={onDeleteCompany}
-        />
-      )}
-
       {/* SUB-TAB 2: CIVILIZATION TECH TREE & SECTOR PRODUCTIVITY */}
       {subTab === "tech" && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -591,10 +529,10 @@ export default function MarketsAndTechView({
             <div>
               <h3 className="text-sm font-bold uppercase tracking-wider text-cyan-400 flex items-center gap-2">
                 <Cpu className="w-4 h-4" />
-                Civilization Technology Eras (9 Epochs)
+                Technology Eras (9 Epochs)
               </h3>
               <p className="text-xs text-slate-400 mt-1">
-                Unlocking technological epochs integrates advanced inputs into industrial tooling and compounds value across all downstream industries.
+                Unlocking technological epochs integrates advanced inputs into US industrial tooling and compounds value across all downstream industries.
               </p>
             </div>
 
@@ -646,7 +584,7 @@ export default function MarketsAndTechView({
             <div>
               <h3 className="text-sm font-bold uppercase tracking-wider text-amber-400 flex items-center gap-2">
                 <Layers className="w-4 h-4" />
-                Global Sector Productivity Multipliers & Market Sentiment
+                US Sector Productivity Multipliers & Market Sentiment
               </h3>
               <p className="text-xs text-slate-400 mt-1">
                 Adjusts the value-added productivity multiplier and investor sentiment for each macroeconomic sector.
@@ -719,50 +657,6 @@ export default function MarketsAndTechView({
                         className="w-full accent-amber-400 cursor-pointer"
                       />
                     </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* SUB-TAB 3: GLOBAL COMMODITY EXCHANGE & STOCK BOURSE */}
-      {subTab === "global" && (
-        <div className="space-y-6">
-          <PoliticalPartiesAndStockView
-            state={state}
-            onSaveParty={onSaveParty}
-            onCreateStockAccount={onCreateStockAccount}
-            onExecuteTrade={onExecuteTrade}
-          />
-          <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-5 space-y-4">
-            <h3 className="text-sm font-bold uppercase tracking-wider text-cyan-400 flex items-center gap-2">
-              <Globe className="w-4 h-4" />
-              Global Commodity Clearing Prices
-            </h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3.5">
-              {(state.globalMarket || []).slice(0, 60).map((g) => (
-                <div
-                  key={g.goodName}
-                  className="bg-slate-950/70 border border-slate-800 rounded-xl p-4 space-y-2 text-xs"
-                >
-                  <div className="flex items-center justify-between">
-                    <span
-                      className={`text-[10px] px-2 py-0.5 rounded border ${getSectorBadgeClass(
-                        g.category
-                      )}`}
-                    >
-                      {getShortSectorName(g.category)}
-                    </span>
-                    <span className="text-[10px] text-slate-400">{g.era}</span>
-                  </div>
-                  <div className="font-bold text-sm text-white">{g.goodName}</div>
-                  <div className="flex items-center justify-between pt-2 border-t border-slate-800">
-                    <span className="text-slate-400">World Clearing Price</span>
-                    <span className="font-mono-num font-bold text-cyan-300 text-sm">
-                      {formatExactCurrency(g.amep, 2)}
-                    </span>
                   </div>
                 </div>
               ))}

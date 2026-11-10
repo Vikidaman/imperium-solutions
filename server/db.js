@@ -3,6 +3,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { evaluateSimulation } from "./engine.js";
+import { buildSimplifiedSeed } from "./simplifiedSeedConfig.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const DATA_DIR = path.join(__dirname, "..", "data");
@@ -94,20 +95,9 @@ export function extractLedgerSnapshot(state) {
     quarter: tm.quarterNumber || 1,
     daysElapsed: tm.daysElapsed || 0,
     crisisDate: tm.crisisDate || "2025-01-01",
-    planets: (state.planetsSummary || []).map((p) => ({
-      name: p.name,
-      aggregateGdp: p.aggregateGdp,
-      sol: p.sol,
-      unemploymentRate: p.unemploymentRate,
-      workingPops: p.workingPops,
-      netBudgetBalance: p.netBudgetBalance,
-      treasuryBalance: p.treasuryBalance,
-      totalValuation: p.totalValuation,
-    })),
     nations: (state.nations || []).map((n) => ({
       id: n.id,
       name: n.name,
-      planet: n.planet,
       aggregateGdp: n.computed?.aggregateGdp || 0,
       sol: n.computed?.sol || 0,
       unemploymentRate: n.computed?.unemploymentRate || 0,
@@ -116,70 +106,62 @@ export function extractLedgerSnapshot(state) {
       popGrowthRate: n.computed?.popGrowthRate || 0,
       netBudgetBalance: n.computed?.netBudgetBalance || 0,
       treasuryBalance: n.computed?.treasuryBalance || 0,
-      totalValuation: n.computed?.totalValuation || 0,
       workingPops: n.computed?.effectiveWorkingPops || n.workingPops,
     })),
   };
 }
 
-export function loadSeedFile(scenarioType = "interstellar") {
-  const seedFile =
-    scenarioType === "vietnam"
-      ? path.join(__dirname, "..", "scripts", "vietnam_seed.json")
-      : path.join(__dirname, "..", "scripts", "interstellar_seed.json");
-  const raw = JSON.parse(fs.readFileSync(seedFile, "utf8"));
-  raw.strictSheetQuirks = false;
-  return evaluateSimulation(raw);
+export function loadSeedFile() {
+  const seedFile = path.join(__dirname, "..", "scripts", "interstellar_seed.json");
+  let raw = {};
+  if (fs.existsSync(seedFile)) {
+    raw = JSON.parse(fs.readFileSync(seedFile, "utf8"));
+  }
+  const cleanSeed = buildSimplifiedSeed(raw);
+  return evaluateSimulation(cleanSeed);
 }
 
 export function ensureDefaultSessions() {
-  const countRow = db.prepare("SELECT COUNT(*) as cnt FROM sessions").get();
-  if (countRow && countRow.cnt > 0) return;
+  // Remove legacy Vietnam session if present
+  db.prepare("DELETE FROM sessions WHERE id = 'vietnam-1977'").run();
+
+  const existing = db
+    .prepare("SELECT state_json FROM sessions WHERE id = 'interstellar-default'")
+    .get();
+
+  if (existing) {
+    try {
+      const parsed = JSON.parse(existing.state_json);
+      if ((parsed.nations || []).length > 1) {
+        const freshState = loadSeedFile();
+        saveSessionState("interstellar-default", freshState);
+      }
+      return;
+    } catch {
+      // recreate below
+    }
+  }
 
   const now = new Date().toISOString();
-
-  // 1. Interstellar 2.0 Default Session
-  const interstellarState = loadSeedFile("interstellar");
+  const usaState = loadSeedFile();
   db.prepare(
-    `INSERT INTO sessions (id, name, description, scenario_type, state_json, created_at, updated_at)
+    `INSERT OR REPLACE INTO sessions (id, name, description, scenario_type, state_json, created_at, updated_at)
      VALUES (?, ?, ?, ?, ?, ?, ?)`
   ).run(
     "interstellar-default",
-    "Interstellar 2.0: Earth & Mars Crisis",
-    "15 nations across Earth & Mars, 202 tradeable goods, 9 Tech Eras, 7,506 companies, and planetary federations.",
-    "interstellar",
-    JSON.stringify(interstellarState),
+    "United States Macroeconomic Simulator",
+    "50 US States & Territories, 60 Leontief Input-Output Sectors, Fiscal & Monetary Policy Levers.",
+    "usa",
+    JSON.stringify(usaState),
     now,
     now
   );
-  recordLedgerSnapshot("interstellar-default", interstellarState);
+  recordLedgerSnapshot("interstellar-default", usaState);
   logActivity(
     "interstellar-default",
     "System",
     "Initialized Session",
-    "Seeded from Interstellar 2.0 Mastersheet.xlsx"
-  );
-
-  // 2. Vietnam 1977 Scenario Session
-  const vietnamState = loadSeedFile("vietnam");
-  db.prepare(
-    `INSERT INTO sessions (id, name, description, scenario_type, state_json, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?)`
-  ).run(
-    "vietnam-1977",
-    "Imperium 1977: Vietnam Reunification",
-    "8 Vietnamese regional states, State-Owned Enterprises, Cooperatives, and post-war reconstruction.",
-    "vietnam",
-    JSON.stringify(vietnamState),
-    now,
-    now
-  );
-  recordLedgerSnapshot("vietnam-1977", vietnamState);
-  logActivity(
-    "vietnam-1977",
-    "System",
-    "Initialized Session",
-    "Seeded from Imperium Solutions Mastersheet.xlsx"
+    "Initialized United States 50-State Macroeconomic Baseline"
   );
 }
 
@@ -217,9 +199,7 @@ export function saveSessionState(sessionId, state) {
 
 export function createSession({ id, name, description, scenarioType, customState }) {
   const now = new Date().toISOString();
-  const state = customState
-    ? evaluateSimulation(customState)
-    : loadSeedFile(scenarioType || "interstellar");
+  const state = customState ? evaluateSimulation(customState) : loadSeedFile();
   db.prepare(
     `INSERT INTO sessions (id, name, description, scenario_type, state_json, created_at, updated_at)
      VALUES (?, ?, ?, ?, ?, ?, ?)`
@@ -227,7 +207,7 @@ export function createSession({ id, name, description, scenarioType, customState
     id,
     name,
     description || "",
-    scenarioType || "interstellar",
+    scenarioType || "usa",
     JSON.stringify(state),
     now,
     now
@@ -239,14 +219,14 @@ export function createSession({ id, name, description, scenarioType, customState
 
 export function resetSessionToSeed(sessionId) {
   const row = db
-    .prepare("SELECT scenario_type, name FROM sessions WHERE id = ?")
+    .prepare("SELECT name FROM sessions WHERE id = ?")
     .get(sessionId);
   if (!row) return null;
-  const freshState = loadSeedFile(row.scenario_type);
+  const freshState = loadSeedFile();
   saveSessionState(sessionId, freshState);
   db.prepare("DELETE FROM ledger_history WHERE session_id = ?").run(sessionId);
   recordLedgerSnapshot(sessionId, freshState);
-  logActivity(sessionId, "Director", "Reset Scenario", `Reset ${row.name} to initial spreadsheet state`);
+  logActivity(sessionId, "Director", "Reset Scenario", `Reset ${row.name} to initial US baseline`);
   return getSession(sessionId);
 }
 
@@ -369,5 +349,3 @@ export function getForecastRecords(sessionId, nationId = null, limit = 100) {
     )
     .all(sessionId, limit);
 }
-
-

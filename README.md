@@ -1,42 +1,34 @@
-# Imperium Solutions — Interstellar 2.0 Crisis & Macroeconomic Simulator
+# Imperium Solutions — United States Macroeconomic Simulator
 
-**Imperium Solutions (Interstellar 2.0)** is a full-stack macroeconomic, geopolitical, and statecraft crisis simulation platform. Built on empirical macroeconomic formulas, geographic resource endowments, historical era baselines (1836–2050+), and Victoria-inspired statecraft mechanics, it enables real-time multi-nation simulation, policy modeling, sovereign debt management, supply-chain analysis, and AI-driven economic shock testing.
+**Imperium Solutions** is a streamlined, full-stack **United States Macroeconomic & 50-State Supply Chain Simulator**. Grounded in empirical USGS/EIA/USDA state resource endowments, BEA/BLS services & agglomeration metrics, and a 60-commodity Leontief input-output price model, it provides an interactive sandbox for modeling US fiscal policy, trade tariffs, technological productivity, and state-by-state economic output.
 
 ---
 
 ## Key Features
 
-### 1. Interactive Geopolitical & Sub-National Mapping
-- **Planetary & Sovereign Overview**: Interactive world map powered by `d3-geo`, `leaflet`, and TopoJSON (`world-atlas` / `us-atlas`).
-- **ADM1 & US State Drill-Down**: Sub-national regional boundaries (`CountryAdm1Map`), state-level geographic production endowments, and territorial transfer / annexation mechanics.
-- **Historical Era Baselines**: Jump across historical eras (`1836` to modern and future scenarios) with calibrated technological eras, demographic baselines, and historical data sources.
+### 1. Interactive 50-State Choropleth Map & State Dossier
+- **Multi-Layer US Cartography (`CountryAdm1Map.jsx`)**: Powered by `leaflet` and `us-atlas`, featuring interactive map layers for:
+  - **Administrative Regions**: All 50 US states, District of Columbia, and US territories with regional GDP and workforce shares.
+  - **Natural Resource Endowments**: State-level USGS/EIA/USDA indices for **Hydrocarbons (Oil & Gas)**, **Critical Minerals & Mining**, **Arable Land & Agriculture**, and **Deepwater Ports & Navigable Waterways**, plus point markers for major basins and ports.
+  - **Services & Knowledge Capital**: State-level BEA/BLS/NSF indices for **High-Tech & Digital Infrastructure**, **Capital Markets & Finance**, **STEM & University Talent**, and **Hospitality & Tourism**, plus point markers for major metro clusters.
+- **50-State Registry & Filter Table**: Search, filter, and sort all US states by State GDP, Workforce, Energy, Minerals, Agriculture, High-Tech, or Finance.
 
-### 2. Macroeconomic & Supply Chain Engine
-- **Empirical Commodity & Production Engine**: Models primary resources, industrial goods, and tech-era tool inputs (`Wood`, `Stone`, `Iron`, `Steel`, `Semi-Conductor`, `Atomic`, `Internet`, `AI`, `Space Age`) alongside World Bank Pink Sheet price benchmarks.
-- **Services & Agglomeration Engine**: Super-linear urban agglomeration, financial/consumer services production, and state-level service endowments.
-- **Econometric GDP Forecaster**: Computes baseline GDP growth, structural adjustments, crisis adjustments, and 80%/95% confidence intervals (`forecastingEngine.js`).
-- **Corporations & Equities Registry**: Track corporate performance, stock valuations, dividends, and sector supply chains.
+### 2. US Macroeconomic & Fiscal Policy Cabinet
+- **Real-Time Policy Sliders (`InteractiveWorldMap.jsx`)**:
+  - **Fiscal Policy**: Federal Income Tax, Corporate Profits Tax, National Sales/Consumption Tax, Labor Share of GDP, and Federal Expenditure Target (% of GDP).
+  - **Structural Drivers**: Infrastructure & Logistics Efficiency, Workforce Literacy & Education, Urban Agglomeration, Household Consumer Sentiment, and Total Factor Productivity (`K-Factor`).
+- **4-Sector GDP & Distributional Analytics**:
+  - Tracks **Agriculture & Extraction**, **Manufacturing & Industry**, **Hospitality & Retail**, and **Corporate Finance & Tech Services**.
+  - Models 3 household income cohorts (**Low-Income**, **Middle Class**, **Upper Class**), Gini inequality, inflation, and a 1-year Econometric GDP Growth Forecast (`forecastingEngine.js`).
 
-### 3. Victoria Statecraft, Legislation & Monetary Policy
-- **Law & Policy Catalog**: Enact laws across taxation, policing, healthcare, trade, labor, and governance with dynamic modifiers on stability, mortality, crime, and productivity.
-- **Central Banking & Sovereign Debt**: Set national policy interest rates, manage sovereign credit ratings, and issue or repay sovereign bonds.
-- **Elections, Political Parties & News Dilemmas**: Trigger national elections, manage party coalitions, queue state construction projects, and resolve interactive crisis news dilemmas.
+### 3. 60-Commodity Leontief Supply Chain & Tech Tree
+- **US Supply Chain Flow (`MarketsAndTechView.jsx`)**: Inspect upstream inputs, domestic clearing prices, world benchmark prices (`empiricalPriceCatalog.js`), import/export tariffs, and domestic demand multipliers across 60 core commodities.
+- **9 Technological Epochs**: Toggle technological eras (`Wooden Tools` through `AI` and `Space Age`) and adjust sector-wide value-added productivity multipliers.
 
-### 4. AI Economic Advisor & Shock Simulator
-- **Groq LLM Intelligence**: Powered by Groq inference (`openai/gpt-oss-120b` with automatic fallback to `qwen/qwen3.8-27b`) to generate real-time macroeconomic advisory reports and simulate custom economic shocks with state restoration support.
-
-### 5. Director Portal & Ledger Time-Travel
-- **Protected Director Mode**: Read-only public spectator view by default, with a private Director Portal (`/director` or `?access=director`) secured via Master Password and **Telegram 2FA OTP** authentication.
-- **Quarterly Ledger & Rollback**: Automatic snapshots of every simulation quarter, full audit activity logs, and one-click session rollback to any prior point in time.
-
----
-
-## Tech Stack
-
-- **Frontend**: React 19, Vite 6, Tailwind CSS 4, Recharts, D3-Geo, Leaflet, Lucide Icons
-- **Backend (Local / Node)**: Express 5, native Node.js SQLite (`node:sqlite` storing state in `data/imperium.sqlite`)
-- **Edge Deployment**: Cloudflare Pages + Cloudflare Workers (`worker.js` / `functions/api/[[route]].js`) + Cloudflare D1 (`imperium-db`)
-- **Machine Learning & Data Ingestion**: Python scripts (`ml/` & `scripts/`) for training macroeconomic forecasting weights, empirical commodity prices, and ADM1 boundary ingestion
+### 4. Quarterly Ledger, Time Controls & Director Portal
+- **Quarterly Simulation Cycle (`LedgerAndTimeView.jsx`)**: Advance the US economy by 1 month, 1 quarter (90 days), or 1 year, or run the real-time auto-clock.
+- **Snapshots & One-Click Rollback**: Export/import simulation JSON snapshots or roll back the session to any previous quarter.
+- **Spectator & Director Modes**: Read-only public spectator mode by default, with a private Director Login Portal (`/?access=director`) protected by Master Password and optional **Telegram 2FA OTP**.
 
 ---
 
@@ -45,30 +37,34 @@
 ```text
 imperium-solutions/
 ├── src/
-│   ├── components/          # React UI views (Map, Statecraft, Markets, Ledger, Director Portal)
-│   ├── data/                # Nations catalog, US state endowments, historical eras, ADM1 mappings
-│   ├── services/            # Boundary & geospatial services
-│   ├── utils/               # Number & currency formatters
-│   ├── App.jsx              # Main application shell & routing
-│   └── main.jsx             # React entry point
+│   ├── components/
+│   │   ├── InteractiveWorldMap.jsx  # US 50-State Map, State Dossier & Macro Policy Cabinet
+│   │   ├── CountryAdm1Map.jsx       # Leaflet US Choropleth Map (States, Resources, Services)
+│   │   ├── MarketsAndTechView.jsx   # 60-Commodity Supply Chain, Tariffs & Tech Eras
+│   │   ├── LedgerAndTimeView.jsx    # Simulation Clock, Historical Charts & Rollback
+│   │   ├── DirectorLoginPortal.jsx  # Director Authentication UI
+│   │   └── BufferedRangeSlider.jsx  # Smooth range input control
+│   ├── data/
+│   │   ├── usStatesData.js          # 50 US States & Territories catalog (capitals, GDP/pop shares)
+│   │   ├── usGeographicEndowments.js# Empirical USGS/EIA/USDA state resource endowments
+│   │   ├── usServicesEndowments.js  # Empirical BEA/BLS/NSF state services endowments
+│   │   └── mapProviders.js          # CartoDB, Esri Satellite & OSM tile configurations
+│   ├── utils/
+│   │   └── formatters.js            # Currency, compact number & sector badge formatters
+│   ├── App.jsx                      # Main 3-tab application shell
+│   └── main.jsx                     # React entry point
 ├── server/
-│   ├── index.js             # Express API server & Vite middleware integration
-│   ├── engine.js            # Core macroeconomic & simulation formula engine
-│   ├── victoriaMechanics.js # Laws, elections, construction, bonds, and news dilemmas
-│   ├── statecraftMechanics.js
-│   ├── forecastingEngine.js # Econometric GDP growth forecaster
-│   ├── geographicProductionEngine.js
-│   ├── servicesProductionEngine.js
-│   ├── aiEconomicAdvisor.js # Groq LLM advisory & economic shock simulator
-│   ├── empiricalPriceCatalog.js
-│   └── db.js                # Node.js SQLite persistence layer
-├── functions/api/           # Cloudflare Pages Functions API routing
-├── worker.js                # Cloudflare Worker & D1 serverless backend
-├── ml/                      # Macroeconomic panel datasets & model training scripts
-├── scripts/                 # Seed extractors (Excel mastersheets), ADM1 ingestion & auto-sync
-├── tests/                   # Node.js test suite (node --test)
-├── vite.config.js           # Vite bundler configuration
-└── wrangler.jsonc           # Cloudflare Pages & D1 configuration
+│   ├── index.js                     # Express API server & Vite middleware
+│   ├── engine.js                    # Core US macroeconomic & Leontief input-output engine
+│   ├── simplifiedSeedConfig.js      # 60-good catalog & United States baseline seed builder
+│   ├── forecastingEngine.js         # Gradient-boosting GDP growth forecaster
+│   ├── geographicProductionEngine.js# State natural resource production model
+│   ├── servicesProductionEngine.js  # Super-linear urban agglomeration & services model
+│   ├── empiricalPriceCatalog.js     # World Bank Pink Sheet & BEA commodity price anchors
+│   └── db.js                        # Node.js SQLite persistence layer
+├── worker.js                        # Cloudflare Worker & D1 serverless backend
+├── tests/                           # Automated Node.js test suite (node --test)
+└── README.md
 ```
 
 ---
@@ -76,76 +72,27 @@ imperium-solutions/
 ## Getting Started
 
 ### Prerequisites
-- **Node.js** `v22.5.0+` (required for built-in `node:sqlite` support)
+- **Node.js** `v22.5.0+` (uses built-in `node:sqlite` and `node:test`)
 - **npm** `v10+`
-- *(Optional)* **Python 3.10+** for running ML training or Excel seed extraction scripts in `ml/` and `scripts/`
 
-### Installation
+### Installation & Local Development
 
-1. Clone the repository and install dependencies:
+1. Install dependencies:
    ```bash
    npm install
    ```
 
-2. Configure environment variables by creating a `.env` file in the project root (all variables are optional for local development):
-   ```env
-   # Port for local Express + Vite server (default: 3000)
-   PORT=3000
-
-   # Director Authentication
-   DIRECTOR_MASTER_PASSWORD=imperium-2026
-   DIRECTOR_SECRET_KEY=your-optional-static-director-token
-
-   # Telegram 2FA Bot Pairing (can also be paired interactively in the UI)
-   TELEGRAM_BOT_TOKEN=your-telegram-bot-token
-   TELEGRAM_CHAT_ID=your-telegram-chat-id
-
-   # Groq API Key for AI Economic Advisor & Shock Simulation
-   GROQ_API_KEY=your-groq-api-key
+2. Start the development server:
+   ```bash
+   npm run dev
    ```
+   Open `http://localhost:3000` in your browser:
+   - **Spectator View**: `http://localhost:3000`
+   - **Director Portal**: `http://localhost:3000/?access=director`
 
-### Running Locally
+### Running Tests
 
-Start the development server (runs Express API + Vite dev middleware on a single port):
-```bash
-npm run dev
-```
-Open `http://localhost:3000` in your browser.
-- **Public Spectator Mode**: `http://localhost:3000`
-- **Director Login Portal**: `http://localhost:3000/?access=director`
-
----
-
-## Available Scripts
-
-| Command | Description |
-| :--- | :--- |
-| `npm run dev` | Starts the local Express + Vite server in development mode |
-| `npm run build` | Builds the production frontend bundle into `dist/` |
-| `npm start` | Runs the production server (`NODE_ENV=production node server/index.js`) |
-| `npm test` | Runs the automated test suite via `node --test tests/*.test.js` |
-| `npm run deploy` | Builds the project and deploys to Cloudflare Pages via Wrangler |
-| `npm run sync` | Runs a one-time build, Git commit/push, and Cloudflare Pages deploy |
-| `npm run watch:sync` | Watches workspace files and auto-syncs to GitHub & Cloudflare Pages |
-
----
-
-## Testing
-
-The project uses Node's native test runner (`node:test`) covering macroeconomic formulas, statecraft mechanics, ADM1 boundaries, European sovereignty, AI shock simulation, round progression, and session rollbacks:
-
+Run the automated test suite covering US geographic endowments, services agglomeration, macroeconomic formulas, round progression, and session rollbacks:
 ```bash
 npm test
 ```
-
----
-
-## Deployment (Cloudflare Pages & D1)
-
-Production deployments run on **Cloudflare Pages** backed by **Cloudflare D1** (`imperium-db`), configured in `wrangler.jsonc` and `.github/workflows/deploy.yml`.
-
-To deploy manually from your machine:
-```bash
-npm run deploy
-```
-
