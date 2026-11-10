@@ -183,19 +183,11 @@ describe("United States Geographic Endowments & Cartography", () => {
     );
   });
 
-  test("Map tile providers contain CartoDB, Esri Satellite, and OpenStreetMap options", () => {
-    assert.ok(MAP_PROVIDERS.carto_dark, "CartoDB Dark Matter must exist");
-    assert.ok(MAP_PROVIDERS.esri_satellite, "Esri World Satellite must exist");
-    assert.ok(MAP_PROVIDERS.carto_voyager, "CartoDB Voyager must exist");
+  test("Map tile providers use OpenStreetMap standard basemap", () => {
     assert.ok(MAP_PROVIDERS.osm, "OpenStreetMap must exist");
-
     assert.ok(
-      MAP_PROVIDERS.carto_dark.url.includes("cartocdn.com"),
-      "CartoDB Dark Matter must have valid tile URL"
-    );
-    assert.ok(
-      MAP_PROVIDERS.esri_satellite.url.includes("arcgisonline.com"),
-      "Esri Satellite must have valid tile URL"
+      MAP_PROVIDERS.osm.url.includes("openstreetmap.org"),
+      "OpenStreetMap must have valid tile URL"
     );
   });
 

@@ -119,10 +119,21 @@ app.post("/api/auth/login", async (req, res) => {
   const activeBotToken = cfg.botToken || process.env.TELEGRAM_BOT_TOKEN;
   const activeChatId = cfg.chatId || process.env.TELEGRAM_CHAT_ID;
 
-  if (!activeBotToken || !activeChatId) {
-    return res.status(400).json({
-      needsTelegramSetup: true,
-      error: "Telegram 2FA is not paired yet. Please link your Telegram Bot & Chat ID.",
+  // If directLogin is requested OR Telegram is not yet configured, authenticate directly with Master Password!
+  if (req.body?.directLogin || !activeBotToken || !activeChatId) {
+    const sessionToken = `dir_sess_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 12)}`;
+    const activeSessions = getAuthValue("sessions", {});
+    activeSessions[sessionToken] = {
+      username: username.trim() || "Director",
+      createdAt: new Date().toISOString(),
+    };
+    setAuthValue("sessions", activeSessions);
+    return res.json({
+      ok: true,
+      sessionToken,
+      username: activeSessions[sessionToken].username,
+      directLogin: true,
+      message: "Authenticated successfully with Director Master Password!",
     });
   }
 

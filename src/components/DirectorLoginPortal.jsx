@@ -40,8 +40,8 @@ export default function DirectorLoginPortal({
       .catch(() => {});
   }, []);
 
-  const handleStep1Login = async (e) => {
-    e.preventDefault();
+  const handleStep1Login = async (e, forceDirectLogin = false) => {
+    if (e && e.preventDefault) e.preventDefault();
     setError("");
     setInfoMessage("");
     setLoading(true);
@@ -52,6 +52,7 @@ export default function DirectorLoginPortal({
         body: JSON.stringify({
           username: username.trim(),
           password,
+          directLogin: forceDirectLogin,
           botToken: botToken.trim() || undefined,
           chatId: chatId.trim() || undefined,
         }),
@@ -66,6 +67,11 @@ export default function DirectorLoginPortal({
         } else {
           setError(data.error || "Login failed");
         }
+      } else if (data.sessionToken) {
+        onAuthenticated({
+          token: data.sessionToken,
+          username: data.username || username,
+        });
       } else {
         setMaskedChat(data.maskedChatId || "Telegram");
         setInfoMessage(
@@ -229,15 +235,20 @@ export default function DirectorLoginPortal({
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-                Director Master Password
-              </label>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="text-xs font-semibold text-slate-300">
+                  Director Master Password
+                </label>
+                <span className="text-[11px] font-mono text-slate-500">
+                  Default: imperium-2026
+                </span>
+              </div>
               <input
                 type="password"
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="Enter master password..."
+                placeholder="imperium-2026"
                 className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-700 text-sm text-white focus:border-cyan-400 outline-none"
               />
             </div>
@@ -247,33 +258,43 @@ export default function DirectorLoginPortal({
                 Telegram 2FA:{" "}
                 {telegramConfigured ? (
                   <strong className="text-emerald-400">
-                    Locked & Paired ({maskedChat})
+                    Paired ({maskedChat})
                   </strong>
                 ) : (
-                  <strong className="text-amber-400">Setup on Next Step</strong>
+                  <span className="text-slate-500">Optional</span>
                 )}
               </span>
-              {!telegramConfigured && (
+              <button
+                type="button"
+                onClick={() => setStep("pair_telegram")}
+                className="text-cyan-400 hover:text-cyan-300 font-semibold flex items-center gap-1 cursor-pointer"
+              >
+                <Settings className="w-3.5 h-3.5" /> Configure Telegram
+              </button>
+            </div>
+
+            <div className="space-y-2 pt-1">
+              <button
+                type="button"
+                disabled={loading || !password}
+                onClick={(e) => handleStep1Login(e, true)}
+                className="w-full py-3 rounded-xl bg-gradient-to-r from-emerald-500 to-cyan-500 hover:from-emerald-400 hover:to-cyan-400 disabled:opacity-50 text-slate-950 font-bold text-sm flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/20 cursor-pointer"
+              >
+                <Lock className="w-4 h-4" />
+                {loading ? "Authenticating..." : "Unlock with Master Password"}
+              </button>
+
+              {telegramConfigured && (
                 <button
-                  type="button"
-                  onClick={() => setStep("pair_telegram")}
-                  className="text-cyan-400 hover:text-cyan-300 font-semibold flex items-center gap-1 cursor-pointer"
+                  type="submit"
+                  disabled={loading || !password}
+                  className="w-full py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 disabled:opacity-50 text-slate-200 font-semibold text-xs flex items-center justify-center gap-2 cursor-pointer border border-slate-700"
                 >
-                  <Settings className="w-3.5 h-3.5" /> Configure Telegram Bot
+                  <Send className="w-3.5 h-3.5 text-cyan-400" />
+                  Or Send 6-Digit 2FA Code via Telegram
                 </button>
               )}
             </div>
-
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full py-3 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 font-bold text-sm flex items-center justify-center gap-2 shadow-lg shadow-cyan-500/20 cursor-pointer"
-            >
-              <Send className="w-4 h-4" />
-              {loading
-                ? "Dispatching Telegram 2FA..."
-                : "Send 2FA Code via Telegram"}
-            </button>
           </form>
         )}
 

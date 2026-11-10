@@ -425,6 +425,163 @@ export default {
           username: sessionInfo?.username || null,
         });
       }
+
+      if (subRoute === "login" && request.method === "POST") {
+        const body = await request.json().catch(() => ({}));
+        const { username = "Director", password, directLogin, botToken, chatId } = body;
+        const cfg = await getD1AuthValue(db, "config", { masterPassword: DEFAULT_MASTER_PASSWORD });
+        const expectedPassword = env?.DIRECTOR_MASTER_PASSWORD || cfg.masterPassword || DEFAULT_MASTER_PASSWORD;
+
+        if (!password || (password !== expectedPassword && password !== env?.DIRECTOR_SECRET_KEY)) {
+          return jsonResponse({ error: "Invalid Director Master Password." }, 401);
+        }
+
+        if (botToken && chatId) {
+          const alreadyPaired = Boolean(cfg.botToken && cfg.chatId);
+          const providedToken = request.headers.get("x-director-key");
+          if (alreadyPaired && !(await isValidDirectorToken(db, providedToken, env))) {
+            return jsonResponse(
+              { error: "Telegram 2FA pairing is locked. Unlock with an active 2FA session to change it." },
+              403
+            );
+          }
+          cfg.botToken = String(botToken).trim();
+          cfg.chatId = String(chatId).trim();
+          await setD1AuthValue(db, "config", cfg);
+        }
+
+        const activeBotToken = cfg.botToken || env?.TELEGRAM_BOT_TOKEN;
+        const activeChatId = cfg.chatId || env?.TELEGRAM_CHAT_ID;
+
+        // If directLogin is requested OR Telegram is not yet configured, authenticate directly with Master Password!
+        if (directLogin || !activeBotToken || !activeChatId) {
+          const sessionToken = `dir_sess_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 12)}`;
+          const activeSessions = await getD1AuthValue(db, "sessions", {});
+          activeSessions[sessionToken] = {
+            username: username.trim() || "Director",
+            createdAt: new Date().toISOString(),
+          };
+          await setD1AuthValue(db, "sessions", activeSessions);
+          return jsonResponse({
+            ok: true,
+            sessionToken,
+            username: activeSessions[sessionToken].username,
+            directLogin: true,
+            message: "Authenticated successfully with Director Master Password!",
+          });
+        }
+
+        // If Telegram IS configured, dispatch 6-digit OTP code to Telegram!
+        const code = String(Math.floor(100000 + Math.random() * 900000));
+        const expiresAt = Date.now() + 5 * 60 * 1000;
+        await setD1AuthValue(db, "pending_otp", {
+          code,
+          username: username.trim() || "Director",
+          expiresAt,
+        });
+
+        const text =
+          `🏛 *IMPERIUM US SIMULATOR — 2FA LOGIN*\n\n` +
+          `👤 *Director:* \`${username.trim() || "Director"}\`\n` +
+          `🔐 *Your 6-Digit 2FA Code:* \`${code}\`\n\n` +
+          `_Expires in 5 minutes. Enter this code in the Private Director Portal to unlock edit access._`;
+
+        try {
+          const tgRes = await fetch(`https://api.telegram.org/bot${activeBotToken}/sendMessage`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              chat_id: activeChatId,
+              text,
+              parse_mode: "Markdown",
+            }),
+          });
+          const tgData = await tgRes.json();
+          if (!tgData.ok) {
+            return jsonResponse(
+              { error: `Telegram rejected message: ${tgData.description || "Check your Bot Token and Chat ID"}` },
+              400
+            );
+          }
+        } catch (err) {
+          return jsonResponse({ error: `Failed to reach Telegram API: ${err.message}` }, 500);
+        }
+
+        return jsonResponse({
+          ok: true,
+          maskedChatId: maskChatId(activeChatId),
+          message: `6-digit 2FA verification code sent to Telegram (${maskChatId(activeChatId)})!`,
+        });
+      }
+
+      if (subRoute === "verify-2fa" && request.method === "POST") {
+        const body = await request.json().catch(() => ({}));
+        const { username = "Director", otpCode } = body;
+        const pending = await getD1AuthValue(db, "pending_otp", null);
+
+        if (!pending || !pending.code) {
+          return jsonResponse({ error: "No pending 2FA code found. Please request a new code." }, 400);
+        }
+        if (Date.now() > pending.expiresAt) {
+          return jsonResponse({ error: "2FA code has expired. Please request a new code." }, 400);
+        }
+        if (String(otpCode || "").trim() !== String(pending.code)) {
+          return jsonResponse({ error: "Invalid 6-digit 2FA verification code." }, 401);
+        }
+
+        const sessionToken = `dir_sess_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 12)}`;
+        const activeSessions = await getD1AuthValue(db, "sessions", {});
+        activeSessions[sessionToken] = {
+          username: username.trim() || pending.username || "Director",
+          createdAt: new Date().toISOString(),
+        };
+        await setD1AuthValue(db, "sessions", activeSessions);
+        await setD1AuthValue(db, "pending_otp", null);
+
+        return jsonResponse({
+          ok: true,
+          sessionToken,
+          username: activeSessions[sessionToken].username,
+        });
+      }
+
+      if (subRoute === "telegram-detect" && request.method === "POST") {
+        const body = await request.json().catch(() => ({}));
+        const { botToken } = body;
+        if (!botToken || !String(botToken).trim()) {
+          return jsonResponse({ error: "Bot token is required." }, 400);
+        }
+        try {
+          const tgRes = await fetch(`https://api.telegram.org/bot${String(botToken).trim()}/getUpdates`);
+          const tgData = await tgRes.json();
+          if (!tgData.ok) {
+            return jsonResponse({ error: tgData.description || "Invalid Bot Token" }, 400);
+          }
+          const updates = tgData.result || [];
+          for (let i = updates.length - 1; i >= 0; i--) {
+            const msg = updates[i].message || updates[i].channel_post;
+            if (msg && msg.chat && msg.chat.id) {
+              return jsonResponse({
+                ok: true,
+                chatId: msg.chat.id,
+                username: msg.chat.username ? `@${msg.chat.username}` : msg.chat.first_name || "Director",
+                chatTitle:
+                  msg.chat.title ||
+                  [msg.chat.first_name, msg.chat.last_name].filter(Boolean).join(" ") ||
+                  msg.chat.username ||
+                  "Telegram Chat",
+              });
+            }
+          }
+          return jsonResponse(
+            { error: "No messages found yet! Open your bot in Telegram, send '/start', and click Auto-Detect again." },
+            404
+          );
+        } catch (err) {
+          return jsonResponse({ error: `Telegram API connection error: ${err.message}` }, 500);
+        }
+      }
+
       if (subRoute === "logout" && request.method === "POST") {
         const body = await request.json().catch(() => ({}));
         const providedToken =

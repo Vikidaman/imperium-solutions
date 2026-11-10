@@ -49,7 +49,6 @@ export default function CountryAdm1Map({
   const markersLayerRef = useRef(null);
   const initializedBoundsRef = useRef(false);
 
-  const [mapProvider, setMapProvider] = useState("carto_dark");
   const [layerMode, setLayerMode] = useState("administrative"); // "administrative" | "resources" | "services"
   const [resourceCategory, setResourceCategory] = useState("all");
   const [serviceCategory, setServiceCategory] = useState("all");
@@ -80,7 +79,7 @@ export default function CountryAdm1Map({
         map.removeLayer(tileLayerRef.current);
       }
 
-      const provider = MAP_PROVIDERS[mapProvider] || MAP_PROVIDERS.carto_dark;
+      const provider = MAP_PROVIDERS.osm;
       const tileLayer = L.tileLayer(provider.url, {
         subdomains: provider.subdomains,
         maxZoom: provider.maxZoom,
@@ -470,7 +469,7 @@ export default function CountryAdm1Map({
     return () => {
       active = false;
     };
-  }, [mapProvider, layerMode, resourceCategory, serviceCategory, selectedSubdivision, nationColor, onSelectSubdivision]);
+  }, [layerMode, resourceCategory, serviceCategory, selectedSubdivision, nationColor, onSelectSubdivision]);
 
   useEffect(() => {
     return () => {
@@ -490,23 +489,9 @@ export default function CountryAdm1Map({
             <MapPin className="w-3.5 h-3.5 text-cyan-400" />
             United States (50 States & Territories)
           </span>
-        </div>
-
-        {/* Map Provider Selector */}
-        <div className="flex items-center gap-1.5 bg-slate-950 px-2 py-1 rounded-xl border border-slate-800">
-          <Globe2 className="w-3.5 h-3.5 text-cyan-400" />
-          <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Basemap:</span>
-          <select
-            value={mapProvider}
-            onChange={(e) => setMapProvider(e.target.value)}
-            className="bg-transparent text-white font-semibold text-[11px] focus:outline-none cursor-pointer pr-1"
-          >
-            {Object.values(MAP_PROVIDERS).map((p) => (
-              <option key={p.id} value={p.id} className="bg-slate-900 text-white">
-                {p.name}
-              </option>
-            ))}
-          </select>
+          <span className="text-[10px] px-2 py-0.5 rounded bg-slate-800 text-slate-300 border border-slate-700 font-mono">
+            OpenStreetMap
+          </span>
         </div>
 
         {/* Layer Mode Toggle */}
@@ -690,7 +675,7 @@ export default function CountryAdm1Map({
         )}
 
         <div className="absolute bottom-1 right-2 text-[9px] text-slate-400 pointer-events-none z-10 bg-slate-950/75 px-1.5 py-0.5 rounded border border-slate-800">
-          Map: {MAP_PROVIDERS[mapProvider]?.name} • USGS / EIA / USDA / BEA / BLS
+          Map: OpenStreetMap • USGS / EIA / USDA / BEA / BLS
         </div>
       </div>
     </div>

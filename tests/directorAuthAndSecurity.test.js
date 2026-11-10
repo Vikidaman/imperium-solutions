@@ -25,5 +25,50 @@ describe("Director Authorization and Security Controls", () => {
     // Explicit environment secret key when provided by admin
     assert.equal(checkAuth("admin-env-key-99", "admin-env-key-99"), true, "Admin secret key accepted when explicitly configured");
   });
+
+  it("authenticates via worker fetch handler for /api/auth/login", async () => {
+    const workerModule = await import("../worker.js");
+    const worker = workerModule.default;
+
+    // Test with correct master password
+    const loginReq = new Request("http://localhost/api/auth/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        username: "Vikidaman",
+        password: "imperium-2026",
+        directLogin: true,
+      }),
+    });
+    const loginRes = await worker.fetch(loginReq, {});
+    assert.equal(loginRes.status, 200);
+    const loginData = await loginRes.json();
+    assert.equal(loginData.ok, true);
+    assert.ok(loginData.sessionToken, "Must return sessionToken");
+    assert.equal(loginData.username, "Vikidaman");
+
+    // Test with invalid password
+    const badReq = new Request("http://localhost/api/auth/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        username: "Vikidaman",
+        password: "wrong-password",
+      }),
+    });
+    const badRes = await worker.fetch(badReq, {});
+    assert.equal(badRes.status, 401);
+
+    // Verify session token works with status check
+    const statusReq = new Request("http://localhost/api/auth/status", {
+      method: "GET",
+      headers: { "X-Director-Key": loginData.sessionToken },
+    });
+    const statusRes = await worker.fetch(statusReq, {});
+    assert.equal(statusRes.status, 200);
+    const statusData = await statusRes.json();
+    assert.equal(statusData.authenticated, true);
+    assert.equal(statusData.username, "Vikidaman");
+  });
 });
 
