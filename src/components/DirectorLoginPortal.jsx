@@ -235,20 +235,15 @@ export default function DirectorLoginPortal({
             </div>
 
             <div>
-              <div className="flex items-center justify-between mb-1.5">
-                <label className="text-xs font-semibold text-slate-300">
-                  Director Master Password
-                </label>
-                <span className="text-[11px] font-mono text-slate-500">
-                  Default: imperium-2026
-                </span>
-              </div>
+              <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+                Director Master Password
+              </label>
               <input
                 type="password"
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="imperium-2026"
+                placeholder="Enter master password..."
                 className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-700 text-sm text-white focus:border-cyan-400 outline-none"
               />
             </div>
