@@ -125,6 +125,7 @@ function extractLedgerSnapshot(state) {
       popGrowthRate: n.computed?.popGrowthRate || 0,
       netBudgetBalance: n.computed?.netBudgetBalance || 0,
       treasuryBalance: n.computed?.treasuryBalance || 0,
+      publicDebt: n.computed?.publicDebt ?? n.publicDebt ?? 34500000000000,
       workingPops: n.computed?.effectiveWorkingPops || n.workingPops,
     })),
   };
@@ -726,6 +727,7 @@ export default {
             "federalCooperativity",
             "diplomaticExpenses",
             "treasuryBalance",
+            "publicDebt",
             "specializedIndustry",
             "crimePolicy",
             "healthcarePolicy",

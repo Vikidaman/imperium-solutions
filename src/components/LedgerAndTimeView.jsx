@@ -42,7 +42,11 @@ export default function LedgerAndTimeView({
     };
     for (const nSnap of entry.snapshot?.nations || []) {
       const seriesName = nSnap.name || "United States";
-      if (chartMetric === "aggregateGdp" || chartMetric === "treasuryBalance") {
+      if (
+        chartMetric === "aggregateGdp" ||
+        chartMetric === "treasuryBalance" ||
+        chartMetric === "publicDebt"
+      ) {
         row[seriesName] = Number(((nSnap[chartMetric] || 0) / 1e9).toFixed(2));
       } else if (chartMetric === "unemploymentRate") {
         row[seriesName] = Number(((nSnap[chartMetric] || 0) * 100).toFixed(2));
@@ -308,6 +312,7 @@ export default function LedgerAndTimeView({
               className="px-3 py-1.5 rounded-lg bg-slate-950 border border-slate-700 text-xs text-white"
             >
               <option value="aggregateGdp">US GDP ($ Billions)</option>
+              <option value="publicDebt">Federal Debt ($ Billions)</option>
               <option value="sol">Standard of Living (SOL)</option>
               <option value="quarterlyWages">Quarterly Wages ($)</option>
               <option value="unemploymentRate">Unemployment Rate (%)</option>

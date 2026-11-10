@@ -230,6 +230,7 @@ export function buildSimplifiedSeed(originalSeed = {}) {
         federalCooperativity: 0.1,
         diplomaticExpenses: 0,
         treasuryBalance: 850000000000,
+        publicDebt: 34500000000000,
         specializedIndustry: "No Specialization",
         crimePolicy: "Beat Cops",
         healthcarePolicy: "Private Healthcare",

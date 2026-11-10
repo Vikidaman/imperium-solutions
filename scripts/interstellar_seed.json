@@ -871,6 +871,7 @@
       "federalCooperativity": 0.1,
       "diplomaticExpenses": 0,
       "treasuryBalance": 850000000000,
+      "publicDebt": 34500000000000,
       "specializedIndustry": "No Specialization",
       "crimePolicy": "Beat Cops",
       "healthcarePolicy": "Private Healthcare",
@@ -3928,6 +3929,8 @@
         "diplomaticExpenses": 0,
         "netBudgetBalance": 2148810957308.7314,
         "treasuryBalance": 850000000000,
+        "publicDebt": 34500000000000,
+        "debtToGdpRatio": 127.67703631103673,
         "totalValuation": 48638347031111.27,
         "averageCompanyGrowth": 0.025,
         "crimePolicy": "Beat Cops",
@@ -3986,23 +3989,23 @@
             "interest_rate_real": 2.29,
             "investment_ratio": 22,
             "fiscal_balance_ratio": 7.952,
-            "debt_to_gdp_ratio": 65,
+            "debt_to_gdp_ratio": 127.677,
             "trade_openness": 58,
             "population_growth": 73.677,
             "development_tier": 1
           },
-          "baselineForecast": 2.011,
+          "baselineForecast": 1.99,
           "structuralAdjustment": 0.085,
           "crisisAdjustment": 0,
-          "finalGrowth": 2.096,
+          "finalGrowth": 2.074,
           "intervals": {
             "interval80": [
-              1.17,
-              3.79
+              1.15,
+              3.76
             ],
             "interval95": [
-              -3.9,
-              5.48
+              -3.92,
+              5.46
             ]
           },
           "attributions": {
@@ -4010,7 +4013,7 @@
             "inflation_rate": -0.259,
             "investment_ratio": -0.161,
             "fiscal_balance_ratio": 7.24,
-            "debt_to_gdp_ratio": 0.225,
+            "debt_to_gdp_ratio": -1.477,
             "population_growth": 1.464,
             "development_tier": -0.977
           }

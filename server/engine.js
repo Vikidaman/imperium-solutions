@@ -657,6 +657,18 @@ export function evaluateSimulation(state) {
       diplomaticExpenses,
       netBudgetBalance,
       treasuryBalance: Number(nation.treasuryBalance) || 0,
+      publicDebt:
+        nation.publicDebt !== undefined && nation.publicDebt !== null
+          ? Number(nation.publicDebt)
+          : 34500000000000,
+      debtToGdpRatio:
+        aggregateGdp > 0
+          ? ((nation.publicDebt !== undefined && nation.publicDebt !== null
+              ? Number(nation.publicDebt)
+              : 34500000000000) /
+              aggregateGdp) *
+            100
+          : 0,
       totalValuation: aggregateGdp * 1.8,
       averageCompanyGrowth: 0.025,
       crimePolicy,
@@ -704,6 +716,14 @@ export function runBudgetAndDividendUpdater(state) {
     const prevTreasury = Number(nation.treasuryBalance) || 0;
     const nuevoTreasury = netBudget + prevTreasury;
     nation.treasuryBalance = Number.isNaN(nuevoTreasury) ? 1 : nuevoTreasury;
+
+    const prevDebt =
+      nation.publicDebt !== undefined && nation.publicDebt !== null
+        ? Number(nation.publicDebt)
+        : 34500000000000;
+    // Deficit (netBudget < 0) accumulates onto federal debt; surplus (netBudget > 0) amortizes debt
+    const nuevoDebt = Math.max(0, prevDebt - netBudget);
+    nation.publicDebt = Number.isNaN(nuevoDebt) ? prevDebt : nuevoDebt;
 
     const basePops =
       !state.strictSheetQuirks && nation.workingPops < c.totalEmployed

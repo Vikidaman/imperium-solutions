@@ -22,6 +22,9 @@ import {
   ArrowUpRight,
   ArrowDownRight,
   Compass,
+  Edit2,
+  X,
+  Check,
 } from "lucide-react";
 import { formatCompactCurrency, formatCompactNumber } from "../utils/formatters";
 import { US_STATES_CATALOG } from "../data/usStatesData";
@@ -102,6 +105,7 @@ const InteractiveWorldMap = ({
   state,
   nations: nationsProp,
   onUpdateNation,
+  onResetScenario,
   canConfigure,
   isReadOnly = false,
 }) => {
@@ -293,6 +297,18 @@ const InteractiveWorldMap = ({
   const treasuryVal = Number(
     usa.treasuryBalance ?? c.treasuryBalance ?? 0
   );
+  const currentDebt = Number(usa.publicDebt ?? c.publicDebt ?? 34500000000000);
+  const currentDebtInTrillions = Number((currentDebt / 1e12).toFixed(2));
+  const debtToGdpRatio = Number(
+    c.debtToGdpRatio ?? (totalGdp > 0 ? (currentDebt / totalGdp) * 100 : 127.7)
+  );
+
+  const [editingDebtModal, setEditingDebtModal] = useState(false);
+  const [debtInputVal, setDebtInputVal] = useState(currentDebtInTrillions.toString());
+
+  useEffect(() => {
+    setDebtInputVal(currentDebtInTrillions.toString());
+  }, [currentDebtInTrillions]);
 
   return (
     <div className="space-y-6">
@@ -347,29 +363,47 @@ const InteractiveWorldMap = ({
           </div>
         </div>
 
-        <div className="bg-slate-900/75 border border-slate-800/90 rounded-xl p-3.5 shadow-lg">
+        <div className="bg-slate-900/75 border border-slate-800/90 rounded-xl p-3.5 shadow-lg relative group">
           <div className="flex items-center justify-between text-[11px] text-slate-400 uppercase font-semibold tracking-wider mb-1">
-            <span>Federal Treasury</span>
-            <Landmark className="w-3.5 h-3.5 text-amber-400" />
+            <span className="flex items-center gap-1.5">
+              <span>Federal Debt</span>
+              <span
+                className={`text-[10px] font-mono px-1 rounded font-semibold ${
+                  debtToGdpRatio > 120
+                    ? "bg-rose-500/20 text-rose-300"
+                    : debtToGdpRatio > 80
+                    ? "bg-amber-500/20 text-amber-300"
+                    : "bg-emerald-500/20 text-emerald-300"
+                }`}
+              >
+                {debtToGdpRatio.toFixed(0)}% GDP
+              </span>
+            </span>
+            <div className="flex items-center gap-1">
+              {canEdit && (
+                <button
+                  type="button"
+                  onClick={() => setEditingDebtModal(true)}
+                  title="Manually edit starting Federal Debt"
+                  className="opacity-75 hover:opacity-100 p-0.5 rounded text-cyan-400 hover:text-cyan-300 transition cursor-pointer"
+                >
+                  <Edit2 className="w-3.5 h-3.5" />
+                </button>
+              )}
+              <Landmark className="w-3.5 h-3.5 text-rose-400" />
+            </div>
           </div>
-          <div
-            className={`text-xl font-bold font-mono ${
-              treasuryVal >= 0 ? "text-amber-300" : "text-rose-400"
-            }`}
-          >
-            {formatCompactCurrency(treasuryVal)}
+          <div className="text-xl font-bold font-mono text-rose-400 flex items-center justify-between">
+            <span>{formatCompactCurrency(currentDebt)}</span>
           </div>
           <div className="text-[11px] text-slate-400 mt-1 flex items-center justify-between">
-            <span>Qtr Balance:</span>
+            <span>Treasury:</span>
             <span
               className={`font-mono ${
-                (c.netBudgetBalance || 0) >= 0
-                  ? "text-emerald-400"
-                  : "text-rose-400"
+                treasuryVal >= 0 ? "text-amber-300" : "text-rose-400"
               }`}
             >
-              {(c.netBudgetBalance || 0) >= 0 ? "+" : ""}
-              {formatCompactCurrency(c.netBudgetBalance || 0)}
+              {formatCompactCurrency(treasuryVal)}
             </span>
           </div>
         </div>
@@ -838,16 +872,36 @@ const InteractiveWorldMap = ({
                   </p>
                 </div>
               </div>
-              {canEdit && (
-                <button
-                  onClick={resetOverrides}
-                  className="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-[11px] font-medium flex items-center gap-1 transition-colors cursor-pointer"
-                  title="Reset policy overrides to party baseline"
-                >
-                  <RotateCcw className="w-3 h-3" />
-                  Reset Defaults
-                </button>
-              )}
+              <div className="flex flex-wrap items-center gap-1.5">
+                {onResetScenario && canEdit && (
+                  <button
+                    onClick={() => {
+                      if (
+                        window.confirm(
+                          "Reset the United States simulation to start date (2025-01-01, Q1) and initial baseline conditions?"
+                        )
+                      ) {
+                        onResetScenario();
+                      }
+                    }}
+                    className="px-2.5 py-1 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 border border-rose-500/30 text-[11px] font-medium flex items-center gap-1 transition-colors cursor-pointer"
+                    title="Reset simulation to initial start date and conditions"
+                  >
+                    <RotateCcw className="w-3 h-3" />
+                    Reset to Start Date & Conditions
+                  </button>
+                )}
+                {canEdit && (
+                  <button
+                    onClick={resetOverrides}
+                    className="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-[11px] font-medium flex items-center gap-1 transition-colors cursor-pointer"
+                    title="Reset policy overrides to party baseline"
+                  >
+                    <RotateCcw className="w-3 h-3" />
+                    Reset Defaults
+                  </button>
+                )}
+              </div>
             </div>
 
             {/* Ruling Coalition & Specialization Selects */}
@@ -897,6 +951,90 @@ const InteractiveWorldMap = ({
                     </option>
                   ))}
                 </select>
+              </div>
+            </div>
+
+            {/* Starting Federal Public Debt Control */}
+            <div className="bg-slate-950/70 border border-slate-800/90 rounded-xl p-3.5 space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Landmark className="w-4 h-4 text-rose-400" />
+                  <div>
+                    <h4 className="text-xs font-bold uppercase tracking-wider text-white">
+                      Starting Federal Public Debt
+                    </h4>
+                    <p className="text-[11px] text-slate-400">
+                      Baseline US sovereign debt. Deficits expand debt; surpluses amortize debt.
+                    </p>
+                  </div>
+                </div>
+                <span
+                  className={`text-xs px-2 py-0.5 rounded-full font-mono font-bold ${
+                    debtToGdpRatio > 120
+                      ? "bg-rose-500/20 text-rose-300 border border-rose-500/30"
+                      : debtToGdpRatio > 80
+                      ? "bg-amber-500/20 text-amber-300 border border-amber-500/30"
+                      : "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
+                  }`}
+                >
+                  {debtToGdpRatio.toFixed(1)}% of GDP
+                </span>
+              </div>
+
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-slate-300 font-medium">Federal Debt Amount:</span>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-slate-400 text-xs">$</span>
+                    <input
+                      type="number"
+                      step="0.1"
+                      min="0"
+                      max="100"
+                      disabled={!canEdit}
+                      value={currentDebtInTrillions}
+                      onChange={(e) => {
+                        const val = parseFloat(e.target.value);
+                        if (!isNaN(val) && val >= 0) {
+                          updatePolicy({ publicDebt: Math.round(val * 1e12) });
+                        }
+                      }}
+                      className="w-24 bg-slate-900 border border-slate-700 focus:border-rose-500 rounded px-2 py-0.5 font-mono text-rose-300 font-bold text-right text-xs focus:outline-none"
+                    />
+                    <span className="text-slate-300 font-bold text-xs">Trillion</span>
+                  </div>
+                </div>
+
+                <BufferedRangeSlider
+                  min={0}
+                  max={60}
+                  step={0.1}
+                  value={currentDebtInTrillions}
+                  disabled={!canEdit}
+                  onCommit={(num) => updatePolicy({ publicDebt: Math.round(num * 1e12) })}
+                  className="w-full accent-rose-500 cursor-pointer disabled:opacity-50"
+                />
+
+                {/* Quick Presets */}
+                <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                  <span className="text-[10px] uppercase font-semibold text-slate-500">Presets:</span>
+                  {[
+                    { label: "$34.5T (Baseline)", val: 34.5 },
+                    { label: "$25.0T (2019)", val: 25.0 },
+                    { label: "$15.0T (2012)", val: 15.0 },
+                    { label: "$0T (Zero Debt)", val: 0.0 },
+                  ].map((p) => (
+                    <button
+                      key={p.label}
+                      type="button"
+                      disabled={!canEdit}
+                      onClick={() => updatePolicy({ publicDebt: Math.round(p.val * 1e12) })}
+                      className="px-2 py-0.5 text-[10px] font-mono rounded bg-slate-900 hover:bg-rose-500/20 text-slate-300 hover:text-rose-200 border border-slate-800 hover:border-rose-500/40 transition disabled:opacity-50 cursor-pointer"
+                    >
+                      {p.label}
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
 
@@ -1140,6 +1278,110 @@ const InteractiveWorldMap = ({
           </div>
         </div>
       </div>
+      {/* Edit Starting Federal Debt Modal */}
+      {editingDebtModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4">
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <div className="flex items-center gap-2">
+                <Landmark className="w-5 h-5 text-rose-400" />
+                <div>
+                  <h3 className="text-base font-bold text-white">
+                    Edit Starting Federal Debt
+                  </h3>
+                  <p className="text-xs text-slate-400">
+                    Set the United States sovereign public debt baseline.
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setEditingDebtModal(false)}
+                className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-3">
+              <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400">
+                National Debt (in Trillions USD)
+              </label>
+              <div className="flex items-center gap-2">
+                <span className="text-lg font-mono text-slate-400">$</span>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  max="150"
+                  value={debtInputVal}
+                  onChange={(e) => setDebtInputVal(e.target.value)}
+                  className="flex-1 bg-slate-950 border border-slate-700 focus:border-rose-500 rounded-xl px-4 py-2 font-mono text-lg font-bold text-rose-300 focus:outline-none"
+                  placeholder="34.50"
+                />
+                <span className="text-sm font-semibold text-slate-300">Trillion</span>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                <span className="text-[11px] text-slate-400">Quick Presets:</span>
+                {[
+                  { label: "$34.5T Baseline", val: 34.5 },
+                  { label: "$25.0T (2019)", val: 25.0 },
+                  { label: "$15.0T (2012)", val: 15.0 },
+                  { label: "$0T (Zero Debt)", val: 0.0 },
+                ].map((p) => (
+                  <button
+                    key={p.label}
+                    type="button"
+                    onClick={() => setDebtInputVal(p.val.toString())}
+                    className="px-2.5 py-1 text-xs font-mono rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 hover:border-rose-500/50 transition cursor-pointer"
+                  >
+                    {p.label}
+                  </button>
+                ))}
+              </div>
+
+              <div className="p-3 bg-slate-950/60 border border-slate-800/80 rounded-xl text-xs text-slate-400 space-y-1">
+                <div className="flex justify-between">
+                  <span>Projected Debt-to-GDP Ratio:</span>
+                  <span className="font-mono text-rose-300 font-semibold">
+                    {totalGdp > 0
+                      ? `${((((parseFloat(debtInputVal) || 0) * 1e12) / totalGdp) * 100).toFixed(1)}%`
+                      : "N/A"}
+                  </span>
+                </div>
+                <div className="text-[11px] text-slate-500">
+                  Quarterly federal budget balance (+/-) will automatically accumulate onto this sovereign debt ledger.
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-800">
+              <button
+                type="button"
+                onClick={() => setEditingDebtModal(false)}
+                className="px-4 py-2 rounded-xl text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-300 cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  const val = parseFloat(debtInputVal);
+                  if (!isNaN(val) && val >= 0) {
+                    updatePolicy({ publicDebt: Math.round(val * 1e12) });
+                  }
+                  setEditingDebtModal(false);
+                }}
+                className="px-4 py-2 rounded-xl text-xs font-bold bg-rose-500 hover:bg-rose-400 text-slate-950 flex items-center gap-1.5 shadow-lg shadow-rose-500/20 cursor-pointer"
+              >
+                <Check className="w-4 h-4" />
+                Save Debt Baseline
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

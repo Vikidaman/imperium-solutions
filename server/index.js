@@ -589,6 +589,7 @@ app.patch("/api/sessions/:id/nations/:nationId", (req, res) => {
     "federalCooperativity",
     "diplomaticExpenses",
     "treasuryBalance",
+    "publicDebt",
     "specializedIndustry",
     "crimePolicy",
     "healthcarePolicy",

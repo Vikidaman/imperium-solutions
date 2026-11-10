@@ -8,6 +8,7 @@ import {
   Pause,
   Radio,
   Calendar,
+  RotateCcw,
   Eye,
   ShieldCheck,
   Lock,
@@ -538,6 +539,23 @@ export default function App() {
             {!isReadOnly && (
               <>
                 <button
+                  onClick={() => {
+                    if (
+                      window.confirm(
+                        "Reset the United States simulation to start date (2025-01-01, Q1) and baseline conditions?"
+                      )
+                    ) {
+                      handleResetScenario();
+                    }
+                  }}
+                  className="px-2.5 py-1.5 rounded-xl bg-slate-900 hover:bg-rose-500/20 text-slate-300 hover:text-rose-300 border border-slate-800 hover:border-rose-500/40 font-semibold flex items-center gap-1.5 transition cursor-pointer"
+                  title="Reset simulation to initial start date (2025-01-01, Q1) and baseline conditions"
+                >
+                  <RotateCcw className="w-3.5 h-3.5" />
+                  Reset Baseline
+                </button>
+
+                <button
                   onClick={() =>
                     handleTimeAction({ command: tm.isLive ? "LOCK" : "LOAD" })
                   }
@@ -613,6 +631,7 @@ export default function App() {
               <InteractiveWorldMap
                 state={state}
                 onUpdateNation={handleUpdateNation}
+                onResetScenario={handleResetScenario}
                 isReadOnly={isReadOnly}
               />
             )}

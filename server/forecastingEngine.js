@@ -125,8 +125,11 @@ export function extractMacroFeatures(nation, state) {
   const fiscal_balance_ratio = Math.max(-20.0, Math.min(10.0, (netBudget / gdp) * 100));
 
   // 9. Debt to GDP Ratio (% of GDP)
-  const debt = Number(nation.publicDebt) || (Number(nation.treasuryBalance) < 0 ? Math.abs(Number(nation.treasuryBalance)) : gdp * 0.65);
-  const debt_to_gdp_ratio = Math.max(15.0, Math.min(250.0, (debt / gdp) * 100));
+  const debt =
+    Number(nation.publicDebt) !== undefined && !Number.isNaN(Number(nation.publicDebt))
+      ? Number(nation.publicDebt)
+      : (Number(nation.treasuryBalance) < 0 ? Math.abs(Number(nation.treasuryBalance)) : gdp * 1.25);
+  const debt_to_gdp_ratio = Math.max(10.0, Math.min(300.0, (debt / gdp) * 100));
 
   // 10. Trade Openness (% of GDP = (Exports + Imports) / GDP)
   const exportsVal = Number(c.totalExports) || Number(nation.totalExports) || (gdp * 0.30);
