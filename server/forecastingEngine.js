@@ -173,34 +173,104 @@ export function extractMacroFeatures(nation, state) {
 }
 
 /**
- * Computes the authoritative GDP growth forecast, conformal intervals, and feature attributions.
- * Final GDP Growth = ML Baseline + Structural Adjustments + Crisis/Sanction Shocks
+ * Computes the authoritative GDP growth forecast, conformal intervals, and feature attributions
+ * grounded in the Macroeconomic Aggregate Demand Identity: Y = AD = C + I + G + NX.
+ *
+ * Final 1-Year Real GDP Growth (%) =
+ *   Potential Supply Trend (Labor Force Growth + TFP)
+ *   + Consumption Demand Growth Contribution (ΔC: Disposable Income, Taxes, Consumer Sentiment)
+ *   + Private Investment Growth Contribution (ΔI: Corp Tax, Real Interest Rate, Infrastructure, Literacy)
+ *   + Government Spending Impulse (ΔG: Federal Expenditure Target vs. Sovereign Debt Crowding-Out)
+ *   + Net Exports Contribution (ΔNX: Trade Balance, Tariffs, Freight/Supply-Chain Friction)
+ *   + Crisis / External Shock Adjustments
  */
 export function computeGdpForecast(nation, state, modelData = null) {
   const model = modelData || getLoadedModel();
   const meta = model.metadata || {};
   const features = extractMacroFeatures(nation, state);
 
-  // 1. Baseline ML Model Prediction
-  const baseline_forecast = predictEnsembleBaseline(model, features);
+  // 1. Baseline ML Model Prediction (calibrated anchor)
+  const ml_ensemble_raw = predictEnsembleBaseline(model, features);
 
-  // 2. Structural Policy Adjustments
+  // 2. Extract Live Aggregate Demand (AD = C + I + G + NX) & Policy Fundamentals
   const c = nation.computed || {};
-  const infraEff = Number(nation.infrastructureEfficiency) || Number(c.infrastructureEfficiency) || 0.70;
-  const literacyRate = Number(nation.literacyRate) || Number(c.literacyRate) || 0.85;
-  const crimeRate = Number(nation.crimeRate) || Number(c.crimeRate) || 0.05;
+  const ad = c.aggregateDemand || {};
 
-  // Infrastructure bonus/penalty: +/- 0.5% per 10% efficiency deviation
-  const infraAdj = (infraEff - 0.70) * 0.5;
-  // Human capital / literacy adjustment:
-  const humanCapitalAdj = (literacyRate - 0.85) * 0.35;
-  // Institutional security / crime friction:
-  const crimeAdj = -Math.max(0, (crimeRate - 0.05)) * 0.40;
-  const structural_adj = infraAdj + humanCapitalAdj + crimeAdj;
+  const incomeTax = Number(c.incomeTax ?? nation.incomeTaxOverride ?? 0.25);
+  const salesTax = Number(c.salesTax ?? nation.salesTaxOverride ?? 0.06);
+  const corporateTax = Number(c.corporateTax ?? nation.corporateTaxOverride ?? 0.21);
+  const workerShare = Number(c.workerShareOfGdp ?? nation.workerShareOverride ?? 0.52);
+  const budgetPct = Number(c.stateBudgetPercent ?? nation.budgetPercentOverride ?? 0.20);
+  const centralBankRate = Number(nation.centralBankRate ?? 0.045);
+
+  const consumerSentiment = Math.max(1, Number(nation.consumerSentiment ?? c.consumerConfidence ?? 65));
+  const infraEff = Math.min(1, Math.max(0.05, Number(nation.infrastructureEfficiency ?? c.infrastructureEfficiency ?? 0.82)));
+  const rawLit = Number(nation.literacyRate ?? c.literacyRate ?? 0.92);
+  const literacyRate = Math.min(1, Math.max(0.05, rawLit > 1 ? rawLit / 100 : rawLit));
+  const rawUrb = Number(nation.urbanisationIndex ?? c.urbanisationIndex ?? 0.83);
+  const urbanisationIndex = Math.min(1, Math.max(0.05, rawUrb > 1 ? rawUrb / 100 : rawUrb));
+  const crimeRate = Math.max(0, Number(c.crimeRate ?? nation.crimeRate ?? 0.02));
+  const kFactor = Math.max(100, Number(nation.kFactorScaler) || 1500);
+  const debtToGdpRatio = Number(c.debtToGdpRatio ?? features.debt_to_gdp_ratio ?? 126.0);
+  const popGrowthQuarterly = Number(c.popGrowthRate ?? 0.0019);
+  const freightDelay = Math.max(0, Number(nation.freightDelayFriction) || 0);
+
+  // --- Component 1: Household Consumption Growth Contribution (ΔC) ---
+  // Disposable income ratio relative to US baseline (0.55 * 0.72 * 0.94 = 0.37224)
+  const dispIncomeRatio = (workerShare * (1 - incomeTax) * (1 - salesTax)) / 0.37224;
+  const sentimentRatio = consumerSentiment / 65.0;
+  const cIdx = ad.cIdx !== undefined ? Number(ad.cIdx) : (0.45 + 0.35 * dispIncomeRatio + 0.20 * Math.pow(sentimentRatio, 0.35));
+  const consumptionGrowthContrib =
+    1.15 + (cIdx - 1.0) * 4.2 + (sentimentRatio - 1.0) * 1.15;
+
+  // --- Component 2: Gross Private Domestic Investment Growth Contribution (ΔI) ---
+  // After-tax corporate return relative to baseline (0.45 * 0.75 = 0.3375), cost of capital, infrastructure & human capital
+  const afterTaxProfitRatio = ((1 - workerShare) * (1 - corporateTax)) / 0.3375;
+  const interestDrag = (centralBankRate - 0.045) * 8.0;
+  const infraBonus = (infraEff - 0.82) * 3.2;
+  const humanCapitalBonus = (literacyRate - 0.92) * 2.4 + (urbanisationIndex - 0.83) * 1.2;
+  const tfpBonus = ((kFactor - 1500) / 1500) * 1.8;
+  const investmentGrowthContrib =
+    0.75 +
+    (afterTaxProfitRatio - 1.0) * 2.2 -
+    interestDrag +
+    infraBonus +
+    humanCapitalBonus +
+    tfpBonus -
+    freightDelay * 1.5;
+
+  // --- Component 3: Government Autonomous Expenditure Growth Contribution (ΔG) ---
+  // Keynesian fiscal multiplier on federal spending vs. sovereign debt crowding-out above 126% Debt/GDP
+  const fiscalStimulus = ((budgetPct - 0.22) / 0.22) * 1.35;
+  const debtCrowdingOut =
+    debtToGdpRatio > 130
+      ? Math.min(2.5, ((debtToGdpRatio - 130) / 100) * 1.2)
+      : (130 - debtToGdpRatio) / 100 * 0.20;
+  const governmentGrowthContrib = 0.42 + fiscalStimulus - debtCrowdingOut;
+
+  // --- Component 4: Net Exports & Trade Competitiveness Contribution (ΔNX) ---
+  const nxShare = ad.nxShare !== undefined ? Number(ad.nxShare) : -0.03;
+  const netExportsGrowthContrib =
+    -0.12 + (nxShare - (-0.03)) * 14.0 - freightDelay * 1.8;
+
+  // --- Component 5: Supply-Side Demographic & Institutional Baseline ---
+  const annualizedPopGrowthPct = Math.max(-2.0, Math.min(4.0, popGrowthQuarterly * 4 * 100));
+  const crimeDrag = Math.max(0, (crimeRate - 0.02)) * 1.5;
+  // Blend structural AD growth with subtle ML ensemble signal centered around 0
+  const mlSignalAdjustment = Math.max(-0.25, Math.min(0.25, (ml_ensemble_raw - 2.2) * 0.05));
+  const supplyTrendContrib = Math.max(-1.5, Math.min(3.0, annualizedPopGrowthPct * 0.75 - crimeDrag + mlSignalAdjustment));
+
+  // Baseline Forecast = C + I + G + NX growth contributions + Supply Trend
+  const ad_baseline_forecast =
+    consumptionGrowthContrib +
+    investmentGrowthContrib +
+    governmentGrowthContrib +
+    netExportsGrowthContrib;
+  const structural_adj = supplyTrendContrib;
 
   // 3. Crisis Shocks / International Sanctions
   let crisis_adj = 0;
-  const activeCrises = state.activeCrises || state.crises || [];
+  const activeCrises = state?.activeCrises || state?.crises || [];
   for (const crisis of activeCrises) {
     if (crisis.resolved) continue;
     if (crisis.targetNationId && crisis.targetNationId !== nation.id && crisis.targetNationId !== nation.countryId) continue;
@@ -211,9 +281,9 @@ export function computeGdpForecast(nation, state, modelData = null) {
     crisis_adj -= 1.8;
   }
 
-  // 4. Final Real GDP Growth Rate (%)
-  const unclippedFinal = baseline_forecast + structural_adj + crisis_adj;
-  // Clamp to realistic bounds [-12.0%, +16.0%]
+  // 4. Final Real GDP Growth Rate (% per year)
+  const unclippedFinal = ad_baseline_forecast + structural_adj + crisis_adj;
+  // Clamp to realistic macroeconomic bounds [-12.0%, +16.0%]
   const final_growth = Math.max(-12.0, Math.min(16.0, unclippedFinal));
 
   // 5. Conformal Prediction Intervals (80% and 95%)
@@ -232,26 +302,32 @@ export function computeGdpForecast(nation, state, modelData = null) {
     Math.min(25.0, Number((final_growth + conf.interval_95.upper_offset).toFixed(2)))
   ];
 
-  // 6. Feature Attributions (Marginal Contributions for Explainability)
-  const coefs = meta.marginal_coefficients || {};
-  const stats = meta.feature_statistics || {};
-  const attributions = {};
-  for (const [feat, val] of Object.entries(features)) {
-    const mean = stats[feat] ? stats[feat].mean : 0;
-    const coef = coefs[feat] || 0;
-    const contribution = coef * (val - mean);
-    if (Math.abs(contribution) >= 0.05) {
-      attributions[feat] = Number(contribution.toFixed(3));
-    }
+  // 6. Aggregate Demand & Feature Attributions (Explainability)
+  const attributions = {
+    consumption_demand_C: Number(consumptionGrowthContrib.toFixed(3)),
+    private_investment_I: Number(investmentGrowthContrib.toFixed(3)),
+    government_spending_G: Number(governmentGrowthContrib.toFixed(3)),
+    net_exports_NX: Number(netExportsGrowthContrib.toFixed(3)),
+    labor_and_tfp_supply: Number(supplyTrendContrib.toFixed(3)),
+  };
+  if (Math.abs(crisis_adj) >= 0.01) {
+    attributions.crisis_and_supply_shocks = Number(crisis_adj.toFixed(3));
   }
 
   return {
-    modelVersion: meta.model_version || "1.0.0",
+    modelVersion: meta.model_version || "2.0.0-AD",
     features,
-    baselineForecast: Number(baseline_forecast.toFixed(3)),
+    baselineForecast: Number(ad_baseline_forecast.toFixed(3)),
     structuralAdjustment: Number(structural_adj.toFixed(3)),
     crisisAdjustment: Number(crisis_adj.toFixed(3)),
     finalGrowth: Number(final_growth.toFixed(3)),
+    adGrowthBreakdown: {
+      consumptionGrowth: Number(consumptionGrowthContrib.toFixed(3)),
+      investmentGrowth: Number(investmentGrowthContrib.toFixed(3)),
+      governmentGrowth: Number(governmentGrowthContrib.toFixed(3)),
+      netExportsGrowth: Number(netExportsGrowthContrib.toFixed(3)),
+      supplyTrendGrowth: Number(supplyTrendContrib.toFixed(3)),
+    },
     intervals: {
       interval80: interval_80,
       interval95: interval_95
@@ -261,20 +337,23 @@ export function computeGdpForecast(nation, state, modelData = null) {
 }
 
 /**
- * Applies the calculated forecast growth rate to a nation during an annual or quarterly step.
+ * Applies the calculated forecast growth rate to a nation during a quarterly step.
+ * Compounds productive capacity so 4 quarterly settlements (+1 Year) change raw GDP
+ * by the exact 1-Year Annual Real GDP Growth Rate (finalGrowth %).
  */
 export function applyForecastGrowth(nation, forecastResult) {
   if (!nation.computed) nation.computed = {};
 
-  const growthPct = forecastResult.finalGrowth;
-  const growthMultiplier = 1 + growthPct / 100;
+  const growthPct = Number(forecastResult.finalGrowth) || 0;
+  // Quarterly compounding factor: (1 + g_annual)^0.25
+  const annualMultiplier = Math.max(0.5, 1 + growthPct / 100);
+  const quarterlyTargetMultiplier = Math.pow(annualMultiplier, 0.25);
 
   // Record growth history
   if (!Array.isArray(nation.historicalGdpGrowth)) {
     nation.historicalGdpGrowth = [];
   }
   nation.historicalGdpGrowth.push(growthPct);
-  // Keep last 12 entries
   if (nation.historicalGdpGrowth.length > 12) {
     nation.historicalGdpGrowth.shift();
   }
@@ -284,18 +363,12 @@ export function applyForecastGrowth(nation, forecastResult) {
 
   // Store forecast output in computed state
   nation.computed.annualRealGdpGrowth = growthPct;
+  nation.computed.quarterlyRealGdpGrowth = Number(((quarterlyTargetMultiplier - 1) * 100).toFixed(3));
   nation.computed.forecastBaseline = forecastResult.baselineForecast;
   nation.computed.forecastInterval80 = forecastResult.intervals.interval80;
   nation.computed.forecastInterval95 = forecastResult.intervals.interval95;
   nation.computed.forecastAttributions = forecastResult.attributions;
   nation.computed.forecastModelVersion = forecastResult.modelVersion;
-
-  // Scale sector VGPs proportionally to compound the annual growth
-  if (nation.computed.sectorVgp) {
-    for (const sector of Object.keys(nation.computed.sectorVgp)) {
-      nation.computed.sectorVgp[sector] = Math.round(nation.computed.sectorVgp[sector] * growthMultiplier);
-    }
-  }
 
   return growthPct;
 }

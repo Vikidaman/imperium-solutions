@@ -680,11 +680,32 @@ export default {
           tm.crisisDate = startStr;
           tm.nextPaymentDate = addDaysToSimDate(startStr, 90);
           toastMessage = "Time Manager reset.";
+        } else if (body.command === "TIMER_TICK") {
+          const d = (Number(tm.intervalDaysPerHour) || 90) / 60;
+          const { quartersCrossed } = advanceSimulationTime(sess.state, d);
+          if (quartersCrossed > 0) {
+            await recordLedgerSnapshot(db, sessionId, sess.state);
+          }
         } else if (body.command === "NUEVO_GDP_MANAGER") {
           tm.nextPaymentDate = addDaysToSimDate(tm.nextPaymentDate || "2025-04-01", 90);
           runBudgetAndDividendUpdater(sess.state);
           await recordLedgerSnapshot(db, sessionId, sess.state);
           toastMessage = "Quarterly settlement executed!";
+        } else if (body.command === "SET_START_DATE") {
+          const startDate = body.crisisStartDate || body.startDate || "2025-01-01";
+          tm.crisisStartDate = startDate;
+          tm.crisisDate = startDate;
+          tm.nextPaymentDate = addDaysToSimDate(startDate, 90);
+          tm.quarterNumber = 1;
+          tm.daysElapsed = 0;
+          toastMessage = `Start date set to ${startDate}`;
+        }
+
+        if (body.crisisStartDate !== undefined && body.command !== "SET_START_DATE") {
+          tm.crisisStartDate = body.crisisStartDate;
+        }
+        if (body.intervalDaysPerHour !== undefined) {
+          tm.intervalDaysPerHour = Math.max(1, Number(body.intervalDaysPerHour) || 90);
         }
 
         if (body.daysToAdd && Number(body.daysToAdd) !== 0) {
@@ -692,7 +713,7 @@ export default {
           if (quartersCrossed > 0) {
             await recordLedgerSnapshot(db, sessionId, sess.state);
           }
-        } else {
+        } else if (body.command !== "TIMER_TICK" && body.command !== "NUEVO_GDP_MANAGER") {
           evaluateSimulation(sess.state);
         }
 
@@ -737,6 +758,9 @@ export default {
             "corporateTaxOverride",
             "workerShareOverride",
             "budgetPercentOverride",
+            "centralBankRate",
+            "freightDelayFriction",
+            "cumulativeGrowthFactor",
           ];
           for (const k of allowed) {
             if (body[k] !== undefined) nation[k] = body[k];

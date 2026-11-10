@@ -117,4 +117,57 @@ describe("Round Progression and United States Simulation Mechanics", () => {
     assert.equal(resetState.nations[0].computed.publicDebt, 34500000000000);
     assert.equal(resetState.nations[0].incomeTaxOverride, undefined);
   });
+
+  it("satisfies Aggregate Demand identity (Y = C + I + G + NX) and keeps 1-Year GDP growth consistent with 4-quarter progression", () => {
+    const seed = buildSimplifiedSeed();
+    const state = evaluateSimulation(seed);
+    const usa = state.nations[0];
+    const ad = usa.computed.aggregateDemand;
+
+    assert.ok(ad, "Must compute Aggregate Demand breakdown");
+    const sumAd = ad.consumption + ad.investment + ad.governmentSpending + ad.netExports;
+    assert.ok(
+      Math.abs(sumAd - usa.computed.aggregateGdp) < 1,
+      `AD components (C + I + G + NX = ${sumAd}) must equal aggregateGdp (${usa.computed.aggregateGdp})`
+    );
+
+    const initialGdp = usa.computed.aggregateGdp;
+    const forecast1YrPct = usa.computed.forecast.finalGrowth;
+    assert.ok(
+      forecast1YrPct > 1.0 && forecast1YrPct < 4.5,
+      `Baseline 1-year GDP growth outlook should be realistic (~2.2%), got ${forecast1YrPct}%`
+    );
+
+    // Advance 4 quarters (360 days = 1 full year)
+    advanceSimulationTime(state, 360);
+    const after1YrGdp = usa.computed.aggregateGdp;
+    const actualGrowthPct = ((after1YrGdp - initialGdp) / initialGdp) * 100;
+
+    // Must NOT double; actual 4-quarter GDP growth must closely track the 1-year GDP growth outlook
+    assert.ok(
+      Math.abs(actualGrowthPct - forecast1YrPct) < 0.25,
+      `Expected 4-quarter GDP change (${actualGrowthPct.toFixed(2)}%) to match 1-Year GDP Outlook (${forecast1YrPct.toFixed(2)}%)`
+    );
+
+    // Verify Aggregate Demand policy sensitivity (cutting taxes & boosting infrastructure increases C, I, raw GDP, and growth rate)
+    const stimState = evaluateSimulation(buildSimplifiedSeed());
+    const stimUsa = stimState.nations[0];
+    const baseGdp = stimUsa.computed.aggregateGdp;
+    const baseGrowth = stimUsa.computed.forecast.finalGrowth;
+
+    stimUsa.incomeTaxOverride = 0.15;
+    stimUsa.corporateTaxOverride = 0.15;
+    stimUsa.infrastructureEfficiency = 0.95;
+    stimUsa.consumerSentiment = 85;
+    evaluateSimulation(stimState);
+
+    assert.ok(
+      stimUsa.computed.aggregateGdp > baseGdp,
+      "Pro-demand fiscal and infrastructure expansion must increase raw Aggregate Demand GDP"
+    );
+    assert.ok(
+      stimUsa.computed.forecast.finalGrowth > baseGrowth,
+      "Pro-demand fiscal and infrastructure expansion must increase projected 1-Year GDP growth rate"
+    );
+  });
 });

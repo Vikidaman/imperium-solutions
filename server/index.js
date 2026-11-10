@@ -599,6 +599,9 @@ app.patch("/api/sessions/:id/nations/:nationId", (req, res) => {
     "corporateTaxOverride",
     "workerShareOverride",
     "budgetPercentOverride",
+    "centralBankRate",
+    "freightDelayFriction",
+    "cumulativeGrowthFactor",
   ];
 
   const changedKeys = [];

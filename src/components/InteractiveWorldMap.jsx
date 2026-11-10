@@ -245,11 +245,14 @@ const InteractiveWorldMap = ({
       salesTaxOverride: null,
       workerShareOverride: null,
       budgetPercentOverride: null,
-      infrastructureEfficiency: 0.85,
+      centralBankRate: 0.045,
+      infrastructureEfficiency: 0.82,
       literacyRate: 0.92,
       urbanisationIndex: 0.83,
       consumerSentiment: 65,
       kFactorScaler: 1500,
+      freightDelayFriction: 0,
+      cumulativeGrowthFactor: 1.0,
     });
   };
 
@@ -856,6 +859,109 @@ const InteractiveWorldMap = ({
                 </span>
               </div>
             </div>
+
+            {/* Aggregate Demand (Y = C + I + G + NX) Breakdown */}
+            {c.aggregateDemand && (
+              <div className="mt-4 pt-3.5 border-t border-slate-800/90 space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5">
+                    <TrendingUp className="w-3.5 h-3.5 text-cyan-400" />
+                    <span className="text-xs font-bold text-white">
+                      Aggregate Demand Identity (Y = C + I + G + NX)
+                    </span>
+                  </div>
+                  <span className="text-[11px] font-mono text-cyan-300">
+                    AD Multiplier: {Number(c.aggregateDemand.adMultiplier || 1).toFixed(3)}x
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
+                  <div className="bg-slate-950/75 border border-slate-800/90 rounded-xl p-2.5">
+                    <div className="flex items-center justify-between text-[10px] text-slate-400 uppercase font-semibold">
+                      <span>Consumption (C)</span>
+                      <span className="text-cyan-300 font-mono">
+                        {Number(c.aggregateDemand.consumptionShare || 68).toFixed(1)}%
+                      </span>
+                    </div>
+                    <div className="font-mono font-bold text-white text-sm mt-0.5">
+                      {formatCompactCurrency(c.aggregateDemand.consumption || 0)}
+                    </div>
+                    {forecast.adGrowthBreakdown && (
+                      <div className="text-[10px] font-mono text-emerald-300 mt-0.5">
+                        Growth: {forecast.adGrowthBreakdown.consumptionGrowth >= 0 ? "+" : ""}
+                        {Number(forecast.adGrowthBreakdown.consumptionGrowth).toFixed(2)}%
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="bg-slate-950/75 border border-slate-800/90 rounded-xl p-2.5">
+                    <div className="flex items-center justify-between text-[10px] text-slate-400 uppercase font-semibold">
+                      <span>Investment (I)</span>
+                      <span className="text-blue-300 font-mono">
+                        {Number(c.aggregateDemand.investmentShare || 18).toFixed(1)}%
+                      </span>
+                    </div>
+                    <div className="font-mono font-bold text-white text-sm mt-0.5">
+                      {formatCompactCurrency(c.aggregateDemand.investment || 0)}
+                    </div>
+                    {forecast.adGrowthBreakdown && (
+                      <div className="text-[10px] font-mono text-blue-300 mt-0.5">
+                        Growth: {forecast.adGrowthBreakdown.investmentGrowth >= 0 ? "+" : ""}
+                        {Number(forecast.adGrowthBreakdown.investmentGrowth).toFixed(2)}%
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="bg-slate-950/75 border border-slate-800/90 rounded-xl p-2.5">
+                    <div className="flex items-center justify-between text-[10px] text-slate-400 uppercase font-semibold">
+                      <span>Govt Spending (G)</span>
+                      <span className="text-amber-300 font-mono">
+                        {Number(c.aggregateDemand.governmentShare || 17).toFixed(1)}%
+                      </span>
+                    </div>
+                    <div className="font-mono font-bold text-white text-sm mt-0.5">
+                      {formatCompactCurrency(c.aggregateDemand.governmentSpending || 0)}
+                    </div>
+                    {forecast.adGrowthBreakdown && (
+                      <div className="text-[10px] font-mono text-amber-300 mt-0.5">
+                        Growth: {forecast.adGrowthBreakdown.governmentGrowth >= 0 ? "+" : ""}
+                        {Number(forecast.adGrowthBreakdown.governmentGrowth).toFixed(2)}%
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="bg-slate-950/75 border border-slate-800/90 rounded-xl p-2.5">
+                    <div className="flex items-center justify-between text-[10px] text-slate-400 uppercase font-semibold">
+                      <span>Net Exports (NX)</span>
+                      <span
+                        className={`font-mono ${
+                          Number(c.aggregateDemand.netExportsShare || 0) >= 0
+                            ? "text-emerald-300"
+                            : "text-rose-300"
+                        }`}
+                      >
+                        {Number(c.aggregateDemand.netExportsShare || -3).toFixed(1)}%
+                      </span>
+                    </div>
+                    <div
+                      className={`font-mono font-bold text-sm mt-0.5 ${
+                        Number(c.aggregateDemand.netExports || 0) >= 0
+                          ? "text-emerald-300"
+                          : "text-rose-300"
+                      }`}
+                    >
+                      {formatCompactCurrency(c.aggregateDemand.netExports || 0)}
+                    </div>
+                    {forecast.adGrowthBreakdown && (
+                      <div className="text-[10px] font-mono text-slate-300 mt-0.5">
+                        Growth: {forecast.adGrowthBreakdown.netExportsGrowth >= 0 ? "+" : ""}
+                        {Number(forecast.adGrowthBreakdown.netExportsGrowth).toFixed(2)}%
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Macroeconomic & Fiscal Sliders Cabinet */}
@@ -1085,6 +1191,15 @@ const InteractiveWorldMap = ({
                   max: 0.55,
                   step: 0.01,
                   fmt: (v) => `${(v * 100).toFixed(0)}%`,
+                },
+                {
+                  label: "Federal Reserve Interest Rate (Monetary Policy)",
+                  field: "centralBankRate",
+                  val: Number(usa.centralBankRate ?? 0.045),
+                  min: 0.0,
+                  max: 0.15,
+                  step: 0.0025,
+                  fmt: (v) => `${(v * 100).toFixed(2)}%`,
                 },
               ].map((slider) => (
                 <div key={slider.field} className="space-y-1">

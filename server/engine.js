@@ -428,11 +428,177 @@ export function evaluateSimulation(state) {
 
     const party = partyMap.get(nation.rulingParty) || defaultParty;
 
-    const agriculturalGdp = sectorVgp["Agricultural Sector GDP"];
-    const industryGdp = sectorVgp["Industry & Manufacturing GDP"];
-    const hospitalityGdp = sectorVgp["Hospitality & Tourist Services GDP"];
-    const officeGdp = sectorVgp["Office & Corporate Services GDP"];
+    const incomeTax =
+      nation.incomeTaxOverride !== undefined && nation.incomeTaxOverride !== null
+        ? Number(nation.incomeTaxOverride)
+        : Number(party.incomeTaxPreference ?? 0.25);
+    const salesTax =
+      nation.salesTaxOverride !== undefined && nation.salesTaxOverride !== null
+        ? Number(nation.salesTaxOverride)
+        : Number(party.salesTaxPreference ?? 0.06);
+    const corporateTax =
+      nation.corporateTaxOverride !== undefined && nation.corporateTaxOverride !== null
+        ? Number(nation.corporateTaxOverride)
+        : Number(party.corporateTaxRate ?? 0.21);
+    const workerShareOfGdp =
+      nation.workerShareOverride !== undefined && nation.workerShareOverride !== null
+        ? Number(nation.workerShareOverride)
+        : Number(party.workerShareOfGdp ?? 0.52);
+    const stateBudgetPercent =
+      nation.budgetPercentOverride !== undefined && nation.budgetPercentOverride !== null
+        ? Number(nation.budgetPercentOverride)
+        : Number(party.budgetAsPercentOfGdp ?? 0.20);
+
+    const rawLitVal = Number(nation.literacyRate);
+    const literacyRate = Math.min(
+      1,
+      Math.max(
+        0.05,
+        Number.isFinite(rawLitVal) && rawLitVal > 0
+          ? rawLitVal > 1
+            ? rawLitVal / 100
+            : rawLitVal
+          : 0.92
+      )
+    );
+    const rawUrbVal = Number(nation.urbanisationIndex);
+    const urbanisationIndex = Math.min(
+      1,
+      Math.max(
+        0.05,
+        Number.isFinite(rawUrbVal) && rawUrbVal > 0
+          ? rawUrbVal > 1
+            ? rawUrbVal / 100
+            : rawUrbVal
+          : 0.83
+      )
+    );
+    const rawInfraVal = Number(nation.infrastructureEfficiency);
+    const infrastructureEfficiency = Math.min(
+      1,
+      Math.max(
+        0.05,
+        Number.isFinite(rawInfraVal) && rawInfraVal > 0
+          ? rawInfraVal > 1
+            ? rawInfraVal / 100
+            : rawInfraVal
+          : 0.82
+      )
+    );
+    const consumerSentiment = Math.max(
+      1,
+      nation.consumerSentiment !== undefined && nation.consumerSentiment !== null
+        ? Math.max(1, Number(nation.consumerSentiment))
+        : 65
+    );
+    const centralBankRate = Number(nation.centralBankRate ?? 0.045);
+    const freightDelayFriction = Math.max(0, Number(nation.freightDelayFriction) || 0);
+
+    // --- Core Aggregate Demand (AD = C + I + G + NX) Determination ---
+    // Potential Supply-Side GDP from 60-good Leontief Input-Output Network
+    const baseSupplyGdp =
+      sectorVgp["Agricultural Sector GDP"] +
+      sectorVgp["Industry & Manufacturing GDP"] +
+      sectorVgp["Hospitality & Tourist Services GDP"] +
+      sectorVgp["Office & Corporate Services GDP"];
+
+    // 1. Consumption (C) — Baseline weight 68% of GDP
+    // Driven by disposable household labor income s_L*(1 - t_inc)*(1 - t_sales) and Consumer Sentiment
+    const baselineDispShare = 0.55 * (1 - 0.28) * (1 - 0.06); // 0.37224
+    const dispIncomeRatio = (workerShareOfGdp * (1 - incomeTax) * (1 - salesTax)) / baselineDispShare;
+    const sentimentRatio = consumerSentiment / 65.0;
+    const cIdx = Math.max(
+      0.50,
+      Math.min(1.65, 0.45 + 0.35 * dispIncomeRatio + 0.20 * Math.pow(sentimentRatio, 0.35))
+    );
+    const cShare = 0.68 * cIdx;
+
+    // 2. Gross Private Domestic Investment (I) — Baseline weight 18% of GDP
+    // Driven by after-tax corporate return (1 - s_L)*(1 - t_corp), interest rate, infrastructure, literacy, urbanisation
+    const baselineCorpShare = (1 - 0.55) * (1 - 0.25); // 0.3375
+    const profitRatio = ((1 - workerShareOfGdp) * (1 - corporateTax)) / baselineCorpShare;
+    const rateIdx = 1 - (centralBankRate - 0.045) * 2.5;
+    const structIdx =
+      1 +
+      (infrastructureEfficiency - 0.82) * 0.65 +
+      (literacyRate - 0.92) * 0.45 +
+      (urbanisationIndex - 0.83) * 0.30 -
+      freightDelayFriction * 0.40;
+    const iIdx = Math.max(
+      0.35,
+      Math.min(1.85, 0.35 * profitRatio + 0.25 * rateIdx + 0.40 * structIdx)
+    );
+    const iShare = 0.18 * iIdx;
+
+    // 3. Government Purchases & Autonomous Spending (G) — Baseline weight 17% of GDP
+    // Driven by federal expenditure rate (stateBudgetPercent) with Keynesian multiplier
+    const gIdx = Math.max(
+      0.30,
+      Math.min(1.90, 0.30 + 0.70 * (stateBudgetPercent / 0.22))
+    );
+    const gShare = 0.17 * gIdx;
+
+    // 4. Net Exports (NX = X - M) — Baseline weight -3% of GDP
+    let avgImportTariff = 0;
+    let avgExportTariff = 0;
+    if (mMap.size > 0) {
+      for (const mRow of mMap.values()) {
+        avgImportTariff += Number(mRow.importTariffRate) || 0;
+        avgExportTariff += Number(mRow.exportTariffRate) || 0;
+      }
+      avgImportTariff /= mMap.size;
+      avgExportTariff /= mMap.size;
+    }
+    const nxShare = Math.max(
+      -0.18,
+      Math.min(
+        0.15,
+        -0.03 +
+          (infrastructureEfficiency - 0.82) * 0.08 -
+          avgExportTariff * 0.25 -
+          Math.max(0, avgImportTariff - 0.04) * 0.12 -
+          freightDelayFriction * 0.12
+      )
+    );
+
+    // Aggregate Demand Multiplier = C_share + I_share + G_share + NX_share (1.0000 at baseline)
+    const adMultiplier = Math.max(0.40, Math.min(2.20, cShare + iShare + gShare + nxShare));
+    const cumulativeGrowthFactor = Math.max(
+      0.20,
+      Number.isFinite(Number(nation.cumulativeGrowthFactor)) && Number(nation.cumulativeGrowthFactor) > 0
+        ? Number(nation.cumulativeGrowthFactor)
+        : 1.0
+    );
+    const totalMacroScale = adMultiplier * cumulativeGrowthFactor;
+
+    const agriculturalGdp = sectorVgp["Agricultural Sector GDP"] * totalMacroScale;
+    const industryGdp = sectorVgp["Industry & Manufacturing GDP"] * totalMacroScale;
+    const hospitalityGdp = sectorVgp["Hospitality & Tourist Services GDP"] * totalMacroScale;
+    const officeGdp = sectorVgp["Office & Corporate Services GDP"] * totalMacroScale;
     const aggregateGdp = agriculturalGdp + industryGdp + hospitalityGdp + officeGdp;
+
+    // Exact Dollar Aggregate Demand Identity: Y = C + I + G + NX
+    const consumptionDollar = aggregateGdp * (cShare / adMultiplier);
+    const investmentDollar = aggregateGdp * (iShare / adMultiplier);
+    const governmentDollar = aggregateGdp * (gShare / adMultiplier);
+    const netExportsDollar = aggregateGdp - (consumptionDollar + investmentDollar + governmentDollar);
+
+    const aggregateDemand = {
+      consumption: consumptionDollar,
+      investment: investmentDollar,
+      governmentSpending: governmentDollar,
+      netExports: netExportsDollar,
+      consumptionShare: Number(((cShare / adMultiplier) * 100).toFixed(2)),
+      investmentShare: Number(((iShare / adMultiplier) * 100).toFixed(2)),
+      governmentShare: Number(((gShare / adMultiplier) * 100).toFixed(2)),
+      netExportsShare: Number(((nxShare / adMultiplier) * 100).toFixed(2)),
+      cIdx: Number(cIdx.toFixed(4)),
+      iIdx: Number(iIdx.toFixed(4)),
+      gIdx: Number(gIdx.toFixed(4)),
+      nxShare: Number(nxShare.toFixed(4)),
+      adMultiplier: Number(adMultiplier.toFixed(4)),
+      cumulativeGrowthFactor: Number(cumulativeGrowthFactor.toFixed(6)),
+    };
 
     const rawWorkingPops =
       Number(nation.workingPops) || Number(nation.rawPops) || Number(nation.population) || 168000000;
@@ -455,58 +621,38 @@ export function evaluateSimulation(state) {
         ? (numberOfCriminals / totalEmployed) * getCrimePolicyMultiplier(crimePolicy)
         : 0;
 
-    const incomeTax =
-      nation.incomeTaxOverride !== undefined && nation.incomeTaxOverride !== null
-        ? Number(nation.incomeTaxOverride)
-        : Number(party.incomeTaxPreference ?? 0.25);
-    const salesTax =
-      nation.salesTaxOverride !== undefined && nation.salesTaxOverride !== null
-        ? Number(nation.salesTaxOverride)
-        : Number(party.salesTaxPreference ?? 0.06);
-    const corporateTax =
-      nation.corporateTaxOverride !== undefined && nation.corporateTaxOverride !== null
-        ? Number(nation.corporateTaxOverride)
-        : Number(party.corporateTaxRate ?? 0.21);
-    const workerShareOfGdp =
-      nation.workerShareOverride !== undefined && nation.workerShareOverride !== null
-        ? Number(nation.workerShareOverride)
-        : Number(party.workerShareOfGdp ?? 0.52);
-    const stateBudgetPercent =
-      nation.budgetPercentOverride !== undefined && nation.budgetPercentOverride !== null
-        ? Number(nation.budgetPercentOverride)
-        : Number(party.budgetAsPercentOfGdp ?? 0.20);
-
     const quarterlyWages = Math.max(
       0,
       ((aggregateGdp * workerShareOfGdp) / Math.max(1, effectiveWorkingPops)) *
         (1 - incomeTax)
     );
 
-    const literacyRate = Math.min(1, Math.max(0.05, Number(nation.literacyRate) || 0.92));
-    const urbanisationIndex = Math.min(
-      1,
-      Math.max(0.05, Number(nation.urbanisationIndex) || 0.83)
+    // Calibrated Quarterly Demographic Rates (preventing runaway population doubling)
+    const mortalityRate = Math.max(
+      0.0005,
+      Math.min(0.008, (crimeRate * urbanisationIndex) * 0.02 + getHealthcareMortalityBase(healthcarePolicy) * 0.22)
     );
-    const infrastructureEfficiency = Math.min(
-      1,
-      Math.max(0.05, Number(nation.infrastructureEfficiency) || 0.82)
-    );
-    const consumerSentiment = Math.max(1, Number(nation.consumerSentiment) || 65);
-
-    const mortalityRate =
-      (crimeRate * urbanisationIndex) / 2 + getHealthcareMortalityBase(healthcarePolicy);
 
     const wageRatio = Math.max(0.001, quarterlyWages > 0 ? quarterlyWages / consumerSentiment : 0.01);
     const rawSolBase =
       literacyRate + urbanisationIndex - (crimeRate + mortalityRate) + Math.log(wageRatio);
     const solBase = Number.isFinite(rawSolBase) ? rawSolBase : 15.0;
-    const fertilityRate = Math.max(0, (literacyRate / 100) * solBase);
+    const fertilityRate = Math.max(
+      0.0005,
+      Math.min(0.006, 0.0028 * (1.15 - literacyRate * 0.3) * Math.max(0.5, Math.min(1.3, solBase / 10)))
+    );
     const rawSol = nation.highImmigration ? solBase : solBase - fertilityRate;
     const sol = Math.max(1.0, Math.min(50.0, Number.isFinite(rawSol) ? rawSol : 15.0));
 
-    const netImmigrationRate =
-      (nation.highImmigration ? 0.1 : 0.01) * sol * urbanisationIndex - crimeRate;
-    const popGrowthRate = fertilityRate + netImmigrationRate - mortalityRate;
+    const netImmigrationRate = Math.max(
+      -0.003,
+      Math.min(
+        0.006,
+        (nation.highImmigration ? 0.00018 : 0.00004) * sol * urbanisationIndex - crimeRate * 0.015
+      )
+    );
+    // Quarterly population growth (~0.19% per quarter = ~0.76% annualized at US baseline)
+    const popGrowthRate = Math.max(-0.01, Math.min(0.012, fertilityRate + netImmigrationRate - mortalityRate));
 
     const incomeTaxRevenue = quarterlyWages * effectiveWorkingPops * incomeTax;
     const salesTaxRevenue = salesTax * consumerSentiment * effectiveWorkingPops;
@@ -674,8 +820,12 @@ export function evaluateSimulation(state) {
       crimePolicy,
       healthcarePolicy,
       servicesEvaluation,
+      aggregateDemand,
+      annualRealGdpGrowth: 0,
     };
-    nation.computed.forecast = computeGdpForecast(nation, state);
+    const fc = computeGdpForecast(nation, state);
+    nation.computed.forecast = fc;
+    nation.computed.annualRealGdpGrowth = fc.finalGrowth;
   }
 
   if (state.timeManager) {
@@ -710,7 +860,11 @@ export function runBudgetAndDividendUpdater(state) {
 
     const fc = computeGdpForecast(nation, state);
     c.forecast = fc;
-    applyForecastGrowth(nation, fc);
+    const annualGrowthPct = applyForecastGrowth(nation, fc);
+
+    // Quarterly compounding factor from 1-Year GDP Growth Rate: (1 + g_annual / 100)^(1/4)
+    const annualMultiplier = Math.max(0.5, 1 + annualGrowthPct / 100);
+    const quarterlyTargetMultiplier = Math.pow(annualMultiplier, 0.25);
 
     const netBudget = Number(c.netBudgetBalance) || 0;
     const prevTreasury = Number(nation.treasuryBalance) || 0;
@@ -728,10 +882,21 @@ export function runBudgetAndDividendUpdater(state) {
     const basePops =
       !state.strictSheetQuirks && nation.workingPops < c.totalEmployed
         ? c.effectiveWorkingPops
-        : Number(nation.workingPops) || 0;
+        : Number(nation.workingPops) || 168000000;
     const popGrowth = Number(c.popGrowthRate) || 0;
-    const nuevoPops = basePops * (1 + popGrowth);
-    nation.workingPops = Number.isNaN(nuevoPops) || nuevoPops <= 30 ? 1000000 : Math.round(nuevoPops);
+    const rawNuevoPops = basePops * (1 + popGrowth);
+    const roundedNuevoPops =
+      Number.isNaN(rawNuevoPops) || rawNuevoPops <= 30 ? 1000000 : Math.round(rawNuevoPops);
+    nation.workingPops = roundedNuevoPops;
+
+    // Adjust cumulativeGrowthFactor so (workingPops * cumulativeGrowthFactor) compounds by exactly quarterlyTargetMultiplier
+    const actualPopRatio = basePops > 0 ? roundedNuevoPops / basePops : 1 + popGrowth;
+    const prevCumFactor =
+      Number.isFinite(Number(nation.cumulativeGrowthFactor)) && Number(nation.cumulativeGrowthFactor) > 0
+        ? Number(nation.cumulativeGrowthFactor)
+        : 1.0;
+    nation.cumulativeGrowthFactor =
+      prevCumFactor * (quarterlyTargetMultiplier / Math.max(0.5, actualPopRatio));
   }
 
   evaluateSimulation(state);
