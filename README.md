@@ -2,6 +2,10 @@
 
 **Imperium Solutions** is a streamlined, full-stack **United States Macroeconomic & 50-State Supply Chain Simulator**. Grounded in empirical USGS/EIA/USDA state resource endowments, BEA/BLS services & agglomeration metrics, and a 60-commodity Leontief input-output price model, it provides an interactive sandbox for modeling US fiscal policy, trade tariffs, technological productivity, and state-by-state economic output.
 
+### 🌐 Live Cloudflare Pages Deployment
+- **Public Spectator Dashboard**: https://imperium-solutions-simulator.pages.dev
+- **Private Director Portal**: https://imperium-solutions-simulator.pages.dev/?access=director
+
 ---
 
 ## Key Features
