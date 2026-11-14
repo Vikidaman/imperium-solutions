@@ -228,6 +228,8 @@ export function computeGdpForecast(nation, state, modelData = null) {
   const afterTaxProfitRatio = ((1 - workerShare) * (1 - corporateTax)) / 0.3375;
   const interestDrag = (centralBankRate - 0.045) * 8.0;
   const infraBonus = (infraEff - 0.82) * 3.2;
+  const partyInfraShare = Number(c.partyPreferences?.infrastructureInvestmentShare ?? 0.038);
+  const partyInfraBonus = (partyInfraShare - 0.038) * 18.0;
   const humanCapitalBonus = (literacyRate - 0.92) * 2.4 + (urbanisationIndex - 0.83) * 1.2;
   const tfpBonus = ((kFactor - 1500) / 1500) * 1.8;
   const investmentGrowthContrib =
@@ -235,6 +237,7 @@ export function computeGdpForecast(nation, state, modelData = null) {
     (afterTaxProfitRatio - 1.0) * 2.2 -
     interestDrag +
     infraBonus +
+    partyInfraBonus +
     humanCapitalBonus +
     tfpBonus -
     freightDelay * 1.5;

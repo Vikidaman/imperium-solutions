@@ -1,6 +1,14 @@
 // United States Macroeconomic, Supply-Chain & 50-State Simulation Engine
 import { US_STATES_CATALOG } from "../src/data/usStatesData.js";
-import { SIMPLIFIED_60_GOODS, buildSimplifiedSeed } from "./simplifiedSeedConfig.js";
+import {
+  SIMPLIFIED_60_GOODS,
+  DEFAULT_POLITICAL_PARTIES,
+  FUNDING_TIERS,
+  POLICY_CATALOG,
+  resolvePoliticalParty,
+  cloneDefaultPolicies,
+  buildSimplifiedSeed,
+} from "./simplifiedSeedConfig.js";
 import { computeGdpForecast, applyForecastGrowth } from "./forecastingEngine.js";
 import { COMMODITY_PRICE_BENCHMARKS } from "./empiricalPriceCatalog.js";
 import {
@@ -56,6 +64,98 @@ export function getHealthcareMortalityBase(policy) {
   return 0.05;
 }
 
+function normalizeRateMetric(rawVal, fallback) {
+  const num = Number(rawVal);
+  if (!Number.isFinite(num) || num <= 0) return fallback;
+  return num > 1 ? Math.min(1, num / 100) : Math.min(1, Math.max(0.05, num));
+}
+
+function getPolicyCostPct(entry) {
+  if (!entry || entry.enacted === false) return -0.008;
+  const tier = FUNDING_TIERS[entry.funding] || FUNDING_TIERS.standard;
+  return Number(tier.budgetCostPct) || 0;
+}
+
+/**
+ * Computes quarterly structural progression deltas and federal budget impact
+ * from the nation's enacted policies, funding tiers, and ruling party priorities.
+ */
+export function computePolicyProgression(
+  nation = {},
+  party = DEFAULT_POLITICAL_PARTIES[0],
+  inflationRate = 0.022,
+  unemploymentRate = 0.045
+) {
+  const canonicalDefaultPolicies = cloneDefaultPolicies(party?.name || "Democratic");
+  const partyDefaults = party?.defaultPolicies || canonicalDefaultPolicies;
+  const rawPolicies = nation.enactedPolicies || partyDefaults;
+
+  const policies = {};
+  let rawCostPct = 0;
+  let defaultCostPct = 0;
+
+  for (const spec of POLICY_CATALOG) {
+    const id = spec.id;
+    const defEntry = partyDefaults[id] || canonicalDefaultPolicies[id] || { enacted: true, funding: "standard" };
+    const src = rawPolicies[id];
+    const enacted = src && typeof src.enacted === "boolean" ? src.enacted : Boolean(defEntry.enacted);
+    const fundingKey = src && FUNDING_TIERS[src.funding] ? src.funding : defEntry.funding || "standard";
+    const entry = { enacted, funding: fundingKey };
+    policies[id] = entry;
+    rawCostPct += getPolicyCostPct(entry);
+    defaultCostPct += getPolicyCostPct(defEntry);
+  }
+
+  const tierScoreOf = (entry) => (!entry.enacted ? -1 : (FUNDING_TIERS[entry.funding]?.tierScore ?? 1));
+  const eduScore = tierScoreOf(policies.education);
+  const infraScore = tierScoreOf(policies.infrastructure);
+  const innovScore = tierScoreOf(policies.innovation);
+  const govScore = tierScoreOf(policies.governance);
+
+  const EDU_LIT_MAP = { "-1": -0.0025, 0: -0.0008, 1: 0.001, 2: 0.0025, 3: 0.0045 };
+  const INFRA_EFF_MAP = { "-1": -0.0035, 0: -0.0015, 1: 0.001, 2: 0.003, 3: 0.0055 };
+  const INFRA_URB_MAP = { "-1": -0.0012, 0: -0.0004, 1: 0.0005, 2: 0.0012, 3: 0.0022 };
+  const GOV_URB_MAP = { "-1": -0.0008, 0: -0.0002, 1: 0.0004, 2: 0.0009, 3: 0.0016 };
+  const GOV_SENT_MAP = { "-1": -1.2, 0: -0.4, 1: 0.2, 2: 0.7, 3: 1.3 };
+  const EDU_SENT_MAP = { "-1": -0.4, 0: -0.1, 1: 0.1, 2: 0.3, 3: 0.6 };
+  const INNOV_TFP_MAP = { "-1": -14, 0: -4, 1: 6, 2: 16, 3: 28 };
+  const EDU_TFP_MAP = { "-1": -6, 0: -1, 1: 3, 2: 7, 3: 12 };
+
+  const partyInfraShare = Number(party?.infrastructureInvestmentShare ?? 0.038);
+  const partyEduGovShare = Number(party?.educationGovernanceShare ?? 0.055);
+
+  const literacyDelta = Number(
+    ((EDU_LIT_MAP[eduScore] ?? 0) + (partyEduGovShare - 0.050) * 0.04).toFixed(5)
+  );
+  const infrastructureDelta = Number(
+    ((INFRA_EFF_MAP[infraScore] ?? 0) + (partyInfraShare - 0.035) * 0.12).toFixed(5)
+  );
+  const urbanisationDelta = Number(
+    ((INFRA_URB_MAP[infraScore] ?? 0) + (GOV_URB_MAP[govScore] ?? 0)).toFixed(5)
+  );
+  const macroSentimentDrag =
+    Math.max(0, inflationRate - 0.03) * 18 + Math.max(0, unemploymentRate - 0.05) * 15;
+  const sentimentDelta = Number(
+    ((GOV_SENT_MAP[govScore] ?? 0) + (EDU_SENT_MAP[eduScore] ?? 0) - macroSentimentDrag).toFixed(3)
+  );
+  const infraTfpBonus = infraScore >= 2 ? 4 : 0;
+  const tfpDelta = Number(
+    ((INNOV_TFP_MAP[innovScore] ?? 0) + (EDU_TFP_MAP[eduScore] ?? 0) + infraTfpBonus).toFixed(1)
+  );
+
+  return {
+    literacyDelta,
+    infrastructureDelta,
+    urbanisationDelta,
+    sentimentDelta,
+    tfpDelta,
+    policyBudgetAdjustmentPct: Number((rawCostPct - defaultCostPct).toFixed(5)),
+    totalPolicyCostPct: Number(rawCostPct.toFixed(5)),
+    policies,
+    partyDefaultPolicies: partyDefaults,
+  };
+}
+
 export function ensureUsaState(state) {
   if (!state.goodsCatalog || state.goodsCatalog.length === 0) {
     state.goodsCatalog = SIMPLIFIED_60_GOODS.map((g) => ({
@@ -78,6 +178,71 @@ export function ensureUsaState(state) {
   const usaNation = state.nations.find((n) => n.id === "usa" || n.name === "USA" || n.name === "United States");
   if (usaNation) {
     state.nations = [usaNation];
+
+    // Ensure canonical 5 US political parties with full tax, infrastructure, and deficit preferences
+    const existingParties = Array.isArray(state.politicalParties) ? state.politicalParties : [];
+    const byName = new Map(existingParties.map((p) => [p.name, p]));
+    const enrichedParties = DEFAULT_POLITICAL_PARTIES.map((tpl) => {
+      const legacy = byName.get(tpl.name) ||
+        (tpl.name === "Progressive Labor" ? byName.get("Green") : null) ||
+        (tpl.name === "Libertarian Free-Market" ? byName.get("Libertarian") : null);
+      if (!legacy) {
+        return {
+          ...tpl,
+          defaultPolicies: cloneDefaultPolicies(tpl.name),
+        };
+      }
+      return {
+        ...tpl,
+        ...legacy,
+        name: tpl.name,
+        incomeTaxPreference: Number(legacy.incomeTaxPreference ?? tpl.incomeTaxPreference),
+        salesTaxPreference: Number(legacy.salesTaxPreference ?? tpl.salesTaxPreference),
+        corporateTaxRate: Number(legacy.corporateTaxRate ?? tpl.corporateTaxRate),
+        workerShareOfGdp: Number(legacy.workerShareOfGdp ?? tpl.workerShareOfGdp),
+        infrastructureInvestmentShare: Number(legacy.infrastructureInvestmentShare ?? tpl.infrastructureInvestmentShare),
+        educationGovernanceShare: Number(legacy.educationGovernanceShare ?? tpl.educationGovernanceShare),
+        deficitTargetAsPercentOfGdp: Number(legacy.deficitTargetAsPercentOfGdp ?? tpl.deficitTargetAsPercentOfGdp),
+        budgetAsPercentOfGdp: Number(legacy.budgetAsPercentOfGdp ?? tpl.budgetAsPercentOfGdp),
+        platformSummary: legacy.platformSummary || tpl.platformSummary,
+        defaultPolicies: legacy.defaultPolicies || cloneDefaultPolicies(tpl.name),
+      };
+    });
+    // Preserve any extra custom parties if a scenario added non-canonical ones
+    const canonicalNames = new Set(DEFAULT_POLITICAL_PARTIES.map((p) => p.name));
+    const aliasNames = new Set(["Green", "Libertarian"]);
+    for (const p of existingParties) {
+      if (!canonicalNames.has(p.name) && !aliasNames.has(p.name)) {
+        enrichedParties.push(p);
+      }
+    }
+    state.politicalParties = enrichedParties;
+
+    if (!usaNation.rulingParty) {
+      usaNation.rulingParty = "Democratic";
+    } else if (usaNation.rulingParty === "Green") {
+      usaNation.rulingParty = "Progressive Labor";
+    } else if (usaNation.rulingParty === "Libertarian") {
+      usaNation.rulingParty = "Libertarian Free-Market";
+    }
+
+    if (!usaNation.startingBaseline) {
+      usaNation.startingBaseline = {
+        literacyRate: normalizeRateMetric(usaNation.literacyRate, 0.92),
+        infrastructureEfficiency: normalizeRateMetric(usaNation.infrastructureEfficiency, 0.82),
+        urbanisationIndex: normalizeRateMetric(usaNation.urbanisationIndex, 0.83),
+        consumerSentiment: Math.max(1, Number(usaNation.consumerSentiment ?? 65)),
+        kFactorScaler: Number(usaNation.kFactorScaler ?? 1500),
+        publicDebt:
+          usaNation.publicDebt !== undefined && usaNation.publicDebt !== null
+            ? Number(usaNation.publicDebt)
+            : 34500000000000,
+      };
+    }
+    if (!usaNation.enactedPolicies) {
+      usaNation.enactedPolicies = cloneDefaultPolicies(usaNation.rulingParty);
+    }
+
     if (!usaNation.constituentStates || usaNation.constituentStates.length === 0) {
       const statesList = [];
       const territoriesList = [];
@@ -426,12 +591,17 @@ export function evaluateSimulation(state) {
 
     nation.marketComputed = Array.from(mMap.values());
 
-    const party = partyMap.get(nation.rulingParty) || defaultParty;
+    const party = resolvePoliticalParty(state.politicalParties, nation.rulingParty);
+
+    // Pre-compute policy progression (using prior inflation/unemployment estimates for macro sentiment nudge)
+    const estInflation = Number(nation.computed?.inflationRate ?? 0.022);
+    const estUnemployment = Number(nation.computed?.unemploymentRate ?? 0.045);
+    const policyProgression = computePolicyProgression(nation, party, estInflation, estUnemployment);
 
     const incomeTax =
       nation.incomeTaxOverride !== undefined && nation.incomeTaxOverride !== null
         ? Number(nation.incomeTaxOverride)
-        : Number(party.incomeTaxPreference ?? 0.25);
+        : Number(party.incomeTaxPreference ?? 0.28);
     const salesTax =
       nation.salesTaxOverride !== undefined && nation.salesTaxOverride !== null
         ? Number(nation.salesTaxOverride)
@@ -439,15 +609,21 @@ export function evaluateSimulation(state) {
     const corporateTax =
       nation.corporateTaxOverride !== undefined && nation.corporateTaxOverride !== null
         ? Number(nation.corporateTaxOverride)
-        : Number(party.corporateTaxRate ?? 0.21);
+        : Number(party.corporateTaxRate ?? 0.25);
     const workerShareOfGdp =
       nation.workerShareOverride !== undefined && nation.workerShareOverride !== null
         ? Number(nation.workerShareOverride)
-        : Number(party.workerShareOfGdp ?? 0.52);
+        : Number(party.workerShareOfGdp ?? 0.55);
     const stateBudgetPercent =
       nation.budgetPercentOverride !== undefined && nation.budgetPercentOverride !== null
         ? Number(nation.budgetPercentOverride)
-        : Number(party.budgetAsPercentOfGdp ?? 0.20);
+        : Math.max(
+            0.06,
+            Math.min(0.60, Number(party.budgetAsPercentOfGdp ?? 0.22) + policyProgression.policyBudgetAdjustmentPct)
+          );
+    const infrastructureInvestmentShare = Number(party.infrastructureInvestmentShare ?? 0.038);
+    const educationGovernanceShare = Number(party.educationGovernanceShare ?? 0.055);
+    const deficitTargetAsPercentOfGdp = Number(party.deficitTargetAsPercentOfGdp ?? -0.032);
 
     const rawLitVal = Number(nation.literacyRate);
     const literacyRate = Math.min(
@@ -522,7 +698,9 @@ export function evaluateSimulation(state) {
       1 +
       (infrastructureEfficiency - 0.82) * 0.65 +
       (literacyRate - 0.92) * 0.45 +
-      (urbanisationIndex - 0.83) * 0.30 -
+      (urbanisationIndex - 0.83) * 0.30 +
+      (infrastructureInvestmentShare - 0.038) * 1.2 +
+      (educationGovernanceShare - 0.055) * 0.6 -
       freightDelayFriction * 0.40;
     const iIdx = Math.max(
       0.35,
@@ -654,10 +832,13 @@ export function evaluateSimulation(state) {
     // Quarterly population growth (~0.19% per quarter = ~0.76% annualized at US baseline)
     const popGrowthRate = Math.max(-0.01, Math.min(0.012, fertilityRate + netImmigrationRate - mortalityRate));
 
-    const incomeTaxRevenue = quarterlyWages * effectiveWorkingPops * incomeTax;
-    const salesTaxRevenue = salesTax * consumerSentiment * effectiveWorkingPops;
-    const corporateTaxRevenue = aggregateGdp * (1 - workerShareOfGdp) * corporateTax;
-    const tariffRevenues = totalExportTariffRevenues + totalImportTariffRevenues;
+    const quarterlyGdp = aggregateGdp / 4;
+    const incomeTaxRevenue = (quarterlyWages * effectiveWorkingPops * incomeTax) / 4;
+    const salesTaxRevenue = (consumptionDollar / 4) * salesTax * 0.65;
+    const corporateTaxRevenue = quarterlyGdp * (1 - workerShareOfGdp) * corporateTax * 0.35;
+    const scaledImportTariffRevenues = totalImportTariffRevenues / 24;
+    const scaledExportTariffRevenues = totalExportTariffRevenues / 24;
+    const tariffRevenues = scaledExportTariffRevenues + scaledImportTariffRevenues;
 
     const stateIncome =
       nation.stateIncome !== undefined
@@ -669,14 +850,32 @@ export function evaluateSimulation(state) {
       nation.stateContributions !== undefined
         ? Number(nation.stateContributions)
         : stateIncome * federalCooperativity;
+
+    const hasBudgetOverride =
+      nation.budgetPercentOverride !== undefined && nation.budgetPercentOverride !== null;
+    const desiredFiscalBalancePct =
+      deficitTargetAsPercentOfGdp - policyProgression.policyBudgetAdjustmentPct;
+    const baselineTariffAnchor = quarterlyGdp * 0.015;
+    const expectedBaselineIncome =
+      incomeTaxRevenue + salesTaxRevenue + corporateTaxRevenue + baselineTariffAnchor;
+    const plannedQuarterlyOutlays = Math.max(
+      quarterlyGdp * 0.08,
+      expectedBaselineIncome * (1 - 0.5 * federalCooperativity) -
+        desiredFiscalBalancePct * quarterlyGdp
+    );
+
     const stateExpenditures =
       nation.stateExpenditures !== undefined
         ? Number(nation.stateExpenditures)
-        : stateBudgetPercent * aggregateGdp + stateContributions;
+        : hasBudgetOverride
+          ? stateBudgetPercent * quarterlyGdp + stateContributions
+          : plannedQuarterlyOutlays + stateContributions;
     const diplomaticExpenses = Number(nation.diplomaticExpenses) || 0;
     const federalContributions = stateContributions * 0.5;
     const netBudgetBalance =
       stateIncome + federalContributions - stateExpenditures + diplomaticExpenses;
+    const fiscalBalancePctOfGdp =
+      quarterlyGdp > 0 ? netBudgetBalance / quarterlyGdp : 0;
     const netTradeBalance = totalExportsValue - totalImportsValue;
 
     const baseInflation =
@@ -788,10 +987,10 @@ export function evaluateSimulation(state) {
       stateBudgetPercent,
       govtDividends: 0,
       tariffRevenues,
-      importTariffRevenues: totalImportTariffRevenues,
-      exportTariffRevenues: totalExportTariffRevenues,
-      totalExportTariffRevenues,
-      totalImportTariffRevenues,
+      importTariffRevenues: scaledImportTariffRevenues,
+      exportTariffRevenues: scaledExportTariffRevenues,
+      totalExportTariffRevenues: scaledExportTariffRevenues,
+      totalImportTariffRevenues: scaledImportTariffRevenues,
       totalExportsValue,
       totalImportsValue,
       netTradeBalance,
@@ -802,6 +1001,34 @@ export function evaluateSimulation(state) {
       stateExpenditures,
       diplomaticExpenses,
       netBudgetBalance,
+      fiscalBalancePctOfGdp,
+      fiscalBalanceAnnualized: netBudgetBalance * 4,
+      partyPreferences: {
+        name: party.name,
+        politicalAlignment: party.politicalAlignment || "",
+        platformSummary: party.platformSummary || "",
+        incomeTaxPreference: incomeTax,
+        corporateTaxRate: corporateTax,
+        salesTaxPreference: salesTax,
+        workerShareOfGdp,
+        infrastructureInvestmentShare,
+        educationGovernanceShare,
+        deficitTargetAsPercentOfGdp,
+        budgetAsPercentOfGdp: Number(party.budgetAsPercentOfGdp ?? 0.22),
+      },
+      policyProgression,
+      enactedPolicies: policyProgression.policies,
+      startingBaseline: nation.startingBaseline || {
+        literacyRate,
+        infrastructureEfficiency,
+        urbanisationIndex,
+        consumerSentiment,
+        kFactorScaler: Number(nation.kFactorScaler ?? 1500),
+        publicDebt:
+          nation.publicDebt !== undefined && nation.publicDebt !== null
+            ? Number(nation.publicDebt)
+            : 34500000000000,
+      },
       treasuryBalance: Number(nation.treasuryBalance) || 0,
       publicDebt:
         nation.publicDebt !== undefined && nation.publicDebt !== null
@@ -854,6 +1081,7 @@ export function evaluateSimulation(state) {
 export function runBudgetAndDividendUpdater(state) {
   evaluateSimulation(state);
 
+  const quarterPlan = [];
   for (const nation of state.nations || []) {
     const c = nation.computed;
     if (!c) continue;
@@ -865,6 +1093,7 @@ export function runBudgetAndDividendUpdater(state) {
     // Quarterly compounding factor from 1-Year GDP Growth Rate: (1 + g_annual / 100)^(1/4)
     const annualMultiplier = Math.max(0.5, 1 + annualGrowthPct / 100);
     const quarterlyTargetMultiplier = Math.pow(annualMultiplier, 0.25);
+    const prevAggregateGdp = Number(c.aggregateGdp) || 1;
 
     const netBudget = Number(c.netBudgetBalance) || 0;
     const prevTreasury = Number(nation.treasuryBalance) || 0;
@@ -879,6 +1108,36 @@ export function runBudgetAndDividendUpdater(state) {
     const nuevoDebt = Math.max(0, prevDebt - netBudget);
     nation.publicDebt = Number.isNaN(nuevoDebt) ? prevDebt : nuevoDebt;
 
+    // Progress good-governance structural metrics based on enacted policy mix & funding tiers
+    const party = resolvePoliticalParty(state.politicalParties, nation.rulingParty);
+    const prog = computePolicyProgression(
+      nation,
+      party,
+      Number(c.inflationRate ?? 0.022),
+      Number(c.unemploymentRate ?? 0.045)
+    );
+    const currLit = normalizeRateMetric(nation.literacyRate ?? c.literacyRate, 0.92);
+    const currInfra = normalizeRateMetric(
+      nation.infrastructureEfficiency ?? c.infrastructureEfficiency,
+      0.82
+    );
+    const currUrb = normalizeRateMetric(nation.urbanisationIndex ?? c.urbanisationIndex, 0.83);
+    const currSent = Math.max(1, Number(nation.consumerSentiment ?? c.consumerConfidence ?? 65));
+    const currKFactor = Math.max(400, Number(nation.kFactorScaler ?? 1500));
+
+    nation.literacyRate = Number(Math.min(0.999, Math.max(0.40, currLit + prog.literacyDelta)).toFixed(4));
+    nation.infrastructureEfficiency = Number(
+      Math.min(0.999, Math.max(0.35, currInfra + prog.infrastructureDelta)).toFixed(4)
+    );
+    nation.urbanisationIndex = Number(
+      Math.min(0.999, Math.max(0.35, currUrb + prog.urbanisationDelta)).toFixed(4)
+    );
+    nation.consumerSentiment = Number(
+      Math.min(115, Math.max(20, currSent + prog.sentimentDelta)).toFixed(2)
+    );
+    nation.kFactorScaler = Math.round(Math.min(3500, Math.max(600, currKFactor + prog.tfpDelta)));
+    nation.enactedPolicies = prog.policies;
+
     const basePops =
       !state.strictSheetQuirks && nation.workingPops < c.totalEmployed
         ? c.effectiveWorkingPops
@@ -889,14 +1148,25 @@ export function runBudgetAndDividendUpdater(state) {
       Number.isNaN(rawNuevoPops) || rawNuevoPops <= 30 ? 1000000 : Math.round(rawNuevoPops);
     nation.workingPops = roundedNuevoPops;
 
-    // Adjust cumulativeGrowthFactor so (workingPops * cumulativeGrowthFactor) compounds by exactly quarterlyTargetMultiplier
-    const actualPopRatio = basePops > 0 ? roundedNuevoPops / basePops : 1 + popGrowth;
+    quarterPlan.push({
+      nation,
+      prevAggregateGdp,
+      quarterlyTargetMultiplier,
+    });
+  }
+
+  // Re-evaluate post-progression GDP so cumulativeGrowthFactor calibrates cleanly against target growth
+  evaluateSimulation(state);
+  for (const item of quarterPlan) {
+    const postGdp = Number(item.nation.computed?.aggregateGdp) || item.prevAggregateGdp;
+    const impliedScaleRatio = postGdp > 0 ? postGdp / item.prevAggregateGdp : 1;
     const prevCumFactor =
-      Number.isFinite(Number(nation.cumulativeGrowthFactor)) && Number(nation.cumulativeGrowthFactor) > 0
-        ? Number(nation.cumulativeGrowthFactor)
+      Number.isFinite(Number(item.nation.cumulativeGrowthFactor)) &&
+      Number(item.nation.cumulativeGrowthFactor) > 0
+        ? Number(item.nation.cumulativeGrowthFactor)
         : 1.0;
-    nation.cumulativeGrowthFactor =
-      prevCumFactor * (quarterlyTargetMultiplier / Math.max(0.5, actualPopRatio));
+    item.nation.cumulativeGrowthFactor =
+      prevCumFactor * (item.quarterlyTargetMultiplier / Math.max(0.5, impliedScaleRatio));
   }
 
   evaluateSimulation(state);

@@ -16,54 +16,177 @@
     {
       "nation": "USA",
       "name": "Democratic",
-      "currentSupport": 0.48,
+      "currentSupport": 0.45,
       "incomeTaxPreference": 0.28,
       "salesTaxPreference": 0.06,
       "corporateTaxRate": 0.25,
       "workerShareOfGdp": 0.55,
+      "infrastructureInvestmentShare": 0.038,
+      "educationGovernanceShare": 0.055,
+      "deficitTargetAsPercentOfGdp": -0.032,
       "budgetAsPercentOfGdp": 0.22,
       "localCrimePolicy": "Beat Cops",
       "healthcarePolicy": "Subsidized Healthcare",
-      "politicalAlignment": "Centre-Left"
+      "politicalAlignment": "Centre-Left",
+      "platformSummary": "Progressive taxation, targeted infrastructure & STEM investment, and expanded social safety nets with moderate deficits.",
+      "defaultPolicies": {
+        "education": {
+          "enacted": true,
+          "funding": "priority"
+        },
+        "infrastructure": {
+          "enacted": true,
+          "funding": "priority"
+        },
+        "innovation": {
+          "enacted": true,
+          "funding": "standard"
+        },
+        "governance": {
+          "enacted": true,
+          "funding": "priority"
+        }
+      }
     },
     {
       "nation": "USA",
       "name": "Republican",
-      "currentSupport": 0.48,
+      "currentSupport": 0.45,
       "incomeTaxPreference": 0.21,
       "salesTaxPreference": 0.08,
       "corporateTaxRate": 0.17,
       "workerShareOfGdp": 0.48,
+      "infrastructureInvestmentShare": 0.028,
+      "educationGovernanceShare": 0.042,
+      "deficitTargetAsPercentOfGdp": -0.024,
       "budgetAsPercentOfGdp": 0.18,
       "localCrimePolicy": "Profiling",
       "healthcarePolicy": "Private Healthcare",
-      "politicalAlignment": "Centre-Right"
+      "politicalAlignment": "Centre-Right",
+      "platformSummary": "Lower income and corporate taxes to incentivize private investment, higher consumption reliance, and restrained social outlays.",
+      "defaultPolicies": {
+        "education": {
+          "enacted": true,
+          "funding": "standard"
+        },
+        "infrastructure": {
+          "enacted": true,
+          "funding": "standard"
+        },
+        "innovation": {
+          "enacted": true,
+          "funding": "priority"
+        },
+        "governance": {
+          "enacted": true,
+          "funding": "standard"
+        }
+      }
     },
     {
       "nation": "USA",
-      "name": "Libertarian",
-      "currentSupport": 0.02,
+      "name": "Progressive Labor",
+      "currentSupport": 0.04,
+      "incomeTaxPreference": 0.35,
+      "salesTaxPreference": 0.05,
+      "corporateTaxRate": 0.32,
+      "workerShareOfGdp": 0.62,
+      "infrastructureInvestmentShare": 0.048,
+      "educationGovernanceShare": 0.07,
+      "deficitTargetAsPercentOfGdp": -0.045,
+      "budgetAsPercentOfGdp": 0.26,
+      "localCrimePolicy": "Gentle Touch",
+      "healthcarePolicy": "State-run Healthcare",
+      "politicalAlignment": "Progressive",
+      "platformSummary": "High top-end & corporate taxes funding landmark public education, green infrastructure, and universal public services.",
+      "defaultPolicies": {
+        "education": {
+          "enacted": true,
+          "funding": "landmark"
+        },
+        "infrastructure": {
+          "enacted": true,
+          "funding": "landmark"
+        },
+        "innovation": {
+          "enacted": true,
+          "funding": "priority"
+        },
+        "governance": {
+          "enacted": true,
+          "funding": "landmark"
+        }
+      }
+    },
+    {
+      "nation": "USA",
+      "name": "Libertarian Free-Market",
+      "currentSupport": 0.03,
       "incomeTaxPreference": 0.1,
       "salesTaxPreference": 0.05,
       "corporateTaxRate": 0.1,
       "workerShareOfGdp": 0.5,
+      "infrastructureInvestmentShare": 0.016,
+      "educationGovernanceShare": 0.025,
+      "deficitTargetAsPercentOfGdp": 0.01,
       "budgetAsPercentOfGdp": 0.12,
       "localCrimePolicy": "Gentle Touch",
       "healthcarePolicy": "Private Healthcare",
-      "politicalAlignment": "Libertarian"
+      "politicalAlignment": "Libertarian",
+      "platformSummary": "Minimal federal taxation, strict fiscal surplus targeting debt paydown, and deregulation over federally funded programs.",
+      "defaultPolicies": {
+        "education": {
+          "enacted": false,
+          "funding": "underfunded"
+        },
+        "infrastructure": {
+          "enacted": true,
+          "funding": "underfunded"
+        },
+        "innovation": {
+          "enacted": true,
+          "funding": "standard"
+        },
+        "governance": {
+          "enacted": false,
+          "funding": "underfunded"
+        }
+      }
     },
     {
       "nation": "USA",
-      "name": "Green",
-      "currentSupport": 0.02,
-      "incomeTaxPreference": 0.35,
-      "salesTaxPreference": 0.08,
-      "corporateTaxRate": 0.32,
-      "workerShareOfGdp": 0.62,
-      "budgetAsPercentOfGdp": 0.26,
-      "localCrimePolicy": "Gentle Touch",
-      "healthcarePolicy": "State-run Healthcare",
-      "politicalAlignment": "Progressive"
+      "name": "Centrist Technocrats",
+      "currentSupport": 0.03,
+      "incomeTaxPreference": 0.24,
+      "salesTaxPreference": 0.06,
+      "corporateTaxRate": 0.2,
+      "workerShareOfGdp": 0.53,
+      "infrastructureInvestmentShare": 0.042,
+      "educationGovernanceShare": 0.06,
+      "deficitTargetAsPercentOfGdp": -0.01,
+      "budgetAsPercentOfGdp": 0.2,
+      "localCrimePolicy": "Beat Cops",
+      "healthcarePolicy": "Subsidized Healthcare",
+      "politicalAlignment": "Centrist",
+      "platformSummary": "Near-balanced budgets paired with evidence-based capital investment into R&D, grid infrastructure, and workforce STEM training.",
+      "defaultPolicies": {
+        "education": {
+          "enacted": true,
+          "funding": "priority"
+        },
+        "infrastructure": {
+          "enacted": true,
+          "funding": "priority"
+        },
+        "innovation": {
+          "enacted": true,
+          "funding": "landmark"
+        },
+        "governance": {
+          "enacted": true,
+          "funding": "standard"
+        }
+      }
     }
   ],
   "sectorsConfig": [
@@ -874,7 +997,7 @@
       "publicDebt": 34500000000000,
       "specializedIndustry": "No Specialization",
       "crimePolicy": "Beat Cops",
-      "healthcarePolicy": "Private Healthcare",
+      "healthcarePolicy": "Subsidized Healthcare",
       "highImmigration": true,
       "companies": [],
       "constituentStates": [
@@ -4017,6 +4140,33 @@
             "population_growth": 1.464,
             "development_tier": -0.977
           }
+        }
+      },
+      "centralBankRate": 0.045,
+      "startingBaseline": {
+        "literacyRate": 0.92,
+        "infrastructureEfficiency": 0.82,
+        "urbanisationIndex": 0.83,
+        "consumerSentiment": 65,
+        "kFactorScaler": 1500,
+        "publicDebt": 34500000000000
+      },
+      "enactedPolicies": {
+        "education": {
+          "enacted": true,
+          "funding": "priority"
+        },
+        "infrastructure": {
+          "enacted": true,
+          "funding": "priority"
+        },
+        "innovation": {
+          "enacted": true,
+          "funding": "standard"
+        },
+        "governance": {
+          "enacted": true,
+          "funding": "priority"
         }
       }
     }

@@ -76,6 +76,223 @@ export const SIMPLIFIED_60_GOODS = [
   { id: 60, name: "Controlled & Illicit Goods", sector: "Hospitality & Tourist Services GDP", era: "Wooden Tools", basePrice: 3200, inputs: ["Chemicals & Explosives", "Water"] }
 ];
 
+export const FUNDING_TIERS = {
+  underfunded: {
+    id: "underfunded",
+    label: "Underfunded",
+    budgetCostPct: -0.004,
+    tierScore: 0,
+  },
+  standard: {
+    id: "standard",
+    label: "Standard",
+    budgetCostPct: 0.0,
+    tierScore: 1,
+  },
+  priority: {
+    id: "priority",
+    label: "Priority",
+    budgetCostPct: 0.005,
+    tierScore: 2,
+  },
+  landmark: {
+    id: "landmark",
+    label: "Landmark",
+    budgetCostPct: 0.011,
+    tierScore: 3,
+  },
+};
+
+export const POLICY_CATALOG = [
+  {
+    id: "education",
+    name: "Public Education & STEM Workforce Act",
+    shortName: "Education & STEM",
+    drives: ["Workforce Literacy & Education Rate", "Total Factor Productivity"],
+    description:
+      "Federal funding for K-12 schools, Pell grants, vocational apprenticeships, and STEM university pipelines.",
+  },
+  {
+    id: "infrastructure",
+    name: "National Infrastructure & Logistics Act",
+    shortName: "Infrastructure & Grid",
+    drives: ["Infrastructure & Logistics Efficiency", "Urban Agglomeration Rate"],
+    description:
+      "Capital investment in interstate highways, deepwater ports, freight rail, and grid transmission.",
+  },
+  {
+    id: "innovation",
+    name: "Science, R&D & Industrial Innovation Act",
+    shortName: "Science & R&D",
+    drives: ["Total Factor Productivity (K-Factor)", "4-Sector Productivity"],
+    description:
+      "CHIPS, DARPA, NSF basic research grants, and advanced manufacturing capital incentives.",
+  },
+  {
+    id: "governance",
+    name: "Civic Governance & Healthcare Act",
+    shortName: "Governance & Health",
+    drives: ["Household Consumer Sentiment", "Urban Agglomeration Rate", "Standard of Living"],
+    description:
+      "Public safety modernization, healthcare access, and municipal administrative reliability.",
+  },
+];
+
+export const DEFAULT_POLITICAL_PARTIES = [
+  {
+    nation: "USA",
+    name: "Democratic",
+    currentSupport: 0.45,
+    incomeTaxPreference: 0.28,
+    salesTaxPreference: 0.06,
+    corporateTaxRate: 0.25,
+    workerShareOfGdp: 0.55,
+    infrastructureInvestmentShare: 0.038,
+    educationGovernanceShare: 0.055,
+    deficitTargetAsPercentOfGdp: -0.032,
+    budgetAsPercentOfGdp: 0.22,
+    localCrimePolicy: "Beat Cops",
+    healthcarePolicy: "Subsidized Healthcare",
+    politicalAlignment: "Centre-Left",
+    platformSummary:
+      "Progressive taxation, targeted infrastructure & STEM investment, and expanded social safety nets with moderate deficits.",
+    defaultPolicies: {
+      education: { enacted: true, funding: "priority" },
+      infrastructure: { enacted: true, funding: "priority" },
+      innovation: { enacted: true, funding: "standard" },
+      governance: { enacted: true, funding: "priority" },
+    },
+  },
+  {
+    nation: "USA",
+    name: "Republican",
+    currentSupport: 0.45,
+    incomeTaxPreference: 0.21,
+    salesTaxPreference: 0.08,
+    corporateTaxRate: 0.17,
+    workerShareOfGdp: 0.48,
+    infrastructureInvestmentShare: 0.028,
+    educationGovernanceShare: 0.042,
+    deficitTargetAsPercentOfGdp: -0.024,
+    budgetAsPercentOfGdp: 0.18,
+    localCrimePolicy: "Profiling",
+    healthcarePolicy: "Private Healthcare",
+    politicalAlignment: "Centre-Right",
+    platformSummary:
+      "Lower income and corporate taxes to incentivize private investment, higher consumption reliance, and restrained social outlays.",
+    defaultPolicies: {
+      education: { enacted: true, funding: "standard" },
+      infrastructure: { enacted: true, funding: "standard" },
+      innovation: { enacted: true, funding: "priority" },
+      governance: { enacted: true, funding: "standard" },
+    },
+  },
+  {
+    nation: "USA",
+    name: "Progressive Labor",
+    currentSupport: 0.04,
+    incomeTaxPreference: 0.35,
+    salesTaxPreference: 0.05,
+    corporateTaxRate: 0.32,
+    workerShareOfGdp: 0.62,
+    infrastructureInvestmentShare: 0.048,
+    educationGovernanceShare: 0.070,
+    deficitTargetAsPercentOfGdp: -0.045,
+    budgetAsPercentOfGdp: 0.26,
+    localCrimePolicy: "Gentle Touch",
+    healthcarePolicy: "State-run Healthcare",
+    politicalAlignment: "Progressive",
+    platformSummary:
+      "High top-end & corporate taxes funding landmark public education, green infrastructure, and universal public services.",
+    defaultPolicies: {
+      education: { enacted: true, funding: "landmark" },
+      infrastructure: { enacted: true, funding: "landmark" },
+      innovation: { enacted: true, funding: "priority" },
+      governance: { enacted: true, funding: "landmark" },
+    },
+  },
+  {
+    nation: "USA",
+    name: "Libertarian Free-Market",
+    currentSupport: 0.03,
+    incomeTaxPreference: 0.10,
+    salesTaxPreference: 0.05,
+    corporateTaxRate: 0.10,
+    workerShareOfGdp: 0.50,
+    infrastructureInvestmentShare: 0.016,
+    educationGovernanceShare: 0.025,
+    deficitTargetAsPercentOfGdp: 0.010,
+    budgetAsPercentOfGdp: 0.12,
+    localCrimePolicy: "Gentle Touch",
+    healthcarePolicy: "Private Healthcare",
+    politicalAlignment: "Libertarian",
+    platformSummary:
+      "Minimal federal taxation, strict fiscal surplus targeting debt paydown, and deregulation over federally funded programs.",
+    defaultPolicies: {
+      education: { enacted: false, funding: "underfunded" },
+      infrastructure: { enacted: true, funding: "underfunded" },
+      innovation: { enacted: true, funding: "standard" },
+      governance: { enacted: false, funding: "underfunded" },
+    },
+  },
+  {
+    nation: "USA",
+    name: "Centrist Technocrats",
+    currentSupport: 0.03,
+    incomeTaxPreference: 0.24,
+    salesTaxPreference: 0.06,
+    corporateTaxRate: 0.20,
+    workerShareOfGdp: 0.53,
+    infrastructureInvestmentShare: 0.042,
+    educationGovernanceShare: 0.060,
+    deficitTargetAsPercentOfGdp: -0.010,
+    budgetAsPercentOfGdp: 0.20,
+    localCrimePolicy: "Beat Cops",
+    healthcarePolicy: "Subsidized Healthcare",
+    politicalAlignment: "Centrist",
+    platformSummary:
+      "Near-balanced budgets paired with evidence-based capital investment into R&D, grid infrastructure, and workforce STEM training.",
+    defaultPolicies: {
+      education: { enacted: true, funding: "priority" },
+      infrastructure: { enacted: true, funding: "priority" },
+      innovation: { enacted: true, funding: "landmark" },
+      governance: { enacted: true, funding: "standard" },
+    },
+  },
+];
+
+export const PARTY_NAME_ALIASES = {
+  Green: "Progressive Labor",
+  Libertarian: "Libertarian Free-Market",
+};
+
+export function resolvePoliticalParty(partiesList, partyName) {
+  const list =
+    Array.isArray(partiesList) && partiesList.length > 0
+      ? partiesList
+      : DEFAULT_POLITICAL_PARTIES;
+  const canonicalName = PARTY_NAME_ALIASES[partyName] || partyName || "Democratic";
+  const found =
+    list.find((p) => p.name === canonicalName) ||
+    DEFAULT_POLITICAL_PARTIES.find((p) => p.name === canonicalName) ||
+    list.find((p) => p.name === partyName);
+  const template =
+    DEFAULT_POLITICAL_PARTIES.find((p) => p.name === canonicalName) ||
+    DEFAULT_POLITICAL_PARTIES[0];
+  return found ? { ...template, ...found } : template;
+}
+
+export function cloneDefaultPolicies(partyName = "Democratic") {
+  const party = resolvePoliticalParty(DEFAULT_POLITICAL_PARTIES, partyName);
+  const src = party.defaultPolicies || DEFAULT_POLITICAL_PARTIES[0].defaultPolicies;
+  return {
+    education: { ...src.education },
+    infrastructure: { ...src.infrastructure },
+    innovation: { ...src.innovation },
+    governance: { ...src.governance },
+  };
+}
+
 export function buildSimplifiedSeed(originalSeed = {}) {
   const constituentStates = [];
   const unincorporatedTerritories = [];
@@ -122,6 +339,8 @@ export function buildSimplifiedSeed(originalSeed = {}) {
     };
   });
 
+  const rulingParty = "Democratic";
+
   return {
     timeManager: originalSeed.timeManager || {
       intervalDaysPerHour: 90,
@@ -132,60 +351,15 @@ export function buildSimplifiedSeed(originalSeed = {}) {
       nextPaymentDate: "2025-04-01",
       isLive: false,
     },
-    politicalParties: originalSeed.politicalParties || [
-      {
-        nation: "USA",
-        name: "Democratic",
-        currentSupport: 0.48,
-        incomeTaxPreference: 0.28,
-        salesTaxPreference: 0.06,
-        corporateTaxRate: 0.25,
-        workerShareOfGdp: 0.55,
-        budgetAsPercentOfGdp: 0.22,
-        localCrimePolicy: "Beat Cops",
-        healthcarePolicy: "Subsidized Healthcare",
-        politicalAlignment: "Centre-Left",
+    politicalParties: DEFAULT_POLITICAL_PARTIES.map((p) => ({
+      ...p,
+      defaultPolicies: {
+        education: { ...p.defaultPolicies.education },
+        infrastructure: { ...p.defaultPolicies.infrastructure },
+        innovation: { ...p.defaultPolicies.innovation },
+        governance: { ...p.defaultPolicies.governance },
       },
-      {
-        nation: "USA",
-        name: "Republican",
-        currentSupport: 0.48,
-        incomeTaxPreference: 0.21,
-        salesTaxPreference: 0.08,
-        corporateTaxRate: 0.17,
-        workerShareOfGdp: 0.48,
-        budgetAsPercentOfGdp: 0.18,
-        localCrimePolicy: "Profiling",
-        healthcarePolicy: "Private Healthcare",
-        politicalAlignment: "Centre-Right",
-      },
-      {
-        nation: "USA",
-        name: "Libertarian",
-        currentSupport: 0.02,
-        incomeTaxPreference: 0.10,
-        salesTaxPreference: 0.05,
-        corporateTaxRate: 0.10,
-        workerShareOfGdp: 0.50,
-        budgetAsPercentOfGdp: 0.12,
-        localCrimePolicy: "Gentle Touch",
-        healthcarePolicy: "Private Healthcare",
-        politicalAlignment: "Libertarian",
-      },
-      {
-        nation: "USA",
-        name: "Green",
-        currentSupport: 0.02,
-        incomeTaxPreference: 0.35,
-        salesTaxPreference: 0.08,
-        corporateTaxRate: 0.32,
-        workerShareOfGdp: 0.62,
-        budgetAsPercentOfGdp: 0.26,
-        localCrimePolicy: "Gentle Touch",
-        healthcarePolicy: "State-run Healthcare",
-        politicalAlignment: "Progressive",
-      },
-    ],
+    })),
     sectorsConfig: originalSeed.sectorsConfig || [
       { name: "Agricultural Sector GDP", sentiment: 55, kFactorBonus: 0.3, cbpf: 0 },
       { name: "Industry & Manufacturing GDP", sentiment: 80, kFactorBonus: 0.7, cbpf: 0 },
@@ -226,14 +400,24 @@ export function buildSimplifiedSeed(originalSeed = {}) {
         literacyRate: 0.92,
         urbanisationIndex: 0.83,
         infrastructureEfficiency: 0.82,
-        rulingParty: "Democratic",
+        centralBankRate: 0.045,
+        rulingParty,
+        startingBaseline: {
+          literacyRate: 0.92,
+          infrastructureEfficiency: 0.82,
+          urbanisationIndex: 0.83,
+          consumerSentiment: 65,
+          kFactorScaler: 1500,
+          publicDebt: 34500000000000,
+        },
+        enactedPolicies: cloneDefaultPolicies(rulingParty),
         federalCooperativity: 0.1,
         diplomaticExpenses: 0,
         treasuryBalance: 850000000000,
         publicDebt: 34500000000000,
         specializedIndustry: "No Specialization",
         crimePolicy: "Beat Cops",
-        healthcarePolicy: "Private Healthcare",
+        healthcarePolicy: "Subsidized Healthcare",
         highImmigration: true,
         companies: [],
         constituentStates,

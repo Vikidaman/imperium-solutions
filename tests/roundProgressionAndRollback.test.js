@@ -5,7 +5,11 @@ import {
   evaluateSimulation,
   runBudgetAndDividendUpdater,
 } from "../server/engine.js";
-import { buildSimplifiedSeed } from "../server/simplifiedSeedConfig.js";
+import {
+  buildSimplifiedSeed,
+  DEFAULT_POLITICAL_PARTIES,
+  cloneDefaultPolicies,
+} from "../server/simplifiedSeedConfig.js";
 
 describe("Round Progression and United States Simulation Mechanics", () => {
   function createBaseState() {
@@ -168,6 +172,102 @@ describe("Round Progression and United States Simulation Mechanics", () => {
     assert.ok(
       stimUsa.computed.forecast.finalGrowth > baseGrowth,
       "Pro-demand fiscal and infrastructure expansion must increase projected 1-Year GDP growth rate"
+    );
+  });
+
+  it("applies political party preferences for taxes, infrastructure investment, and deficit/surplus targets", () => {
+    const snapshots = {};
+    for (const party of DEFAULT_POLITICAL_PARTIES) {
+      const seed = buildSimplifiedSeed();
+      const usa = seed.nations[0];
+      usa.rulingParty = party.name;
+      usa.enactedPolicies = cloneDefaultPolicies(party.name);
+      evaluateSimulation(seed);
+      const c = usa.computed;
+      snapshots[party.name] = {
+        incomeTax: c.incomeTax,
+        corporateTax: c.corporateTax,
+        salesTax: c.salesTax,
+        infraShare: c.partyPreferences.infrastructureInvestmentShare,
+        fiscalBalancePctOfGdp: c.fiscalBalancePctOfGdp,
+      };
+      assert.strictEqual(c.incomeTax, party.incomeTaxPreference);
+      assert.strictEqual(c.corporateTax, party.corporateTaxRate);
+      assert.strictEqual(c.salesTax, party.salesTaxPreference);
+      assert.strictEqual(c.partyPreferences.infrastructureInvestmentShare, party.infrastructureInvestmentShare);
+    }
+
+    assert.ok(
+      snapshots["Libertarian Free-Market"].fiscalBalancePctOfGdp > 0,
+      "Libertarian Free-Market platform should run a fiscal surplus (% of GDP)"
+    );
+    assert.ok(
+      snapshots["Progressive Labor"].fiscalBalancePctOfGdp < snapshots["Democratic"].fiscalBalancePctOfGdp,
+      "Progressive Labor should run a wider fiscal deficit than Democratic"
+    );
+    assert.ok(
+      snapshots["Democratic"].fiscalBalancePctOfGdp < 0 && snapshots["Republican"].fiscalBalancePctOfGdp < 0,
+      "Democratic and Republican platforms should run calibrated fiscal deficits"
+    );
+    assert.ok(
+      snapshots["Progressive Labor"].infraShare > snapshots["Libertarian Free-Market"].infraShare,
+      "Progressive Labor should allocate higher infrastructure investment (% of GDP) than Libertarian Free-Market"
+    );
+  });
+
+  it("progresses governance indicators from Q1 starting baseline through policy enactment and funding", () => {
+    const landmarkSeed = buildSimplifiedSeed();
+    const landmarkUsa = landmarkSeed.nations[0];
+    landmarkUsa.enactedPolicies = {
+      education: { enacted: true, funding: "landmark" },
+      infrastructure: { enacted: true, funding: "landmark" },
+      innovation: { enacted: true, funding: "landmark" },
+      governance: { enacted: true, funding: "landmark" },
+    };
+    evaluateSimulation(landmarkSeed);
+    const landmarkBaseBal = landmarkUsa.computed.fiscalBalancePctOfGdp;
+
+    const repealedSeed = buildSimplifiedSeed();
+    const repealedUsa = repealedSeed.nations[0];
+    repealedUsa.enactedPolicies = {
+      education: { enacted: false, funding: "underfunded" },
+      infrastructure: { enacted: false, funding: "underfunded" },
+      innovation: { enacted: false, funding: "underfunded" },
+      governance: { enacted: false, funding: "underfunded" },
+    };
+    evaluateSimulation(repealedSeed);
+    const repealedBaseBal = repealedUsa.computed.fiscalBalancePctOfGdp;
+
+    // Landmark funding should cost more (wider deficit) than repealing all acts
+    assert.ok(
+      landmarkBaseBal < repealedBaseBal,
+      `Landmark package fiscal balance (${landmarkBaseBal}) must be lower than repealed package (${repealedBaseBal})`
+    );
+
+    // Advance 4 quarters (1 full year)
+    advanceSimulationTime(landmarkSeed, 360);
+    advanceSimulationTime(repealedSeed, 360);
+
+    // Starting baseline preserves Q1 starting point
+    assert.strictEqual(landmarkUsa.startingBaseline.literacyRate, 0.92);
+    assert.strictEqual(landmarkUsa.startingBaseline.infrastructureEfficiency, 0.82);
+
+    // Landmark acts grow all 5 governance metrics vs Q1 start & vs repealed acts
+    assert.ok(landmarkUsa.literacyRate > 0.92);
+    assert.ok(landmarkUsa.infrastructureEfficiency > 0.82);
+    assert.ok(landmarkUsa.urbanisationIndex > 0.83);
+    assert.ok(landmarkUsa.consumerSentiment > 65);
+    assert.ok(landmarkUsa.kFactorScaler > 1500);
+
+    assert.ok(repealedUsa.literacyRate < 0.92);
+    assert.ok(repealedUsa.infrastructureEfficiency < 0.82);
+    assert.ok(repealedUsa.urbanisationIndex < 0.83);
+    assert.ok(repealedUsa.consumerSentiment < 65);
+    assert.ok(repealedUsa.kFactorScaler < 1500);
+
+    assert.ok(
+      landmarkUsa.computed.forecast.finalGrowth > repealedUsa.computed.forecast.finalGrowth,
+      "Sustained landmark governance & innovation investment should yield stronger long-run GDP growth outlook"
     );
   });
 });

@@ -586,6 +586,8 @@ app.patch("/api/sessions/:id/nations/:nationId", (req, res) => {
     "urbanisationIndex",
     "infrastructureEfficiency",
     "rulingParty",
+    "enactedPolicies",
+    "startingBaseline",
     "federalCooperativity",
     "diplomaticExpenses",
     "treasuryBalance",
