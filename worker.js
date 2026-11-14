@@ -745,6 +745,8 @@ export default {
             "urbanisationIndex",
             "infrastructureEfficiency",
             "rulingParty",
+            "enactedPolicies",
+            "startingBaseline",
             "federalCooperativity",
             "diplomaticExpenses",
             "treasuryBalance",

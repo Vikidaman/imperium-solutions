@@ -22,7 +22,9 @@ export default function MarketsAndTechView({
   onUpdateMarket,
   onUpdateCompanion,
   initialSubTab = "supplychain",
+  isReadOnly = false,
 }) {
+  const canEdit = !isReadOnly;
   const [subTab, setSubTab] = useState(
     initialSubTab === "tech" ? "tech" : "supplychain"
   );
@@ -248,7 +250,7 @@ export default function MarketsAndTechView({
               <div className="lg:col-span-5 bg-slate-950/70 border border-slate-800 rounded-xl p-4 space-y-3.5 text-xs">
                 <div className="flex items-center justify-between border-b border-slate-800 pb-2.5">
                   <span className="font-bold uppercase tracking-wider text-amber-400">
-                    {activeGood.goodName} US Policy Levers
+                    {activeGood.goodName} {canEdit ? "US Policy Levers" : "Market Policy Profile"}
                   </span>
                   <span className="font-mono-num text-slate-400">
                     World Benchmark:{" "}
@@ -259,7 +261,7 @@ export default function MarketsAndTechView({
                   </span>
                 </div>
 
-                {/* Sliders for Import Tariff, Export Tariff, Domestic Demand, Hype */}
+                {/* Sliders (Director) / Read-Only Bars (Spectator) for Import Tariff, Export Tariff, Domestic Demand, Hype */}
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <div className="flex justify-between mb-1">
@@ -268,21 +270,30 @@ export default function MarketsAndTechView({
                         {formatPercent(activeGood.importTariffRate || 0, 0)}
                       </span>
                     </div>
-                    <BufferedRangeSlider
-                      min="0"
-                      max="1.5"
-                      step="0.05"
-                      value={activeGood.importTariffRate || 0}
-                      onChangeCommitted={(val) =>
-                        onUpdateMarket(nation.id, {
-                          goodName: activeGood.goodName,
-                          updates: {
-                            importTariffRate: val,
-                          },
-                        })
-                      }
-                      className="w-full accent-amber-400 cursor-pointer"
-                    />
+                    {canEdit ? (
+                      <BufferedRangeSlider
+                        min="0"
+                        max="1.5"
+                        step="0.05"
+                        value={activeGood.importTariffRate || 0}
+                        onChangeCommitted={(val) =>
+                          onUpdateMarket(nation.id, {
+                            goodName: activeGood.goodName,
+                            updates: {
+                              importTariffRate: val,
+                            },
+                          })
+                        }
+                        className="w-full accent-amber-400 cursor-pointer"
+                      />
+                    ) : (
+                      <div className="w-full h-1.5 bg-slate-900 rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-amber-400/80"
+                          style={{ width: `${Math.min(100, ((activeGood.importTariffRate || 0) / 1.5) * 100)}%` }}
+                        />
+                      </div>
+                    )}
                   </div>
 
                   <div>
@@ -292,21 +303,30 @@ export default function MarketsAndTechView({
                         {formatPercent(activeGood.exportTariffRate || 0, 0)}
                       </span>
                     </div>
-                    <BufferedRangeSlider
-                      min="0"
-                      max="1.5"
-                      step="0.05"
-                      value={activeGood.exportTariffRate || 0}
-                      onChangeCommitted={(val) =>
-                        onUpdateMarket(nation.id, {
-                          goodName: activeGood.goodName,
-                          updates: {
-                            exportTariffRate: val,
-                          },
-                        })
-                      }
-                      className="w-full accent-cyan-400 cursor-pointer"
-                    />
+                    {canEdit ? (
+                      <BufferedRangeSlider
+                        min="0"
+                        max="1.5"
+                        step="0.05"
+                        value={activeGood.exportTariffRate || 0}
+                        onChangeCommitted={(val) =>
+                          onUpdateMarket(nation.id, {
+                            goodName: activeGood.goodName,
+                            updates: {
+                              exportTariffRate: val,
+                            },
+                          })
+                        }
+                        className="w-full accent-cyan-400 cursor-pointer"
+                      />
+                    ) : (
+                      <div className="w-full h-1.5 bg-slate-900 rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-cyan-400/80"
+                          style={{ width: `${Math.min(100, ((activeGood.exportTariffRate || 0) / 1.5) * 100)}%` }}
+                        />
+                      </div>
+                    )}
                   </div>
 
                   <div>
@@ -316,21 +336,30 @@ export default function MarketsAndTechView({
                         {Number(activeGood.ddMultiplier || 1).toFixed(2)}x
                       </span>
                     </div>
-                    <BufferedRangeSlider
-                      min="0.2"
-                      max="3.0"
-                      step="0.05"
-                      value={activeGood.ddMultiplier || 1}
-                      onChangeCommitted={(val) =>
-                        onUpdateMarket(nation.id, {
-                          goodName: activeGood.goodName,
-                          updates: {
-                            ddMultiplier: val,
-                          },
-                        })
-                      }
-                      className="w-full accent-emerald-400 cursor-pointer"
-                    />
+                    {canEdit ? (
+                      <BufferedRangeSlider
+                        min="0.2"
+                        max="3.0"
+                        step="0.05"
+                        value={activeGood.ddMultiplier || 1}
+                        onChangeCommitted={(val) =>
+                          onUpdateMarket(nation.id, {
+                            goodName: activeGood.goodName,
+                            updates: {
+                              ddMultiplier: val,
+                            },
+                          })
+                        }
+                        className="w-full accent-emerald-400 cursor-pointer"
+                      />
+                    ) : (
+                      <div className="w-full h-1.5 bg-slate-900 rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-emerald-400/80"
+                          style={{ width: `${Math.min(100, (((activeGood.ddMultiplier || 1) - 0.2) / 2.8) * 100)}%` }}
+                        />
+                      </div>
+                    )}
                   </div>
 
                   <div>
@@ -340,45 +369,70 @@ export default function MarketsAndTechView({
                         {activeGood.hype ?? 50}
                       </span>
                     </div>
-                    <BufferedRangeSlider
-                      min="5"
-                      max="100"
-                      step="1"
-                      value={activeGood.hype ?? 50}
-                      onChangeCommitted={(val) =>
-                        onUpdateMarket(nation.id, {
-                          goodName: activeGood.goodName,
-                          updates: {
-                            hype: val,
-                          },
-                        })
-                      }
-                      className="w-full accent-purple-400 cursor-pointer"
-                    />
+                    {canEdit ? (
+                      <BufferedRangeSlider
+                        min="5"
+                        max="100"
+                        step="1"
+                        value={activeGood.hype ?? 50}
+                        onChangeCommitted={(val) =>
+                          onUpdateMarket(nation.id, {
+                            goodName: activeGood.goodName,
+                            updates: {
+                              hype: val,
+                            },
+                          })
+                        }
+                        className="w-full accent-purple-400 cursor-pointer"
+                      />
+                    ) : (
+                      <div className="w-full h-1.5 bg-slate-900 rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-purple-400/80"
+                          style={{ width: `${Math.min(100, Math.max(4, activeGood.hype ?? 50))}%` }}
+                        />
+                      </div>
+                    )}
                   </div>
                 </div>
 
-                {/* Contraband Toggle */}
+                {/* Contraband Toggle / Status */}
                 <div className="pt-2 border-t border-slate-800 flex items-center justify-between">
                   <div>
                     <span className="font-semibold text-slate-200 block">
-                      Outlaw / Contraband Prohibition
+                      {canEdit ? "Outlaw / Contraband Prohibition" : "Regulatory Trade Status"}
                     </span>
                     <span className="text-[11px] text-slate-400">
-                      Prohibiting this commodity shifts its trade into the informal sector
+                      {canEdit
+                        ? "Prohibiting this commodity shifts its trade into the informal sector"
+                        : Boolean(activeGood.illegal)
+                        ? "Prohibited commodity — informal sector trade"
+                        : "Legal regulated domestic and foreign commerce"}
                     </span>
                   </div>
-                  <input
-                    type="checkbox"
-                    checked={Boolean(activeGood.illegal)}
-                    onChange={(e) =>
-                      onUpdateMarket(nation.id, {
-                        goodName: activeGood.goodName,
-                        updates: { illegal: e.target.checked },
-                      })
-                    }
-                    className="w-4 h-4 accent-rose-500 cursor-pointer"
-                  />
+                  {canEdit ? (
+                    <input
+                      type="checkbox"
+                      checked={Boolean(activeGood.illegal)}
+                      onChange={(e) =>
+                        onUpdateMarket(nation.id, {
+                          goodName: activeGood.goodName,
+                          updates: { illegal: e.target.checked },
+                        })
+                      }
+                      className="w-4 h-4 accent-rose-500 cursor-pointer"
+                    />
+                  ) : (
+                    <span
+                      className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${
+                        Boolean(activeGood.illegal)
+                          ? "bg-rose-500/15 text-rose-300 border-rose-500/30"
+                          : "bg-emerald-500/15 text-emerald-300 border-emerald-500/30"
+                      }`}
+                    >
+                      {Boolean(activeGood.illegal) ? "Contraband" : "Legal"}
+                    </span>
+                  )}
                 </div>
               </div>
             </div>
@@ -416,38 +470,40 @@ export default function MarketsAndTechView({
               </select>
             </div>
 
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="text-slate-400">Sector-Wide Tariff:</span>
-              <select
-                value={bulkSector}
-                onChange={(e) => setBulkSector(e.target.value)}
-                className="px-2.5 py-1.5 rounded-lg bg-slate-950 border border-slate-700 text-white"
-              >
-                <option value="">All Sectors</option>
-                <option value="Agricultural Sector GDP">Agriculture</option>
-                <option value="Industry & Manufacturing GDP">Industry</option>
-                <option value="Hospitality & Tourist Services GDP">
-                  Hospitality
-                </option>
-                <option value="Office & Corporate Services GDP">Office</option>
-              </select>
-              <input
-                type="number"
-                step="0.05"
-                min="0"
-                max="2"
-                value={bulkImportTariff}
-                onChange={(e) => setBulkImportTariff(e.target.value)}
-                className="w-16 px-2 py-1.5 rounded-lg bg-slate-950 border border-slate-700 text-white font-mono-num"
-                title="Import Tariff Rate"
-              />
-              <button
-                onClick={handleApplyBulk}
-                className="px-3.5 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold cursor-pointer"
-              >
-                Apply Sector Policy
-              </button>
-            </div>
+            {canEdit && (
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-slate-400">Sector-Wide Tariff:</span>
+                <select
+                  value={bulkSector}
+                  onChange={(e) => setBulkSector(e.target.value)}
+                  className="px-2.5 py-1.5 rounded-lg bg-slate-950 border border-slate-700 text-white"
+                >
+                  <option value="">All Sectors</option>
+                  <option value="Agricultural Sector GDP">Agriculture</option>
+                  <option value="Industry & Manufacturing GDP">Industry</option>
+                  <option value="Hospitality & Tourist Services GDP">
+                    Hospitality
+                  </option>
+                  <option value="Office & Corporate Services GDP">Office</option>
+                </select>
+                <input
+                  type="number"
+                  step="0.05"
+                  min="0"
+                  max="2"
+                  value={bulkImportTariff}
+                  onChange={(e) => setBulkImportTariff(e.target.value)}
+                  className="w-16 px-2 py-1.5 rounded-lg bg-slate-950 border border-slate-700 text-white font-mono-num"
+                  title="Import Tariff Rate"
+                />
+                <button
+                  onClick={handleApplyBulk}
+                  className="px-3.5 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold cursor-pointer"
+                >
+                  Apply Sector Policy
+                </button>
+              </div>
+            )}
           </div>
 
           {/* Interactive Commodity Cards Grid */}
@@ -540,13 +596,16 @@ export default function MarketsAndTechView({
               {(state.techEras || []).map((era, idx) => (
                 <div
                   key={era.name}
-                  onClick={() =>
+                  onClick={() => {
+                    if (!canEdit) return;
                     onUpdateCompanion({
                       techEraName: era.name,
                       unlocked: !era.unlocked,
-                    })
-                  }
-                  className={`p-4 rounded-xl border transition cursor-pointer flex items-center justify-between ${
+                    });
+                  }}
+                  className={`p-4 rounded-xl border transition flex items-center justify-between ${
+                    canEdit ? "cursor-pointer" : ""
+                  } ${
                     era.unlocked
                       ? "bg-gradient-to-r from-cyan-950/50 to-slate-900 border-cyan-500/60 text-white"
                       : "bg-slate-950/60 border-slate-800 text-slate-400"
@@ -620,19 +679,28 @@ export default function MarketsAndTechView({
                           +{Math.round(sec.kFactorBonus * 100)}%
                         </span>
                       </div>
-                      <BufferedRangeSlider
-                        step="0.05"
-                        min="0.05"
-                        max="2.0"
-                        value={sec.kFactorBonus}
-                        onChangeCommitted={(val) =>
-                          onUpdateCompanion({
-                            sectorName: sec.name,
-                            kFactorBonus: val,
-                          })
-                        }
-                        className="w-full accent-cyan-400 cursor-pointer"
-                      />
+                      {canEdit ? (
+                        <BufferedRangeSlider
+                          step="0.05"
+                          min="0.05"
+                          max="2.0"
+                          value={sec.kFactorBonus}
+                          onChangeCommitted={(val) =>
+                            onUpdateCompanion({
+                              sectorName: sec.name,
+                              kFactorBonus: val,
+                            })
+                          }
+                          className="w-full accent-cyan-400 cursor-pointer"
+                        />
+                      ) : (
+                        <div className="w-full h-1.5 bg-slate-900 rounded-full overflow-hidden">
+                          <div
+                            className="h-full bg-cyan-400/80"
+                            style={{ width: `${Math.min(100, (sec.kFactorBonus / 2.0) * 100)}%` }}
+                          />
+                        </div>
+                      )}
                     </div>
                     <div>
                       <div className="flex justify-between text-[11px] mb-1">
@@ -643,19 +711,28 @@ export default function MarketsAndTechView({
                           {sec.sentiment} / 100
                         </span>
                       </div>
-                      <BufferedRangeSlider
-                        step="1"
-                        min="1"
-                        max="100"
-                        value={sec.sentiment}
-                        onChangeCommitted={(val) =>
-                          onUpdateCompanion({
-                            sectorName: sec.name,
-                            sentiment: val,
-                          })
-                        }
-                        className="w-full accent-amber-400 cursor-pointer"
-                      />
+                      {canEdit ? (
+                        <BufferedRangeSlider
+                          step="1"
+                          min="1"
+                          max="100"
+                          value={sec.sentiment}
+                          onChangeCommitted={(val) =>
+                            onUpdateCompanion({
+                              sectorName: sec.name,
+                              sentiment: val,
+                            })
+                          }
+                          className="w-full accent-amber-400 cursor-pointer"
+                        />
+                      ) : (
+                        <div className="w-full h-1.5 bg-slate-900 rounded-full overflow-hidden">
+                          <div
+                            className="h-full bg-amber-400/80"
+                            style={{ width: `${Math.min(100, Math.max(2, sec.sentiment))}%` }}
+                          />
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>

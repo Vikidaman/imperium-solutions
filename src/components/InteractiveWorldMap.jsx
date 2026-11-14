@@ -25,20 +25,24 @@ import {
   Edit2,
   X,
   Check,
+  ShieldCheck,
+  Eye,
 } from "lucide-react";
 import { formatCompactCurrency, formatCompactNumber } from "../utils/formatters";
 import { US_STATES_CATALOG } from "../data/usStatesData";
 import { getUsStateEndowment } from "../data/usGeographicEndowments";
 import { getUsStateServicesEndowment } from "../data/usServicesEndowments";
+import {
+  DEFAULT_POLITICAL_PARTIES,
+  FUNDING_TIERS,
+  POLICY_CATALOG,
+  resolvePoliticalParty,
+  cloneDefaultPolicies,
+} from "../../server/simplifiedSeedConfig";
 import CountryAdm1Map from "./CountryAdm1Map";
 
-const PARTY_OPTIONS = [
-  "Democratic",
-  "Republican",
-  "Progressive Labor",
-  "Libertarian Free-Market",
-  "Centrist Technocrats",
-];
+const PARTY_OPTIONS = DEFAULT_POLITICAL_PARTIES.map((p) => p.name);
+const FUNDING_TIER_ORDER = ["underfunded", "standard", "priority", "landmark"];
 
 const SPECIALIZATION_OPTIONS = [
   { id: "", label: "Balanced Diversified Economy" },
@@ -239,7 +243,13 @@ const InteractiveWorldMap = ({
   };
 
   const resetOverrides = () => {
+    const activeParty = resolvePoliticalParty(state?.politicalParties, usa.rulingParty);
+    const defaultPolicies = cloneDefaultPolicies(activeParty.name);
     updatePolicy({
+      rulingParty: activeParty.name,
+      crimePolicy: activeParty.localCrimePolicy,
+      healthcarePolicy: activeParty.healthcarePolicy,
+      enactedPolicies: defaultPolicies,
       incomeTaxOverride: null,
       corporateTaxOverride: null,
       salesTaxOverride: null,
@@ -253,33 +263,61 @@ const InteractiveWorldMap = ({
       kFactorScaler: 1500,
       freightDelayFriction: 0,
       cumulativeGrowthFactor: 1.0,
+      startingBaseline: {
+        literacyRate: 0.92,
+        infrastructureEfficiency: 0.82,
+        urbanisationIndex: 0.83,
+        consumerSentiment: 65,
+        kFactorScaler: 1500,
+        publicDebt: Number(usa.publicDebt ?? 34500000000000),
+      },
     });
   };
 
-  const effectiveIncomeTax =
-    usa.incomeTaxOverride !== null && usa.incomeTaxOverride !== undefined
-      ? Number(usa.incomeTaxOverride)
-      : Number(c.incomeTax ?? 0.25);
+  const activeParty = resolvePoliticalParty(state?.politicalParties, usa.rulingParty);
+  const partyPrefs = c.partyPreferences || {
+    name: activeParty.name,
+    politicalAlignment: activeParty.politicalAlignment,
+    platformSummary: activeParty.platformSummary,
+    incomeTaxPreference: activeParty.incomeTaxPreference,
+    corporateTaxRate: activeParty.corporateTaxRate,
+    salesTaxPreference: activeParty.salesTaxPreference,
+    workerShareOfGdp: activeParty.workerShareOfGdp,
+    infrastructureInvestmentShare: activeParty.infrastructureInvestmentShare,
+    educationGovernanceShare: activeParty.educationGovernanceShare,
+    deficitTargetAsPercentOfGdp: activeParty.deficitTargetAsPercentOfGdp,
+    budgetAsPercentOfGdp: activeParty.budgetAsPercentOfGdp,
+  };
+  const policyProg = c.policyProgression || {
+    literacyDelta: 0,
+    infrastructureDelta: 0,
+    urbanisationDelta: 0,
+    sentimentDelta: 0,
+    tfpDelta: 0,
+    policyBudgetAdjustmentPct: 0,
+    policies: usa.enactedPolicies || cloneDefaultPolicies(activeParty.name),
+  };
+  const enactedPolicies = usa.enactedPolicies || policyProg.policies || cloneDefaultPolicies(activeParty.name);
+  const startingBaseline = usa.startingBaseline || c.startingBaseline || {
+    literacyRate: 0.92,
+    infrastructureEfficiency: 0.82,
+    urbanisationIndex: 0.83,
+    consumerSentiment: 65,
+    kFactorScaler: 1500,
+    publicDebt: 34500000000000,
+  };
 
-  const effectiveCorpTax =
-    usa.corporateTaxOverride !== null && usa.corporateTaxOverride !== undefined
-      ? Number(usa.corporateTaxOverride)
-      : Number(c.corporateTax ?? 0.21);
-
-  const effectiveSalesTax =
-    usa.salesTaxOverride !== null && usa.salesTaxOverride !== undefined
-      ? Number(usa.salesTaxOverride)
-      : Number(c.salesTax ?? 0.06);
-
-  const effectiveWorkerShare =
-    usa.workerShareOverride !== null && usa.workerShareOverride !== undefined
-      ? Number(usa.workerShareOverride)
-      : Number(c.workerShareOfGdp ?? 0.52);
-
-  const effectiveBudgetPct =
-    usa.budgetPercentOverride !== null && usa.budgetPercentOverride !== undefined
-      ? Number(usa.budgetPercentOverride)
-      : Number(c.stateBudgetPercent ?? 0.2);
+  const effectiveIncomeTax = Number(c.incomeTax ?? partyPrefs.incomeTaxPreference ?? 0.28);
+  const effectiveCorpTax = Number(c.corporateTax ?? partyPrefs.corporateTaxRate ?? 0.25);
+  const effectiveSalesTax = Number(c.salesTax ?? partyPrefs.salesTaxPreference ?? 0.06);
+  const effectiveWorkerShare = Number(c.workerShareOfGdp ?? partyPrefs.workerShareOfGdp ?? 0.55);
+  const effectiveBudgetPct = Number(c.stateBudgetPercent ?? partyPrefs.budgetAsPercentOfGdp ?? 0.22);
+  const actualFiscalBalancePct = Number(
+    c.fiscalBalancePctOfGdp ??
+      (Number(c.aggregateGdp || 0) > 0
+        ? (Number(c.netBudgetBalance || 0) / (Number(c.aggregateGdp || 1) / 4))
+        : partyPrefs.deficitTargetAsPercentOfGdp ?? -0.032)
+  );
 
   const totalGdp = Math.max(1, Number(c.aggregateGdp || 1));
   const agriShare = (Number(c.agriculturalGdp || 0) / totalGdp) * 100;
@@ -867,12 +905,16 @@ const InteractiveWorldMap = ({
                   <div className="flex items-center gap-1.5">
                     <TrendingUp className="w-3.5 h-3.5 text-cyan-400" />
                     <span className="text-xs font-bold text-white">
-                      Aggregate Demand Identity (Y = C + I + G + NX)
+                      {canEdit
+                        ? "Aggregate Demand Identity (Y = C + I + G + NX)"
+                        : "National Output Breakdown"}
                     </span>
                   </div>
-                  <span className="text-[11px] font-mono text-cyan-300">
-                    AD Multiplier: {Number(c.aggregateDemand.adMultiplier || 1).toFixed(3)}x
-                  </span>
+                  {canEdit && (
+                    <span className="text-[11px] font-mono text-cyan-300">
+                      AD Multiplier: {Number(c.aggregateDemand.adMultiplier || 1).toFixed(3)}x
+                    </span>
+                  )}
                 </div>
 
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
@@ -964,338 +1006,553 @@ const InteractiveWorldMap = ({
             )}
           </div>
 
-          {/* Macroeconomic & Fiscal Sliders Cabinet */}
+          {/* US Macroeconomic, Party Fiscal Mandate & Policy Governance Cabinet */}
           <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-5 shadow-xl space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800 pb-3">
               <div className="flex items-center gap-2">
-                <Sliders className="w-4 h-4 text-blue-400" />
+                {canEdit ? (
+                  <Sliders className="w-4 h-4 text-blue-400" />
+                ) : (
+                  <Eye className="w-4 h-4 text-cyan-400" />
+                )}
                 <div>
                   <h3 className="text-sm font-bold text-white">
-                    US Macroeconomic & Fiscal Policy Cabinet
+                    {canEdit
+                      ? "US Macroeconomic & Fiscal Policy Cabinet"
+                      : "US Governing Platform & Economic Trajectory"}
                   </h3>
                   <p className="text-[11px] text-slate-400">
-                    Adjust federal tax rates, spending, labor share, and structural productivity drivers.
+                    {canEdit
+                      ? "Ruling party sets fiscal & infrastructure targets; enact policies below to shape governance over time."
+                      : "Party fiscal mandate, Fed interest rate, active legislation, and governance progress since Q1."}
                   </p>
                 </div>
               </div>
-              <div className="flex flex-wrap items-center gap-1.5">
-                {onResetScenario && canEdit && (
-                  <button
-                    onClick={() => {
-                      if (
-                        window.confirm(
-                          "Reset the United States simulation to start date (2025-01-01, Q1) and initial baseline conditions?"
-                        )
-                      ) {
-                        onResetScenario();
-                      }
-                    }}
-                    className="px-2.5 py-1 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 border border-rose-500/30 text-[11px] font-medium flex items-center gap-1 transition-colors cursor-pointer"
-                    title="Reset simulation to initial start date and conditions"
-                  >
-                    <RotateCcw className="w-3 h-3" />
-                    Reset to Start Date & Conditions
-                  </button>
-                )}
-                {canEdit && (
+              {canEdit && (
+                <div className="flex flex-wrap items-center gap-1.5">
+                  {onResetScenario && (
+                    <button
+                      onClick={() => {
+                        if (
+                          window.confirm(
+                            "Reset the United States simulation to start date (2025-01-01, Q1) and initial baseline conditions?"
+                          )
+                        ) {
+                          onResetScenario();
+                        }
+                      }}
+                      className="px-2.5 py-1 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 border border-rose-500/30 text-[11px] font-medium flex items-center gap-1 transition-colors cursor-pointer"
+                      title="Reset simulation to initial start date and conditions"
+                    >
+                      <RotateCcw className="w-3 h-3" />
+                      Reset Baseline
+                    </button>
+                  )}
                   <button
                     onClick={resetOverrides}
                     className="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-[11px] font-medium flex items-center gap-1 transition-colors cursor-pointer"
-                    title="Reset policy overrides to party baseline"
+                    title="Restore party baseline rates and default Q1 governance metrics"
                   >
                     <RotateCcw className="w-3 h-3" />
-                    Reset Defaults
+                    Restore Party Defaults
                   </button>
+                </div>
+              )}
+            </div>
+
+            {/* Political Party in Power & Industrial Focus */}
+            {canEdit ? (
+              <div className="space-y-2.5">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[11px] font-semibold uppercase tracking-wider text-slate-400 mb-1">
+                      Political Party in Power
+                    </label>
+                    <select
+                      value={activeParty.name}
+                      onChange={(e) => {
+                        const nextParty = resolvePoliticalParty(
+                          state?.politicalParties,
+                          e.target.value
+                        );
+                        updatePolicy({
+                          rulingParty: nextParty.name,
+                          crimePolicy: nextParty.localCrimePolicy,
+                          healthcarePolicy: nextParty.healthcarePolicy,
+                          enactedPolicies: cloneDefaultPolicies(nextParty.name),
+                          incomeTaxOverride: null,
+                          corporateTaxOverride: null,
+                          salesTaxOverride: null,
+                          workerShareOverride: null,
+                          budgetPercentOverride: null,
+                        });
+                      }}
+                      className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-blue-500 cursor-pointer"
+                    >
+                      {PARTY_OPTIONS.map((party) => (
+                        <option key={party} value={party}>
+                          {party}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-semibold uppercase tracking-wider text-slate-400 mb-1">
+                      National Industrial Focus
+                    </label>
+                    <select
+                      value={usa.specializedIndustry || ""}
+                      onChange={(e) =>
+                        updatePolicy({ specializedIndustry: e.target.value })
+                      }
+                      className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-blue-500 cursor-pointer"
+                    >
+                      {SPECIALIZATION_OPTIONS.map((opt) => (
+                        <option key={opt.id} value={opt.id}>
+                          {opt.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+                {partyPrefs.platformSummary && (
+                  <div className="text-[11px] text-slate-300 bg-slate-950/60 border border-slate-800/80 rounded-lg px-3 py-2 flex items-center justify-between gap-2">
+                    <span>{partyPrefs.platformSummary}</span>
+                    {partyPrefs.politicalAlignment && (
+                      <span className="shrink-0 text-[10px] font-semibold uppercase px-2 py-0.5 rounded-full bg-blue-500/15 text-blue-300 border border-blue-500/30">
+                        {partyPrefs.politicalAlignment}
+                      </span>
+                    )}
+                  </div>
                 )}
               </div>
+            ) : (
+              <div className="bg-slate-950/70 border border-slate-800/90 rounded-xl p-3.5 space-y-2">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div>
+                    <div className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">
+                      Governing Coalition
+                    </div>
+                    <div className="text-sm font-bold text-white flex items-center gap-2 mt-0.5">
+                      <span>{activeParty.name}</span>
+                      {partyPrefs.politicalAlignment && (
+                        <span className="text-[10px] font-semibold uppercase px-2 py-0.5 rounded-full bg-cyan-500/15 text-cyan-300 border border-cyan-500/30">
+                          {partyPrefs.politicalAlignment}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">
+                      Industrial Focus
+                    </div>
+                    <div className="text-xs font-semibold text-amber-300 mt-0.5">
+                      {SPECIALIZATION_OPTIONS.find((s) => s.id === (usa.specializedIndustry || ""))?.label ||
+                        "Balanced Diversified Economy"}
+                    </div>
+                  </div>
+                </div>
+                {partyPrefs.platformSummary && (
+                  <p className="text-[11px] text-slate-400 leading-relaxed">
+                    {partyPrefs.platformSummary}
+                  </p>
+                )}
+              </div>
+            )}
+
+            {/* Party-Determined Fiscal & Infrastructure Mandate (Read-Only Grid — Driven by Political Party) */}
+            <div className="bg-slate-950/70 border border-slate-800/90 rounded-xl p-3.5 space-y-2.5">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+                  Party Fiscal & Infrastructure Posture
+                </span>
+                <span className="text-[10px] text-slate-500 font-medium">
+                  Set by {activeParty.name} mandate
+                </span>
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-xs">
+                <div className="bg-slate-900/75 border border-slate-800/80 rounded-lg p-2">
+                  <div className="text-[10px] text-slate-400">Income Tax</div>
+                  <div className="font-mono font-bold text-white mt-0.5">
+                    {(effectiveIncomeTax * 100).toFixed(0)}%
+                  </div>
+                </div>
+                <div className="bg-slate-900/75 border border-slate-800/80 rounded-lg p-2">
+                  <div className="text-[10px] text-slate-400">Corporate Profit Tax</div>
+                  <div className="font-mono font-bold text-white mt-0.5">
+                    {(effectiveCorpTax * 100).toFixed(0)}%
+                  </div>
+                </div>
+                <div className="bg-slate-900/75 border border-slate-800/80 rounded-lg p-2">
+                  <div className="text-[10px] text-slate-400">Sales / Consumption</div>
+                  <div className="font-mono font-bold text-white mt-0.5">
+                    {(effectiveSalesTax * 100).toFixed(0)}%
+                  </div>
+                </div>
+                <div className="bg-slate-900/75 border border-slate-800/80 rounded-lg p-2">
+                  <div className="text-[10px] text-slate-400">Infra Investment</div>
+                  <div className="font-mono font-bold text-cyan-300 mt-0.5">
+                    {(Number(partyPrefs.infrastructureInvestmentShare ?? 0.038) * 100).toFixed(1)}% GDP
+                  </div>
+                </div>
+                <div className="bg-slate-900/75 border border-slate-800/80 rounded-lg p-2">
+                  <div className="text-[10px] text-slate-400">Party Balance Target</div>
+                  <div
+                    className={`font-mono font-bold mt-0.5 ${
+                      Number(partyPrefs.deficitTargetAsPercentOfGdp ?? -0.032) >= 0
+                        ? "text-emerald-300"
+                        : "text-amber-300"
+                    }`}
+                  >
+                    {Number(partyPrefs.deficitTargetAsPercentOfGdp ?? -0.032) >= 0 ? "+" : ""}
+                    {(Number(partyPrefs.deficitTargetAsPercentOfGdp ?? -0.032) * 100).toFixed(1)}% GDP
+                  </div>
+                </div>
+                <div className="bg-slate-900/75 border border-slate-800/80 rounded-lg p-2">
+                  <div className="text-[10px] text-slate-400">Actual Fiscal Balance</div>
+                  <div
+                    className={`font-mono font-bold mt-0.5 ${
+                      actualFiscalBalancePct >= 0 ? "text-emerald-400" : "text-rose-400"
+                    }`}
+                  >
+                    {actualFiscalBalancePct >= 0 ? "+" : ""}
+                    {(actualFiscalBalancePct * 100).toFixed(2)}% GDP
+                  </div>
+                </div>
+              </div>
+              <div className="flex items-center justify-between text-[11px] text-slate-400 pt-1 border-t border-slate-800/70">
+                <span>
+                  Labor Share:{" "}
+                  <span className="font-mono text-slate-200 font-semibold">
+                    {(effectiveWorkerShare * 100).toFixed(0)}%
+                  </span>
+                </span>
+                <span>
+                  Federal Outlays:{" "}
+                  <span className="font-mono text-slate-200 font-semibold">
+                    {(effectiveBudgetPct * 100).toFixed(1)}% GDP
+                  </span>
+                </span>
+              </div>
             </div>
 
-            {/* Ruling Coalition & Specialization Selects */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div>
-                <label className="block text-[11px] font-semibold uppercase tracking-wider text-slate-400 mb-1">
-                  Economic Coalition Baseline
-                </label>
-                <select
-                  disabled={!canEdit}
-                  value={usa.rulingParty || "Democratic"}
-                  onChange={(e) =>
-                    updatePolicy({
-                      rulingParty: e.target.value,
-                      incomeTaxOverride: null,
-                      corporateTaxOverride: null,
-                      salesTaxOverride: null,
-                      workerShareOverride: null,
-                      budgetPercentOverride: null,
-                    })
-                  }
-                  className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-blue-500 disabled:opacity-60"
-                >
-                  {PARTY_OPTIONS.map((party) => (
-                    <option key={party} value={party}>
-                      {party}
-                    </option>
-                  ))}
-                </select>
+            {/* Federal Reserve Interest Rate — SOLE Direct Slider Control */}
+            <div className="bg-slate-950/70 border border-blue-500/30 rounded-xl p-3.5 space-y-2">
+              <div className="flex items-center justify-between text-xs">
+                <div>
+                  <span className="text-white font-semibold">
+                    Federal Reserve Interest Rate
+                  </span>
+                  <div className="text-[10px] text-slate-400">
+                    Independent central bank monetary stance
+                  </div>
+                </div>
+                <span className="font-mono text-blue-300 font-bold text-sm">
+                  {(Number(usa.centralBankRate ?? 0.045) * 100).toFixed(2)}%
+                </span>
               </div>
-
-              <div>
-                <label className="block text-[11px] font-semibold uppercase tracking-wider text-slate-400 mb-1">
-                  National Industrial Focus
-                </label>
-                <select
+              {canEdit ? (
+                <BufferedRangeSlider
+                  min={0.0}
+                  max={0.15}
+                  step={0.0025}
+                  value={Number(usa.centralBankRate ?? 0.045)}
                   disabled={!canEdit}
-                  value={usa.specializedIndustry || ""}
-                  onChange={(e) =>
-                    updatePolicy({ specializedIndustry: e.target.value })
-                  }
-                  className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-blue-500 disabled:opacity-60"
-                >
-                  {SPECIALIZATION_OPTIONS.map((opt) => (
-                    <option key={opt.id} value={opt.id}>
-                      {opt.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
+                  onCommit={(num) => updatePolicy({ centralBankRate: num })}
+                  className="w-full accent-blue-500 cursor-pointer"
+                />
+              ) : (
+                <div className="w-full h-2 bg-slate-900 rounded-full overflow-hidden border border-slate-800">
+                  <div
+                    className="h-full bg-blue-500 transition-all"
+                    style={{
+                      width: `${Math.min(
+                        100,
+                        Math.max(0, (Number(usa.centralBankRate ?? 0.045) / 0.15) * 100)
+                      )}%`,
+                    }}
+                  />
+                </div>
+              )}
             </div>
 
-            {/* Starting Federal Public Debt Control */}
-            <div className="bg-slate-950/70 border border-slate-800/90 rounded-xl p-3.5 space-y-3">
+            {/* Sovereign Debt Baseline (Sliderless — Modal & Quick Presets for Director) */}
+            <div className="bg-slate-950/70 border border-slate-800/90 rounded-xl p-3.5 space-y-2">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <Landmark className="w-4 h-4 text-rose-400" />
                   <div>
                     <h4 className="text-xs font-bold uppercase tracking-wider text-white">
-                      Starting Federal Public Debt
+                      {canEdit ? "Starting Federal Public Debt" : "Federal Public Debt"}
                     </h4>
-                    <p className="text-[11px] text-slate-400">
-                      Baseline US sovereign debt. Deficits expand debt; surpluses amortize debt.
+                    <p className="text-[10px] text-slate-400">
+                      Deficits expand sovereign debt; surpluses pay down principal.
                     </p>
                   </div>
                 </div>
-                <span
-                  className={`text-xs px-2 py-0.5 rounded-full font-mono font-bold ${
-                    debtToGdpRatio > 120
-                      ? "bg-rose-500/20 text-rose-300 border border-rose-500/30"
-                      : debtToGdpRatio > 80
-                      ? "bg-amber-500/20 text-amber-300 border border-amber-500/30"
-                      : "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
-                  }`}
-                >
-                  {debtToGdpRatio.toFixed(1)}% of GDP
+                <div className="text-right">
+                  <div className="font-mono font-bold text-rose-300 text-sm">
+                    ${currentDebtInTrillions.toFixed(2)}T
+                  </div>
+                  <div className="text-[10px] font-mono text-slate-400">
+                    {debtToGdpRatio.toFixed(1)}% of GDP
+                  </div>
+                </div>
+              </div>
+              {canEdit && (
+                <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-800/80">
+                  <div className="flex flex-wrap items-center gap-1">
+                    {[
+                      { label: "$34.5T", val: 34.5 },
+                      { label: "$25.0T", val: 25.0 },
+                      { label: "$15.0T", val: 15.0 },
+                      { label: "$0T", val: 0.0 },
+                    ].map((p) => (
+                      <button
+                        key={p.label}
+                        type="button"
+                        onClick={() => updatePolicy({ publicDebt: Math.round(p.val * 1e12) })}
+                        className="px-2 py-0.5 text-[10px] font-mono rounded bg-slate-900 hover:bg-rose-500/20 text-slate-300 hover:text-rose-200 border border-slate-800 hover:border-rose-500/40 transition cursor-pointer"
+                      >
+                        {p.label}
+                      </button>
+                    ))}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setEditingDebtModal(true)}
+                    className="px-2.5 py-1 text-[11px] font-semibold rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 flex items-center gap-1 cursor-pointer transition"
+                  >
+                    <Edit2 className="w-3 h-3 text-rose-400" />
+                    Set Baseline ($T)
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* National Policy Enactment & Discrete Funding Allocation (No Sliders) */}
+            <div className="border-t border-slate-800 pt-3.5 space-y-2.5">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-1.5">
+                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+                  <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-300">
+                    Policy Enactment & Funding Allocation
+                  </span>
+                </div>
+                <span className="text-[10px] text-slate-500">
+                  Drives quarterly governance progression
                 </span>
               </div>
 
-              <div className="space-y-1.5">
-                <div className="flex items-center justify-between text-xs">
-                  <span className="text-slate-300 font-medium">Federal Debt Amount:</span>
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-slate-400 text-xs">$</span>
-                    <input
-                      type="number"
-                      step="0.1"
-                      min="0"
-                      max="100"
-                      disabled={!canEdit}
-                      value={currentDebtInTrillions}
-                      onChange={(e) => {
-                        const val = parseFloat(e.target.value);
-                        if (!isNaN(val) && val >= 0) {
-                          updatePolicy({ publicDebt: Math.round(val * 1e12) });
-                        }
-                      }}
-                      className="w-24 bg-slate-900 border border-slate-700 focus:border-rose-500 rounded px-2 py-0.5 font-mono text-rose-300 font-bold text-right text-xs focus:outline-none"
-                    />
-                    <span className="text-slate-300 font-bold text-xs">Trillion</span>
-                  </div>
-                </div>
+              <div className="space-y-2">
+                {POLICY_CATALOG.map((spec) => {
+                  const entry = enactedPolicies[spec.id] || {
+                    enacted: true,
+                    funding: "standard",
+                  };
+                  const tierMeta = FUNDING_TIERS[entry.funding] || FUNDING_TIERS.standard;
 
-                <BufferedRangeSlider
-                  min={0}
-                  max={60}
-                  step={0.1}
-                  value={currentDebtInTrillions}
-                  disabled={!canEdit}
-                  onCommit={(num) => updatePolicy({ publicDebt: Math.round(num * 1e12) })}
-                  className="w-full accent-rose-500 cursor-pointer disabled:opacity-50"
-                />
+                  const toggleEnacted = () => {
+                    updatePolicy({
+                      enactedPolicies: {
+                        ...enactedPolicies,
+                        [spec.id]: { ...entry, enacted: !entry.enacted },
+                      },
+                    });
+                  };
 
-                {/* Quick Presets */}
-                <div className="flex flex-wrap items-center gap-1.5 pt-1">
-                  <span className="text-[10px] uppercase font-semibold text-slate-500">Presets:</span>
-                  {[
-                    { label: "$34.5T (Baseline)", val: 34.5 },
-                    { label: "$25.0T (2019)", val: 25.0 },
-                    { label: "$15.0T (2012)", val: 15.0 },
-                    { label: "$0T (Zero Debt)", val: 0.0 },
-                  ].map((p) => (
-                    <button
-                      key={p.label}
-                      type="button"
-                      disabled={!canEdit}
-                      onClick={() => updatePolicy({ publicDebt: Math.round(p.val * 1e12) })}
-                      className="px-2 py-0.5 text-[10px] font-mono rounded bg-slate-900 hover:bg-rose-500/20 text-slate-300 hover:text-rose-200 border border-slate-800 hover:border-rose-500/40 transition disabled:opacity-50 cursor-pointer"
+                  const setFundingTier = (tierKey) => {
+                    updatePolicy({
+                      enactedPolicies: {
+                        ...enactedPolicies,
+                        [spec.id]: { ...entry, enacted: true, funding: tierKey },
+                      },
+                    });
+                  };
+
+                  return (
+                    <div
+                      key={spec.id}
+                      className="bg-slate-950/70 border border-slate-800/90 rounded-xl p-3 space-y-2"
                     >
-                      {p.label}
-                    </button>
-                  ))}
-                </div>
+                      <div className="flex items-start justify-between gap-2">
+                        <div>
+                          <div className="text-xs font-semibold text-white">
+                            {spec.shortName}
+                          </div>
+                          <div className="text-[10px] text-slate-400 mt-0.5">
+                            {canEdit ? spec.drives.join(" · ") : spec.description}
+                          </div>
+                        </div>
+
+                        {canEdit ? (
+                          <button
+                            type="button"
+                            onClick={toggleEnacted}
+                            className={`shrink-0 px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider border transition cursor-pointer ${
+                              entry.enacted
+                                ? "bg-emerald-500/15 text-emerald-300 border-emerald-500/40 hover:bg-emerald-500/25"
+                                : "bg-rose-500/10 text-rose-300 border-rose-500/30 hover:bg-rose-500/20"
+                            }`}
+                          >
+                            {entry.enacted ? "Enacted" : "Repealed"}
+                          </button>
+                        ) : (
+                          <span
+                            className={`shrink-0 px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${
+                              entry.enacted
+                                ? "bg-emerald-500/15 text-emerald-300 border-emerald-500/30"
+                                : "bg-slate-800 text-slate-400 border-slate-700"
+                            }`}
+                          >
+                            {entry.enacted ? `Enacted · ${tierMeta.label}` : "Repealed"}
+                          </span>
+                        )}
+                      </div>
+
+                      {canEdit && (
+                        <div className="grid grid-cols-4 gap-1.5">
+                          {FUNDING_TIER_ORDER.map((tierKey) => {
+                            const meta = FUNDING_TIERS[tierKey];
+                            const isActive = entry.enacted && entry.funding === tierKey;
+                            return (
+                              <button
+                                key={tierKey}
+                                type="button"
+                                onClick={() => setFundingTier(tierKey)}
+                                className={`py-1 px-1.5 rounded-lg text-[10px] font-semibold border transition cursor-pointer ${
+                                  isActive
+                                    ? "bg-cyan-500/20 text-cyan-200 border-cyan-500/50 shadow-sm"
+                                    : "bg-slate-900 text-slate-400 border-slate-800 hover:text-slate-200 hover:border-slate-700"
+                                }`}
+                              >
+                                {meta.label}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             </div>
 
-            {/* Fiscal Sliders */}
-            <div className="space-y-3 pt-1">
-              {[
-                {
-                  label: "Federal Income Tax Rate",
-                  field: "incomeTaxOverride",
-                  val: effectiveIncomeTax,
-                  min: 0.05,
-                  max: 0.6,
-                  step: 0.01,
-                  fmt: (v) => `${(v * 100).toFixed(0)}%`,
-                },
-                {
-                  label: "Corporate Profits Tax Rate",
-                  field: "corporateTaxOverride",
-                  val: effectiveCorpTax,
-                  min: 0.05,
-                  max: 0.55,
-                  step: 0.01,
-                  fmt: (v) => `${(v * 100).toFixed(0)}%`,
-                },
-                {
-                  label: "National Sales / Consumption Tax",
-                  field: "salesTaxOverride",
-                  val: effectiveSalesTax,
-                  min: 0.0,
-                  max: 0.3,
-                  step: 0.01,
-                  fmt: (v) => `${(v * 100).toFixed(0)}%`,
-                },
-                {
-                  label: "Labor Compensation Share of GDP",
-                  field: "workerShareOverride",
-                  val: effectiveWorkerShare,
-                  min: 0.35,
-                  max: 0.85,
-                  step: 0.01,
-                  fmt: (v) => `${(v * 100).toFixed(0)}%`,
-                },
-                {
-                  label: "Federal Expenditure Target (% of GDP)",
-                  field: "budgetPercentOverride",
-                  val: effectiveBudgetPct,
-                  min: 0.1,
-                  max: 0.55,
-                  step: 0.01,
-                  fmt: (v) => `${(v * 100).toFixed(0)}%`,
-                },
-                {
-                  label: "Federal Reserve Interest Rate (Monetary Policy)",
-                  field: "centralBankRate",
-                  val: Number(usa.centralBankRate ?? 0.045),
-                  min: 0.0,
-                  max: 0.15,
-                  step: 0.0025,
-                  fmt: (v) => `${(v * 100).toFixed(2)}%`,
-                },
-              ].map((slider) => (
-                <div key={slider.field} className="space-y-1">
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="text-slate-300 font-medium">
-                      {slider.label}
-                    </span>
-                    <span className="font-mono text-blue-300 font-semibold">
-                      {slider.fmt(slider.val)}
-                    </span>
-                  </div>
-                  <BufferedRangeSlider
-                    min={slider.min}
-                    max={slider.max}
-                    step={slider.step}
-                    value={slider.val}
-                    disabled={!canEdit}
-                    onCommit={(num) => updatePolicy({ [slider.field]: num })}
-                    className="w-full accent-blue-500 cursor-pointer disabled:opacity-50"
-                  />
-                </div>
-              ))}
-            </div>
-
-            {/* Structural & Productivity Drivers */}
-            <div className="border-t border-slate-800 pt-3 space-y-3">
-              <div className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
-                Structural & Productivity Drivers
+            {/* Good Governance & Structural Progression (From Q1 Starting Baseline — Sliderless) */}
+            <div className="border-t border-slate-800 pt-3.5 space-y-2.5">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-semibold uppercase tracking-wider text-emerald-300">
+                  Good Governance Trajectory (From Q1 Start)
+                </span>
+                <span className="text-[10px] text-slate-500">
+                  Evolved by enacted policies
+                </span>
               </div>
-              {[
-                {
-                  label: "Infrastructure & Logistics Efficiency",
-                  field: "infrastructureEfficiency",
-                  val: Number(usa.infrastructureEfficiency ?? 0.85),
-                  min: 0.3,
-                  max: 1.0,
-                  step: 0.02,
-                  fmt: (v) => `${(v * 100).toFixed(0)}%`,
-                },
-                {
-                  label: "Workforce Literacy & Education Rate",
-                  field: "literacyRate",
-                  val: Number(usa.literacyRate ?? 0.92),
-                  min: 0.4,
-                  max: 1.0,
-                  step: 0.01,
-                  fmt: (v) => `${(v * 100).toFixed(0)}%`,
-                },
-                {
-                  label: "Urban Agglomeration Rate",
-                  field: "urbanisationIndex",
-                  val: Number(usa.urbanisationIndex ?? 0.83),
-                  min: 0.3,
-                  max: 1.0,
-                  step: 0.01,
-                  fmt: (v) => `${(v * 100).toFixed(0)}%`,
-                },
-                {
-                  label: "Household Consumer Sentiment",
-                  field: "consumerSentiment",
-                  val: Number(usa.consumerSentiment ?? 65),
-                  min: 20,
-                  max: 150,
-                  step: 2,
-                  fmt: (v) => `${v.toFixed(0)} idx`,
-                },
-                {
-                  label: "Total Factor Productivity (K-Factor)",
-                  field: "kFactorScaler",
-                  val: Number(usa.kFactorScaler ?? 1500),
-                  min: 600,
-                  max: 3000,
-                  step: 50,
-                  fmt: (v) => `${(v / 1500).toFixed(2)}x (${v})`,
-                },
-              ].map((slider) => (
-                <div key={slider.field} className="space-y-1">
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="text-slate-300 font-medium">
-                      {slider.label}
-                    </span>
-                    <span className="font-mono text-emerald-300 font-semibold">
-                      {slider.fmt(slider.val)}
-                    </span>
-                  </div>
-                  <BufferedRangeSlider
-                    min={slider.min}
-                    max={slider.max}
-                    step={slider.step}
-                    value={slider.val}
-                    disabled={!canEdit}
-                    onCommit={(num) => updatePolicy({ [slider.field]: num })}
-                    className="w-full accent-emerald-500 cursor-pointer disabled:opacity-50"
-                  />
-                </div>
-              ))}
+
+              <div className="space-y-2">
+                {[
+                  {
+                    label: "Workforce Literacy & Education",
+                    current: Number(usa.literacyRate ?? c.literacyRate ?? 0.92),
+                    start: Number(startingBaseline.literacyRate ?? 0.92),
+                    delta: Number(policyProg.literacyDelta ?? 0),
+                    min: 0.4,
+                    max: 1.0,
+                    fmt: (v) => `${(v * 100).toFixed(1)}%`,
+                    fmtDelta: (d) => `${d >= 0 ? "+" : ""}${(d * 100).toFixed(2)}%/qtr`,
+                  },
+                  {
+                    label: "Infrastructure & Logistics",
+                    current: Number(
+                      usa.infrastructureEfficiency ?? c.infrastructureEfficiency ?? 0.82
+                    ),
+                    start: Number(startingBaseline.infrastructureEfficiency ?? 0.82),
+                    delta: Number(policyProg.infrastructureDelta ?? 0),
+                    min: 0.35,
+                    max: 1.0,
+                    fmt: (v) => `${(v * 100).toFixed(1)}%`,
+                    fmtDelta: (d) => `${d >= 0 ? "+" : ""}${(d * 100).toFixed(2)}%/qtr`,
+                  },
+                  {
+                    label: "Urban Agglomeration Rate",
+                    current: Number(usa.urbanisationIndex ?? c.urbanisationIndex ?? 0.83),
+                    start: Number(startingBaseline.urbanisationIndex ?? 0.83),
+                    delta: Number(policyProg.urbanisationDelta ?? 0),
+                    min: 0.35,
+                    max: 1.0,
+                    fmt: (v) => `${(v * 100).toFixed(1)}%`,
+                    fmtDelta: (d) => `${d >= 0 ? "+" : ""}${(d * 100).toFixed(2)}%/qtr`,
+                  },
+                  {
+                    label: "Household Consumer Sentiment",
+                    current: Number(usa.consumerSentiment ?? c.consumerConfidence ?? 65),
+                    start: Number(startingBaseline.consumerSentiment ?? 65),
+                    delta: Number(policyProg.sentimentDelta ?? 0),
+                    min: 20,
+                    max: 115,
+                    fmt: (v) => `${v.toFixed(1)} idx`,
+                    fmtDelta: (d) => `${d >= 0 ? "+" : ""}${d.toFixed(2)}/qtr`,
+                  },
+                  {
+                    label: "Total Factor Productivity (K-Factor)",
+                    current: Number(usa.kFactorScaler ?? 1500),
+                    start: Number(startingBaseline.kFactorScaler ?? 1500),
+                    delta: Number(policyProg.tfpDelta ?? 0),
+                    min: 600,
+                    max: 3500,
+                    fmt: (v) => `${(v / 1500).toFixed(2)}x (${Math.round(v)})`,
+                    fmtDelta: (d) => `${d >= 0 ? "+" : ""}${Math.round(d)}/qtr`,
+                  },
+                ].map((metric) => {
+                  const pctFill = Math.min(
+                    100,
+                    Math.max(4, ((metric.current - metric.min) / (metric.max - metric.min)) * 100)
+                  );
+                  return (
+                    <div
+                      key={metric.label}
+                      className="bg-slate-950/60 border border-slate-800/80 rounded-lg p-2.5 space-y-1.5"
+                    >
+                      <div className="flex items-center justify-between gap-2 text-xs">
+                        <span className="text-slate-300 font-medium">{metric.label}</span>
+                        <div className="flex items-center gap-2 font-mono">
+                          <span className="text-emerald-300 font-bold">
+                            {metric.fmt(metric.current)}
+                          </span>
+                          <span
+                            className={`text-[10px] px-1.5 py-0.5 rounded font-semibold ${
+                              metric.delta > 0
+                                ? "bg-emerald-500/15 text-emerald-300"
+                                : metric.delta < 0
+                                ? "bg-rose-500/15 text-rose-300"
+                                : "bg-slate-800 text-slate-400"
+                            }`}
+                          >
+                            {metric.fmtDelta(metric.delta)}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="w-full h-1.5 bg-slate-900 rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-emerald-500/85 transition-all"
+                          style={{ width: `${pctFill}%` }}
+                        />
+                      </div>
+                      <div className="flex items-center justify-between text-[10px] text-slate-500 font-mono">
+                        <span>Q1 Start: {metric.fmt(metric.start)}</span>
+                        <span>
+                          Net:{" "}
+                          {metric.current - metric.start >= 0 ? "+" : ""}
+                          {metric.max <= 1
+                            ? `${((metric.current - metric.start) * 100).toFixed(2)}%`
+                            : (metric.current - metric.start).toFixed(1)}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           </div>
 

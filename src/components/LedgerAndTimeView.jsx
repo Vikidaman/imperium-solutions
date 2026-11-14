@@ -28,7 +28,9 @@ export default function LedgerAndTimeView({
   onResetScenario,
   onCreateNewScenario,
   onRollbackSession,
+  isReadOnly = false,
 }) {
+  const canEdit = !isReadOnly;
   const state = session?.state || {};
   const tm = state.timeManager || {};
   const [randomizeHype, setRandomizeHype] = useState(true);
@@ -143,98 +145,118 @@ export default function LedgerAndTimeView({
               <div className="text-[10px] text-slate-400">
                 Auto-Clock Speed (Days/Hr)
               </div>
-              <input
-                type="number"
-                min="1"
-                step="15"
-                value={tm.intervalDaysPerHour || 90}
-                onChange={(e) =>
-                  onTimeAction({
-                    intervalDaysPerHour: Number(e.target.value),
-                  })
-                }
-                className="mt-1 w-full px-2 py-1 rounded bg-slate-900 border border-slate-700 font-mono-num font-bold text-white"
-              />
+              {canEdit ? (
+                <input
+                  type="number"
+                  min="1"
+                  step="15"
+                  value={tm.intervalDaysPerHour || 90}
+                  onChange={(e) =>
+                    onTimeAction({
+                      intervalDaysPerHour: Number(e.target.value),
+                    })
+                  }
+                  className="mt-1 w-full px-2 py-1 rounded bg-slate-900 border border-slate-700 font-mono-num font-bold text-white"
+                />
+              ) : (
+                <div className="text-base font-bold font-mono-num text-slate-200 mt-0.5">
+                  {tm.intervalDaysPerHour || 90}d / hr
+                </div>
+              )}
             </div>
 
             <div className="bg-slate-950/70 border border-slate-800 rounded-xl p-3">
               <div className="text-[10px] text-amber-400 font-semibold">
                 Simulation Start Date
               </div>
-              <input
-                type="date"
-                value={tm.crisisStartDate || "2025-01-01"}
-                onChange={(e) =>
-                  onTimeAction({
-                    command: "SET_START_DATE",
-                    startDate: e.target.value,
-                    resetCurrentDate: true,
-                  })
-                }
-                className="mt-1 w-full px-2 py-1 rounded bg-slate-900 border border-slate-700 font-mono-num text-white"
-              />
+              {canEdit ? (
+                <input
+                  type="date"
+                  value={tm.crisisStartDate || "2025-01-01"}
+                  onChange={(e) =>
+                    onTimeAction({
+                      command: "SET_START_DATE",
+                      startDate: e.target.value,
+                      resetCurrentDate: true,
+                    })
+                  }
+                  className="mt-1 w-full px-2 py-1 rounded bg-slate-900 border border-slate-700 font-mono-num text-white"
+                />
+              ) : (
+                <div className="text-base font-bold font-mono-num text-amber-300 mt-0.5">
+                  {tm.crisisStartDate || "2025-01-01"}
+                </div>
+              )}
             </div>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2.5 pt-1">
-            {!tm.isLive ? (
-              <button
-                onClick={() => onTimeAction({ command: "LOAD" })}
-                className="px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs flex items-center gap-1.5 shadow-lg shadow-emerald-500/15 cursor-pointer"
-              >
-                <Play className="w-3.5 h-3.5" />
-                Start Real-Time Simulation
-              </button>
-            ) : (
-              <button
-                onClick={() => onTimeAction({ command: "LOCK" })}
-                className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs flex items-center gap-1.5 shadow-lg shadow-amber-500/15 cursor-pointer"
-              >
-                <Pause className="w-3.5 h-3.5" />
-                Pause Simulation
-              </button>
-            )}
+          {canEdit ? (
+            <>
+              <div className="flex flex-wrap items-center gap-2.5 pt-1">
+                {!tm.isLive ? (
+                  <button
+                    onClick={() => onTimeAction({ command: "LOAD" })}
+                    className="px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs flex items-center gap-1.5 shadow-lg shadow-emerald-500/15 cursor-pointer"
+                  >
+                    <Play className="w-3.5 h-3.5" />
+                    Start Real-Time Simulation
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => onTimeAction({ command: "LOCK" })}
+                    className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs flex items-center gap-1.5 shadow-lg shadow-amber-500/15 cursor-pointer"
+                  >
+                    <Pause className="w-3.5 h-3.5" />
+                    Pause Simulation
+                  </button>
+                )}
 
-            <button
-              onClick={() => onTimeAction({ daysToAdd: 30, randomizeHype })}
-              className="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-semibold text-xs cursor-pointer"
-            >
-              +1 Month (30d)
-            </button>
+                <button
+                  onClick={() => onTimeAction({ daysToAdd: 30, randomizeHype })}
+                  className="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-semibold text-xs cursor-pointer"
+                >
+                  +1 Month (30d)
+                </button>
 
-            <button
-              onClick={() => onTimeAction({ daysToAdd: 90, randomizeHype })}
-              className="px-4 py-2 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs flex items-center gap-1.5 shadow-lg shadow-cyan-500/15 cursor-pointer"
-            >
-              <FastForward className="w-3.5 h-3.5" />
-              Advance +1 Quarter (90d)
-            </button>
+                <button
+                  onClick={() => onTimeAction({ daysToAdd: 90, randomizeHype })}
+                  className="px-4 py-2 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs flex items-center gap-1.5 shadow-lg shadow-cyan-500/15 cursor-pointer"
+                >
+                  <FastForward className="w-3.5 h-3.5" />
+                  Advance +1 Quarter (90d)
+                </button>
 
-            <button
-              onClick={() => onTimeAction({ daysToAdd: 360, randomizeHype })}
-              className="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-cyan-300 border border-cyan-500/30 font-semibold text-xs cursor-pointer"
-            >
-              +1 Year (4 Quarters)
-            </button>
-          </div>
+                <button
+                  onClick={() => onTimeAction({ daysToAdd: 360, randomizeHype })}
+                  className="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-cyan-300 border border-cyan-500/30 font-semibold text-xs cursor-pointer"
+                >
+                  +1 Year (4 Quarters)
+                </button>
+              </div>
 
-          <div className="pt-1 text-xs">
-            <label className="flex items-center gap-2 text-slate-300 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={randomizeHype}
-                onChange={(e) => setRandomizeHype(e.target.checked)}
-                className="accent-cyan-400"
-              />
-              Dynamic Market Sentiment Waves (fluctuates commodity consumer hype each quarter)
-            </label>
-          </div>
+              <div className="pt-1 text-xs">
+                <label className="flex items-center gap-2 text-slate-300 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={randomizeHype}
+                    onChange={(e) => setRandomizeHype(e.target.checked)}
+                    className="accent-cyan-400"
+                  />
+                  Dynamic Market Sentiment Waves (fluctuates commodity consumer hype each quarter)
+                </label>
+              </div>
+            </>
+          ) : (
+            <div className="bg-slate-950/60 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-slate-400">
+              Spectator Read-Only Mode — Clock progression and scenario snapshots are managed by the Director.
+            </div>
+          )}
         </div>
 
         {/* Scenario Save / Load / Reset */}
         <div className="bg-slate-950/60 border border-slate-800 rounded-xl p-4 space-y-3 text-xs">
           <div className="font-bold uppercase tracking-wider text-slate-300">
-            Save States & Snapshots
+            {canEdit ? "Save States & Snapshots" : "Session Data Export"}
           </div>
           <div className="flex flex-wrap gap-2">
             <button
@@ -243,18 +265,20 @@ export default function LedgerAndTimeView({
             >
               <Download className="w-3.5 h-3.5" /> Export JSON
             </button>
-            <label className="flex-1 px-3 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 flex items-center justify-center gap-1.5 cursor-pointer">
-              <Upload className="w-3.5 h-3.5" /> Import JSON
-              <input
-                type="file"
-                accept=".json"
-                onChange={handleImportJson}
-                className="hidden"
-              />
-            </label>
+            {canEdit && (
+              <label className="flex-1 px-3 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 flex items-center justify-center gap-1.5 cursor-pointer">
+                <Upload className="w-3.5 h-3.5" /> Import JSON
+                <input
+                  type="file"
+                  accept=".json"
+                  onChange={handleImportJson}
+                  className="hidden"
+                />
+              </label>
+            )}
           </div>
 
-          {onRollbackSession && (ledgerHistory || []).length > 1 && (
+          {canEdit && onRollbackSession && (ledgerHistory || []).length > 1 && (
             <div className="pt-2 border-t border-slate-800">
               <div className="text-[11px] text-slate-400 mb-1.5">
                 Rollback to Previous Quarter Snapshot:
@@ -273,22 +297,24 @@ export default function LedgerAndTimeView({
             </div>
           )}
 
-          <div className="pt-2 border-t border-slate-800">
-            <button
-              onClick={() => {
-                if (
-                  window.confirm(
-                    "Reset the United States simulation back to Quarter 1 baseline?"
-                  )
-                ) {
-                  onResetScenario();
-                }
-              }}
-              className="w-full py-2 rounded-lg bg-rose-950/50 hover:bg-rose-900/60 text-rose-300 border border-rose-800/50 flex items-center justify-center gap-1.5 font-medium cursor-pointer"
-            >
-              <RotateCcw className="w-3.5 h-3.5" /> Reset Simulation to Baseline
-            </button>
-          </div>
+          {canEdit && (
+            <div className="pt-2 border-t border-slate-800">
+              <button
+                onClick={() => {
+                  if (
+                    window.confirm(
+                      "Reset the United States simulation back to Quarter 1 baseline?"
+                    )
+                  ) {
+                    onResetScenario();
+                  }
+                }}
+                className="w-full py-2 rounded-lg bg-rose-950/50 hover:bg-rose-900/60 text-rose-300 border border-rose-800/50 flex items-center justify-center gap-1.5 font-medium cursor-pointer"
+              >
+                <RotateCcw className="w-3.5 h-3.5" /> Reset Simulation to Baseline
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
