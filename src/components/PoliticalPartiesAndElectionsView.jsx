@@ -609,7 +609,7 @@ function StateCountyImpressionMap({ stateObj }) {
       let bestBasinDist = Infinity;
       for (const b of basins) {
         if (!Array.isArray(b.coords)) continue;
-        const dist = Math.hypot(cLon - normLon(b.coords[0]), cLat - cl.coords[1]);
+        const dist = Math.hypot(cLon - normLon(b.coords[0]), cLat - b.coords[1]);
         const w = Math.exp(-(dist * dist) / 1.15);
         const sign = b.type === "port" ? -0.4 : 1.0;
         resourcePull += w * sign;
