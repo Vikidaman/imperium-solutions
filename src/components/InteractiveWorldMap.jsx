@@ -27,6 +27,8 @@ import {
   Check,
   ShieldCheck,
   Eye,
+  AlertTriangle,
+  Scale,
 } from "lucide-react";
 import { formatCompactCurrency, formatCompactNumber } from "../utils/formatters";
 import { US_STATES_CATALOG } from "../data/usStatesData";
@@ -102,6 +104,75 @@ const BufferedRangeSlider = ({
       onBlur={(e) => commitValue(e.currentTarget.value)}
       className={className}
     />
+  );
+};
+
+const TaxBellCurveSvg = ({ curvePoints = [], mode = 0.62, skewDirection = "left-tailed" }) => {
+  const width = 320;
+  const height = 78;
+  const padX = 8;
+  const padY = 8;
+  const innerW = width - padX * 2;
+  const innerH = height - padY * 2;
+
+  const pts =
+    Array.isArray(curvePoints) && curvePoints.length > 0
+      ? curvePoints
+      : Array.from({ length: 21 }, (_, i) => {
+          const x = i / 20;
+          const sL = 0.16 + 0.42 * mode;
+          const sR = 0.16 + 0.42 * (1 - mode);
+          const s = x < mode ? sL : sR;
+          return { x, density: Math.exp(-Math.pow(x - mode, 2) / (2 * s * s)) };
+        });
+
+  const coords = pts.map((p) => {
+    const px = padX + p.x * innerW;
+    const py = padY + innerH - Math.max(0.02, p.density) * (innerH - 6);
+    return [px, py];
+  });
+
+  const linePath = coords
+    .map(([x, y], idx) => `${idx === 0 ? "M" : "L"} ${x.toFixed(1)} ${y.toFixed(1)}`)
+    .join(" ");
+  const areaPath = `${linePath} L ${(padX + innerW).toFixed(1)} ${(padY + innerH).toFixed(1)} L ${padX.toFixed(1)} ${(padY + innerH).toFixed(1)} Z`;
+  const modeX = padX + Math.max(0.05, Math.min(0.95, mode)) * innerW;
+
+  const strokeColor =
+    skewDirection === "right-tailed"
+      ? "#f59e0b"
+      : skewDirection === "left-tailed"
+      ? "#10b981"
+      : "#38bdf8";
+
+  return (
+    <svg
+      viewBox={`0 0 ${width} ${height}`}
+      className="w-full h-20 rounded-lg bg-slate-900/75 border border-slate-800/80"
+      aria-label="Tax burden distribution bell curve"
+    >
+      {/* Cohort zone background bands: Low (0-0.40), Middle (0.40-0.85), Upper (0.85-1.0) */}
+      <rect x={padX} y={padY} width={innerW * 0.4} height={innerH} fill="rgba(245, 158, 11, 0.06)" />
+      <rect x={padX + innerW * 0.4} y={padY} width={innerW * 0.45} height={innerH} fill="rgba(59, 130, 246, 0.05)" />
+      <rect x={padX + innerW * 0.85} y={padY} width={innerW * 0.15} height={innerH} fill="rgba(16, 185, 129, 0.07)" />
+
+      {/* Area fill */}
+      <path d={areaPath} fill={strokeColor} fillOpacity="0.18" />
+      {/* Bell curve stroke */}
+      <path d={linePath} fill="none" stroke={strokeColor} strokeWidth="2.2" strokeLinecap="round" />
+
+      {/* Modal peak line */}
+      <line
+        x1={modeX}
+        y1={padY}
+        x2={modeX}
+        y2={padY + innerH}
+        stroke={strokeColor}
+        strokeWidth="1.5"
+        strokeDasharray="3 3"
+      />
+      <circle cx={modeX} cy={padY + 6} r="3" fill={strokeColor} />
+    </svg>
   );
 };
 
@@ -255,6 +326,8 @@ const InteractiveWorldMap = ({
       salesTaxOverride: null,
       workerShareOverride: null,
       budgetPercentOverride: null,
+      taxDistributionMode: activeParty.taxDistributionMode ?? 0.62,
+      equalityDrift: 0,
       centralBankRate: 0.045,
       infrastructureEfficiency: 0.82,
       literacyRate: 0.92,
@@ -269,6 +342,7 @@ const InteractiveWorldMap = ({
         urbanisationIndex: 0.83,
         consumerSentiment: 65,
         kFactorScaler: 1500,
+        incomeEqualityIndex: 0.615,
         publicDebt: Number(usa.publicDebt ?? 34500000000000),
       },
     });
@@ -283,6 +357,7 @@ const InteractiveWorldMap = ({
     corporateTaxRate: activeParty.corporateTaxRate,
     salesTaxPreference: activeParty.salesTaxPreference,
     workerShareOfGdp: activeParty.workerShareOfGdp,
+    taxDistributionMode: activeParty.taxDistributionMode ?? 0.62,
     infrastructureInvestmentShare: activeParty.infrastructureInvestmentShare,
     educationGovernanceShare: activeParty.educationGovernanceShare,
     deficitTargetAsPercentOfGdp: activeParty.deficitTargetAsPercentOfGdp,
@@ -294,6 +369,9 @@ const InteractiveWorldMap = ({
     urbanisationDelta: 0,
     sentimentDelta: 0,
     tfpDelta: 0,
+    equalityDelta: 0,
+    neglectedCount: 0,
+    neglectMultiplier: 1.0,
     policyBudgetAdjustmentPct: 0,
     policies: usa.enactedPolicies || cloneDefaultPolicies(activeParty.name),
   };
@@ -304,8 +382,15 @@ const InteractiveWorldMap = ({
     urbanisationIndex: 0.83,
     consumerSentiment: 65,
     kFactorScaler: 1500,
+    incomeEqualityIndex: 0.615,
     publicDebt: 34500000000000,
   };
+
+  const effectiveTaxMode = Number(
+    usa.taxDistributionMode ?? c.taxDistributionMode ?? partyPrefs.taxDistributionMode ?? 0.62
+  );
+  const bellCurveTax = c.bellCurveTaxIncidence || {};
+  const govDiag = c.governanceDiagnostics || { explanations: {}, maluses: {}, totals: {} };
 
   const effectiveIncomeTax = Number(c.incomeTax ?? partyPrefs.incomeTaxPreference ?? 0.28);
   const effectiveCorpTax = Number(c.corporateTax ?? partyPrefs.corporateTaxRate ?? 0.25);
@@ -458,9 +543,9 @@ const InteractiveWorldMap = ({
             {((c.inflationRate || 0) * 100).toFixed(2)}%
           </div>
           <div className="text-[11px] text-slate-400 mt-1 flex items-center justify-between">
-            <span>Gini Index:</span>
+            <span>Equality / Gini:</span>
             <span className="text-purple-300 font-mono">
-              {Number(c.giniCoefficient || 0.38).toFixed(3)}
+              {((c.incomeEqualityIndex ?? 0.613) * 100).toFixed(1)}% ({Number(c.giniCoefficient || 0.387).toFixed(3)})
             </span>
           </div>
         </div>
@@ -1080,6 +1165,7 @@ const InteractiveWorldMap = ({
                           crimePolicy: nextParty.localCrimePolicy,
                           healthcarePolicy: nextParty.healthcarePolicy,
                           enactedPolicies: cloneDefaultPolicies(nextParty.name),
+                          taxDistributionMode: nextParty.taxDistributionMode ?? 0.62,
                           incomeTaxOverride: null,
                           corporateTaxOverride: null,
                           salesTaxOverride: null,
@@ -1237,7 +1323,7 @@ const InteractiveWorldMap = ({
               </div>
             </div>
 
-            {/* Federal Reserve Interest Rate — SOLE Direct Slider Control */}
+            {/* Federal Reserve Interest Rate & Bell-Curve Tax Burden Distribution */}
             <div className="bg-slate-950/70 border border-blue-500/30 rounded-xl p-3.5 space-y-2">
               <div className="flex items-center justify-between text-xs">
                 <div>
@@ -1275,6 +1361,107 @@ const InteractiveWorldMap = ({
                   />
                 </div>
               )}
+            </div>
+
+            {/* Bell-Curve Tax Burden Distribution Modal Slider & Visualization */}
+            <div className="bg-slate-950/70 border border-amber-500/30 rounded-xl p-3.5 space-y-2.5">
+              <div className="flex flex-wrap items-start justify-between gap-2 text-xs">
+                <div>
+                  <div className="flex items-center gap-1.5">
+                    <Scale className="w-3.5 h-3.5 text-amber-400" />
+                    <span className="text-white font-semibold">
+                      Tax Burden Distribution Bell Curve
+                    </span>
+                  </div>
+                  <div className="text-[10px] text-slate-400 mt-0.5">
+                    {bellCurveTax.skewLabel || "Modal incidence across income deciles"}
+                  </div>
+                </div>
+                <span
+                  className={`font-mono font-bold text-[11px] px-2 py-0.5 rounded-full border ${
+                    bellCurveTax.skewDirection === "right-tailed"
+                      ? "bg-amber-500/15 text-amber-300 border-amber-500/40"
+                      : bellCurveTax.skewDirection === "left-tailed"
+                      ? "bg-emerald-500/15 text-emerald-300 border-emerald-500/40"
+                      : "bg-sky-500/15 text-sky-300 border-sky-500/40"
+                  }`}
+                >
+                  Mode: P{Math.round(effectiveTaxMode * 100)}
+                </span>
+              </div>
+
+              <TaxBellCurveSvg
+                curvePoints={bellCurveTax.curvePoints}
+                mode={effectiveTaxMode}
+                skewDirection={bellCurveTax.skewDirection}
+              />
+
+              {canEdit ? (
+                <div className="space-y-1">
+                  <BufferedRangeSlider
+                    min={0.10}
+                    max={0.90}
+                    step={0.02}
+                    value={effectiveTaxMode}
+                    disabled={!canEdit}
+                    onCommit={(num) => updatePolicy({ taxDistributionMode: num })}
+                    className="w-full accent-amber-500 cursor-pointer"
+                  />
+                  <div className="flex items-center justify-between text-[10px] text-slate-400">
+                    <span>Low-Income Peak (Right-Tailed)</span>
+                    <span>Middle Class</span>
+                    <span>Upper-Income Peak (Left-Tailed)</span>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex items-center justify-between text-[10px] text-slate-400">
+                  <span>Lower-Income Deciles</span>
+                  <span>Middle Deciles</span>
+                  <span>Top Capital Deciles</span>
+                </div>
+              )}
+
+              <div className="grid grid-cols-3 gap-1.5 text-[10px] pt-1 border-t border-slate-800/80">
+                <div className="bg-slate-900/70 rounded-lg px-2 py-1.5 flex items-center justify-between">
+                  <span className="text-slate-400">Low Tax:</span>
+                  <span className="font-mono font-bold text-amber-300">
+                    {((bellCurveTax.cohortTaxBurdens?.lowIncome ?? 0.2) * 100).toFixed(1)}%
+                  </span>
+                </div>
+                <div className="bg-slate-900/70 rounded-lg px-2 py-1.5 flex items-center justify-between">
+                  <span className="text-slate-400">Mid Tax:</span>
+                  <span className="font-mono font-bold text-blue-300">
+                    {((bellCurveTax.cohortTaxBurdens?.middleClass ?? 0.38) * 100).toFixed(1)}%
+                  </span>
+                </div>
+                <div className="bg-slate-900/70 rounded-lg px-2 py-1.5 flex items-center justify-between">
+                  <span className="text-slate-400">Top Tax:</span>
+                  <span className="font-mono font-bold text-emerald-300">
+                    {((bellCurveTax.cohortTaxBurdens?.upperClass ?? 0.44) * 100).toFixed(1)}%
+                  </span>
+                </div>
+              </div>
+              <div className="flex items-center justify-between text-[10px] text-slate-400 font-mono">
+                <span>
+                  MPC Consumption Impulse:{" "}
+                  <span
+                    className={
+                      (bellCurveTax.consumptionMpcMultiplier ?? 1) >= 1
+                        ? "text-emerald-300 font-semibold"
+                        : "text-rose-300 font-semibold"
+                    }
+                  >
+                    {((bellCurveTax.consumptionMpcMultiplier ?? 1) * 100 - 100 >= 0 ? "+" : "")}
+                    {(((bellCurveTax.consumptionMpcMultiplier ?? 1) - 1) * 100).toFixed(1)}% C
+                  </span>
+                </span>
+                <span>
+                  Equality Index:{" "}
+                  <span className="text-cyan-300 font-semibold">
+                    {((c.incomeEqualityIndex ?? 0.615) * 100).toFixed(1)}%
+                  </span>
+                </span>
+              </div>
             </div>
 
             {/* Sovereign Debt Baseline (Sliderless — Modal & Quick Presets for Director) */}
@@ -1450,9 +1637,20 @@ const InteractiveWorldMap = ({
                 </span>
               </div>
 
+              {(policyProg.neglectedCount || 0) >= 2 && (
+                <div className="bg-rose-500/15 border border-rose-500/40 rounded-lg px-3 py-2 text-[11px] text-rose-200 flex items-start gap-2">
+                  <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
+                  <div>
+                    <span className="font-bold">Compounding Institutional Neglect ({policyProg.neglectMultiplier}x Decay):</span>{" "}
+                    {policyProg.neglectedCount} core acts are underfunded or repealed, accelerating structural erosion across GDP growth, equality, and workforce capability.
+                  </div>
+                </div>
+              )}
+
               <div className="space-y-2">
                 {[
                   {
+                    key: "literacy",
                     label: "Workforce Literacy & Education",
                     current: Number(usa.literacyRate ?? c.literacyRate ?? 0.92),
                     start: Number(startingBaseline.literacyRate ?? 0.92),
@@ -1461,8 +1659,11 @@ const InteractiveWorldMap = ({
                     max: 1.0,
                     fmt: (v) => `${(v * 100).toFixed(1)}%`,
                     fmtDelta: (d) => `${d >= 0 ? "+" : ""}${(d * 100).toFixed(2)}%/qtr`,
+                    explanation: govDiag.explanations?.literacy,
+                    malus: govDiag.maluses?.literacy,
                   },
                   {
+                    key: "infrastructure",
                     label: "Infrastructure & Logistics",
                     current: Number(
                       usa.infrastructureEfficiency ?? c.infrastructureEfficiency ?? 0.82
@@ -1473,8 +1674,11 @@ const InteractiveWorldMap = ({
                     max: 1.0,
                     fmt: (v) => `${(v * 100).toFixed(1)}%`,
                     fmtDelta: (d) => `${d >= 0 ? "+" : ""}${(d * 100).toFixed(2)}%/qtr`,
+                    explanation: govDiag.explanations?.infrastructure,
+                    malus: govDiag.maluses?.infrastructure,
                   },
                   {
+                    key: "urbanisation",
                     label: "Urban Agglomeration Rate",
                     current: Number(usa.urbanisationIndex ?? c.urbanisationIndex ?? 0.83),
                     start: Number(startingBaseline.urbanisationIndex ?? 0.83),
@@ -1483,8 +1687,11 @@ const InteractiveWorldMap = ({
                     max: 1.0,
                     fmt: (v) => `${(v * 100).toFixed(1)}%`,
                     fmtDelta: (d) => `${d >= 0 ? "+" : ""}${(d * 100).toFixed(2)}%/qtr`,
+                    explanation: govDiag.explanations?.urbanisation,
+                    malus: govDiag.maluses?.urbanisation,
                   },
                   {
+                    key: "sentiment",
                     label: "Household Consumer Sentiment",
                     current: Number(usa.consumerSentiment ?? c.consumerConfidence ?? 65),
                     start: Number(startingBaseline.consumerSentiment ?? 65),
@@ -1493,8 +1700,11 @@ const InteractiveWorldMap = ({
                     max: 115,
                     fmt: (v) => `${v.toFixed(1)} idx`,
                     fmtDelta: (d) => `${d >= 0 ? "+" : ""}${d.toFixed(2)}/qtr`,
+                    explanation: govDiag.explanations?.sentiment,
+                    malus: govDiag.maluses?.sentiment,
                   },
                   {
+                    key: "productivity",
                     label: "Total Factor Productivity (K-Factor)",
                     current: Number(usa.kFactorScaler ?? 1500),
                     start: Number(startingBaseline.kFactorScaler ?? 1500),
@@ -1503,21 +1713,49 @@ const InteractiveWorldMap = ({
                     max: 3500,
                     fmt: (v) => `${(v / 1500).toFixed(2)}x (${Math.round(v)})`,
                     fmtDelta: (d) => `${d >= 0 ? "+" : ""}${Math.round(d)}/qtr`,
+                    explanation: govDiag.explanations?.productivity,
+                    malus: govDiag.maluses?.productivity,
+                  },
+                  {
+                    key: "equality",
+                    label: "Income Equality Index (1 - Gini)",
+                    current: Number(c.incomeEqualityIndex ?? 0.615),
+                    start: Number(startingBaseline.incomeEqualityIndex ?? 0.615),
+                    delta: Number(policyProg.equalityDelta ?? 0),
+                    min: 0.32,
+                    max: 0.78,
+                    fmt: (v) => `${(v * 100).toFixed(1)}%`,
+                    fmtDelta: (d) => `${d >= 0 ? "+" : ""}${(d * 100).toFixed(2)}%/qtr`,
+                    explanation: govDiag.explanations?.equality,
+                    malus: govDiag.maluses?.equality,
                   },
                 ].map((metric) => {
                   const pctFill = Math.min(
                     100,
                     Math.max(4, ((metric.current - metric.min) / (metric.max - metric.min)) * 100)
                   );
+                  const isNegativeDelta = metric.delta < 0;
                   return (
                     <div
                       key={metric.label}
-                      className="bg-slate-950/60 border border-slate-800/80 rounded-lg p-2.5 space-y-1.5"
+                      className={`rounded-lg p-2.5 space-y-1.5 border ${
+                        isNegativeDelta
+                          ? "bg-rose-950/20 border-rose-500/30"
+                          : "bg-slate-950/60 border-slate-800/80"
+                      }`}
                     >
                       <div className="flex items-center justify-between gap-2 text-xs">
-                        <span className="text-slate-300 font-medium">{metric.label}</span>
+                        <span className="text-slate-200 font-semibold">{metric.label}</span>
                         <div className="flex items-center gap-2 font-mono">
-                          <span className="text-emerald-300 font-bold">
+                          <span
+                            className={`font-bold ${
+                              metric.malus?.active
+                                ? "text-amber-300"
+                                : isNegativeDelta
+                                ? "text-rose-300"
+                                : "text-emerald-300"
+                            }`}
+                          >
                             {metric.fmt(metric.current)}
                           </span>
                           <span
@@ -1525,7 +1763,7 @@ const InteractiveWorldMap = ({
                               metric.delta > 0
                                 ? "bg-emerald-500/15 text-emerald-300"
                                 : metric.delta < 0
-                                ? "bg-rose-500/15 text-rose-300"
+                                ? "bg-rose-500/25 text-rose-200 border border-rose-500/40"
                                 : "bg-slate-800 text-slate-400"
                             }`}
                           >
@@ -1535,7 +1773,13 @@ const InteractiveWorldMap = ({
                       </div>
                       <div className="w-full h-1.5 bg-slate-900 rounded-full overflow-hidden">
                         <div
-                          className="h-full bg-emerald-500/85 transition-all"
+                          className={`h-full transition-all ${
+                            isNegativeDelta
+                              ? "bg-rose-500/85"
+                              : metric.malus?.active
+                              ? "bg-amber-400/85"
+                              : "bg-emerald-500/85"
+                          }`}
                           style={{ width: `${pctFill}%` }}
                         />
                       </div>
@@ -1549,6 +1793,22 @@ const InteractiveWorldMap = ({
                             : (metric.current - metric.start).toFixed(1)}
                         </span>
                       </div>
+                      {metric.explanation && (
+                        <p className="text-[10px] text-slate-300/90 leading-snug pt-0.5">
+                          {metric.explanation}
+                        </p>
+                      )}
+                      {metric.malus?.active && (
+                        <div className="bg-amber-500/10 border border-amber-500/35 rounded px-2 py-1 text-[10px] text-amber-200 flex items-start gap-1.5 mt-1">
+                          <AlertTriangle className="w-3 h-3 text-amber-400 shrink-0 mt-0.5" />
+                          <div>
+                            <span className="font-bold">
+                              High-Level Malus ({metric.malus.penaltyLabel}):
+                            </span>{" "}
+                            {metric.malus.detail}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   );
                 })}
@@ -1603,8 +1863,18 @@ const InteractiveWorldMap = ({
 
             {c.cohorts && (
               <div className="border-t border-slate-800 pt-3">
-                <div className="text-xs font-bold text-white mb-2">
-                  US Household Income Distribution Cohorts
+                <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
+                  <div className="text-xs font-bold text-white">
+                    US Household Income Distribution Cohorts
+                  </div>
+                  <div className="flex items-center gap-1.5 text-[10px] font-mono">
+                    <span className="px-2 py-0.5 rounded bg-cyan-500/15 text-cyan-300 border border-cyan-500/30">
+                      Equality: {((c.incomeEqualityIndex ?? 0.615) * 100).toFixed(1)}%
+                    </span>
+                    <span className="px-2 py-0.5 rounded bg-purple-500/15 text-purple-300 border border-purple-500/30">
+                      Gini: {Number(c.giniCoefficient || 0.387).toFixed(3)}
+                    </span>
+                  </div>
                 </div>
                 <div className="grid grid-cols-3 gap-2 text-center text-xs">
                   {[
@@ -1639,7 +1909,7 @@ const InteractiveWorldMap = ({
                         </div>
                         <div className="text-[10px] text-slate-500 mt-0.5">
                           SoL: {Number(data.livingStandard || 0).toFixed(1)} • Tax:{" "}
-                          {Math.round((data.taxBurden || 0) * 100)}%
+                          {((data.taxBurden || 0) * 100).toFixed(1)}%
                         </div>
                       </div>
                     ) : null

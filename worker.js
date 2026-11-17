@@ -760,6 +760,8 @@ export default {
             "corporateTaxOverride",
             "workerShareOverride",
             "budgetPercentOverride",
+            "taxDistributionMode",
+            "equalityDrift",
             "centralBankRate",
             "freightDelayFriction",
             "cumulativeGrowthFactor",

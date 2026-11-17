@@ -77,14 +77,351 @@ function getPolicyCostPct(entry) {
 }
 
 /**
+ * Models tax burden incidence across income percentiles [0, 1] using an asymmetric bell curve
+ * whose modal peak is set by `mode` (0.10 = Low-Income concentrated / right-tailed skew;
+ * 0.50 = Balanced middle-class bell; 0.90 = Upper-Income/Capital progressive / left-tailed skew).
+ */
+export function computeBellCurveTaxIncidence(
+  mode = 0.62,
+  incomeTax = 0.28,
+  salesTax = 0.06,
+  corporateTax = 0.25
+) {
+  const m = Math.max(0.10, Math.min(0.90, Number.isFinite(Number(mode)) ? Number(mode) : 0.62));
+  const sigmaL = 0.16 + 0.42 * m;
+  const sigmaR = 0.16 + 0.42 * (1 - m);
+
+  const rawDensity = (x) => {
+    const s = x < m ? sigmaL : sigmaR;
+    return Math.exp(-Math.pow(x - m, 2) / (2 * s * s));
+  };
+
+  // Evaluate at Low-Income (x=0.20), Middle-Class (x=0.55), and Upper-Income (x=0.90)
+  const dL = rawDensity(0.20);
+  const dM = rawDensity(0.55);
+  const dU = rawDensity(0.90);
+  const weightedMean = 0.22 * dL + 0.50 * dM + 0.28 * dU;
+
+  const relL = weightedMean > 0 ? dL / weightedMean : 1;
+  const relM = weightedMean > 0 ? dM / weightedMean : 1;
+  const relU = weightedMean > 0 ? dU / weightedMean : 1;
+
+  // Compute effective cohort total tax burdens (income + sales consumption + corporate capital incidence)
+  const incTax = Math.max(0, Number(incomeTax) || 0);
+  const salTax = Math.max(0, Number(salesTax) || 0);
+  const crpTax = Math.max(0, Number(corporateTax) || 0);
+
+  const calcBurden = (modeVal, rL, rM, rU) => {
+    const sL = salTax * (1.20 - 0.55 * modeVal); // regressive consumption burden shifts when mode is lower-income
+    const sM = salTax * 1.00;
+    const sU = salTax * (0.55 + 0.35 * modeVal);
+    const tauL = Math.max(0.03, Math.min(0.72, incTax * 0.68 * Math.pow(rL, 1.15) + sL + crpTax * 0.05));
+    const tauM = Math.max(0.05, Math.min(0.75, incTax * 0.92 * rM + sM + crpTax * 0.18));
+    const tauU = Math.max(0.06, Math.min(0.82, incTax * 1.18 * Math.pow(rU, 1.15) + sU + crpTax * 0.52));
+    return { tauL, tauM, tauU };
+  };
+
+  const { tauL, tauM, tauU } = calcBurden(m, relL, relM, relU);
+
+  // Baseline reference at m=0.62, inc=0.28, sales=0.06, corp=0.25 -> mpcWeighted = 1.000 calibration
+  const MPC_L = 0.92;
+  const MPC_M = 0.74;
+  const MPC_U = 0.42;
+  const rawMpcWeighted =
+    0.22 * (1 - tauL) * MPC_L +
+    0.50 * (1 - tauM) * MPC_M +
+    0.28 * (1 - tauU) * MPC_U;
+
+  // Baseline constant evaluated at Democratic reference (m=0.62, 0.28, 0.06, 0.25)
+  const refM = 0.62;
+  const refSigL = 0.16 + 0.42 * refM;
+  const refSigR = 0.16 + 0.42 * (1 - refM);
+  const refDen = (x) => {
+    const s = x < refM ? refSigL : refSigR;
+    return Math.exp(-Math.pow(x - refM, 2) / (2 * s * s));
+  };
+  const rdL = refDen(0.20), rdM = refDen(0.55), rdU = refDen(0.90);
+  const rMean = 0.22 * rdL + 0.50 * rdM + 0.28 * rdU;
+  const rL0 = rdL / rMean, rM0 = rdM / rMean, rU0 = rdU / rMean;
+  const refTauL = Math.max(0.03, Math.min(0.72, 0.28 * 0.68 * Math.pow(rL0, 1.15) + 0.06 * (1.20 - 0.55 * refM) + 0.25 * 0.05));
+  const refTauM = Math.max(0.05, Math.min(0.75, 0.28 * 0.92 * rM0 + 0.06 + 0.25 * 0.18));
+  const refTauU = Math.max(0.06, Math.min(0.82, 0.28 * 1.18 * Math.pow(rU0, 1.15) + 0.06 * (0.55 + 0.35 * refM) + 0.25 * 0.52));
+  const refMpcWeighted =
+    0.22 * (1 - refTauL) * MPC_L +
+    0.50 * (1 - refTauM) * MPC_M +
+    0.28 * (1 - refTauU) * MPC_U;
+
+  // Isolate the pure distributional shift (removing aggregate statutory tax level which cIdx already prices)
+  const sameStatRaw = calcBurden(m, relL, relM, relU);
+  const refModeAtCurrStat = (() => {
+    const { tauL: rTL, tauM: rTM, tauU: rTU } = calcBurden(refM, rL0, rM0, rU0);
+    return 0.22 * (1 - rTL) * MPC_L + 0.50 * (1 - rTM) * MPC_M + 0.28 * (1 - rTU) * MPC_U;
+  })();
+
+  const pureDistributionalRatio = refModeAtCurrStat > 0 ? rawMpcWeighted / refModeAtCurrStat : 1.0;
+  // Amplify responsiveness so shifting the bell curve visibly shifts C & AD while staying bounded
+  const consumptionMpcMultiplier = Math.max(
+    0.80,
+    Math.min(1.20, 1 + (pureDistributionalRatio - 1) * 1.45)
+  );
+
+  // Heavy top-bracket modal taxation above 0.68 induces venture/capex investment drag in I
+  const investmentCapexDrag =
+    m > 0.68
+      ? Math.min(0.16, (m - 0.68) * 0.42 * (0.65 + crpTax))
+      : m < 0.45
+      ? -Math.min(0.05, (0.45 - m) * 0.10)
+      : 0;
+
+  let skewLabel = "Symmetrical / Middle-Class Peaked";
+  let skewDirection = "balanced";
+  if (m < 0.45) {
+    skewLabel = "Right-Tailed Skew (Concentrated on Lower Income)";
+    skewDirection = "right-tailed";
+  } else if (m > 0.58) {
+    skewLabel = "Left-Tailed Progressive Skew (Peaks on Upper Income)";
+    skewDirection = "left-tailed";
+  }
+
+  // Generate 21 sampled SVG curve points across x = [0, 1]
+  const curvePoints = [];
+  for (let i = 0; i <= 20; i++) {
+    const x = Number((i / 20).toFixed(2));
+    const density = rawDensity(x);
+    const effectiveRatePct = Number(
+      ((incTax * 0.90 * (density / weightedMean) + salTax * (1.15 - 0.45 * x) + crpTax * (0.05 + 0.48 * Math.pow(x, 1.4))) * 100).toFixed(1)
+    );
+    curvePoints.push({
+      x,
+      percentile: Math.round(x * 100),
+      density: Number(density.toFixed(4)),
+      effectiveRatePct,
+    });
+  }
+
+  return {
+    mode: Number(m.toFixed(3)),
+    sigmaLeft: Number(sigmaL.toFixed(3)),
+    sigmaRight: Number(sigmaR.toFixed(3)),
+    skewLabel,
+    skewDirection,
+    relMultipliers: {
+      lowIncome: Number(relL.toFixed(3)),
+      middleClass: Number(relM.toFixed(3)),
+      upperClass: Number(relU.toFixed(3)),
+    },
+    cohortTaxBurdens: {
+      lowIncome: Number(tauL.toFixed(4)),
+      middleClass: Number(tauM.toFixed(4)),
+      upperClass: Number(tauU.toFixed(4)),
+    },
+    baselineTaxBurdens: {
+      lowIncome: Number(refTauL.toFixed(4)),
+      middleClass: Number(refTauM.toFixed(4)),
+      upperClass: Number(refTauU.toFixed(4)),
+    },
+    mpcWeightedDisposal: Number(rawMpcWeighted.toFixed(4)),
+    refMpcWeightedDisposal: Number(refMpcWeighted.toFixed(4)),
+    consumptionMpcMultiplier: Number(consumptionMpcMultiplier.toFixed(4)),
+    investmentCapexDrag: Number(investmentCapexDrag.toFixed(4)),
+    progressivitySpread: Number((tauU - tauL).toFixed(4)),
+    curvePoints,
+  };
+}
+
+/**
+ * Generates qualitative explanations and detects high-governance structural maluses
+ * (diminishing returns / trade-offs at extreme capability levels).
+ */
+export function computeGovernanceDiagnostics({
+  literacyRate = 0.92,
+  infrastructureEfficiency = 0.82,
+  urbanisationIndex = 0.83,
+  consumerSentiment = 65,
+  kFactorScaler = 1500,
+  incomeEqualityIndex = 0.615,
+}) {
+  // 1. Workforce Literacy & Education -> Graduate Underemployment above 94%
+  const litExcess = Math.max(0, literacyRate - 0.94);
+  const graduateUnderemploymentBonus = litExcess > 0 ? Number((litExcess * 0.45).toFixed(4)) : 0; // up to +2.7% unemployment/underemployment at 100%
+  const underemploymentRate = Number((0.03 + litExcess * 1.85).toFixed(4));
+  let litText = "Moderate educational attainment limits complex industrial capacity and leaves high-skill billets unfilled.";
+  if (literacyRate >= 0.96) {
+    litText = "Populace is exceptionally well educated and significantly capable of higher-level R&D, finance, and executive jobs — though degree saturation triggers graduate underemployment in routine roles.";
+  } else if (literacyRate >= 0.91) {
+    litText = "Strong workforce readiness supports advanced services, aerospace, and digital sectors with broad technical literacy.";
+  } else if (literacyRate >= 0.82) {
+    litText = "Adequate basic schooling for core manufacturing and retail, but shortages of specialized STEM talent constrain frontier innovation.";
+  } else {
+    litText = "Underfunded school systems are eroding foundational human capital, depressing labor productivity and upward mobility.";
+  }
+
+  // 2. Total Factor Productivity (K-Factor) -> Automation Structural Unemployment above 1800 (1.20x)
+  const kExcess = Math.max(0, kFactorScaler - 1800) / 1000;
+  const automationUnemploymentBonus = kExcess > 0 ? Number((kExcess * 0.038).toFixed(4)) : 0; // up to +4.6% at 3000
+  const automationGiniPressure = kExcess > 0 ? Number((kExcess * 0.045).toFixed(4)) : 0;
+  let kText = "Frontier automation and high capital deepening drive elite output per worker.";
+  if (kFactorScaler >= 2100) {
+    kText = "Hyper-automated frontier economy generates massive output per worker, but rapid AI & robotic substitution displaces routine clerical and factory jobs into structural unemployment.";
+  } else if (kFactorScaler >= 1650) {
+    kText = "Expanding R&D capital and AI tooling elevate total factor productivity across high-tech supply chains.";
+  } else if (kFactorScaler >= 1350) {
+    kText = "Modern industrial capital stock sustains competitive global output per worker across services and manufacturing.";
+  } else {
+    kText = "Stagnant R&D and aging machinery reduce output per worker, widening unit costs and lowering global competitiveness.";
+  }
+
+  // 3. Urban Agglomeration -> Metropolitan Housing & Congestion Inflation above 88%
+  const urbExcess = Math.max(0, urbanisationIndex - 0.88);
+  const urbanOvercrowdingInflation = urbExcess > 0 ? Number((urbExcess * 0.24).toFixed(4)) : 0; // up to +2.88% CPI at 100%
+  let urbText = "Urban clusters generate deep labor matching and knowledge spillovers.";
+  if (urbanisationIndex >= 0.90) {
+    urbText = "Hyper-dense coastal and inland megacities unlock maximum agglomeration spillovers, but acute housing scarcity and transit congestion stoke persistent shelter inflation.";
+  } else if (urbanisationIndex >= 0.80) {
+    urbText = "Mature metropolitan corridors sustain deep corporate services, thick skilled labor pools, and efficient supply hubs.";
+  } else if (urbanisationIndex >= 0.68) {
+    urbText = "Suburban and mid-tier hubs balance affordable housing with moderate agglomeration economies.";
+  } else {
+    urbText = "Declining civic maintenance and hollowed urban cores weaken cluster productivity and municipal service delivery.";
+  }
+
+  // 4. Infrastructure & Logistics -> Mega-Project Maintenance Overhead above 91%
+  const infraExcess = Math.max(0, infrastructureEfficiency - 0.91);
+  const infraMaintenanceBudgetPct = infraExcess > 0 ? Number((infraExcess * 0.28).toFixed(5)) : 0; // up to +2.5% quarterly GDP upkeep
+  let infraText = "Reliable freight corridors and power grids anchor low-friction domestic commerce.";
+  if (infrastructureEfficiency >= 0.92) {
+    infraText = "Gold-plated smart grids, high-speed rail, and automated deepwater ports slash freight delays — though sustaining ultra-modern assets imposes heavy recurring federal upkeep costs.";
+  } else if (infrastructureEfficiency >= 0.80) {
+    infraText = "Resilient interstate highways, ports, and electrical transmission support predictable logistics and export competitiveness.";
+  } else if (infrastructureEfficiency >= 0.68) {
+    infraText = "Deferred highway and grid repairs cause intermittent freight bottlenecks, subtly raising business operating costs.";
+  } else {
+    infraText = "Severe port congestion, blackouts, and crumbling transit sharply inflate input costs and stall industrial supply chains.";
+  }
+
+  // 5. Household Consumer Sentiment -> Demand-Pull Overheating & Import Leakage above 85 idx
+  const sentExcess = Math.max(0, consumerSentiment - 85) / 30;
+  const sentimentOverheatingInflation = sentExcess > 0 ? Number((sentExcess * 0.022).toFixed(4)) : 0;
+  const sentimentImportLeakage = sentExcess > 0 ? Number((sentExcess * 0.028).toFixed(4)) : 0;
+  let sentText = "Steady household optimism supports predictable retail and durable goods spending.";
+  if (consumerSentiment >= 88) {
+    sentText = "Euphoric consumer exuberance drives booming retail sales, but excess credit demand overheats prices and pulls in foreign imports.";
+  } else if (consumerSentiment >= 62) {
+    sentText = "Balanced household confidence keeps personal consumption steady (~68% of GDP) without destabilizing price spikes.";
+  } else if (consumerSentiment >= 48) {
+    sentText = "Cautious household psychology raises precautionary savings, softening discretionary spending across retail and hospitality.";
+  } else {
+    sentText = "Deep public pessimism and institutional distrust trigger household retrenchment, risking a self-reinforcing consumption slump.";
+  }
+
+  // 6. Income Equality Index -> Wage Compression & Capital Formation Drag above 70%
+  const eqExcess = Math.max(0, incomeEqualityIndex - 0.70);
+  const equalityCapitalDrag = eqExcess > 0 ? Number((eqExcess * 2.4).toFixed(4)) : 0;
+  let eqText = "Distributional balance supports both broad consumer purchasing power and private capital accumulation.";
+  if (incomeEqualityIndex >= 0.72) {
+    eqText = "Egalitarian income distribution lifts lower-income stability and maximizes aggregate MPC — but heavy top-end compression dampens risk-capital returns and speculative investment.";
+  } else if (incomeEqualityIndex >= 0.60) {
+    eqText = "Broad middle-class purchasing power anchors household demand while preserving healthy incentives for entrepreneurship and R&D.";
+  } else if (incomeEqualityIndex >= 0.50) {
+    eqText = "Widening income stratification concentrates gains at top deciles, weakening baseline retail demand and elevating social friction.";
+  } else {
+    eqText = "Severe wealth polarization leaves working households fragile, sharply depressing broad consumption propensity and institutional trust.";
+  }
+
+  const maluses = {
+    literacy: {
+      active: litExcess > 0,
+      title: "Graduate Underemployment & Credential Saturation",
+      penaltyLabel: litExcess > 0 ? `+${(graduateUnderemploymentBonus * 100).toFixed(2)}% Underemployment Drag` : "Inactive (< 94.0%)",
+      detail: litExcess > 0
+        ? `${(underemploymentRate * 100).toFixed(1)}% of university graduates face overqualification in routine jobs, adding frictional unemployment & expectation drag.`
+        : "Triggers above 94.0% workforce literacy when degree supply outpaces executive/R&D job creation.",
+      graduateUnderemploymentBonus,
+      underemploymentRate,
+    },
+    productivity: {
+      active: kExcess > 0,
+      title: "Automation & AI Structural Unemployment",
+      penaltyLabel: kExcess > 0 ? `+${(automationUnemploymentBonus * 100).toFixed(2)}% Displaced Labor` : "Inactive (< 1.20x K-Factor)",
+      detail: kExcess > 0
+        ? `Capital-intensive AI and robotics displace routine roles into structural unemployment and widen the skill wage premium (+${(automationGiniPressure * 100).toFixed(1)} pts Gini).`
+        : "Triggers above 1.20x K-Factor (1800) as frontier automation substitutes for routine labor.",
+      automationUnemploymentBonus,
+      automationGiniPressure,
+    },
+    urbanisation: {
+      active: urbExcess > 0,
+      title: "Metro Housing & Congestion Inflation",
+      penaltyLabel: urbExcess > 0 ? `+${(urbanOvercrowdingInflation * 100).toFixed(2)}% Shelter CPI` : "Inactive (< 88.0%)",
+      detail: urbExcess > 0
+        ? "Hyper-concentrated metro populations bid up urban rents and transit bottlenecks, feeding headline inflation."
+        : "Triggers above 88.0% urban agglomeration when metro land supply saturates.",
+      urbanOvercrowdingInflation,
+    },
+    infrastructure: {
+      active: infraExcess > 0,
+      title: "Mega-Project Maintenance Overhead",
+      penaltyLabel: infraExcess > 0 ? `+${(infraMaintenanceBudgetPct * 100).toFixed(2)}% GDP Upkeep` : "Inactive (< 91.0%)",
+      detail: infraExcess > 0
+        ? "Ultra-high-grade transit corridors and smart grids require heavy recurring federal maintenance outlays."
+        : "Triggers above 91.0% efficiency due to rising capital depreciation and upkeep.",
+      infraMaintenanceBudgetPct,
+    },
+    sentiment: {
+      active: sentExcess > 0,
+      title: "Demand-Pull Overheating & Import Leakage",
+      penaltyLabel: sentExcess > 0 ? `+${(sentimentOverheatingInflation * 100).toFixed(2)}% CPI / -${(sentimentImportLeakage * 100).toFixed(1)}% NX` : "Inactive (< 85 idx)",
+      detail: sentExcess > 0
+        ? "Exuberant household borrowing overheats domestic prices and sucks in foreign consumer imports."
+        : "Triggers above 85 Consumer Sentiment idx when household spending outpaces domestic capacity.",
+      sentimentOverheatingInflation,
+      sentimentImportLeakage,
+    },
+    equality: {
+      active: eqExcess > 0,
+      title: "Wage Compression & Capital Formation Drag",
+      penaltyLabel: eqExcess > 0 ? `-${equalityCapitalDrag.toFixed(2)}% Investment Drive` : "Inactive (< 70.0%)",
+      detail: eqExcess > 0
+        ? "Compressed top-end post-tax returns soften risk-capital deployment and corporate capex expansion."
+        : "Triggers above 70.0% Income Equality when steep redistribution flattens equity risk-reward.",
+      equalityCapitalDrag,
+    },
+  };
+
+  return {
+    explanations: {
+      literacy: litText,
+      infrastructure: infraText,
+      urbanisation: urbText,
+      sentiment: sentText,
+      productivity: kText,
+      equality: eqText,
+    },
+    maluses,
+    totals: {
+      totalMalusUnemploymentBonus: Number((graduateUnderemploymentBonus + automationUnemploymentBonus).toFixed(4)),
+      underemploymentRate,
+      automationGiniPressure,
+      urbanOvercrowdingInflation,
+      infraMaintenanceBudgetPct,
+      sentimentOverheatingInflation,
+      sentimentImportLeakage,
+      equalityCapitalDrag,
+    },
+  };
+}
+
+/**
  * Computes quarterly structural progression deltas and federal budget impact
  * from the nation's enacted policies, funding tiers, and ruling party priorities.
+ * Underfunded & repealed policies now carry severe structural decay penalties.
  */
 export function computePolicyProgression(
   nation = {},
   party = DEFAULT_POLITICAL_PARTIES[0],
   inflationRate = 0.022,
-  unemploymentRate = 0.045
+  unemploymentRate = 0.045,
+  taxDistributionMode = null
 ) {
   const canonicalDefaultPolicies = cloneDefaultPolicies(party?.name || "Democratic");
   const partyDefaults = party?.defaultPolicies || canonicalDefaultPolicies;
@@ -112,36 +449,65 @@ export function computePolicyProgression(
   const innovScore = tierScoreOf(policies.innovation);
   const govScore = tierScoreOf(policies.governance);
 
-  const EDU_LIT_MAP = { "-1": -0.0025, 0: -0.0008, 1: 0.001, 2: 0.0025, 3: 0.0045 };
-  const INFRA_EFF_MAP = { "-1": -0.0035, 0: -0.0015, 1: 0.001, 2: 0.003, 3: 0.0055 };
-  const INFRA_URB_MAP = { "-1": -0.0012, 0: -0.0004, 1: 0.0005, 2: 0.0012, 3: 0.0022 };
-  const GOV_URB_MAP = { "-1": -0.0008, 0: -0.0002, 1: 0.0004, 2: 0.0009, 3: 0.0016 };
-  const GOV_SENT_MAP = { "-1": -1.2, 0: -0.4, 1: 0.2, 2: 0.7, 3: 1.3 };
-  const EDU_SENT_MAP = { "-1": -0.4, 0: -0.1, 1: 0.1, 2: 0.3, 3: 0.6 };
-  const INNOV_TFP_MAP = { "-1": -14, 0: -4, 1: 6, 2: 16, 3: 28 };
-  const EDU_TFP_MAP = { "-1": -6, 0: -1, 1: 3, 2: 7, 3: 12 };
+  // Compounding Institutional Neglect Multiplier when multiple core acts are underfunded or repealed
+  const neglectedCount = [eduScore, infraScore, innovScore, govScore].filter((s) => s <= 0).length;
+  const neglectMultiplier = neglectedCount >= 2 ? 1 + 0.18 * (neglectedCount - 1) : 1.0;
+
+  // Severe quarterly penalties for underfunded (0) and repealed (-1) acts; rewarding priority/landmark
+  const EDU_LIT_MAP = { "-1": -0.0180, 0: -0.0095, 1: 0.0012, 2: 0.0032, 3: 0.0060 };
+  const INFRA_EFF_MAP = { "-1": -0.0240, 0: -0.0125, 1: 0.0012, 2: 0.0038, 3: 0.0070 };
+  const INFRA_URB_MAP = { "-1": -0.0090, 0: -0.0045, 1: 0.0006, 2: 0.0016, 3: 0.0030 };
+  const GOV_URB_MAP = { "-1": -0.0070, 0: -0.0035, 1: 0.0005, 2: 0.0012, 3: 0.0022 };
+  const GOV_SENT_MAP = { "-1": -5.5, 0: -2.8, 1: 0.25, 2: 0.85, 3: 1.65 };
+  const EDU_SENT_MAP = { "-1": -2.0, 0: -1.0, 1: 0.15, 2: 0.40, 3: 0.75 };
+  const INNOV_TFP_MAP = { "-1": -55, 0: -28, 1: 6, 2: 18, 3: 34 };
+  const EDU_TFP_MAP = { "-1": -25, 0: -12, 1: 3, 2: 8, 3: 15 };
+  const GOV_EQ_MAP = { "-1": -0.0140, 0: -0.0070, 1: 0.0010, 2: 0.0028, 3: 0.0052 };
+  const EDU_EQ_MAP = { "-1": -0.0080, 0: -0.0040, 1: 0.0008, 2: 0.0020, 3: 0.0036 };
 
   const partyInfraShare = Number(party?.infrastructureInvestmentShare ?? 0.038);
   const partyEduGovShare = Number(party?.educationGovernanceShare ?? 0.055);
 
+  // Positive party share bonuses apply ONLY if funded at standard or higher (preventing free drift under austerity)
+  const eduPartyBonus =
+    eduScore >= 1
+      ? (partyEduGovShare - 0.050) * 0.04
+      : Math.min(0, (partyEduGovShare - 0.050) * 0.08);
+  const infraPartyBonus =
+    infraScore >= 1
+      ? (partyInfraShare - 0.035) * 0.12
+      : Math.min(0, (partyInfraShare - 0.035) * 0.20);
+
+  const scaleNegative = (val) => (val < 0 ? val * neglectMultiplier : val);
+
   const literacyDelta = Number(
-    ((EDU_LIT_MAP[eduScore] ?? 0) + (partyEduGovShare - 0.050) * 0.04).toFixed(5)
+    scaleNegative((EDU_LIT_MAP[eduScore] ?? 0) + eduPartyBonus).toFixed(5)
   );
   const infrastructureDelta = Number(
-    ((INFRA_EFF_MAP[infraScore] ?? 0) + (partyInfraShare - 0.035) * 0.12).toFixed(5)
+    scaleNegative((INFRA_EFF_MAP[infraScore] ?? 0) + infraPartyBonus).toFixed(5)
   );
   const urbanisationDelta = Number(
-    ((INFRA_URB_MAP[infraScore] ?? 0) + (GOV_URB_MAP[govScore] ?? 0)).toFixed(5)
+    scaleNegative((INFRA_URB_MAP[infraScore] ?? 0) + (GOV_URB_MAP[govScore] ?? 0)).toFixed(5)
   );
+
   const macroSentimentDrag =
-    Math.max(0, inflationRate - 0.03) * 18 + Math.max(0, unemploymentRate - 0.05) * 15;
+    Math.max(0, inflationRate - 0.03) * 28 + Math.max(0, unemploymentRate - 0.05) * 24;
+  const rawSent = (GOV_SENT_MAP[govScore] ?? 0) + (EDU_SENT_MAP[eduScore] ?? 0);
   const sentimentDelta = Number(
-    ((GOV_SENT_MAP[govScore] ?? 0) + (EDU_SENT_MAP[eduScore] ?? 0) - macroSentimentDrag).toFixed(3)
+    (scaleNegative(rawSent) - macroSentimentDrag).toFixed(3)
   );
-  const infraTfpBonus = infraScore >= 2 ? 4 : 0;
-  const tfpDelta = Number(
-    ((INNOV_TFP_MAP[innovScore] ?? 0) + (EDU_TFP_MAP[eduScore] ?? 0) + infraTfpBonus).toFixed(1)
-  );
+
+  const infraTfpBonus = infraScore >= 2 ? 5 : infraScore <= 0 ? -6 : 0;
+  const rawTfp = (INNOV_TFP_MAP[innovScore] ?? 0) + (EDU_TFP_MAP[eduScore] ?? 0) + infraTfpBonus;
+  const tfpDelta = Number(scaleNegative(rawTfp).toFixed(1));
+
+  const effMode =
+    taxDistributionMode !== null && taxDistributionMode !== undefined
+      ? Number(taxDistributionMode)
+      : Number(nation.taxDistributionMode ?? party?.taxDistributionMode ?? 0.62);
+  const taxModeEqPush = (effMode - 0.55) * 0.012;
+  const rawEq = (GOV_EQ_MAP[govScore] ?? 0) + (EDU_EQ_MAP[eduScore] ?? 0) + taxModeEqPush;
+  const equalityDelta = Number(scaleNegative(rawEq).toFixed(5));
 
   return {
     literacyDelta,
@@ -149,6 +515,9 @@ export function computePolicyProgression(
     urbanisationDelta,
     sentimentDelta,
     tfpDelta,
+    equalityDelta,
+    neglectedCount,
+    neglectMultiplier: Number(neglectMultiplier.toFixed(2)),
     policyBudgetAdjustmentPct: Number((rawCostPct - defaultCostPct).toFixed(5)),
     totalPolicyCostPct: Number(rawCostPct.toFixed(5)),
     policies,
@@ -200,6 +569,7 @@ export function ensureUsaState(state) {
         salesTaxPreference: Number(legacy.salesTaxPreference ?? tpl.salesTaxPreference),
         corporateTaxRate: Number(legacy.corporateTaxRate ?? tpl.corporateTaxRate),
         workerShareOfGdp: Number(legacy.workerShareOfGdp ?? tpl.workerShareOfGdp),
+        taxDistributionMode: Number(legacy.taxDistributionMode ?? tpl.taxDistributionMode),
         infrastructureInvestmentShare: Number(legacy.infrastructureInvestmentShare ?? tpl.infrastructureInvestmentShare),
         educationGovernanceShare: Number(legacy.educationGovernanceShare ?? tpl.educationGovernanceShare),
         deficitTargetAsPercentOfGdp: Number(legacy.deficitTargetAsPercentOfGdp ?? tpl.deficitTargetAsPercentOfGdp),
@@ -233,11 +603,14 @@ export function ensureUsaState(state) {
         urbanisationIndex: normalizeRateMetric(usaNation.urbanisationIndex, 0.83),
         consumerSentiment: Math.max(1, Number(usaNation.consumerSentiment ?? 65)),
         kFactorScaler: Number(usaNation.kFactorScaler ?? 1500),
+        incomeEqualityIndex: 0.615,
         publicDebt:
           usaNation.publicDebt !== undefined && usaNation.publicDebt !== null
             ? Number(usaNation.publicDebt)
             : 34500000000000,
       };
+    } else if (usaNation.startingBaseline.incomeEqualityIndex === undefined) {
+      usaNation.startingBaseline.incomeEqualityIndex = 0.615;
     }
     if (!usaNation.enactedPolicies) {
       usaNation.enactedPolicies = cloneDefaultPolicies(usaNation.rulingParty);
@@ -593,11 +966,6 @@ export function evaluateSimulation(state) {
 
     const party = resolvePoliticalParty(state.politicalParties, nation.rulingParty);
 
-    // Pre-compute policy progression (using prior inflation/unemployment estimates for macro sentiment nudge)
-    const estInflation = Number(nation.computed?.inflationRate ?? 0.022);
-    const estUnemployment = Number(nation.computed?.unemploymentRate ?? 0.045);
-    const policyProgression = computePolicyProgression(nation, party, estInflation, estUnemployment);
-
     const incomeTax =
       nation.incomeTaxOverride !== undefined && nation.incomeTaxOverride !== null
         ? Number(nation.incomeTaxOverride)
@@ -614,6 +982,27 @@ export function evaluateSimulation(state) {
       nation.workerShareOverride !== undefined && nation.workerShareOverride !== null
         ? Number(nation.workerShareOverride)
         : Number(party.workerShareOfGdp ?? 0.55);
+    const taxDistributionMode = Math.max(
+      0.10,
+      Math.min(
+        0.90,
+        nation.taxDistributionMode !== undefined && nation.taxDistributionMode !== null
+          ? Number(nation.taxDistributionMode)
+          : Number(party.taxDistributionMode ?? 0.62)
+      )
+    );
+
+    // Pre-compute policy progression (using prior inflation/unemployment estimates for macro sentiment nudge)
+    const estInflation = Number(nation.computed?.inflationRate ?? 0.024);
+    const estUnemployment = Number(nation.computed?.unemploymentRate ?? 0.045);
+    const policyProgression = computePolicyProgression(
+      nation,
+      party,
+      estInflation,
+      estUnemployment,
+      taxDistributionMode
+    );
+
     const stateBudgetPercent =
       nation.budgetPercentOverride !== undefined && nation.budgetPercentOverride !== null
         ? Number(nation.budgetPercentOverride)
@@ -669,6 +1058,45 @@ export function evaluateSimulation(state) {
     );
     const centralBankRate = Number(nation.centralBankRate ?? 0.045);
     const freightDelayFriction = Math.max(0, Number(nation.freightDelayFriction) || 0);
+    const kFactorVal = Math.max(400, Number(nation.kFactorScaler) || 1500);
+    const equalityDrift = Number(nation.equalityDrift) || 0;
+
+    // --- Bell-Curve Tax Burden Incidence Model ---
+    const bellCurveTax = computeBellCurveTaxIncidence(
+      taxDistributionMode,
+      incomeTax,
+      salesTax,
+      corporateTax
+    );
+
+    // Pre-pass Income Equality Index & High-Governance Maluses before AD & Fiscal settlement
+    const prelimLitExcess = Math.max(0, literacyRate - 0.94);
+    const prelimKExcess = Math.max(0, kFactorVal - 1800) / 1000;
+    const prelimAutomationGini = prelimKExcess > 0 ? Number((prelimKExcess * 0.045).toFixed(4)) : 0;
+
+    // Inequality / Gini Coefficient driven by Labor Share, Bell-Curve Tax Mode, Sales/Corp Taxes & Equality Drift
+    const rawGini =
+      0.385 -
+      (workerShareOfGdp - 0.55) * 0.28 -
+      (bellCurveTax.progressivitySpread - 0.26) * 0.16 -
+      (incomeTax - 0.28) * 0.10 -
+      (corporateTax - 0.25) * 0.08 +
+      (salesTax - 0.06) * 0.18 +
+      prelimAutomationGini -
+      equalityDrift;
+    const giniCoefficient = Number(Math.min(0.68, Math.max(0.22, rawGini)).toFixed(3));
+    const incomeEqualityIndex = Number((1 - giniCoefficient).toFixed(4));
+
+    // Full Governance Qualitative Diagnostics & High-Level Structural Maluses
+    const governanceDiagnostics = computeGovernanceDiagnostics({
+      literacyRate,
+      infrastructureEfficiency,
+      urbanisationIndex,
+      consumerSentiment,
+      kFactorScaler: kFactorVal,
+      incomeEqualityIndex,
+    });
+    const malusTotals = governanceDiagnostics.totals;
 
     // --- Core Aggregate Demand (AD = C + I + G + NX) Determination ---
     // Potential Supply-Side GDP from 60-good Leontief Input-Output Network
@@ -679,44 +1107,46 @@ export function evaluateSimulation(state) {
       sectorVgp["Office & Corporate Services GDP"];
 
     // 1. Consumption (C) — Baseline weight 68% of GDP
-    // Driven by disposable household labor income s_L*(1 - t_inc)*(1 - t_sales) and Consumer Sentiment
+    // Driven by disposable household labor income s_L*(1 - t_inc)*(1 - t_sales), Bell-Curve MPC Incidence, & Sentiment
     const baselineDispShare = 0.55 * (1 - 0.28) * (1 - 0.06); // 0.37224
     const dispIncomeRatio = (workerShareOfGdp * (1 - incomeTax) * (1 - salesTax)) / baselineDispShare;
     const sentimentRatio = consumerSentiment / 65.0;
+    const baseCIdx = 0.42 + 0.36 * dispIncomeRatio + 0.22 * Math.pow(sentimentRatio, 0.42);
     const cIdx = Math.max(
-      0.50,
-      Math.min(1.65, 0.45 + 0.35 * dispIncomeRatio + 0.20 * Math.pow(sentimentRatio, 0.35))
+      0.45,
+      Math.min(1.75, baseCIdx * bellCurveTax.consumptionMpcMultiplier)
     );
     const cShare = 0.68 * cIdx;
 
     // 2. Gross Private Domestic Investment (I) — Baseline weight 18% of GDP
-    // Driven by after-tax corporate return (1 - s_L)*(1 - t_corp), interest rate, infrastructure, literacy, urbanisation
+    // Driven by after-tax corporate return, Bell-Curve Capital Drag, Fed Rate, Infra, Literacy, Equality & TFP
     const baselineCorpShare = (1 - 0.55) * (1 - 0.25); // 0.3375
     const profitRatio = ((1 - workerShareOfGdp) * (1 - corporateTax)) / baselineCorpShare;
-    const rateIdx = 1 - (centralBankRate - 0.045) * 2.5;
+    const rateIdx = 1 - (centralBankRate - 0.045) * 3.2;
     const structIdx =
       1 +
-      (infrastructureEfficiency - 0.82) * 0.65 +
-      (literacyRate - 0.92) * 0.45 +
-      (urbanisationIndex - 0.83) * 0.30 +
-      (infrastructureInvestmentShare - 0.038) * 1.2 +
-      (educationGovernanceShare - 0.055) * 0.6 -
-      freightDelayFriction * 0.40;
+      (infrastructureEfficiency - 0.82) * 0.85 +
+      (literacyRate - 0.92) * 0.60 +
+      (urbanisationIndex - 0.83) * 0.38 +
+      (infrastructureInvestmentShare - 0.038) * 1.4 +
+      (educationGovernanceShare - 0.055) * 0.8 -
+      freightDelayFriction * 0.45 -
+      bellCurveTax.investmentCapexDrag -
+      malusTotals.equalityCapitalDrag * 0.12;
     const iIdx = Math.max(
-      0.35,
-      Math.min(1.85, 0.35 * profitRatio + 0.25 * rateIdx + 0.40 * structIdx)
+      0.30,
+      Math.min(1.90, 0.34 * profitRatio + 0.26 * rateIdx + 0.40 * structIdx)
     );
     const iShare = 0.18 * iIdx;
 
     // 3. Government Purchases & Autonomous Spending (G) — Baseline weight 17% of GDP
-    // Driven by federal expenditure rate (stateBudgetPercent) with Keynesian multiplier
     const gIdx = Math.max(
       0.30,
-      Math.min(1.90, 0.30 + 0.70 * (stateBudgetPercent / 0.22))
+      Math.min(1.95, 0.30 + 0.70 * (stateBudgetPercent / 0.22) + malusTotals.infraMaintenanceBudgetPct * 1.5)
     );
     const gShare = 0.17 * gIdx;
 
-    // 4. Net Exports (NX = X - M) — Baseline weight -3% of GDP
+    // 4. Net Exports (NX = X - M) — Baseline weight -3% of GDP (includes Sentiment Overheating Import Leakage)
     let avgImportTariff = 0;
     let avgExportTariff = 0;
     if (mMap.size > 0) {
@@ -728,19 +1158,20 @@ export function evaluateSimulation(state) {
       avgExportTariff /= mMap.size;
     }
     const nxShare = Math.max(
-      -0.18,
+      -0.20,
       Math.min(
         0.15,
         -0.03 +
-          (infrastructureEfficiency - 0.82) * 0.08 -
+          (infrastructureEfficiency - 0.82) * 0.10 -
           avgExportTariff * 0.25 -
           Math.max(0, avgImportTariff - 0.04) * 0.12 -
-          freightDelayFriction * 0.12
+          freightDelayFriction * 0.12 -
+          malusTotals.sentimentImportLeakage
       )
     );
 
     // Aggregate Demand Multiplier = C_share + I_share + G_share + NX_share (1.0000 at baseline)
-    const adMultiplier = Math.max(0.40, Math.min(2.20, cShare + iShare + gShare + nxShare));
+    const adMultiplier = Math.max(0.40, Math.min(2.25, cShare + iShare + gShare + nxShare));
     const cumulativeGrowthFactor = Math.max(
       0.20,
       Number.isFinite(Number(nation.cumulativeGrowthFactor)) && Number(nation.cumulativeGrowthFactor) > 0
@@ -785,10 +1216,19 @@ export function evaluateSimulation(state) {
         ? Math.round(totalEmployed * 1.045)
         : rawWorkingPops;
 
-    const unemploymentRate =
+    const baseUnemploymentRate =
       effectiveWorkingPops > 0
         ? Math.max(0, Math.min(1, 1 - totalEmployed / effectiveWorkingPops))
         : 0;
+    // Include High-Governance Structural Maluses (graduate mismatch + AI/automation displacement)
+    const structuralMalusUnemp =
+      totalEmployed > 0 && effectiveWorkingPops > 1000000
+        ? malusTotals.totalMalusUnemploymentBonus
+        : 0;
+    const unemploymentRate = Math.max(
+      0,
+      Math.min(1, Number((baseUnemploymentRate + structuralMalusUnemp).toFixed(4)))
+    );
 
     const crimePolicy = nation.crimePolicy || party.localCrimePolicy || "Beat Cops";
     const healthcarePolicy =
@@ -858,17 +1298,19 @@ export function evaluateSimulation(state) {
     const baselineTariffAnchor = quarterlyGdp * 0.015;
     const expectedBaselineIncome =
       incomeTaxRevenue + salesTaxRevenue + corporateTaxRevenue + baselineTariffAnchor;
+    const infraMaintenanceOutlay = quarterlyGdp * malusTotals.infraMaintenanceBudgetPct;
     const plannedQuarterlyOutlays = Math.max(
       quarterlyGdp * 0.08,
       expectedBaselineIncome * (1 - 0.5 * federalCooperativity) -
-        desiredFiscalBalancePct * quarterlyGdp
+        desiredFiscalBalancePct * quarterlyGdp +
+        infraMaintenanceOutlay
     );
 
     const stateExpenditures =
       nation.stateExpenditures !== undefined
         ? Number(nation.stateExpenditures)
         : hasBudgetOverride
-          ? stateBudgetPercent * quarterlyGdp + stateContributions
+          ? stateBudgetPercent * quarterlyGdp + infraMaintenanceOutlay + stateContributions
           : plannedQuarterlyOutlays + stateContributions;
     const diplomaticExpenses = Number(nation.diplomaticExpenses) || 0;
     const federalContributions = stateContributions * 0.5;
@@ -878,68 +1320,100 @@ export function evaluateSimulation(state) {
       quarterlyGdp > 0 ? netBudgetBalance / quarterlyGdp : 0;
     const netTradeBalance = totalExportsValue - totalImportsValue;
 
+    // Elastic Multi-Channel Inflation (AD demand-pull + fiscal impulse + monetary brake + bottlenecks + TFP + Phillips + maluses)
+    const adDemandPull = (adMultiplier - 1.0) * 0.24;
+    const fiscalImpulse = Math.max(-0.025, Math.min(0.06, (-fiscalBalancePctOfGdp - 0.025) * 0.20));
+    const monetaryBrake = (centralBankRate - 0.045) * 0.45;
+    const supplyBottleneck = (0.82 - infrastructureEfficiency) * 0.16;
+    const tfpCostPush = ((1500 - kFactorVal) / 1500) * 0.038;
+    const phillipsCurve = (0.048 - unemploymentRate) * 0.20;
+    const tariffPassThrough = (avgImportTariff - 0.05) * 0.25;
+    const malusCPI =
+      malusTotals.urbanOvercrowdingInflation + malusTotals.sentimentOverheatingInflation;
     const baseInflation =
-      0.022 +
-      (netBudgetBalance < -aggregateGdp * 0.04 ? 0.015 : 0) -
-      (Number(nation.centralBankRate) || 0.045) * 0.22;
-    const inflationRate = Math.max(-0.015, Math.min(0.25, Number(baseInflation.toFixed(4))));
+      0.023 +
+      adDemandPull +
+      fiscalImpulse -
+      monetaryBrake +
+      supplyBottleneck +
+      tfpCostPush +
+      phillipsCurve +
+      tariffPassThrough +
+      malusCPI;
+    const inflationRate = Math.max(-0.02, Math.min(0.28, Number(baseInflation.toFixed(4))));
 
     const lowIncomePops = Math.round(effectiveWorkingPops * 0.45);
     const middleClassPops = Math.round(effectiveWorkingPops * 0.45);
     const upperClassPops = Math.max(1, effectiveWorkingPops - lowIncomePops - middleClassPops);
 
-    const baseWageFloor = Math.max(1200, quarterlyWages || 1200);
+    const tauL = bellCurveTax.cohortTaxBurdens.lowIncome;
+    const tauM = bellCurveTax.cohortTaxBurdens.middleClass;
+    const tauU = bellCurveTax.cohortTaxBurdens.upperClass;
+    const refTauL = bellCurveTax.baselineTaxBurdens.lowIncome;
+    const refTauM = bellCurveTax.baselineTaxBurdens.middleClass;
+    const refTauU = bellCurveTax.baselineTaxBurdens.upperClass;
+
+    // Pre-tax cohort income scales respond to worker share & bell-curve tax incidence
+    const preTaxWageAnchor = Math.max(
+      1200,
+      quarterlyWages / Math.max(0.25, 1 - incomeTax)
+    );
+    const lowNetFactor = Math.max(0.45, (1 - tauL) / Math.max(0.25, 1 - refTauL));
+    const midNetFactor = Math.max(0.45, (1 - tauM) / Math.max(0.25, 1 - refTauM));
+    const upNetFactor = Math.max(0.45, (1 - tauU) / Math.max(0.25, 1 - refTauU));
+
+    const lowWage = Math.round(preTaxWageAnchor * 0.48 * (1 - tauL));
+    const midWage = Math.round(preTaxWageAnchor * 1.15 * (1 - tauM) * (1 + (prelimLitExcess > 0 ? 0.04 : 0)));
+    const upWage = Math.round(preTaxWageAnchor * 2.85 * (1 - tauU) * (1 + preliminCapitalSkew(workerShareOfGdp, kFactorVal)));
+
     const cohorts = {
       lowIncome: {
         name: "Low-Income & Labor Cohort",
         popShare: 0.45,
         pops: lowIncomePops,
-        averageWage: Math.round(baseWageFloor * 0.48),
-        livingStandard: Number(Math.max(1.0, sol * 0.65).toFixed(1)),
-        taxBurden: Number((incomeTax * 0.45 + salesTax).toFixed(3)),
+        averageWage: lowWage,
+        livingStandard: Number(Math.max(1.0, Math.min(50.0, sol * 0.68 * lowNetFactor)).toFixed(1)),
+        taxBurden: Number(tauL.toFixed(4)),
         unemploymentRate: Number(Math.min(1.0, unemploymentRate * 1.45).toFixed(4)),
-        povertyRate: Number(Math.max(0.02, Math.min(0.65, (1.0 - sol / 30) * 0.5)).toFixed(3)),
+        povertyRate: Number(Math.max(0.02, Math.min(0.65, (1.0 - (sol * lowNetFactor) / 30) * 0.48)).toFixed(3)),
       },
       middleClass: {
         name: "Middle Class & Technical Cohort",
         popShare: 0.45,
         pops: middleClassPops,
-        averageWage: Math.round(baseWageFloor * 1.15),
-        livingStandard: Number(Math.min(50.0, sol * 1.12).toFixed(1)),
-        taxBurden: Number((incomeTax + salesTax).toFixed(3)),
-        unemploymentRate: Number(Math.max(0, unemploymentRate * 0.8).toFixed(4)),
-        homeOwnershipRate: Number(Math.min(0.85, Math.max(0.35, 0.45 + sol * 0.01)).toFixed(2)),
+        averageWage: midWage,
+        livingStandard: Number(Math.max(1.0, Math.min(50.0, sol * 1.12 * midNetFactor)).toFixed(1)),
+        taxBurden: Number(tauM.toFixed(4)),
+        unemploymentRate: Number(Math.max(0, unemploymentRate * 0.8 + prelimLitExcess * 0.35).toFixed(4)),
+        homeOwnershipRate: Number(Math.min(0.85, Math.max(0.30, 0.45 + sol * 0.01 - malusTotals.urbanOvercrowdingInflation * 2.5)).toFixed(2)),
       },
       upperClass: {
         name: "Capital & Ownership Cohort",
         popShare: 0.10,
         pops: upperClassPops,
-        averageWage: Math.round(baseWageFloor * 2.85),
-        livingStandard: Number(Math.min(50.0, sol * 1.85).toFixed(1)),
-        taxBurden: Number((incomeTax * 1.25 + corporateTax * 0.4).toFixed(3)),
+        averageWage: upWage,
+        livingStandard: Number(Math.max(1.0, Math.min(50.0, sol * 1.85 * upNetFactor)).toFixed(1)),
+        taxBurden: Number(tauU.toFixed(4)),
         unemploymentRate: Number(Math.max(0, unemploymentRate * 0.3).toFixed(4)),
         capitalIncomeShare: Number(Math.min(0.75, 0.35 + (1 - workerShareOfGdp) * 0.4).toFixed(2)),
       },
     };
 
-    const giniCoefficient = Number(
-      Math.min(0.65, Math.max(0.24, 0.28 + (1 - workerShareOfGdp) * 0.24 + (1 - incomeTax) * 0.05)).toFixed(3)
-    );
-    const povertyRate = Number(Math.max(0.025, Math.min(0.60, (26 - sol) / 55)).toFixed(3));
+    const povertyRate = Number(Math.max(0.025, Math.min(0.60, (26 - sol * lowNetFactor) / 55)).toFixed(3));
     const institutionalTrust = Number(
       Math.max(
         0.1,
-        Math.min(0.95, 0.78 - (inflationRate > 0.08 ? 0.15 : 0) - unemploymentRate * 0.5)
+        Math.min(0.95, 0.78 - Math.max(0, inflationRate - 0.04) * 1.8 - unemploymentRate * 0.7 + (incomeEqualityIndex - 0.60) * 0.35)
       ).toFixed(2)
     );
     const socialCohesion = Number(
-      Math.max(0.1, Math.min(0.95, 0.90 - unemploymentRate * 0.6 - (1 - workerShareOfGdp) * 0.4)).toFixed(2)
+      Math.max(0.1, Math.min(0.95, 0.88 - unemploymentRate * 0.8 - (giniCoefficient - 0.35) * 0.9)).toFixed(2)
     );
 
     const servicesEvaluation = evaluateServicesProduction({
       endowment: {
-        humanCapitalIndex: 84,
-        urbanAgglomerationIndex: 86,
+        humanCapitalIndex: Math.round(literacyRate * 92),
+        urbanAgglomerationIndex: Math.round(urbanisationIndex * 100),
         financialDepthIndex: 92,
         digitalConnectivityIndex: 88,
         consumerAmenityIndex: 82,
@@ -960,6 +1434,7 @@ export function evaluateSimulation(state) {
       effectiveWorkingPops,
       numberOfCriminals,
       unemploymentRate,
+      underemploymentRate: malusTotals.underemploymentRate,
       quarterlyWages,
       consumerConfidence: consumerSentiment,
       sol,
@@ -973,6 +1448,7 @@ export function evaluateSimulation(state) {
       infrastructureEfficiency,
       inflationRate,
       giniCoefficient,
+      incomeEqualityIndex,
       povertyRate,
       institutionalTrust,
       socialCohesion,
@@ -984,6 +1460,9 @@ export function evaluateSimulation(state) {
       corporateTax,
       corporateTaxRevenue,
       workerShareOfGdp,
+      taxDistributionMode,
+      bellCurveTaxIncidence: bellCurveTax,
+      governanceDiagnostics,
       stateBudgetPercent,
       govtDividends: 0,
       tariffRevenues,
@@ -1011,6 +1490,7 @@ export function evaluateSimulation(state) {
         corporateTaxRate: corporateTax,
         salesTaxPreference: salesTax,
         workerShareOfGdp,
+        taxDistributionMode,
         infrastructureInvestmentShare,
         educationGovernanceShare,
         deficitTargetAsPercentOfGdp,
@@ -1023,7 +1503,8 @@ export function evaluateSimulation(state) {
         infrastructureEfficiency,
         urbanisationIndex,
         consumerSentiment,
-        kFactorScaler: Number(nation.kFactorScaler ?? 1500),
+        kFactorScaler: kFactorVal,
+        incomeEqualityIndex: 0.615,
         publicDebt:
           nation.publicDebt !== undefined && nation.publicDebt !== null
             ? Number(nation.publicDebt)
@@ -1078,6 +1559,10 @@ export function evaluateSimulation(state) {
   return state;
 }
 
+function preliminCapitalSkew(workerShareOfGdp, kFactorVal) {
+  return Math.max(-0.15, (0.55 - workerShareOfGdp) * 0.4 + Math.max(0, (kFactorVal - 1500) / 1500) * 0.12);
+}
+
 export function runBudgetAndDividendUpdater(state) {
   evaluateSimulation(state);
 
@@ -1113,8 +1598,9 @@ export function runBudgetAndDividendUpdater(state) {
     const prog = computePolicyProgression(
       nation,
       party,
-      Number(c.inflationRate ?? 0.022),
-      Number(c.unemploymentRate ?? 0.045)
+      Number(c.inflationRate ?? 0.024),
+      Number(c.unemploymentRate ?? 0.045),
+      c.taxDistributionMode
     );
     const currLit = normalizeRateMetric(nation.literacyRate ?? c.literacyRate, 0.92);
     const currInfra = normalizeRateMetric(
@@ -1124,6 +1610,7 @@ export function runBudgetAndDividendUpdater(state) {
     const currUrb = normalizeRateMetric(nation.urbanisationIndex ?? c.urbanisationIndex, 0.83);
     const currSent = Math.max(1, Number(nation.consumerSentiment ?? c.consumerConfidence ?? 65));
     const currKFactor = Math.max(400, Number(nation.kFactorScaler ?? 1500));
+    const currEqDrift = Number(nation.equalityDrift) || 0;
 
     nation.literacyRate = Number(Math.min(0.999, Math.max(0.40, currLit + prog.literacyDelta)).toFixed(4));
     nation.infrastructureEfficiency = Number(
@@ -1136,6 +1623,7 @@ export function runBudgetAndDividendUpdater(state) {
       Math.min(115, Math.max(20, currSent + prog.sentimentDelta)).toFixed(2)
     );
     nation.kFactorScaler = Math.round(Math.min(3500, Math.max(600, currKFactor + prog.tfpDelta)));
+    nation.equalityDrift = Number(Math.max(-0.18, Math.min(0.18, currEqDrift + prog.equalityDelta)).toFixed(5));
     nation.enactedPolicies = prog.policies;
 
     const basePops =

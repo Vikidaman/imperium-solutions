@@ -110,10 +110,16 @@ export function extractMacroFeatures(nation, state) {
   const unemployment_change = Number((unemployment_rate - prevU).toFixed(3));
 
   // 5. CPI Inflation Rate (%)
-  const inflation_rate = Number(nation.inflationRate) || (Number(c.inflationRate) ? Number(c.inflationRate) * 100 : 2.5);
+  const rawInf = Number(nation.inflationRate);
+  const inflation_rate = Number.isFinite(rawInf) && rawInf !== 0
+    ? (Math.abs(rawInf) <= 1 ? rawInf * 100 : rawInf)
+    : Number.isFinite(Number(c.inflationRate))
+    ? Number(c.inflationRate) * 100
+    : 2.5;
 
   // 6. Real Interest Rate (% = nominal - inflation)
-  const nominalRate = Number(nation.centralBankRate) || Number(nation.interestRate) || 3.5;
+  const rawNomRate = Number(nation.centralBankRate ?? nation.interestRate ?? 4.5);
+  const nominalRate = rawNomRate <= 1 ? rawNomRate * 100 : rawNomRate;
   const interest_rate_real = Number((nominalRate - inflation_rate).toFixed(3));
 
   // 7. Investment Ratio (% of GDP = Gross Capital Formation / GDP)
@@ -199,8 +205,8 @@ export function computeGdpForecast(nation, state, modelData = null) {
   const incomeTax = Number(c.incomeTax ?? nation.incomeTaxOverride ?? 0.25);
   const salesTax = Number(c.salesTax ?? nation.salesTaxOverride ?? 0.06);
   const corporateTax = Number(c.corporateTax ?? nation.corporateTaxOverride ?? 0.21);
-  const workerShare = Number(c.workerShareOfGdp ?? nation.workerShareOverride ?? 0.52);
-  const budgetPct = Number(c.stateBudgetPercent ?? nation.budgetPercentOverride ?? 0.20);
+  const workerShare = Number(c.workerShareOfGdp ?? nation.workerShareOverride ?? 0.55);
+  const budgetPct = Number(c.stateBudgetPercent ?? nation.budgetPercentOverride ?? 0.22);
   const centralBankRate = Number(nation.centralBankRate ?? 0.045);
 
   const consumerSentiment = Math.max(1, Number(nation.consumerSentiment ?? c.consumerConfidence ?? 65));
@@ -211,57 +217,97 @@ export function computeGdpForecast(nation, state, modelData = null) {
   const urbanisationIndex = Math.min(1, Math.max(0.05, rawUrb > 1 ? rawUrb / 100 : rawUrb));
   const crimeRate = Math.max(0, Number(c.crimeRate ?? nation.crimeRate ?? 0.02));
   const kFactor = Math.max(100, Number(nation.kFactorScaler) || 1500);
+  const incomeEqualityIndex = Number(c.incomeEqualityIndex ?? 0.615);
   const debtToGdpRatio = Number(c.debtToGdpRatio ?? features.debt_to_gdp_ratio ?? 126.0);
   const popGrowthQuarterly = Number(c.popGrowthRate ?? 0.0019);
   const freightDelay = Math.max(0, Number(nation.freightDelayFriction) || 0);
 
+  const bellCurve = c.bellCurveTaxIncidence || {};
+  const prog = c.policyProgression || {};
+  const govDiagTotals = c.governanceDiagnostics?.totals || {};
+
+  // Forward-looking governance momentum effect (severe drag when policies are underfunded/repealed)
+  const litMomentum = ((Number(prog.literacyDelta ?? 0.0034) - 0.0034) * 40);
+  const infraMomentum = ((Number(prog.infrastructureDelta ?? 0.00416) - 0.00416) * 45);
+  const tfpMomentum = ((Number(prog.tfpDelta ?? 9) - 9) * 0.022);
+  const sentMomentum = ((Number(prog.sentimentDelta ?? 0.8) - 0.8) * 0.14);
+  const eqMomentum = ((Number(prog.equalityDelta ?? 0.0045) - 0.0045) * 35);
+
+  // High-governance structural malus drags on growth (graduate mismatch, automation displacement, capital compression)
+  const underempDrag = (Number(govDiagTotals.totalMalusUnemploymentBonus) || 0) * 18.0;
+  const equalityCapDrag = (Number(govDiagTotals.equalityCapitalDrag) || 0) * 0.45;
+
   // --- Component 1: Household Consumption Growth Contribution (ΔC) ---
-  // Disposable income ratio relative to US baseline (0.55 * 0.72 * 0.94 = 0.37224)
+  // Includes bell-curve MPC incidence effect, equality purchasing-power boost, and household credit channel
   const dispIncomeRatio = (workerShare * (1 - incomeTax) * (1 - salesTax)) / 0.37224;
   const sentimentRatio = consumerSentiment / 65.0;
-  const cIdx = ad.cIdx !== undefined ? Number(ad.cIdx) : (0.45 + 0.35 * dispIncomeRatio + 0.20 * Math.pow(sentimentRatio, 0.35));
+  const cIdx = ad.cIdx !== undefined ? Number(ad.cIdx) : (0.42 + 0.36 * dispIncomeRatio + 0.22 * Math.pow(sentimentRatio, 0.42));
+  const mpcIncidenceAdj = ((Number(bellCurve.consumptionMpcMultiplier) || 1.0) - 1.0) * 6.5;
+  const equalityConsBonus = (incomeEqualityIndex - 0.615) * 3.8;
+  const creditRateDrag = (centralBankRate - 0.045) * 7.5;
   const consumptionGrowthContrib =
-    1.15 + (cIdx - 1.0) * 4.2 + (sentimentRatio - 1.0) * 1.15;
+    1.15 +
+    (cIdx - 1.0) * 5.2 +
+    (sentimentRatio - 1.0) * 1.45 +
+    mpcIncidenceAdj +
+    equalityConsBonus +
+    sentMomentum * 0.6 -
+    creditRateDrag;
 
   // --- Component 2: Gross Private Domestic Investment Growth Contribution (ΔI) ---
-  // After-tax corporate return relative to baseline (0.45 * 0.75 = 0.3375), cost of capital, infrastructure & human capital
+  // After-tax corporate return, monetary rate elasticity, infrastructure & TFP momentum, and capex drag
   const afterTaxProfitRatio = ((1 - workerShare) * (1 - corporateTax)) / 0.3375;
-  const interestDrag = (centralBankRate - 0.045) * 8.0;
-  const infraBonus = (infraEff - 0.82) * 3.2;
+  const interestDrag = (centralBankRate - 0.045) * 16.0;
+  const infraBonus = (infraEff - 0.82) * 5.5;
   const partyInfraShare = Number(c.partyPreferences?.infrastructureInvestmentShare ?? 0.038);
-  const partyInfraBonus = (partyInfraShare - 0.038) * 18.0;
-  const humanCapitalBonus = (literacyRate - 0.92) * 2.4 + (urbanisationIndex - 0.83) * 1.2;
-  const tfpBonus = ((kFactor - 1500) / 1500) * 1.8;
+  const partyInfraBonus = (partyInfraShare - 0.038) * 20.0;
+  const humanCapitalBonus = (literacyRate - 0.92) * 4.5 + (urbanisationIndex - 0.83) * 2.2;
+  const tfpBonus = ((kFactor - 1500) / 1500) * 3.4;
+  const capexModeDrag = (Number(bellCurve.investmentCapexDrag) || 0) * 4.2;
   const investmentGrowthContrib =
     0.75 +
-    (afterTaxProfitRatio - 1.0) * 2.2 -
+    (afterTaxProfitRatio - 1.0) * 2.8 -
     interestDrag +
     infraBonus +
     partyInfraBonus +
     humanCapitalBonus +
-    tfpBonus -
-    freightDelay * 1.5;
+    tfpBonus +
+    infraMomentum * 0.65 +
+    tfpMomentum * 0.65 -
+    capexModeDrag -
+    equalityCapDrag -
+    freightDelay * 1.8;
 
   // --- Component 3: Government Autonomous Expenditure Growth Contribution (ΔG) ---
-  // Keynesian fiscal multiplier on federal spending vs. sovereign debt crowding-out above 126% Debt/GDP
-  const fiscalStimulus = ((budgetPct - 0.22) / 0.22) * 1.35;
+  const fiscalStimulus = ((budgetPct - 0.22) / 0.22) * 1.65;
   const debtCrowdingOut =
     debtToGdpRatio > 130
-      ? Math.min(2.5, ((debtToGdpRatio - 130) / 100) * 1.2)
-      : (130 - debtToGdpRatio) / 100 * 0.20;
-  const governmentGrowthContrib = 0.42 + fiscalStimulus - debtCrowdingOut;
+      ? Math.min(2.8, ((debtToGdpRatio - 130) / 100) * 1.35)
+      : (130 - debtToGdpRatio) / 100 * 0.22;
+  const governmentGrowthContrib = 0.42 + fiscalStimulus - debtCrowdingOut + sentMomentum * 0.4 + eqMomentum * 0.5;
 
   // --- Component 4: Net Exports & Trade Competitiveness Contribution (ΔNX) ---
   const nxShare = ad.nxShare !== undefined ? Number(ad.nxShare) : -0.03;
   const netExportsGrowthContrib =
-    -0.12 + (nxShare - (-0.03)) * 14.0 - freightDelay * 1.8;
+    -0.12 + (nxShare - (-0.03)) * 16.0 - freightDelay * 1.8;
 
-  // --- Component 5: Supply-Side Demographic & Institutional Baseline ---
+  // --- Component 5: Supply-Side Demographic, Governance Momentum & Malus Adjustment ---
   const annualizedPopGrowthPct = Math.max(-2.0, Math.min(4.0, popGrowthQuarterly * 4 * 100));
-  const crimeDrag = Math.max(0, (crimeRate - 0.02)) * 1.5;
-  // Blend structural AD growth with subtle ML ensemble signal centered around 0
+  const crimeDrag = Math.max(0, (crimeRate - 0.02)) * 1.8;
   const mlSignalAdjustment = Math.max(-0.25, Math.min(0.25, (ml_ensemble_raw - 2.2) * 0.05));
-  const supplyTrendContrib = Math.max(-1.5, Math.min(3.0, annualizedPopGrowthPct * 0.75 - crimeDrag + mlSignalAdjustment));
+  const supplyTrendContrib = Math.max(
+    -4.5,
+    Math.min(
+      4.5,
+      annualizedPopGrowthPct * 0.75 -
+        crimeDrag +
+        mlSignalAdjustment +
+        litMomentum * 0.55 +
+        infraMomentum * 0.35 +
+        tfpMomentum * 0.35 -
+        underempDrag
+    )
+  );
 
   // Baseline Forecast = C + I + G + NX growth contributions + Supply Trend
   const ad_baseline_forecast =
