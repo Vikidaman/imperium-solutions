@@ -384,10 +384,10 @@ const InteractiveWorldMap = ({
     const activeParty = resolvePoliticalParty(state?.politicalParties, usa.rulingParty);
     const defaultPolicies = activeParty.defaultPolicies
       ? structuredClone(activeParty.defaultPolicies)
-      : cloneDefaultPolicies(activeParty.name);
+      : cloneDefaultPolicies(activeParty.name, state?.politicalParties);
     const defaultSocialPolicies = activeParty.socialPolicies
       ? structuredClone(activeParty.socialPolicies)
-      : cloneDefaultSocialPolicies(activeParty.name);
+      : cloneDefaultSocialPolicies(activeParty.name, state?.politicalParties);
     updatePolicy({
       rulingParty: activeParty.name,
       crimePolicy: activeParty.localCrimePolicy,
@@ -462,10 +462,12 @@ const InteractiveWorldMap = ({
     neglectedCount: 0,
     neglectMultiplier: 1.0,
     policyBudgetAdjustmentPct: 0,
-    policies: usa.enactedPolicies || cloneDefaultPolicies(activeParty.name),
+    policies: usa.enactedPolicies || cloneDefaultPolicies(activeParty.name, state?.politicalParties),
   };
   const enactedPolicies =
-    usa.enactedPolicies || policyProg.policies || cloneDefaultPolicies(activeParty.name);
+    usa.enactedPolicies ||
+    policyProg.policies ||
+    cloneDefaultPolicies(activeParty.name, state?.politicalParties);
   const socialEffects = c.socialPolicyEval || {
     humanRightsIndex: 48,
     civicObligationIndex: 56,
@@ -478,7 +480,7 @@ const InteractiveWorldMap = ({
     usa.socialPolicies ||
     socialEffects.socialPolicies ||
     activeParty.socialPolicies ||
-    cloneDefaultSocialPolicies(activeParty.name);
+    cloneDefaultSocialPolicies(activeParty.name, state?.politicalParties);
   const startingBaseline = usa.startingBaseline || c.startingBaseline || {
     literacyRate: 0.92,
     infrastructureEfficiency: 0.82,
@@ -490,10 +492,14 @@ const InteractiveWorldMap = ({
   };
 
   const effectiveBaseTax = Number(
-    usa.baseTaxLevel ?? c.baseTaxLevel ?? partyPrefs.baseTaxLevel ?? 0.24
+    usa.baseTaxLevel ?? activeParty.baseTaxLevel ?? c.baseTaxLevel ?? partyPrefs.baseTaxLevel ?? 0.24
   );
   const effectiveTaxMode = Number(
-    usa.taxDistributionMode ?? c.taxDistributionMode ?? partyPrefs.taxDistributionMode ?? 0.62
+    usa.taxDistributionMode ??
+      activeParty.taxDistributionMode ??
+      c.taxDistributionMode ??
+      partyPrefs.taxDistributionMode ??
+      0.62
   );
   const bellCurveTax = c.bellCurveTaxIncidence || {};
   const govDiag = c.governanceDiagnostics || { explanations: {}, maluses: {}, totals: {} };
@@ -1403,7 +1409,7 @@ const InteractiveWorldMap = ({
                       </span>
                     )}
                     <span className="text-[10px] font-semibold uppercase px-2 py-0.5 rounded-full bg-violet-500/15 text-violet-300 border border-violet-500/30">
-                      Federalism: {(FEDERALISM_POLICY_CATALOG[activeParty.federalismPolicy || "moderate"] || FEDERALISM_POLICY_CATALOG.moderate).shortLabel}
+                      Federalism: {(FEDERALISM_POLICY_CATALOG[partyPrefs.federalismPolicy || activeParty.federalismPolicy || "moderate"] || FEDERALISM_POLICY_CATALOG.moderate).shortLabel}
                     </span>
                   </div>
                   {(partyPrefs.platformSummary || activeParty.platformSummary) && (
@@ -1603,7 +1609,11 @@ const InteractiveWorldMap = ({
                               ? "bg-rose-500/15 text-rose-300"
                               : entry.funding === "underfunded"
                               ? "bg-amber-500/15 text-amber-300"
-                              : "bg-emerald-500/15 text-emerald-300"
+                              : entry.funding === "landmark"
+                              ? "bg-cyan-500/15 text-cyan-200"
+                              : entry.funding === "priority"
+                              ? "bg-emerald-500/15 text-emerald-300"
+                              : "bg-slate-800 text-slate-300"
                           }`}
                         >
                           {entry.enacted ? tierMeta.label : "Repealed"}
@@ -1611,6 +1621,43 @@ const InteractiveWorldMap = ({
                       </div>
                     );
                   })}
+                </div>
+
+                {/* All 7 Social Charter, Corruption & Civic Duty Stances */}
+                <div className="pt-1.5 border-t border-slate-800/60 space-y-1.5">
+                  <div className="text-[10px] font-semibold uppercase tracking-wider text-indigo-300">
+                    Social Charter &amp; Anti-Corruption Stances ({SOCIAL_POLICY_CATALOG.length})
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+                    {SOCIAL_POLICY_CATALOG.map((spec) => {
+                      const lvlKey = socialPolicies[spec.id] || "balanced";
+                      const lvlMeta = spec.levels[lvlKey] || spec.levels.balanced;
+                      const isFreedom = spec.category === "individual_freedom";
+                      const badgeCls =
+                        lvlKey === "strong"
+                          ? isFreedom
+                            ? "bg-sky-500/15 text-sky-300"
+                            : "bg-emerald-500/15 text-emerald-300"
+                          : lvlKey === "low"
+                          ? spec.id === "antiCorruptionAndEthics" || isFreedom
+                            ? "bg-rose-500/15 text-rose-300"
+                            : "bg-amber-500/15 text-amber-300"
+                          : "bg-slate-800 text-slate-300";
+                      return (
+                        <div
+                          key={spec.id}
+                          className="bg-slate-900/70 border border-slate-800/80 rounded-lg px-2.5 py-1.5 flex items-center justify-between gap-2 text-[10px]"
+                        >
+                          <span className="text-slate-300 font-medium truncate">
+                            {spec.shortName}
+                          </span>
+                          <span className={`shrink-0 px-1.5 py-0.5 rounded font-semibold ${badgeCls}`}>
+                            {lvlMeta.label}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
 
                 {onOpenPartyStudio && (

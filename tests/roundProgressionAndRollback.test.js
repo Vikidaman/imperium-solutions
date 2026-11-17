@@ -1004,4 +1004,93 @@ describe("Round Progression and United States Simulation Mechanics", () => {
       "Switching rulingParty in state must automatically reset governmentFatigue to 0"
     );
   });
+
+  it("synchronizes Party Studio presets (taxes, 6 core acts, 7 social charter stances & federalism) directly to Main Page usa.computed", () => {
+    const state = buildSimplifiedSeed();
+    evaluateSimulation(state);
+    const usa = state.nations[0];
+    const demParty = state.politicalParties.find((p) => p.name === "Democratic");
+    const canonicalDemRates = computeTaxRatesFromPosture(0.24, 0.62);
+
+    // 1. Initial baseline matches Party Studio posture formulas identically (no 0.28 vs 0.3016 drift)
+    assert.equal(usa.computed.incomeTax, canonicalDemRates.incomeTax);
+    assert.equal(usa.computed.corporateTax, canonicalDemRates.corporateTax);
+    assert.equal(usa.computed.capitalGainsTax, canonicalDemRates.capitalGainsTax);
+    assert.equal(usa.computed.salesTax, canonicalDemRates.salesTax);
+    assert.equal(demParty.incomeTaxPreference, canonicalDemRates.incomeTax);
+    assert.equal(usa.computed.policyProgression.policyBudgetAdjustmentPct, 0);
+    assert.equal(usa.computed.stateBudgetPercent, demParty.budgetAsPercentOfGdp);
+
+    const baselineBudgetPct = usa.computed.stateBudgetPercent;
+
+    // 2. Save modified preset in Party Studio for ruling party (taxes, core acts, social charter, federalism)
+    const updatedPolicies = {
+      education: { enacted: true, funding: "landmark" },
+      infrastructure: { enacted: true, funding: "landmark" },
+      innovation: { enacted: true, funding: "landmark" },
+      governance: { enacted: true, funding: "priority" },
+      civilRights: { enacted: true, funding: "landmark" },
+      publicSafety: { enacted: false, funding: "underfunded" },
+    };
+    const updatedSocial = {
+      civilLibertiesCharter: "strong",
+      privacyAndDueProcess: "strong",
+      economicAndLaborRights: "strong",
+      nationalCivicService: "strong",
+      environmentalStewardship: "strong",
+      corporateSocialObligation: "strong",
+      antiCorruptionAndEthics: "low",
+    };
+
+    upsertPoliticalPartyInState(
+      state,
+      {
+        name: "Democratic",
+        baseTaxLevel: 0.36,
+        taxDistributionMode: 0.80,
+        federalismPolicy: "pro_federalist",
+        defaultPolicies: updatedPolicies,
+        socialPolicies: updatedSocial,
+        syncRulingNation: true,
+      },
+      "Democratic"
+    );
+
+    const expectedUpdatedRates = computeTaxRatesFromPosture(0.36, 0.80);
+    assert.equal(usa.baseTaxLevel, 0.36);
+    assert.equal(usa.taxDistributionMode, 0.80);
+    assert.equal(usa.computed.baseTaxLevel, 0.36);
+    assert.equal(usa.computed.taxDistributionMode, 0.80);
+    assert.equal(usa.computed.incomeTax, expectedUpdatedRates.incomeTax);
+    assert.equal(usa.computed.corporateTax, expectedUpdatedRates.corporateTax);
+    assert.equal(usa.computed.capitalGainsTax, expectedUpdatedRates.capitalGainsTax);
+    assert.equal(usa.computed.salesTax, expectedUpdatedRates.salesTax);
+    assert.equal(usa.enactedPolicies.education.funding, "landmark");
+    assert.equal(usa.enactedPolicies.publicSafety.enacted, false);
+    assert.equal(usa.computed.enactedPolicies.education.funding, "landmark");
+    assert.equal(usa.computed.enactedPolicies.publicSafety.enacted, false);
+    assert.equal(usa.socialPolicies.civilLibertiesCharter, "strong");
+    assert.equal(usa.socialPolicies.antiCorruptionAndEthics, "low");
+    assert.equal(usa.computed.socialPolicyEval.socialPolicies.antiCorruptionAndEthics, "low");
+    assert.equal(usa.computed.partyPreferences.federalismPolicy, "pro_federalist");
+
+    assert.ok(
+      usa.computed.stateBudgetPercent > baselineBudgetPct + 0.015,
+      `Upgrading core acts & social charter in Party Studio must raise Main Page stateBudgetPercent (${usa.computed.stateBudgetPercent} vs baseline ${baselineBudgetPct})`
+    );
+    assert.ok(
+      usa.computed.socialPolicyEval.humanRightsIndex >= 95,
+      "Strong UDHR stances saved in Party Studio must reflect immediately in usa.computed.socialPolicyEval.humanRightsIndex"
+    );
+    assert.ok(
+      usa.computed.corruptionIndex >= 50,
+      "Low anti-corruption + repealed public safety saved in Party Studio must reflect immediately in usa.computed.corruptionIndex"
+    );
+
+    // 3. Advancing time (auto-clock simulation tick) must preserve Party Studio preset changes on Main Page
+    advanceSimulationTime(state, 5);
+    assert.equal(usa.computed.incomeTax, expectedUpdatedRates.incomeTax);
+    assert.equal(usa.computed.enactedPolicies.education.funding, "landmark");
+    assert.equal(usa.computed.socialPolicyEval.socialPolicies.civilLibertiesCharter, "strong");
+  });
 });

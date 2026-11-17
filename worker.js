@@ -6,6 +6,7 @@ import {
   upsertPoliticalPartyInState,
   deletePoliticalPartyInState,
   executeSimulatedElectionInState,
+  syncNationPostureToRulingParty,
 } from "./server/engine.js";
 import { buildSimplifiedSeed } from "./server/simplifiedSeedConfig.js";
 
@@ -16,6 +17,7 @@ const memorySessions = new Map();
 const memoryAuth = new Map();
 let schemaInitialized = false;
 let defaultSessionsSeeded = false;
+let lastUserMutationAt = 0;
 
 async function ensureSchema(db) {
   if (schemaInitialized || !db) return;
@@ -685,6 +687,15 @@ export default {
           tm.nextPaymentDate = addDaysToSimDate(startStr, 90);
           toastMessage = "Time Manager reset.";
         } else if (body.command === "TIMER_TICK") {
+          if (Date.now() - lastUserMutationAt < 2000) {
+            evaluateSimulation(sess.state);
+            return jsonResponse({
+              session: sess,
+              toastMessage: null,
+              ledgerHistory: await getLedgerHistory(db, sessionId, sess.state),
+              activityLog: await getActivityLog(db, sessionId, 60),
+            });
+          }
           const rawSpeed = Number(tm.intervalDaysPerHour);
           const speedVal = Number.isFinite(rawSpeed) && rawSpeed > 0 ? rawSpeed : 90;
           const d = speedVal / 60;
@@ -790,6 +801,8 @@ export default {
           if (body.rulingParty && body.rulingParty !== prevRulingParty && body.governmentFatigue === undefined) {
             nation.governmentFatigue = 0;
           }
+          lastUserMutationAt = Date.now();
+          syncNationPostureToRulingParty(sess.state, nation, body);
           evaluateSimulation(sess.state);
           await saveStateToD1(db, sess);
           return jsonResponse({ session: sess, activityLog: await getActivityLog(db, sessionId, 60) });
@@ -859,12 +872,14 @@ export default {
         try {
           if (request.method === "POST" || (request.method === "PATCH" && targetPartyName)) {
             const body = await request.json().catch(() => ({}));
+            lastUserMutationAt = Date.now();
             const partyObj = upsertPoliticalPartyInState(sess.state, body, targetPartyName);
             await saveStateToD1(db, sess);
             await logActivity(db, sessionId, body.actor || "Director", `Configured Party: ${partyObj.name}`, "");
             return jsonResponse({ session: sess, party: partyObj, activityLog: await getActivityLog(db, sessionId, 60) });
           }
           if (request.method === "DELETE" && targetPartyName) {
+            lastUserMutationAt = Date.now();
             deletePoliticalPartyInState(sess.state, targetPartyName);
             await saveStateToD1(db, sess);
             await logActivity(db, sessionId, "Director", `Dissolved Party: ${targetPartyName}`, "");
@@ -879,6 +894,7 @@ export default {
         const sess = await getSession(env, request.url, sessionId);
         if (!sess) return jsonResponse({ error: "Session not found" }, 404);
         try {
+          lastUserMutationAt = Date.now();
           const body = await request.json().catch(() => ({}));
           const {
             inaugurateWinner = false,

@@ -1113,6 +1113,9 @@
       "centralBankRate": 0.045,
       "equalityDrift": 0,
       "rulingParty": "Democratic",
+      "lastRulingParty": "Democratic",
+      "baseTaxLevel": 0.24,
+      "taxDistributionMode": 0.62,
       "startingBaseline": {
         "literacyRate": 0.92,
         "infrastructureEfficiency": 0.82,
@@ -1149,6 +1152,15 @@
           "enacted": true,
           "funding": "standard"
         }
+      },
+      "socialPolicies": {
+        "civilLibertiesCharter": "balanced",
+        "privacyAndDueProcess": "balanced",
+        "economicAndLaborRights": "balanced",
+        "nationalCivicService": "low",
+        "environmentalStewardship": "balanced",
+        "corporateSocialObligation": "balanced",
+        "antiCorruptionAndEthics": "balanced"
       },
       "electionHistory": [],
       "federalCooperativity": 0.1,
@@ -2206,15 +2218,6 @@
           "illegal": true
         }
       ],
-      "socialPolicies": {
-        "civilLibertiesCharter": "balanced",
-        "privacyAndDueProcess": "balanced",
-        "economicAndLaborRights": "balanced",
-        "nationalCivicService": "low",
-        "environmentalStewardship": "balanced",
-        "corporateSocialObligation": "balanced",
-        "antiCorruptionAndEthics": "balanced"
-      },
       "marketComputed": [
         {
           "goodName": "Rare Earth Metals",
@@ -4138,7 +4141,6 @@
           "exportTariffRevenues": 0
         }
       ],
-      "lastRulingParty": "Democratic",
       "computed": {
         "agriculturalGdp": 879978610881.1497,
         "industryGdp": 11650593476556.984,
@@ -4537,6 +4539,7 @@
           "name": "Democratic",
           "color": "#3b82f6",
           "politicalAlignment": "Centre-Left",
+          "federalismPolicy": "moderate",
           "platformSummary": "Progressive taxation, targeted infrastructure & STEM investment, and expanded social safety nets with moderate deficits.",
           "baseTaxLevel": 0.24,
           "incomeTaxPreference": 0.3016,

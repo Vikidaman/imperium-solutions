@@ -481,8 +481,9 @@ export function computeGovernanceDiagnostics({
  * Social Obligations & Civic Duties, and Institutional Corruption vs. Fast-Track Business Permits.
  */
 export function evaluateSocialPolicies(nation = {}, party = DEFAULT_POLITICAL_PARTIES[0], enactedPolicies = null) {
-  const defaultSocial = cloneDefaultSocialPolicies(party?.name || "Democratic", [party]);
-  const rawSocial = nation.socialPolicies || party?.socialPolicies || defaultSocial;
+  const canonicalDefaultSocial = cloneDefaultSocialPolicies(party?.name || "Democratic", DEFAULT_POLITICAL_PARTIES);
+  const partySocial = party?.socialPolicies || canonicalDefaultSocial;
+  const rawSocial = nation.socialPolicies || partySocial;
 
   const resolvedPolicies = {};
   let humanRightsIndex = 0;
@@ -499,7 +500,9 @@ export function evaluateSocialPolicies(nation = {}, party = DEFAULT_POLITICAL_PA
   let partyDefaultCostPct = 0;
 
   for (const spec of SOCIAL_POLICY_CATALOG) {
-    const levelKey = spec.levels[rawSocial[spec.id]] ? rawSocial[spec.id] : (defaultSocial[spec.id] || "balanced");
+    const levelKey = spec.levels[rawSocial[spec.id]]
+      ? rawSocial[spec.id]
+      : (partySocial[spec.id] || canonicalDefaultSocial[spec.id] || "balanced");
     const lvl = spec.levels[levelKey] || spec.levels.balanced;
     resolvedPolicies[spec.id] = levelKey;
     humanRightsIndex += Number(lvl.freedomPts) || 0;
@@ -514,7 +517,7 @@ export function evaluateSocialPolicies(nation = {}, party = DEFAULT_POLITICAL_PA
     stemInnovationBonus += Number(lvl.stemBonus) || 0;
     costPct += Number(lvl.costPct) || 0;
 
-    const defKey = spec.levels[defaultSocial[spec.id]] ? defaultSocial[spec.id] : "balanced";
+    const defKey = spec.levels[canonicalDefaultSocial[spec.id]] ? canonicalDefaultSocial[spec.id] : "balanced";
     partyDefaultCostPct += Number(spec.levels[defKey]?.costPct) || 0;
   }
 
@@ -1728,7 +1731,7 @@ export function computePolicyProgression(
   taxDistributionMode = null,
   corruptionIndex = 20
 ) {
-  const canonicalDefaultPolicies = cloneDefaultPolicies(party?.name || "Democratic");
+  const canonicalDefaultPolicies = cloneDefaultPolicies(party?.name || "Democratic", DEFAULT_POLITICAL_PARTIES);
   const partyDefaults = party?.defaultPolicies || canonicalDefaultPolicies;
   const rawPolicies = nation.enactedPolicies || partyDefaults;
 
@@ -1738,14 +1741,15 @@ export function computePolicyProgression(
 
   for (const spec of POLICY_CATALOG) {
     const id = spec.id;
-    const defEntry = partyDefaults[id] || canonicalDefaultPolicies[id] || { enacted: true, funding: "standard" };
+    const canonEntry = canonicalDefaultPolicies[id] || { enacted: true, funding: "standard" };
+    const defEntry = partyDefaults[id] || canonEntry;
     const src = rawPolicies[id];
     const enacted = src && typeof src.enacted === "boolean" ? src.enacted : Boolean(defEntry.enacted);
     const fundingKey = src && FUNDING_TIERS[src.funding] ? src.funding : defEntry.funding || "standard";
     const entry = { enacted, funding: fundingKey };
     policies[id] = entry;
     rawCostPct += getPolicyCostPct(entry);
-    defaultCostPct += getPolicyCostPct(defEntry);
+    defaultCostPct += getPolicyCostPct(canonEntry);
   }
 
   const tierScoreOf = (entry) => (!entry.enacted ? -1 : (FUNDING_TIERS[entry.funding]?.tierScore ?? 1));
@@ -1901,10 +1905,10 @@ export function ensureUsaState(state) {
         color: legacy.color || tpl.color || "#3b82f6",
         baseTaxLevel,
         taxDistributionMode,
-        incomeTaxPreference: Number(legacy.incomeTaxPreference ?? postureRates.incomeTax),
-        salesTaxPreference: Number(legacy.salesTaxPreference ?? postureRates.salesTax),
-        corporateTaxRate: Number(legacy.corporateTaxRate ?? postureRates.corporateTax),
-        capitalGainsTaxRate: Number(legacy.capitalGainsTaxRate ?? postureRates.capitalGainsTax),
+        incomeTaxPreference: postureRates.incomeTax,
+        salesTaxPreference: postureRates.salesTax,
+        corporateTaxRate: postureRates.corporateTax,
+        capitalGainsTaxRate: postureRates.capitalGainsTax,
         workerShareOfGdp: Number(legacy.workerShareOfGdp ?? tpl.workerShareOfGdp),
         infrastructureInvestmentShare: Number(legacy.infrastructureInvestmentShare ?? tpl.infrastructureInvestmentShare),
         educationGovernanceShare: Number(legacy.educationGovernanceShare ?? tpl.educationGovernanceShare),
@@ -1927,10 +1931,11 @@ export function ensureUsaState(state) {
           ...p,
           baseTaxLevel: b,
           taxDistributionMode: m,
-          incomeTaxPreference: Number(p.incomeTaxPreference ?? r.incomeTax),
-          corporateTaxRate: Number(p.corporateTaxRate ?? r.corporateTax),
-          capitalGainsTaxRate: Number(p.capitalGainsTaxRate ?? r.capitalGainsTax),
-          salesTaxPreference: Number(p.salesTaxPreference ?? r.salesTax),
+          incomeTaxPreference: r.incomeTax,
+          corporateTaxRate: r.corporateTax,
+          capitalGainsTaxRate: r.capitalGainsTax,
+          salesTaxPreference: r.salesTax,
+          defaultPolicies: p.defaultPolicies || cloneDefaultPolicies(p.name, existingParties),
           socialPolicies: p.socialPolicies || cloneDefaultSocialPolicies(p.name, existingParties),
         });
       }
@@ -1943,6 +1948,14 @@ export function ensureUsaState(state) {
       usaNation.rulingParty = "Progressive Labor";
     } else if (usaNation.rulingParty === "Libertarian") {
       usaNation.rulingParty = "Libertarian Free-Market";
+    }
+
+    const activeRulingPartyObj = resolvePoliticalParty(state.politicalParties, usaNation.rulingParty);
+    if (usaNation.baseTaxLevel === undefined || usaNation.baseTaxLevel === null) {
+      usaNation.baseTaxLevel = Number(activeRulingPartyObj.baseTaxLevel ?? 0.24);
+    }
+    if (usaNation.taxDistributionMode === undefined || usaNation.taxDistributionMode === null) {
+      usaNation.taxDistributionMode = Number(activeRulingPartyObj.taxDistributionMode ?? 0.62);
     }
 
     if (!usaNation.startingBaseline) {
@@ -2346,6 +2359,9 @@ export function evaluateSimulation(state) {
     const party = resolvePoliticalParty(state.politicalParties, nation.rulingParty);
     if (nation.lastRulingParty && nation.lastRulingParty !== party.name) {
       nation.governmentFatigue = 0;
+      nation.baseTaxLevel = Number(party.baseTaxLevel ?? 0.24);
+      nation.taxDistributionMode = Number(party.taxDistributionMode ?? 0.62);
+      nation.socialPolicies = cloneDefaultSocialPolicies(party.name, state.politicalParties);
     }
     nation.lastRulingParty = party.name;
 
@@ -2368,34 +2384,23 @@ export function evaluateSimulation(state) {
       )
     );
     const postureTaxRates = computeTaxRatesFromPosture(baseTaxLevel, taxDistributionMode);
-    const useDirectPosture =
-      (nation.baseTaxLevel !== undefined && nation.baseTaxLevel !== null) ||
-      (nation.taxDistributionMode !== undefined && nation.taxDistributionMode !== null);
 
     const incomeTax =
       nation.incomeTaxOverride !== undefined && nation.incomeTaxOverride !== null
         ? Number(nation.incomeTaxOverride)
-        : useDirectPosture
-        ? postureTaxRates.incomeTax
-        : Number(party.incomeTaxPreference ?? postureTaxRates.incomeTax);
+        : postureTaxRates.incomeTax;
     const salesTax =
       nation.salesTaxOverride !== undefined && nation.salesTaxOverride !== null
         ? Number(nation.salesTaxOverride)
-        : useDirectPosture
-        ? postureTaxRates.salesTax
-        : Number(party.salesTaxPreference ?? postureTaxRates.salesTax);
+        : postureTaxRates.salesTax;
     const corporateTax =
       nation.corporateTaxOverride !== undefined && nation.corporateTaxOverride !== null
         ? Number(nation.corporateTaxOverride)
-        : useDirectPosture
-        ? postureTaxRates.corporateTax
-        : Number(party.corporateTaxRate ?? postureTaxRates.corporateTax);
+        : postureTaxRates.corporateTax;
     const capitalGainsTax =
       nation.capitalGainsTaxOverride !== undefined && nation.capitalGainsTaxOverride !== null
         ? Number(nation.capitalGainsTaxOverride)
-        : useDirectPosture
-        ? postureTaxRates.capitalGainsTax
-        : Number(party.capitalGainsTaxRate ?? postureTaxRates.capitalGainsTax);
+        : postureTaxRates.capitalGainsTax;
 
     const workerShareOfGdp =
       nation.workerShareOverride !== undefined && nation.workerShareOverride !== null
@@ -3003,6 +3008,7 @@ export function evaluateSimulation(state) {
         name: party.name,
         color: party.color || "#3b82f6",
         politicalAlignment: party.politicalAlignment || "",
+        federalismPolicy: party.federalismPolicy || "moderate",
         platformSummary: party.platformSummary || "",
         baseTaxLevel,
         incomeTaxPreference: incomeTax,
@@ -3495,13 +3501,15 @@ export function upsertPoliticalPartyInState(state, payload = {}, targetName = nu
     usa.baseTaxLevel = partyObj.baseTaxLevel;
     usa.taxDistributionMode = partyObj.taxDistributionMode;
     usa.enactedPolicies = JSON.parse(JSON.stringify(partyObj.defaultPolicies));
-    usa.socialPolicies = { ...partyObj.socialPolicies };
+    usa.socialPolicies = JSON.parse(JSON.stringify(partyObj.socialPolicies));
     usa.crimePolicy = partyObj.localCrimePolicy;
     usa.healthcarePolicy = partyObj.healthcarePolicy;
     usa.incomeTaxOverride = null;
     usa.corporateTaxOverride = null;
     usa.capitalGainsTaxOverride = null;
     usa.salesTaxOverride = null;
+    usa.workerShareOverride = null;
+    usa.budgetPercentOverride = null;
     if (payload.makeRulingParty && switchingToDifferentParty) {
       usa.governmentFatigue = 0;
     }
@@ -3510,6 +3518,47 @@ export function upsertPoliticalPartyInState(state, payload = {}, targetName = nu
 
   evaluateSimulation(state);
   return partyObj;
+}
+
+/**
+ * Synchronizes direct nation fiscal or policy updates back onto the active ruling party
+ * in `state.politicalParties` so Party Studio and Cabinet state remain unified.
+ */
+export function syncNationPostureToRulingParty(state, nation, updates = {}) {
+  ensureUsaState(state);
+  if (!nation || !Array.isArray(state.politicalParties)) return;
+  const activeParty = state.politicalParties.find((p) => p.name === nation.rulingParty);
+  if (!activeParty) return;
+
+  const hasFiscalOrPolicyPatch =
+    updates.baseTaxLevel !== undefined ||
+    updates.taxDistributionMode !== undefined ||
+    updates.enactedPolicies !== undefined ||
+    updates.socialPolicies !== undefined;
+  if (!hasFiscalOrPolicyPatch) return;
+
+  if (updates.baseTaxLevel !== undefined && updates.baseTaxLevel !== null) {
+    activeParty.baseTaxLevel = Math.max(0.0, Math.min(1.0, Number(updates.baseTaxLevel)));
+  }
+  if (updates.taxDistributionMode !== undefined && updates.taxDistributionMode !== null) {
+    activeParty.taxDistributionMode = Math.max(0.10, Math.min(0.90, Number(updates.taxDistributionMode)));
+  }
+  if (updates.baseTaxLevel !== undefined || updates.taxDistributionMode !== undefined) {
+    const derived = computeTaxRatesFromPosture(
+      activeParty.baseTaxLevel ?? 0.24,
+      activeParty.taxDistributionMode ?? 0.62
+    );
+    activeParty.incomeTaxPreference = derived.incomeTax;
+    activeParty.corporateTaxRate = derived.corporateTax;
+    activeParty.capitalGainsTaxRate = derived.capitalGainsTax;
+    activeParty.salesTaxPreference = derived.salesTax;
+  }
+  if (updates.enactedPolicies !== undefined && updates.enactedPolicies) {
+    activeParty.defaultPolicies = JSON.parse(JSON.stringify(updates.enactedPolicies));
+  }
+  if (updates.socialPolicies !== undefined && updates.socialPolicies) {
+    activeParty.socialPolicies = JSON.parse(JSON.stringify(updates.socialPolicies));
+  }
 }
 
 /**

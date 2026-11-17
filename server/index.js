@@ -26,6 +26,7 @@ import {
   upsertPoliticalPartyInState,
   deletePoliticalPartyInState,
   executeSimulatedElectionInState,
+  syncNationPostureToRulingParty,
 } from "./engine.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -647,6 +648,7 @@ app.patch("/api/sessions/:id/nations/:nationId", (req, res) => {
   if (updates.rulingParty && updates.rulingParty !== prevRulingParty && updates.governmentFatigue === undefined) {
     nation.governmentFatigue = 0;
   }
+  syncNationPostureToRulingParty(sess.state, nation, updates);
 
   persistAndBroadcast(
     id,

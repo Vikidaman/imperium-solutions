@@ -27,6 +27,8 @@ import {
   ArrowLeft,
   Compass,
   Layers,
+  RotateCcw,
+  Globe2,
 } from "lucide-react";
 import {
   DEFAULT_POLITICAL_PARTIES,
@@ -752,7 +754,7 @@ function StateCountyImpressionMap({ stateObj }) {
   );
 }
 
-function buildPartyDraft(party = null) {
+function buildPartyDraft(party = null, partiesList = DEFAULT_POLITICAL_PARTIES) {
   if (!party) {
     return {
       isNew: true,
@@ -769,8 +771,8 @@ function buildPartyDraft(party = null) {
       budgetAsPercentOfGdp: 0.215,
       deficitTargetAsPercentOfGdp: -0.025,
       currentSupport: 0.14,
-      defaultPolicies: cloneDefaultPolicies("Democratic"),
-      socialPolicies: cloneDefaultSocialPolicies("Democratic"),
+      defaultPolicies: cloneDefaultPolicies("Democratic", partiesList),
+      socialPolicies: cloneDefaultSocialPolicies("Democratic", partiesList),
       makeRulingParty: false,
       syncRulingNation: true,
     };
@@ -791,10 +793,10 @@ function buildPartyDraft(party = null) {
     currentSupport: Number(party.currentSupport ?? 0.12),
     defaultPolicies: party.defaultPolicies
       ? structuredClone(party.defaultPolicies)
-      : cloneDefaultPolicies(party.name),
+      : cloneDefaultPolicies(party.name, partiesList),
     socialPolicies: party.socialPolicies
       ? structuredClone(party.socialPolicies)
-      : cloneDefaultSocialPolicies(party.name),
+      : cloneDefaultSocialPolicies(party.name, partiesList),
     makeRulingParty: false,
     syncRulingNation: true,
   };
@@ -810,6 +812,7 @@ export default function PoliticalPartiesAndElectionsView({
   onDeleteParty,
   onRunElection,
   onSetRulingParty,
+  onReturnToMap,
 }) {
   const canEdit = role === "director" && !isReadOnly;
   const parties = useMemo(
@@ -838,7 +841,7 @@ export default function PoliticalPartiesAndElectionsView({
   const [activeSubView, setActiveSubView] = useState(initialSubView || "elections");
   const [selectedPartyName, setSelectedPartyName] = useState(rulingPartyName);
   const [draft, setDraft] = useState(() =>
-    buildPartyDraft(parties.find((p) => p.name === rulingPartyName) || parties[0])
+    buildPartyDraft(parties.find((p) => p.name === rulingPartyName) || parties[0], parties)
   );
   const [busyAction, setBusyAction] = useState(false);
   const [stateSearch, setStateSearch] = useState("");
@@ -850,6 +853,19 @@ export default function PoliticalPartiesAndElectionsView({
   const [selectedHistMapState, setSelectedHistMapState] = useState("Pennsylvania");
   const [demoCategoryFilter, setDemoCategoryFilter] = useState("all");
   const liveSaveTimerRef = useRef(null);
+  const dirtyRef = useRef(false);
+  const latestDraftRef = useRef(draft);
+  const onUpsertPartyRef = useRef(onUpsertParty);
+  const canEditRef = useRef(canEdit);
+
+  useEffect(() => {
+    latestDraftRef.current = draft;
+  }, [draft]);
+
+  useEffect(() => {
+    onUpsertPartyRef.current = onUpsertParty;
+    canEditRef.current = canEdit;
+  }, [onUpsertParty, canEdit]);
 
   const [scheduleDraft, setScheduleDraft] = useState(serverSchedule);
   const [resetCycleFromToday, setResetCycleFromToday] = useState(true);
@@ -857,8 +873,19 @@ export default function PoliticalPartiesAndElectionsView({
   useEffect(() => {
     if (initialSubView) {
       setActiveSubView(initialSubView);
+      if (initialSubView === "studio") {
+        dirtyRef.current = false;
+        setSelectedPartyName(rulingPartyName);
+      }
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialSubView]);
+
+  useEffect(() => {
+    if (!dirtyRef.current && !liveSaveTimerRef.current) {
+      setSelectedPartyName(rulingPartyName);
+    }
+  }, [rulingPartyName]);
 
   useEffect(() => {
     setSelectedMapState(initialSelectedState || null);
@@ -866,7 +893,33 @@ export default function PoliticalPartiesAndElectionsView({
 
   useEffect(() => {
     return () => {
-      if (liveSaveTimerRef.current) clearTimeout(liveSaveTimerRef.current);
+      if (liveSaveTimerRef.current) {
+        clearTimeout(liveSaveTimerRef.current);
+        liveSaveTimerRef.current = null;
+        const d = latestDraftRef.current;
+        if (canEditRef.current && onUpsertPartyRef.current && d && !d.isNew && d.name?.trim()) {
+          onUpsertPartyRef.current(
+            {
+              name: d.name.trim(),
+              color: d.color,
+              politicalAlignment: d.politicalAlignment,
+              federalismPolicy: d.federalismPolicy || "moderate",
+              platformSummary: d.platformSummary,
+              baseTaxLevel: d.baseTaxLevel,
+              taxDistributionMode: d.taxDistributionMode,
+              workerShareOfGdp: d.workerShareOfGdp,
+              budgetAsPercentOfGdp: d.budgetAsPercentOfGdp,
+              deficitTargetAsPercentOfGdp: d.deficitTargetAsPercentOfGdp,
+              currentSupport: d.currentSupport,
+              defaultPolicies: d.defaultPolicies,
+              socialPolicies: d.socialPolicies,
+              makeRulingParty: d.makeRulingParty,
+              syncRulingNation: true,
+            },
+            d.originalName
+          );
+        }
+      }
     };
   }, []);
 
@@ -894,18 +947,19 @@ export default function PoliticalPartiesAndElectionsView({
     serverSchedule.nextMidtermDate,
   ]);
 
-  // Only resync the editor draft when the user picks a different party roster item,
-  // preventing periodic SSE/poll updates on `state.politicalParties` from overwriting edits.
+  // Sync the editor draft when switching party selection OR when server state updates while idle
   useEffect(() => {
     if (selectedPartyName === "__NEW__") return;
+    if (dirtyRef.current || liveSaveTimerRef.current) return;
     const matched = parties.find((p) => p.name === selectedPartyName) || parties[0];
     if (matched) {
-      setDraft(buildPartyDraft(matched));
+      const rebuilt = buildPartyDraft(matched, parties);
+      latestDraftRef.current = rebuilt;
+      setDraft(rebuilt);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedPartyName]);
+  }, [selectedPartyName, parties]);
 
-  const buildPartyPayload = (d) => ({
+  const buildPartyPayload = (d, forceRuling = false) => ({
     name: (d.name || "").trim(),
     color: d.color,
     politicalAlignment: d.politicalAlignment,
@@ -919,22 +973,29 @@ export default function PoliticalPartiesAndElectionsView({
     currentSupport: d.currentSupport,
     defaultPolicies: d.defaultPolicies,
     socialPolicies: d.socialPolicies,
-    makeRulingParty: d.makeRulingParty,
+    makeRulingParty: forceRuling || d.makeRulingParty,
     syncRulingNation: true,
   });
 
-  const persistExistingDraft = (nextDraft, immediate = false) => {
+  const persistExistingDraft = (nextDraft, immediate = false, forceRuling = false) => {
+    latestDraftRef.current = nextDraft;
     setDraft(nextDraft);
-    if (!canEdit || !onUpsertParty || nextDraft.isNew || !nextDraft.name?.trim()) return;
+    if (!canEdit || !onUpsertParty || nextDraft.isNew || !nextDraft.name?.trim()) {
+      dirtyRef.current = true;
+      return Promise.resolve();
+    }
     if (liveSaveTimerRef.current) clearTimeout(liveSaveTimerRef.current);
     const runSave = () => {
-      onUpsertParty(buildPartyPayload(nextDraft), nextDraft.originalName);
+      liveSaveTimerRef.current = null;
+      dirtyRef.current = false;
+      return onUpsertParty(buildPartyPayload(nextDraft, forceRuling), nextDraft.originalName);
     };
     if (immediate) {
-      runSave();
-    } else {
-      liveSaveTimerRef.current = setTimeout(runSave, 220);
+      return runSave();
     }
+    dirtyRef.current = true;
+    liveSaveTimerRef.current = setTimeout(runSave, 220);
+    return Promise.resolve();
   };
 
   const previewTaxRates = useMemo(
@@ -942,35 +1003,84 @@ export default function PoliticalPartiesAndElectionsView({
     [draft.baseTaxLevel, draft.taxDistributionMode]
   );
 
+  const canonicalPreset = useMemo(() => {
+    if (draft.isNew) return null;
+    return (
+      DEFAULT_POLITICAL_PARTIES.find((p) => p.name === draft.originalName) ||
+      DEFAULT_POLITICAL_PARTIES.find((p) => p.name === draft.name) ||
+      null
+    );
+  }, [draft.isNew, draft.originalName, draft.name]);
+
   const handleSelectParty = (party) => {
-    if (liveSaveTimerRef.current) clearTimeout(liveSaveTimerRef.current);
+    if (liveSaveTimerRef.current) {
+      clearTimeout(liveSaveTimerRef.current);
+      liveSaveTimerRef.current = null;
+      const d = latestDraftRef.current;
+      if (canEdit && onUpsertParty && d && !d.isNew && d.name?.trim()) {
+        onUpsertParty(buildPartyPayload(d), d.originalName);
+      }
+    }
+    dirtyRef.current = false;
     setSelectedPartyName(party.name);
-    setDraft(buildPartyDraft(party));
+    const rebuilt = buildPartyDraft(party, parties);
+    latestDraftRef.current = rebuilt;
+    setDraft(rebuilt);
   };
 
   const handleStartNewParty = () => {
     if (liveSaveTimerRef.current) clearTimeout(liveSaveTimerRef.current);
+    dirtyRef.current = true;
     setSelectedPartyName("__NEW__");
-    setDraft(buildPartyDraft(null));
+    const fresh = buildPartyDraft(null, parties);
+    latestDraftRef.current = fresh;
+    setDraft(fresh);
     setActiveSubView("studio");
   };
 
-  const handleSaveDraft = async (e) => {
-    e.preventDefault();
-    if (!canEdit || !onUpsertParty) return;
-    if (!draft.name.trim()) return;
-    if (liveSaveTimerRef.current) clearTimeout(liveSaveTimerRef.current);
+  const handleResetCanonicalPreset = async () => {
+    if (!canEdit || !canonicalPreset) return;
+    if (liveSaveTimerRef.current) {
+      clearTimeout(liveSaveTimerRef.current);
+      liveSaveTimerRef.current = null;
+    }
+    dirtyRef.current = false;
+    const rebuilt = buildPartyDraft(canonicalPreset, DEFAULT_POLITICAL_PARTIES);
     setBusyAction(true);
     try {
-      const payload = buildPartyPayload(draft);
+      await persistExistingDraft(rebuilt, true);
+    } finally {
+      setBusyAction(false);
+    }
+  };
+
+  const handleSaveDraft = async (e, { makeRuling = false, returnToMap = false } = {}) => {
+    if (e?.preventDefault) e.preventDefault();
+    if (!canEdit || !onUpsertParty) return;
+    if (!draft.name.trim()) return;
+    if (liveSaveTimerRef.current) {
+      clearTimeout(liveSaveTimerRef.current);
+      liveSaveTimerRef.current = null;
+    }
+    dirtyRef.current = false;
+    setBusyAction(true);
+    try {
+      const payload = buildPartyPayload(draft, makeRuling);
       await onUpsertParty(payload, draft.isNew ? null : draft.originalName);
       setSelectedPartyName(payload.name);
-      setDraft((prev) => ({
-        ...prev,
-        isNew: false,
-        originalName: payload.name,
-        makeRulingParty: false,
-      }));
+      setDraft((prev) => {
+        const synced = {
+          ...prev,
+          isNew: false,
+          originalName: payload.name,
+          makeRulingParty: false,
+        };
+        latestDraftRef.current = synced;
+        return synced;
+      });
+      if (returnToMap && onReturnToMap) {
+        onReturnToMap();
+      }
     } finally {
       setBusyAction(false);
     }
@@ -979,13 +1089,21 @@ export default function PoliticalPartiesAndElectionsView({
   const handleDeleteSelected = async () => {
     if (!canEdit || !onDeleteParty || draft.isNew) return;
     if (draft.originalName === rulingPartyName) return;
-    if (liveSaveTimerRef.current) clearTimeout(liveSaveTimerRef.current);
+    if (liveSaveTimerRef.current) {
+      clearTimeout(liveSaveTimerRef.current);
+      liveSaveTimerRef.current = null;
+    }
+    dirtyRef.current = false;
     setBusyAction(true);
     try {
       await onDeleteParty(draft.originalName);
       const fallback = parties.find((p) => p.name === rulingPartyName) || parties[0];
       setSelectedPartyName(fallback?.name || rulingPartyName);
-      if (fallback) setDraft(buildPartyDraft(fallback));
+      if (fallback) {
+        const rebuilt = buildPartyDraft(fallback, parties);
+        latestDraftRef.current = rebuilt;
+        setDraft(rebuilt);
+      }
     } finally {
       setBusyAction(false);
     }
@@ -2794,7 +2912,7 @@ export default function PoliticalPartiesAndElectionsView({
                     : "Primary workspace for party tax posture, 6 core governance acts, and 7 social charter & corruption stances — slider/policy updates save live without background resets."}
                 </p>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 {!draft.isNew &&
                   draft.originalName !== rulingPartyName &&
                   parties.length > 2 &&
@@ -2809,6 +2927,18 @@ export default function PoliticalPartiesAndElectionsView({
                       Delete Party
                     </button>
                   )}
+                {!draft.isNew && canonicalPreset && canEdit && (
+                  <button
+                    type="button"
+                    disabled={busyAction}
+                    onClick={handleResetCanonicalPreset}
+                    className="px-3 py-1.5 rounded-xl text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 flex items-center gap-1.5 cursor-pointer transition"
+                    title="Restore this party's factory canonical tax curve, 6 core acts, and social charter preset"
+                  >
+                    <RotateCcw className="w-3.5 h-3.5" />
+                    Reset to Canonical Preset
+                  </button>
+                )}
                 {canEdit && (
                   <button
                     type="submit"
@@ -2819,8 +2949,40 @@ export default function PoliticalPartiesAndElectionsView({
                     {draft.isNew ? "Create Party" : "Save Party Posture"}
                   </button>
                 )}
+                {canEdit && onReturnToMap && (
+                  <button
+                    type="button"
+                    disabled={busyAction || !draft.name.trim()}
+                    onClick={(ev) => handleSaveDraft(ev, { returnToMap: true })}
+                    className="px-3.5 py-1.5 rounded-xl text-xs font-bold bg-cyan-500 hover:bg-cyan-400 disabled:opacity-50 text-slate-950 flex items-center gap-1.5 shadow cursor-pointer transition"
+                  >
+                    <Globe2 className="w-3.5 h-3.5" />
+                    Save &amp; View on Main Map
+                  </button>
+                )}
               </div>
             </div>
+
+            {!draft.isNew && draft.originalName !== rulingPartyName && (
+              <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl px-3.5 py-2.5 flex flex-wrap items-center justify-between gap-2 text-xs">
+                <div className="text-amber-200">
+                  <span className="font-bold">{draft.originalName}</span> is currently in{" "}
+                  <span className="font-semibold">Opposition</span>. Main page Cabinet taxes &amp; laws follow the ruling party (
+                  <span className="font-bold text-white">{rulingPartyName}</span>).
+                </div>
+                {canEdit && (
+                  <button
+                    type="button"
+                    disabled={busyAction}
+                    onClick={(ev) => handleSaveDraft(ev, { makeRuling: true })}
+                    className="px-3 py-1 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-200 border border-emerald-500/40 font-bold text-[11px] flex items-center gap-1.5 cursor-pointer transition shrink-0"
+                  >
+                    <Crown className="w-3.5 h-3.5" />
+                    Save &amp; Apply as Ruling Party in Cabinet
+                  </button>
+                )}
+              </div>
+            )}
 
             {/* Identity & Platform */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -2833,7 +2995,10 @@ export default function PoliticalPartiesAndElectionsView({
                   required
                   disabled={!canEdit}
                   value={draft.name}
-                  onChange={(e) => setDraft({ ...draft, name: e.target.value })}
+                  onChange={(e) => {
+                    dirtyRef.current = true;
+                    setDraft({ ...draft, name: e.target.value });
+                  }}
                   placeholder="e.g. Forward Technocrats"
                   className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-blue-500"
                 />
@@ -2846,9 +3011,10 @@ export default function PoliticalPartiesAndElectionsView({
                   type="text"
                   disabled={!canEdit}
                   value={draft.politicalAlignment}
-                  onChange={(e) =>
-                    setDraft({ ...draft, politicalAlignment: e.target.value })
-                  }
+                  onChange={(e) => {
+                    dirtyRef.current = true;
+                    setDraft({ ...draft, politicalAlignment: e.target.value });
+                  }}
                   placeholder="Center-Left / Techno-Progressive"
                   className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-blue-500"
                 />
@@ -2884,9 +3050,10 @@ export default function PoliticalPartiesAndElectionsView({
                 rows={2}
                 disabled={!canEdit}
                 value={draft.platformSummary}
-                onChange={(e) =>
-                  setDraft({ ...draft, platformSummary: e.target.value })
-                }
+                onChange={(e) => {
+                  dirtyRef.current = true;
+                  setDraft({ ...draft, platformSummary: e.target.value });
+                }}
                 className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-blue-500"
               />
             </div>

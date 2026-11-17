@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import InteractiveWorldMap from "./components/InteractiveWorldMap";
 import DirectorLoginPortal from "./components/DirectorLoginPortal";
+import { computeTaxRatesFromPosture } from "../server/simplifiedSeedConfig";
 
 const MarketsAndTechView = lazy(() => import("./components/MarketsAndTechView"));
 const LedgerAndTimeView = lazy(() => import("./components/LedgerAndTimeView"));
@@ -107,6 +108,8 @@ export default function App() {
   const lastMutationTimeRef = useRef(0);
   const mutationInFlightRef = useRef(0);
   const stateVersionRef = useRef(0);
+  const partySaveChainRef = useRef(Promise.resolve());
+  const partySaveSeqRef = useRef(0);
 
   const handleJumpToTab = useCallback((tabId) => {
     if (tabId === "markets") setMarketsSubTab("supplychain");
@@ -269,7 +272,19 @@ export default function App() {
 
   const handleTimeAction = async (body) => {
     if (guardReadOnly()) return;
-    lastMutationTimeRef.current = Date.now();
+    const isAutoTick = body.command === "TIMER_TICK";
+    if (
+      isAutoTick &&
+      (mutationInFlightRef.current > 0 || Date.now() - lastMutationTimeRef.current < 2500)
+    ) {
+      return;
+    }
+
+    const requestStartedAt = Date.now();
+    if (!isAutoTick) {
+      lastMutationTimeRef.current = requestStartedAt;
+      mutationInFlightRef.current += 1;
+    }
 
     if (body.command === "LOAD" || body.command === "LOCK") {
       const nextLive = body.command === "LOAD";
@@ -297,6 +312,22 @@ export default function App() {
       });
       if (res.ok) {
         const data = await res.json();
+        if (
+          isAutoTick &&
+          (mutationInFlightRef.current > 0 || requestStartedAt < lastMutationTimeRef.current)
+        ) {
+          return;
+        }
+        const nextVer = Number(data.session?.state?.version) || 0;
+        if (isAutoTick && stateVersionRef.current > 0 && nextVer > 0 && nextVer < stateVersionRef.current) {
+          return;
+        }
+        if (nextVer > stateVersionRef.current) {
+          stateVersionRef.current = nextVer;
+        }
+        if (!isAutoTick) {
+          lastMutationTimeRef.current = Date.now();
+        }
         setSessionData(data.session);
         setLedgerHistory(data.ledgerHistory || []);
         setActivityLog(data.activityLog || []);
@@ -306,6 +337,10 @@ export default function App() {
       }
     } catch (err) {
       console.error("Time action error:", err);
+    } finally {
+      if (!isAutoTick) {
+        mutationInFlightRef.current = Math.max(0, mutationInFlightRef.current - 1);
+      }
     }
   };
 
@@ -322,7 +357,13 @@ export default function App() {
 
     let inFlight = false;
     const interval = setInterval(async () => {
-      if (inFlight) return;
+      if (
+        inFlight ||
+        mutationInFlightRef.current > 0 ||
+        Date.now() - lastMutationTimeRef.current < 2500
+      ) {
+        return;
+      }
       inFlight = true;
       try {
         await handleTimeAction({ command: "TIMER_TICK" });
@@ -338,68 +379,199 @@ export default function App() {
 
   const handleUpdateNation = async (nationId, updates) => {
     if (guardReadOnly()) return;
+    mutationInFlightRef.current += 1;
     lastMutationTimeRef.current = Date.now();
-    const res = await fetch(
-      `/api/sessions/${activeSessionId}/nations/${nationId}`,
-      {
-        method: "PATCH",
-        headers: getMutationHeaders(),
-        body: JSON.stringify({ ...updates, actor: actorName }),
+    try {
+      const res = await fetch(
+        `/api/sessions/${activeSessionId}/nations/${nationId}`,
+        {
+          method: "PATCH",
+          headers: getMutationHeaders(),
+          body: JSON.stringify({ ...updates, actor: actorName }),
+        }
+      );
+      if (res.ok) {
+        const data = await res.json();
+        lastMutationTimeRef.current = Date.now();
+        stateVersionRef.current = Math.max(
+          stateVersionRef.current,
+          Number(data.session?.state?.version) || 0
+        );
+        setSessionData(data.session);
+        setActivityLog(data.activityLog || []);
       }
-    );
-    if (res.ok) {
-      const data = await res.json();
-      setSessionData(data.session);
-      setActivityLog(data.activityLog || []);
+    } finally {
+      mutationInFlightRef.current = Math.max(0, mutationInFlightRef.current - 1);
     }
   };
 
-  const handleUpsertParty = async (payload, originalPartyName = null) => {
-    if (guardReadOnly()) return;
+  const handleUpsertParty = (payload, originalPartyName = null) => {
+    if (guardReadOnly()) return Promise.resolve();
+    const mySeq = ++partySaveSeqRef.current;
     lastMutationTimeRef.current = Date.now();
+
+    // Immediate optimistic sync so switching between Party Studio and Main Map reflects changes instantly
+    const derivedRates = computeTaxRatesFromPosture(
+      payload.baseTaxLevel ?? 0.24,
+      payload.taxDistributionMode ?? 0.62
+    );
+    setSessionData((prev) => {
+      if (!prev?.state) return prev;
+      const prevParties = Array.isArray(prev.state.politicalParties)
+        ? [...prev.state.politicalParties]
+        : [];
+      const lookupKey = originalPartyName || payload.name;
+      const idx = prevParties.findIndex((p) => p.name === lookupKey);
+      const existing = idx >= 0 ? prevParties[idx] : {};
+      const nextParty = {
+        ...existing,
+        ...payload,
+        baseTaxLevel: derivedRates.baseTaxLevel,
+        taxDistributionMode: derivedRates.taxDistributionMode,
+        incomeTaxPreference: derivedRates.incomeTax,
+        corporateTaxRate: derivedRates.corporateTax,
+        capitalGainsTaxRate: derivedRates.capitalGainsTax,
+        salesTaxPreference: derivedRates.salesTax,
+        defaultPolicies: payload.defaultPolicies
+          ? structuredClone(payload.defaultPolicies)
+          : existing.defaultPolicies,
+        socialPolicies: payload.socialPolicies
+          ? structuredClone(payload.socialPolicies)
+          : existing.socialPolicies,
+      };
+      if (idx >= 0) prevParties[idx] = nextParty;
+      else prevParties.push(nextParty);
+
+      const prevUsa = prev.state.nations?.[0];
+      let nextNations = prev.state.nations;
+      if (
+        prevUsa &&
+        (payload.makeRulingParty ||
+          (payload.syncRulingNation !== false &&
+            (prevUsa.rulingParty === lookupKey || prevUsa.rulingParty === nextParty.name)))
+      ) {
+        const nextUsa = {
+          ...prevUsa,
+          rulingParty: nextParty.name,
+          baseTaxLevel: derivedRates.baseTaxLevel,
+          taxDistributionMode: derivedRates.taxDistributionMode,
+          enactedPolicies: nextParty.defaultPolicies
+            ? structuredClone(nextParty.defaultPolicies)
+            : prevUsa.enactedPolicies,
+          socialPolicies: nextParty.socialPolicies
+            ? structuredClone(nextParty.socialPolicies)
+            : prevUsa.socialPolicies,
+          incomeTaxOverride: null,
+          corporateTaxOverride: null,
+          capitalGainsTaxOverride: null,
+          salesTaxOverride: null,
+          workerShareOverride: null,
+          budgetPercentOverride: null,
+          computed: {
+            ...(prevUsa.computed || {}),
+            baseTaxLevel: derivedRates.baseTaxLevel,
+            taxDistributionMode: derivedRates.taxDistributionMode,
+            incomeTax: derivedRates.incomeTax,
+            corporateTax: derivedRates.corporateTax,
+            capitalGainsTax: derivedRates.capitalGainsTax,
+            salesTax: derivedRates.salesTax,
+            enactedPolicies: nextParty.defaultPolicies
+              ? structuredClone(nextParty.defaultPolicies)
+              : prevUsa.computed?.enactedPolicies,
+            socialPolicyEval: {
+              ...(prevUsa.computed?.socialPolicyEval || {}),
+              socialPolicies: nextParty.socialPolicies
+                ? structuredClone(nextParty.socialPolicies)
+                : prevUsa.computed?.socialPolicyEval?.socialPolicies,
+            },
+          },
+        };
+        nextNations = [nextUsa, ...(prev.state.nations || []).slice(1)];
+      }
+
+      return {
+        ...prev,
+        state: {
+          ...prev.state,
+          politicalParties: prevParties,
+          nations: nextNations,
+        },
+      };
+    });
+
     const url = originalPartyName
       ? `/api/sessions/${activeSessionId}/parties/${encodeURIComponent(originalPartyName)}`
       : `/api/sessions/${activeSessionId}/parties`;
     const method = originalPartyName ? "PATCH" : "POST";
-    const res = await fetch(url, {
-      method,
-      headers: getMutationHeaders(),
-      body: JSON.stringify({ ...payload, actor: actorName }),
-    });
-    if (res.ok) {
-      const data = await res.json();
-      setSessionData(data.session);
-      setActivityLog(data.activityLog || []);
-      showToast(
-        originalPartyName
-          ? `Updated posture for ${payload.name}`
-          : `Created political party: ${payload.name}`
-      );
-    } else {
-      const err = await res.json().catch(() => ({}));
-      showToast(err.error || "Failed to save political party");
-    }
+
+    const runSave = async () => {
+      mutationInFlightRef.current += 1;
+      lastMutationTimeRef.current = Date.now();
+      try {
+        const res = await fetch(url, {
+          method,
+          headers: getMutationHeaders(),
+          body: JSON.stringify({ ...payload, actor: actorName }),
+        });
+        if (res.ok) {
+          const data = await res.json();
+          lastMutationTimeRef.current = Date.now();
+          stateVersionRef.current = Math.max(
+            stateVersionRef.current,
+            Number(data.session?.state?.version) || 0
+          );
+          if (mySeq === partySaveSeqRef.current) {
+            setSessionData(data.session);
+            setActivityLog(data.activityLog || []);
+          }
+          showToast(
+            originalPartyName
+              ? `Updated posture for ${payload.name}`
+              : `Created political party: ${payload.name}`
+          );
+        } else {
+          const err = await res.json().catch(() => ({}));
+          showToast(err.error || "Failed to save political party");
+        }
+      } finally {
+        mutationInFlightRef.current = Math.max(0, mutationInFlightRef.current - 1);
+      }
+    };
+
+    const chained = partySaveChainRef.current.then(runSave, runSave);
+    partySaveChainRef.current = chained.catch(() => {});
+    return chained;
   };
 
   const handleDeleteParty = async (partyName) => {
     if (guardReadOnly()) return;
+    mutationInFlightRef.current += 1;
     lastMutationTimeRef.current = Date.now();
-    const res = await fetch(
-      `/api/sessions/${activeSessionId}/parties/${encodeURIComponent(partyName)}`,
-      {
-        method: "DELETE",
-        headers: getMutationHeaders(),
-        body: JSON.stringify({ actor: actorName }),
+    try {
+      const res = await fetch(
+        `/api/sessions/${activeSessionId}/parties/${encodeURIComponent(partyName)}`,
+        {
+          method: "DELETE",
+          headers: getMutationHeaders(),
+          body: JSON.stringify({ actor: actorName }),
+        }
+      );
+      if (res.ok) {
+        const data = await res.json();
+        lastMutationTimeRef.current = Date.now();
+        stateVersionRef.current = Math.max(
+          stateVersionRef.current,
+          Number(data.session?.state?.version) || 0
+        );
+        setSessionData(data.session);
+        setActivityLog(data.activityLog || []);
+        showToast(`Removed party: ${partyName}`);
+      } else {
+        const err = await res.json().catch(() => ({}));
+        showToast(err.error || "Failed to delete party");
       }
-    );
-    if (res.ok) {
-      const data = await res.json();
-      setSessionData(data.session);
-      setActivityLog(data.activityLog || []);
-      showToast(`Removed party: ${partyName}`);
-    } else {
-      const err = await res.json().catch(() => ({}));
-      showToast(err.error || "Failed to delete party");
+    } finally {
+      mutationInFlightRef.current = Math.max(0, mutationInFlightRef.current - 1);
     }
   };
 
@@ -411,95 +583,142 @@ export default function App() {
     schedule = null,
   } = {}) => {
     if (guardReadOnly()) return;
+    mutationInFlightRef.current += 1;
     lastMutationTimeRef.current = Date.now();
-    const res = await fetch(`/api/sessions/${activeSessionId}/elections`, {
-      method: "POST",
-      headers: getMutationHeaders(),
-      body: JSON.stringify({
-        inaugurateWinner,
-        electionType,
-        resetCycleFromToday,
-        scheduleOnly,
-        schedule,
-        actor: actorName,
-      }),
-    });
-    if (res.ok) {
-      const data = await res.json();
-      setSessionData(data.session);
-      setActivityLog(data.activityLog || []);
-      showToast(data.toastMessage || "National Election Certified");
-    } else {
-      const err = await res.json().catch(() => ({}));
-      showToast(err.error || "Failed to conduct election");
+    try {
+      const res = await fetch(`/api/sessions/${activeSessionId}/elections`, {
+        method: "POST",
+        headers: getMutationHeaders(),
+        body: JSON.stringify({
+          inaugurateWinner,
+          electionType,
+          resetCycleFromToday,
+          scheduleOnly,
+          schedule,
+          actor: actorName,
+        }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        lastMutationTimeRef.current = Date.now();
+        stateVersionRef.current = Math.max(
+          stateVersionRef.current,
+          Number(data.session?.state?.version) || 0
+        );
+        setSessionData(data.session);
+        setActivityLog(data.activityLog || []);
+        showToast(data.toastMessage || "National Election Certified");
+      } else {
+        const err = await res.json().catch(() => ({}));
+        showToast(err.error || "Failed to conduct election");
+      }
+    } finally {
+      mutationInFlightRef.current = Math.max(0, mutationInFlightRef.current - 1);
     }
   };
 
   const handleUpdateMarket = async (nationId, payload) => {
     if (guardReadOnly()) return;
+    mutationInFlightRef.current += 1;
     lastMutationTimeRef.current = Date.now();
-    const res = await fetch(
-      `/api/sessions/${activeSessionId}/nations/${nationId}/market`,
-      {
-        method: "PATCH",
-        headers: getMutationHeaders(),
-        body: JSON.stringify({ ...payload, actor: actorName }),
+    try {
+      const res = await fetch(
+        `/api/sessions/${activeSessionId}/nations/${nationId}/market`,
+        {
+          method: "PATCH",
+          headers: getMutationHeaders(),
+          body: JSON.stringify({ ...payload, actor: actorName }),
+        }
+      );
+      if (res.ok) {
+        const data = await res.json();
+        lastMutationTimeRef.current = Date.now();
+        stateVersionRef.current = Math.max(
+          stateVersionRef.current,
+          Number(data.session?.state?.version) || 0
+        );
+        setSessionData(data.session);
+        setActivityLog(data.activityLog || []);
       }
-    );
-    if (res.ok) {
-      const data = await res.json();
-      setSessionData(data.session);
-      setActivityLog(data.activityLog || []);
+    } finally {
+      mutationInFlightRef.current = Math.max(0, mutationInFlightRef.current - 1);
     }
   };
 
   const handleUpdateCompanion = async (payload) => {
     if (guardReadOnly()) return;
+    mutationInFlightRef.current += 1;
     lastMutationTimeRef.current = Date.now();
-    const res = await fetch(`/api/sessions/${activeSessionId}/companion`, {
-      method: "PATCH",
-      headers: getMutationHeaders(),
-      body: JSON.stringify({ ...payload, actor: actorName }),
-    });
-    if (res.ok) {
-      const data = await res.json();
-      setSessionData(data.session);
-      setActivityLog(data.activityLog || []);
+    try {
+      const res = await fetch(`/api/sessions/${activeSessionId}/companion`, {
+        method: "PATCH",
+        headers: getMutationHeaders(),
+        body: JSON.stringify({ ...payload, actor: actorName }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        lastMutationTimeRef.current = Date.now();
+        stateVersionRef.current = Math.max(
+          stateVersionRef.current,
+          Number(data.session?.state?.version) || 0
+        );
+        setSessionData(data.session);
+        setActivityLog(data.activityLog || []);
+      }
+    } finally {
+      mutationInFlightRef.current = Math.max(0, mutationInFlightRef.current - 1);
     }
   };
 
   const handleResetScenario = async () => {
     if (guardReadOnly()) return;
+    mutationInFlightRef.current += 1;
     lastMutationTimeRef.current = Date.now();
-    const res = await fetch(`/api/sessions/${activeSessionId}/reset`, {
-      method: "POST",
-      headers: getMutationHeaders(),
-      body: JSON.stringify({ actor: actorName }),
-    });
-    if (res.ok) {
-      const data = await res.json();
-      setSessionData(data.session);
-      setLedgerHistory(data.ledgerHistory || []);
-      setActivityLog(data.activityLog || []);
+    try {
+      const res = await fetch(`/api/sessions/${activeSessionId}/reset`, {
+        method: "POST",
+        headers: getMutationHeaders(),
+        body: JSON.stringify({ actor: actorName }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        lastMutationTimeRef.current = Date.now();
+        stateVersionRef.current = Math.max(
+          stateVersionRef.current,
+          Number(data.session?.state?.version) || 0
+        );
+        setSessionData(data.session);
+        setLedgerHistory(data.ledgerHistory || []);
+        setActivityLog(data.activityLog || []);
+      }
+    } finally {
+      mutationInFlightRef.current = Math.max(0, mutationInFlightRef.current - 1);
     }
   };
 
   const handleCreateNewScenario = async (payload) => {
     if (guardReadOnly()) return;
+    mutationInFlightRef.current += 1;
     lastMutationTimeRef.current = Date.now();
-    const res = await fetch("/api/sessions", {
-      method: "POST",
-      headers: getMutationHeaders(),
-      body: JSON.stringify({ ...payload, actor: actorName }),
-    });
-    if (res.ok) {
-      const data = await res.json();
-      setActiveSessionId(data.session.id);
+    try {
+      const res = await fetch("/api/sessions", {
+        method: "POST",
+        headers: getMutationHeaders(),
+        body: JSON.stringify({ ...payload, actor: actorName }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        lastMutationTimeRef.current = Date.now();
+        setActiveSessionId(data.session.id);
+      }
+    } finally {
+      mutationInFlightRef.current = Math.max(0, mutationInFlightRef.current - 1);
     }
   };
 
   const handleRollbackSession = async (targetQuarter, targetId) => {
     if (guardReadOnly()) return;
+    mutationInFlightRef.current += 1;
     lastMutationTimeRef.current = Date.now();
     try {
       const res = await fetch(`/api/sessions/${activeSessionId}/rollback`, {
@@ -509,6 +728,11 @@ export default function App() {
       });
       if (res.ok) {
         const data = await res.json();
+        lastMutationTimeRef.current = Date.now();
+        stateVersionRef.current = Math.max(
+          stateVersionRef.current,
+          Number(data.session?.state?.version) || 0
+        );
         setSessionData(data.session);
         setLedgerHistory(data.ledgerHistory || []);
         setActivityLog(data.activityLog || []);
@@ -521,6 +745,8 @@ export default function App() {
       }
     } catch (e) {
       showToast(`Rollback error: ${e.message}`);
+    } finally {
+      mutationInFlightRef.current = Math.max(0, mutationInFlightRef.current - 1);
     }
   };
 
@@ -791,6 +1017,7 @@ export default function App() {
                 onUpsertParty={handleUpsertParty}
                 onDeleteParty={handleDeleteParty}
                 onRunElection={handleRunElection}
+                onReturnToMap={() => handleJumpToTab("map")}
                 onSetRulingParty={(party) =>
                   handleUpdateNation("nation_usa", {
                     rulingParty: party.name,

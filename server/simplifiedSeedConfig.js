@@ -740,6 +740,7 @@ export function buildSimplifiedSeed(originalSeed = {}) {
   });
 
   const rulingParty = "Democratic";
+  const initialParty = resolvePoliticalParty(DEFAULT_POLITICAL_PARTIES, rulingParty);
 
   return {
     timeManager: originalSeed.timeManager || {
@@ -815,6 +816,9 @@ export function buildSimplifiedSeed(originalSeed = {}) {
         centralBankRate: 0.045,
         equalityDrift: 0,
         rulingParty,
+        lastRulingParty: rulingParty,
+        baseTaxLevel: initialParty.baseTaxLevel ?? 0.24,
+        taxDistributionMode: initialParty.taxDistributionMode ?? 0.62,
         startingBaseline: {
           literacyRate: 0.92,
           infrastructureEfficiency: 0.82,
@@ -826,7 +830,8 @@ export function buildSimplifiedSeed(originalSeed = {}) {
           crimeControlIndex: 0.74,
           publicDebt: 34500000000000,
         },
-        enactedPolicies: cloneDefaultPolicies(rulingParty),
+        enactedPolicies: cloneDefaultPolicies(rulingParty, DEFAULT_POLITICAL_PARTIES),
+        socialPolicies: cloneDefaultSocialPolicies(rulingParty, DEFAULT_POLITICAL_PARTIES),
         electionHistory: [],
         federalCooperativity: 0.1,
         diplomaticExpenses: 0,
