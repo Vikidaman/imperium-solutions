@@ -632,59 +632,133 @@ describe("Round Progression and United States Simulation Mechanics", () => {
       "Repealed publicSafety act must erode crimeControlIndex over quarters"
     );
 
-    // 4. Honeymoon Period + Freedom-of-Speech Weighted Approval + CNN margin tiers
-    const crisisElecState = buildSimplifiedSeed();
-    // Put country in deep crisis before inauguration
-    crisisElecState.nations[0].literacyRate = 0.62;
-    crisisElecState.nations[0].infrastructureEfficiency = 0.52;
-    crisisElecState.nations[0].consumerSentiment = 35;
-    crisisElecState.nations[0].crimeControlIndex = 0.45;
-    evaluateSimulation(crisisElecState);
+    // 4. Government Fatigue Mechanics, Opposition Surge, Sober GDP Outlook & Full-Map Election Archive
+    const fatigueTestState = buildSimplifiedSeed();
+    evaluateSimulation(fatigueTestState);
+    const baselineOutlook = fatigueTestState.nations[0].computed.forecast.finalGrowth;
+    assert.ok(
+      baselineOutlook >= 1.2 && baselineOutlook <= 2.2,
+      `Baseline 1-Yr US GDP outlook should be sober (~1.5-2.0%), got ${baselineOutlook}%`
+    );
 
-    const { record } = executeSimulatedElectionInState(crisisElecState, {
+    // Put country into crisis with damaging underfunded policies and high existing fatigue
+    fatigueTestState.nations[0].literacyRate = 0.64;
+    fatigueTestState.nations[0].infrastructureEfficiency = 0.54;
+    fatigueTestState.nations[0].consumerSentiment = 38;
+    fatigueTestState.nations[0].crimeControlIndex = 0.48;
+    fatigueTestState.nations[0].governmentFatigue = 72;
+    evaluateSimulation(fatigueTestState);
+
+    const tiredIncumbentName = fatigueTestState.nations[0].rulingParty;
+    const highFatigueIncumbentPoll =
+      fatigueTestState.electionForecast.nationalPolls.find((p) => p.name === tiredIncumbentName)
+        ?.pollPct ?? 0;
+
+    // Reset fatigue to 0 for same party (satisfied public) -> incumbent polls much higher than under high fatigue
+    fatigueTestState.nations[0].governmentFatigue = 0;
+    evaluateSimulation(fatigueTestState);
+    const satisfiedIncumbentPoll =
+      fatigueTestState.electionForecast.nationalPolls.find((p) => p.name === tiredIncumbentName)
+        ?.pollPct ?? 0;
+    assert.ok(
+      satisfiedIncumbentPoll > highFatigueIncumbentPoll + 12,
+      `High Government Fatigue (72%) must trigger strong opposition surge (incumbent ${highFatigueIncumbentPoll}% vs satisfied ${satisfiedIncumbentPoll}%)`
+    );
+
+    // Compare fatigue accumulation rates under:
+    // (a) damaging cuts vs (b) stagnant terrible crisis vs (c) rapid high-impact landmark reforms
+    const damagingState = buildSimplifiedSeed();
+    damagingState.nations[0].enactedPolicies = {
+      education: { enacted: false, funding: "underfunded" },
+      infrastructure: { enacted: false, funding: "underfunded" },
+      innovation: { enacted: false, funding: "underfunded" },
+      governance: { enacted: false, funding: "underfunded" },
+      civilRights: { enacted: false, funding: "underfunded" },
+      publicSafety: { enacted: false, funding: "underfunded" },
+    };
+    evaluateSimulation(damagingState);
+    const damagingRate = damagingState.electionForecast.fatigueRatePerQuarter;
+
+    const stagnantCrisisState = buildSimplifiedSeed();
+    stagnantCrisisState.nations[0].literacyRate = 0.60;
+    stagnantCrisisState.nations[0].infrastructureEfficiency = 0.50;
+    stagnantCrisisState.nations[0].consumerSentiment = 35;
+    evaluateSimulation(stagnantCrisisState);
+    const stagnantRate = stagnantCrisisState.electionForecast.fatigueRatePerQuarter;
+
+    const rapidReformState = buildSimplifiedSeed();
+    rapidReformState.nations[0].literacyRate = 0.72;
+    rapidReformState.nations[0].infrastructureEfficiency = 0.62;
+    rapidReformState.nations[0].enactedPolicies = {
+      education: { enacted: true, funding: "landmark" },
+      infrastructure: { enacted: true, funding: "landmark" },
+      innovation: { enacted: true, funding: "landmark" },
+      governance: { enacted: true, funding: "landmark" },
+      civilRights: { enacted: true, funding: "landmark" },
+      publicSafety: { enacted: true, funding: "landmark" },
+    };
+    evaluateSimulation(rapidReformState);
+    const rapidReformRate = rapidReformState.electionForecast.fatigueRatePerQuarter;
+
+    assert.ok(
+      rapidReformRate < 2.5 && rapidReformRate < stagnantRate && stagnantRate < damagingRate,
+      `Expected rapidReformRate (${rapidReformRate}) < stagnantRate (${stagnantRate}) < damagingRate (${damagingRate})`
+    );
+
+    // Switching ruling party resets Government Fatigue to 0, and electionHistory saves all 51 state results
+    fatigueTestState.nations[0].governmentFatigue = 68;
+    upsertPoliticalPartyInState(
+      fatigueTestState,
+      {
+        name: "Republican",
+        makeRulingParty: true,
+        syncRulingNation: true,
+      },
+      "Republican"
+    );
+    assert.equal(
+      fatigueTestState.nations[0].governmentFatigue,
+      0,
+      "Switching ruling party must reset Government Fatigue to 0"
+    );
+
+    // Compare Freedom-of-Speech weighting on approval sensitivity under elevated fatigue & poor governance
+    const speechTestState = buildSimplifiedSeed();
+    speechTestState.nations[0].literacyRate = 0.74;
+    speechTestState.nations[0].infrastructureEfficiency = 0.64;
+    speechTestState.nations[0].consumerSentiment = 45;
+    speechTestState.nations[0].crimeControlIndex = 0.55;
+    speechTestState.nations[0].governmentFatigue = 35;
+    speechTestState.nations[0].socialPolicies = {
+      ...speechTestState.nations[0].socialPolicies,
+      civilLibertiesCharter: "strong",
+    };
+    evaluateSimulation(speechTestState);
+    const openSpeechApproval = speechTestState.electionForecast.incumbentApproval;
+
+    speechTestState.nations[0].socialPolicies = {
+      ...speechTestState.nations[0].socialPolicies,
+      civilLibertiesCharter: "low",
+    };
+    evaluateSimulation(speechTestState);
+    const censoredSpeechApproval = speechTestState.electionForecast.incumbentApproval;
+    assert.ok(
+      openSpeechApproval < censoredSpeechApproval - 4,
+      `Open Freedom of Speech must weight governance downturns more strongly (${openSpeechApproval}%) than restricted speech (${censoredSpeechApproval}%)`
+    );
+
+    const { record } = executeSimulatedElectionInState(speechTestState, {
       inaugurateWinner: true,
       electionType: "Snap Election",
     });
-    assert.ok(
-      crisisElecState.electionForecast.honeymoonActive,
-      "Inaugurating winner must activate Honeymoon Period"
-    );
-    assert.ok(
-      crisisElecState.electionForecast.incumbentApproval >= 52,
-      `Honeymoon period must shield newly inaugurated winner even in crisis, got ${crisisElecState.electionForecast.incumbentApproval}%`
-    );
-    assert.ok(
-      crisisElecState.electionForecast.projectedWinner.startsWith(record.winner),
-      "Projection must NOT immediately flip against the newly inaugurated winner on Day 1"
-    );
-
-    // Compare Freedom-of-Speech weighting on approval sensitivity in a mild downturn post-honeymoon
-    crisisElecState.nations[0].inaugurationState.inauguratedDate = "2020-01-01"; // expire honeymoon
-    crisisElecState.nations[0].inaugurationState.baselineGovComposite = 76;
-    crisisElecState.nations[0].literacyRate = 0.87;
-    crisisElecState.nations[0].infrastructureEfficiency = 0.77;
-    crisisElecState.nations[0].consumerSentiment = 56;
-    crisisElecState.nations[0].crimeControlIndex = 0.67;
-    crisisElecState.nations[0].socialPolicies = {
-      ...crisisElecState.nations[0].socialPolicies,
-      civilLibertiesCharter: "strong",
-    };
-    evaluateSimulation(crisisElecState);
-    const openSpeechApproval = crisisElecState.electionForecast.incumbentApproval;
-
-    crisisElecState.nations[0].socialPolicies = {
-      ...crisisElecState.nations[0].socialPolicies,
-      civilLibertiesCharter: "low",
-    };
-    evaluateSimulation(crisisElecState);
-    const censoredSpeechApproval = crisisElecState.electionForecast.incumbentApproval;
-    assert.ok(
-      openSpeechApproval < censoredSpeechApproval - 8,
-      `Open Freedom of Speech (1.65x) must weight poor governance much more severely against approval (${openSpeechApproval}%) than restricted speech (${censoredSpeechApproval}%)`
+    assert.equal(
+      record.stateResults?.length,
+      51,
+      "Historical election record must snapshot all 51 state/DC results for archive maps"
     );
     assert.ok(
       ["safe", "likely", "lean", "tossup"].includes(
-        crisisElecState.electionForecast.stateResults[0].cnnTier
+        speechTestState.electionForecast.stateResults[0].cnnTier
       ),
       "Each state must expose CNN margin tier (safe, likely, lean, tossup)"
     );

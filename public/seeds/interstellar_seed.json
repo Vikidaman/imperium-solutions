@@ -4711,7 +4711,7 @@
           "adMultiplier": 0.9988,
           "cumulativeGrowthFactor": 1
         },
-        "annualRealGdpGrowth": 2.458,
+        "annualRealGdpGrowth": 1.525,
         "forecast": {
           "modelVersion": "1.0.0",
           "features": {
@@ -4728,35 +4728,46 @@
             "population_growth": 0.088,
             "development_tier": 1
           },
-          "baselineForecast": 2.289,
-          "structuralAdjustment": 0.169,
+          "baselineForecast": 1.409,
+          "structuralAdjustment": 0.116,
           "crisisAdjustment": 0,
-          "finalGrowth": 2.458,
+          "finalGrowth": 1.525,
           "adGrowthBreakdown": {
-            "consumptionGrowth": 1.165,
-            "investmentGrowth": 0.85,
-            "governmentGrowth": 0.414,
+            "consumptionGrowth": 0.725,
+            "investmentGrowth": 0.55,
+            "governmentGrowth": 0.274,
             "netExportsGrowth": -0.139,
-            "supplyTrendGrowth": 0.169
+            "supplyTrendGrowth": 0.116
           },
           "intervals": {
             "interval80": [
-              1.53,
-              4.15
+              0.6,
+              3.22
             ],
             "interval95": [
-              -3.53,
-              5.84
+              -4.47,
+              4.91
             ]
           },
           "attributions": {
-            "consumption_demand_C": 1.165,
-            "private_investment_I": 0.85,
-            "government_spending_G": 0.414,
+            "consumption_demand_C": 0.725,
+            "private_investment_I": 0.55,
+            "government_spending_G": 0.274,
             "net_exports_NX": -0.139,
-            "labor_and_tfp_supply": 0.169
+            "labor_and_tfp_supply": 0.116
           }
-        }
+        },
+        "fatigueMetrics": {
+          "baseFatigue": 0,
+          "effectiveFatigue": 0,
+          "fatigueRatePerQuarter": 0.85,
+          "fatigueStatusLabel": "Fresh Mandate",
+          "fatigueTrajectoryReason": "Rapid, high-impact reforms are alleviating national pressure and keeping voter fatigue minimal.",
+          "conditionBadness": 0,
+          "policyImpulse": 9.86
+        },
+        "governmentFatigue": 0,
+        "fatigueRatePerQuarter": 0.85
       }
     }
   ],
@@ -5302,9 +5313,12 @@
   ],
   "electionForecast": {
     "incumbentParty": "Democratic",
-    "incumbentApproval": 51.3,
-    "honeymoonActive": false,
-    "honeymoonDaysRemaining": 0,
+    "incumbentApproval": 66.6,
+    "governmentFatigue": 0,
+    "fatigueRatePerQuarter": 0.85,
+    "fatigueStatusLabel": "Fresh Mandate",
+    "fatigueTrajectoryReason": "Rapid, high-impact reforms are alleviating national pressure and keeping voter fatigue minimal.",
+    "honeymoonActive": true,
     "speechSensitivityMultiplier": 1.15,
     "speechFreedomLabel": "Constitutional Std (1.15x Voter Reactivity)",
     "govCompositePct": 77,
@@ -5316,37 +5330,37 @@
       {
         "name": "Democratic",
         "color": "#3b82f6",
-        "ev": 273,
-        "statesWon": 24,
-        "pollPct": 44.2
+        "ev": 431,
+        "statesWon": 33,
+        "pollPct": 60.3
       },
       {
         "name": "Republican",
         "color": "#ef4444",
-        "ev": 265,
-        "statesWon": 27,
-        "pollPct": 34.7
+        "ev": 107,
+        "statesWon": 18,
+        "pollPct": 24.7
       },
       {
         "name": "Progressive Labor",
         "color": "#10b981",
         "ev": 0,
         "statesWon": 0,
-        "pollPct": 8.1
+        "pollPct": 5.8
       },
       {
         "name": "Centrist Technocrats",
         "color": "#06b6d4",
         "ev": 0,
         "statesWon": 0,
-        "pollPct": 7.4
+        "pollPct": 5.3
       },
       {
         "name": "Libertarian Free-Market",
         "color": "#f59e0b",
         "ev": 0,
         "statesWon": 0,
-        "pollPct": 5.6
+        "pollPct": 4
       }
     ],
     "nationalPolls": [
@@ -5355,7 +5369,7 @@
         "color": "#3b82f6",
         "politicalAlignment": "Centre-Left",
         "isIncumbent": true,
-        "pollPct": 44.2,
+        "pollPct": 60.3,
         "humanRightsIndex": 48,
         "civicObligationIndex": 58,
         "taxDistributionMode": 0.62,
@@ -5366,7 +5380,7 @@
         "color": "#ef4444",
         "politicalAlignment": "Centre-Right",
         "isIncumbent": false,
-        "pollPct": 34.7,
+        "pollPct": 24.7,
         "humanRightsIndex": 40,
         "civicObligationIndex": 46,
         "taxDistributionMode": 0.38,
@@ -5377,7 +5391,7 @@
         "color": "#10b981",
         "politicalAlignment": "Progressive",
         "isIncumbent": false,
-        "pollPct": 8.1,
+        "pollPct": 5.8,
         "humanRightsIndex": 100,
         "civicObligationIndex": 100,
         "taxDistributionMode": 0.82,
@@ -5388,7 +5402,7 @@
         "color": "#06b6d4",
         "politicalAlignment": "Centrist",
         "isIncumbent": false,
-        "pollPct": 7.4,
+        "pollPct": 5.3,
         "humanRightsIndex": 66,
         "civicObligationIndex": 84,
         "taxDistributionMode": 0.52,
@@ -5399,7 +5413,7 @@
         "color": "#f59e0b",
         "politicalAlignment": "Libertarian",
         "isIncumbent": false,
-        "pollPct": 5.6,
+        "pollPct": 4,
         "humanRightsIndex": 75,
         "civicObligationIndex": 22,
         "taxDistributionMode": 0.25,
@@ -5411,369 +5425,328 @@
         {
           "name": "Democratic",
           "color": "#3b82f6",
-          "pct": 56.2
+          "pct": 69.2
         },
         {
           "name": "Republican",
           "color": "#ef4444",
-          "pct": 21.8
+          "pct": 15.4
         },
         {
           "name": "Progressive Labor",
           "color": "#10b981",
-          "pct": 14.5
+          "pct": 10.2
         },
         {
           "name": "Centrist Technocrats",
           "color": "#06b6d4",
-          "pct": 5.5
+          "pct": 3.8
         },
         {
           "name": "Libertarian Free-Market",
           "color": "#f59e0b",
-          "pct": 2
+          "pct": 1.4
         }
       ],
       "middleClass": [
         {
           "name": "Democratic",
           "color": "#3b82f6",
-          "pct": 51.4
+          "pct": 64.9
         },
         {
           "name": "Republican",
           "color": "#ef4444",
-          "pct": 35.8
+          "pct": 25.8
         },
         {
           "name": "Centrist Technocrats",
           "color": "#06b6d4",
-          "pct": 5.7
+          "pct": 4.1
         },
         {
           "name": "Progressive Labor",
           "color": "#10b981",
-          "pct": 4.6
+          "pct": 3.3
         },
         {
           "name": "Libertarian Free-Market",
           "color": "#f59e0b",
-          "pct": 2.5
+          "pct": 1.8
         }
       ],
       "upperClass": [
         {
-          "name": "Republican",
-          "color": "#ef4444",
-          "pct": 53.2
-        },
-        {
           "name": "Democratic",
           "color": "#3b82f6",
-          "pct": 32.5
+          "pct": 45.7
+        },
+        {
+          "name": "Republican",
+          "color": "#ef4444",
+          "pct": 42.8
         },
         {
           "name": "Libertarian Free-Market",
           "color": "#f59e0b",
-          "pct": 6.2
+          "pct": 5
         },
         {
           "name": "Centrist Technocrats",
           "color": "#06b6d4",
-          "pct": 5.6
+          "pct": 4.5
         },
         {
           "name": "Progressive Labor",
           "color": "#10b981",
-          "pct": 2.5
+          "pct": 2
         }
       ]
     },
     "battlegrounds": [
       {
-        "stateName": "Georgia",
-        "code": "GA",
-        "region": "Southern Logistics Sunbelt",
-        "ev": 16,
+        "stateName": "Missouri",
+        "code": "MO",
+        "region": "Midwest Industrial Rustbelt",
+        "ev": 10,
         "winner": "Democratic",
         "winnerColor": "#3b82f6",
-        "winnerPct": 42.6,
+        "winnerPct": 45.8,
         "runnerUp": "Republican",
-        "runnerUpPct": 42.3,
-        "margin": 0.3,
+        "runnerUpPct": 44.5,
+        "margin": 1.3,
         "cnnTier": "tossup",
         "isBattleground": true,
         "shares": [
           {
             "name": "Democratic",
             "color": "#3b82f6",
-            "pct": 42.6
+            "pct": 45.8
           },
           {
             "name": "Republican",
             "color": "#ef4444",
-            "pct": 42.3
+            "pct": 44.5
           },
           {
             "name": "Centrist Technocrats",
             "color": "#06b6d4",
-            "pct": 9.6
+            "pct": 5.4
+          },
+          {
+            "name": "Libertarian Free-Market",
+            "color": "#f59e0b",
+            "pct": 2.5
           },
           {
             "name": "Progressive Labor",
             "color": "#10b981",
-            "pct": 3.2
+            "pct": 1.8
+          }
+        ]
+      },
+      {
+        "stateName": "Kansas",
+        "code": "KS",
+        "region": "Mountain West & Frontier Shelf",
+        "ev": 6,
+        "winner": "Republican",
+        "winnerColor": "#ef4444",
+        "winnerPct": 46.3,
+        "runnerUp": "Democratic",
+        "runnerUpPct": 44.2,
+        "margin": 2.1,
+        "cnnTier": "tossup",
+        "isBattleground": true,
+        "shares": [
+          {
+            "name": "Republican",
+            "color": "#ef4444",
+            "pct": 46.3
+          },
+          {
+            "name": "Democratic",
+            "color": "#3b82f6",
+            "pct": 44.2
+          },
+          {
+            "name": "Centrist Technocrats",
+            "color": "#06b6d4",
+            "pct": 5.3
+          },
+          {
+            "name": "Libertarian Free-Market",
+            "color": "#f59e0b",
+            "pct": 2.6
+          },
+          {
+            "name": "Progressive Labor",
+            "color": "#10b981",
+            "pct": 1.7
+          }
+        ]
+      },
+      {
+        "stateName": "Nebraska",
+        "code": "NE",
+        "region": "Mountain West & Frontier Shelf",
+        "ev": 5,
+        "winner": "Republican",
+        "winnerColor": "#ef4444",
+        "winnerPct": 46.4,
+        "runnerUp": "Democratic",
+        "runnerUpPct": 44,
+        "margin": 2.4,
+        "cnnTier": "tossup",
+        "isBattleground": true,
+        "shares": [
+          {
+            "name": "Republican",
+            "color": "#ef4444",
+            "pct": 46.4
+          },
+          {
+            "name": "Democratic",
+            "color": "#3b82f6",
+            "pct": 44
+          },
+          {
+            "name": "Centrist Technocrats",
+            "color": "#06b6d4",
+            "pct": 5.3
+          },
+          {
+            "name": "Libertarian Free-Market",
+            "color": "#f59e0b",
+            "pct": 2.6
+          },
+          {
+            "name": "Progressive Labor",
+            "color": "#10b981",
+            "pct": 1.7
+          }
+        ]
+      },
+      {
+        "stateName": "Texas",
+        "code": "TX",
+        "region": "Texas & Gulf Energy Corridor",
+        "ev": 40,
+        "winner": "Democratic",
+        "winnerColor": "#3b82f6",
+        "winnerPct": 47,
+        "runnerUp": "Republican",
+        "runnerUpPct": 43.1,
+        "margin": 3.9,
+        "cnnTier": "lean",
+        "isBattleground": true,
+        "shares": [
+          {
+            "name": "Democratic",
+            "color": "#3b82f6",
+            "pct": 47
+          },
+          {
+            "name": "Republican",
+            "color": "#ef4444",
+            "pct": 43.1
+          },
+          {
+            "name": "Centrist Technocrats",
+            "color": "#06b6d4",
+            "pct": 5.7
           },
           {
             "name": "Libertarian Free-Market",
             "color": "#f59e0b",
             "pct": 2.3
+          },
+          {
+            "name": "Progressive Labor",
+            "color": "#10b981",
+            "pct": 1.9
           }
         ]
       },
       {
-        "stateName": "Wisconsin",
-        "code": "WI",
-        "region": "Midwest Industrial Rustbelt",
-        "ev": 10,
-        "winner": "Democratic",
-        "winnerColor": "#3b82f6",
-        "winnerPct": 43,
-        "runnerUp": "Republican",
-        "runnerUpPct": 41.8,
-        "margin": 1.2,
-        "cnnTier": "tossup",
+        "stateName": "Alaska",
+        "code": "AK",
+        "region": "California & Pacific Coast",
+        "ev": 3,
+        "winner": "Republican",
+        "winnerColor": "#ef4444",
+        "winnerPct": 47.4,
+        "runnerUp": "Democratic",
+        "runnerUpPct": 43.1,
+        "margin": 4.3,
+        "cnnTier": "lean",
         "isBattleground": true,
         "shares": [
+          {
+            "name": "Republican",
+            "color": "#ef4444",
+            "pct": 47.4
+          },
+          {
+            "name": "Democratic",
+            "color": "#3b82f6",
+            "pct": 43.1
+          },
+          {
+            "name": "Centrist Technocrats",
+            "color": "#06b6d4",
+            "pct": 5
+          },
+          {
+            "name": "Libertarian Free-Market",
+            "color": "#f59e0b",
+            "pct": 3.1
+          },
+          {
+            "name": "Progressive Labor",
+            "color": "#10b981",
+            "pct": 1.4
+          }
+        ]
+      },
+      {
+        "stateName": "Indiana",
+        "code": "IN",
+        "region": "Midwest Industrial Rustbelt",
+        "ev": 11,
+        "winner": "Republican",
+        "winnerColor": "#ef4444",
+        "winnerPct": 47.6,
+        "runnerUp": "Democratic",
+        "runnerUpPct": 43,
+        "margin": 4.6,
+        "cnnTier": "lean",
+        "isBattleground": true,
+        "shares": [
+          {
+            "name": "Republican",
+            "color": "#ef4444",
+            "pct": 47.6
+          },
           {
             "name": "Democratic",
             "color": "#3b82f6",
             "pct": 43
           },
           {
-            "name": "Republican",
-            "color": "#ef4444",
-            "pct": 41.8
-          },
-          {
             "name": "Centrist Technocrats",
             "color": "#06b6d4",
-            "pct": 9.7
-          },
-          {
-            "name": "Progressive Labor",
-            "color": "#10b981",
-            "pct": 3.1
+            "pct": 5.1
           },
           {
             "name": "Libertarian Free-Market",
             "color": "#f59e0b",
-            "pct": 2.3
-          }
-        ]
-      },
-      {
-        "stateName": "Michigan",
-        "code": "MI",
-        "region": "Midwest Industrial Rustbelt",
-        "ev": 15,
-        "winner": "Democratic",
-        "winnerColor": "#3b82f6",
-        "winnerPct": 43.2,
-        "runnerUp": "Republican",
-        "runnerUpPct": 41.6,
-        "margin": 1.6,
-        "cnnTier": "tossup",
-        "isBattleground": true,
-        "shares": [
-          {
-            "name": "Democratic",
-            "color": "#3b82f6",
-            "pct": 43.2
-          },
-          {
-            "name": "Republican",
-            "color": "#ef4444",
-            "pct": 41.6
-          },
-          {
-            "name": "Centrist Technocrats",
-            "color": "#06b6d4",
-            "pct": 9.7
+            "pct": 2.7
           },
           {
             "name": "Progressive Labor",
             "color": "#10b981",
-            "pct": 3.2
-          },
-          {
-            "name": "Libertarian Free-Market",
-            "color": "#f59e0b",
-            "pct": 2.3
-          }
-        ]
-      },
-      {
-        "stateName": "Arizona",
-        "code": "AZ",
-        "region": "Mountain West & Frontier Shelf",
-        "ev": 11,
-        "winner": "Republican",
-        "winnerColor": "#ef4444",
-        "winnerPct": 43.6,
-        "runnerUp": "Democratic",
-        "runnerUpPct": 41.8,
-        "margin": 1.8,
-        "cnnTier": "tossup",
-        "isBattleground": true,
-        "shares": [
-          {
-            "name": "Republican",
-            "color": "#ef4444",
-            "pct": 43.6
-          },
-          {
-            "name": "Democratic",
-            "color": "#3b82f6",
-            "pct": 41.8
-          },
-          {
-            "name": "Centrist Technocrats",
-            "color": "#06b6d4",
-            "pct": 9.2
-          },
-          {
-            "name": "Progressive Labor",
-            "color": "#10b981",
-            "pct": 2.9
-          },
-          {
-            "name": "Libertarian Free-Market",
-            "color": "#f59e0b",
-            "pct": 2.5
-          }
-        ]
-      },
-      {
-        "stateName": "New Mexico",
-        "code": "NM",
-        "region": "Mountain West & Frontier Shelf",
-        "ev": 5,
-        "winner": "Democratic",
-        "winnerColor": "#3b82f6",
-        "winnerPct": 44.7,
-        "runnerUp": "Republican",
-        "runnerUpPct": 41.4,
-        "margin": 3.3,
-        "cnnTier": "lean",
-        "isBattleground": true,
-        "shares": [
-          {
-            "name": "Democratic",
-            "color": "#3b82f6",
-            "pct": 44.7
-          },
-          {
-            "name": "Republican",
-            "color": "#ef4444",
-            "pct": 41.4
-          },
-          {
-            "name": "Centrist Technocrats",
-            "color": "#06b6d4",
-            "pct": 8.3
-          },
-          {
-            "name": "Progressive Labor",
-            "color": "#10b981",
-            "pct": 3.1
-          },
-          {
-            "name": "Libertarian Free-Market",
-            "color": "#f59e0b",
-            "pct": 2.5
-          }
-        ]
-      },
-      {
-        "stateName": "Nevada",
-        "code": "NV",
-        "region": "California & Pacific Coast",
-        "ev": 6,
-        "winner": "Democratic",
-        "winnerColor": "#3b82f6",
-        "winnerPct": 44.3,
-        "runnerUp": "Republican",
-        "runnerUpPct": 40.9,
-        "margin": 3.4,
-        "cnnTier": "lean",
-        "isBattleground": true,
-        "shares": [
-          {
-            "name": "Democratic",
-            "color": "#3b82f6",
-            "pct": 44.3
-          },
-          {
-            "name": "Republican",
-            "color": "#ef4444",
-            "pct": 40.9
-          },
-          {
-            "name": "Centrist Technocrats",
-            "color": "#06b6d4",
-            "pct": 9.4
-          },
-          {
-            "name": "Progressive Labor",
-            "color": "#10b981",
-            "pct": 3
-          },
-          {
-            "name": "Libertarian Free-Market",
-            "color": "#f59e0b",
-            "pct": 2.4
-          }
-        ]
-      },
-      {
-        "stateName": "North Carolina",
-        "code": "NC",
-        "region": "Southern Logistics Sunbelt",
-        "ev": 16,
-        "winner": "Republican",
-        "winnerColor": "#ef4444",
-        "winnerPct": 44.6,
-        "runnerUp": "Democratic",
-        "runnerUpPct": 40.6,
-        "margin": 4,
-        "cnnTier": "lean",
-        "isBattleground": true,
-        "shares": [
-          {
-            "name": "Republican",
-            "color": "#ef4444",
-            "pct": 44.6
-          },
-          {
-            "name": "Democratic",
-            "color": "#3b82f6",
-            "pct": 40.6
-          },
-          {
-            "name": "Centrist Technocrats",
-            "color": "#06b6d4",
-            "pct": 9.3
-          },
-          {
-            "name": "Progressive Labor",
-            "color": "#10b981",
-            "pct": 3
-          },
-          {
-            "name": "Libertarian Free-Market",
-            "color": "#f59e0b",
-            "pct": 2.5
+            "pct": 1.6
           }
         ]
       }
@@ -5786,37 +5759,37 @@
         "ev": 54,
         "winner": "Democratic",
         "winnerColor": "#3b82f6",
-        "winnerPct": 61,
+        "winnerPct": 74.6,
         "runnerUp": "Republican",
-        "runnerUpPct": 26.2,
-        "margin": 34.8,
+        "runnerUpPct": 17.1,
+        "margin": 57.5,
         "cnnTier": "safe",
         "isBattleground": false,
         "shares": [
           {
             "name": "Democratic",
             "color": "#3b82f6",
-            "pct": 61
+            "pct": 74.6
           },
           {
             "name": "Republican",
             "color": "#ef4444",
-            "pct": 26.2
+            "pct": 17.1
           },
           {
             "name": "Centrist Technocrats",
             "color": "#06b6d4",
-            "pct": 6.6
+            "pct": 4.3
           },
           {
             "name": "Progressive Labor",
             "color": "#10b981",
-            "pct": 4.8
+            "pct": 3.1
           },
           {
             "name": "Libertarian Free-Market",
             "color": "#f59e0b",
-            "pct": 1.4
+            "pct": 0.9
           }
         ]
       },
@@ -5825,39 +5798,39 @@
         "code": "TX",
         "region": "Texas & Gulf Energy Corridor",
         "ev": 40,
-        "winner": "Republican",
-        "winnerColor": "#ef4444",
-        "winnerPct": 55.2,
-        "runnerUp": "Democratic",
-        "runnerUpPct": 32.1,
-        "margin": 23.1,
-        "cnnTier": "safe",
-        "isBattleground": false,
+        "winner": "Democratic",
+        "winnerColor": "#3b82f6",
+        "winnerPct": 47,
+        "runnerUp": "Republican",
+        "runnerUpPct": 43.1,
+        "margin": 3.9,
+        "cnnTier": "lean",
+        "isBattleground": true,
         "shares": [
-          {
-            "name": "Republican",
-            "color": "#ef4444",
-            "pct": 55.2
-          },
           {
             "name": "Democratic",
             "color": "#3b82f6",
-            "pct": 32.1
+            "pct": 47
+          },
+          {
+            "name": "Republican",
+            "color": "#ef4444",
+            "pct": 43.1
           },
           {
             "name": "Centrist Technocrats",
             "color": "#06b6d4",
-            "pct": 7.3
+            "pct": 5.7
           },
           {
             "name": "Libertarian Free-Market",
             "color": "#f59e0b",
-            "pct": 3
+            "pct": 2.3
           },
           {
             "name": "Progressive Labor",
             "color": "#10b981",
-            "pct": 2.4
+            "pct": 1.9
           }
         ]
       },
@@ -5866,39 +5839,39 @@
         "code": "FL",
         "region": "Southern Logistics Sunbelt",
         "ev": 30,
-        "winner": "Republican",
-        "winnerColor": "#ef4444",
-        "winnerPct": 49.9,
-        "runnerUp": "Democratic",
-        "runnerUpPct": 36.6,
-        "margin": 13.3,
+        "winner": "Democratic",
+        "winnerColor": "#3b82f6",
+        "winnerPct": 52,
+        "runnerUp": "Republican",
+        "runnerUpPct": 37.7,
+        "margin": 14.3,
         "cnnTier": "safe",
         "isBattleground": false,
         "shares": [
           {
-            "name": "Republican",
-            "color": "#ef4444",
-            "pct": 49.9
-          },
-          {
             "name": "Democratic",
             "color": "#3b82f6",
-            "pct": 36.6
+            "pct": 52
+          },
+          {
+            "name": "Republican",
+            "color": "#ef4444",
+            "pct": 37.7
           },
           {
             "name": "Centrist Technocrats",
             "color": "#06b6d4",
-            "pct": 8.1
-          },
-          {
-            "name": "Progressive Labor",
-            "color": "#10b981",
-            "pct": 2.7
+            "pct": 6.1
           },
           {
             "name": "Libertarian Free-Market",
             "color": "#f59e0b",
-            "pct": 2.7
+            "pct": 2.1
+          },
+          {
+            "name": "Progressive Labor",
+            "color": "#10b981",
+            "pct": 2
           }
         ]
       },
@@ -5909,37 +5882,37 @@
         "ev": 28,
         "winner": "Democratic",
         "winnerColor": "#3b82f6",
-        "winnerPct": 59.9,
+        "winnerPct": 73.7,
         "runnerUp": "Republican",
-        "runnerUpPct": 26,
-        "margin": 33.9,
+        "runnerUpPct": 17,
+        "margin": 56.7,
         "cnnTier": "safe",
         "isBattleground": false,
         "shares": [
           {
             "name": "Democratic",
             "color": "#3b82f6",
-            "pct": 59.9
+            "pct": 73.7
           },
           {
             "name": "Republican",
             "color": "#ef4444",
-            "pct": 26
+            "pct": 17
           },
           {
             "name": "Centrist Technocrats",
             "color": "#06b6d4",
-            "pct": 8.1
+            "pct": 5.3
           },
           {
             "name": "Progressive Labor",
             "color": "#10b981",
-            "pct": 4.6
+            "pct": 3
           },
           {
             "name": "Libertarian Free-Market",
             "color": "#f59e0b",
-            "pct": 1.4
+            "pct": 0.9
           }
         ]
       },
@@ -5950,37 +5923,37 @@
         "ev": 19,
         "winner": "Democratic",
         "winnerColor": "#3b82f6",
-        "winnerPct": 53.7,
+        "winnerPct": 68.5,
         "runnerUp": "Republican",
-        "runnerUpPct": 32.1,
-        "margin": 21.6,
+        "runnerUpPct": 21.8,
+        "margin": 46.7,
         "cnnTier": "safe",
         "isBattleground": false,
         "shares": [
           {
             "name": "Democratic",
             "color": "#3b82f6",
-            "pct": 53.7
+            "pct": 68.5
           },
           {
             "name": "Republican",
             "color": "#ef4444",
-            "pct": 32.1
+            "pct": 21.8
           },
           {
             "name": "Centrist Technocrats",
             "color": "#06b6d4",
-            "pct": 8.3
+            "pct": 5.7
           },
           {
             "name": "Progressive Labor",
             "color": "#10b981",
-            "pct": 4.1
+            "pct": 2.8
           },
           {
             "name": "Libertarian Free-Market",
             "color": "#f59e0b",
-            "pct": 1.7
+            "pct": 1.2
           }
         ]
       },
@@ -5989,39 +5962,39 @@
         "code": "PA",
         "region": "Northeast Atlantic Megalopolis",
         "ev": 19,
-        "winner": "Republican",
-        "winnerColor": "#ef4444",
-        "winnerPct": 45.9,
-        "runnerUp": "Democratic",
-        "runnerUpPct": 39.6,
-        "margin": 6.3,
-        "cnnTier": "lean",
+        "winner": "Democratic",
+        "winnerColor": "#3b82f6",
+        "winnerPct": 55.2,
+        "runnerUp": "Republican",
+        "runnerUpPct": 34.1,
+        "margin": 21.1,
+        "cnnTier": "safe",
         "isBattleground": false,
         "shares": [
           {
-            "name": "Republican",
-            "color": "#ef4444",
-            "pct": 45.9
-          },
-          {
             "name": "Democratic",
             "color": "#3b82f6",
-            "pct": 39.6
+            "pct": 55.2
+          },
+          {
+            "name": "Republican",
+            "color": "#ef4444",
+            "pct": 34.1
           },
           {
             "name": "Centrist Technocrats",
             "color": "#06b6d4",
-            "pct": 9
+            "pct": 6.7
           },
           {
             "name": "Progressive Labor",
             "color": "#10b981",
-            "pct": 2.9
+            "pct": 2.2
           },
           {
             "name": "Libertarian Free-Market",
             "color": "#f59e0b",
-            "pct": 2.5
+            "pct": 1.9
           }
         ]
       },
@@ -6030,39 +6003,39 @@
         "code": "OH",
         "region": "Midwest Industrial Rustbelt",
         "ev": 17,
-        "winner": "Republican",
-        "winnerColor": "#ef4444",
-        "winnerPct": 54.4,
-        "runnerUp": "Democratic",
-        "runnerUpPct": 32.8,
-        "margin": 21.6,
-        "cnnTier": "safe",
+        "winner": "Democratic",
+        "winnerColor": "#3b82f6",
+        "winnerPct": 47.8,
+        "runnerUp": "Republican",
+        "runnerUpPct": 42.3,
+        "margin": 5.5,
+        "cnnTier": "lean",
         "isBattleground": false,
         "shares": [
           {
-            "name": "Republican",
-            "color": "#ef4444",
-            "pct": 54.4
-          },
-          {
             "name": "Democratic",
             "color": "#3b82f6",
-            "pct": 32.8
+            "pct": 47.8
+          },
+          {
+            "name": "Republican",
+            "color": "#ef4444",
+            "pct": 42.3
           },
           {
             "name": "Centrist Technocrats",
             "color": "#06b6d4",
-            "pct": 7.3
+            "pct": 5.7
           },
           {
             "name": "Libertarian Free-Market",
             "color": "#f59e0b",
-            "pct": 3
+            "pct": 2.3
           },
           {
             "name": "Progressive Labor",
             "color": "#10b981",
-            "pct": 2.4
+            "pct": 1.9
           }
         ]
       },
@@ -6073,37 +6046,37 @@
         "ev": 16,
         "winner": "Democratic",
         "winnerColor": "#3b82f6",
-        "winnerPct": 42.6,
+        "winnerPct": 58.2,
         "runnerUp": "Republican",
-        "runnerUpPct": 42.3,
-        "margin": 0.3,
-        "cnnTier": "tossup",
-        "isBattleground": true,
+        "runnerUpPct": 30.8,
+        "margin": 27.4,
+        "cnnTier": "safe",
+        "isBattleground": false,
         "shares": [
           {
             "name": "Democratic",
             "color": "#3b82f6",
-            "pct": 42.6
+            "pct": 58.2
           },
           {
             "name": "Republican",
             "color": "#ef4444",
-            "pct": 42.3
+            "pct": 30.8
           },
           {
             "name": "Centrist Technocrats",
             "color": "#06b6d4",
-            "pct": 9.6
+            "pct": 7
           },
           {
             "name": "Progressive Labor",
             "color": "#10b981",
-            "pct": 3.2
+            "pct": 2.3
           },
           {
             "name": "Libertarian Free-Market",
             "color": "#f59e0b",
-            "pct": 2.3
+            "pct": 1.7
           }
         ]
       },
@@ -6112,39 +6085,39 @@
         "code": "NC",
         "region": "Southern Logistics Sunbelt",
         "ev": 16,
-        "winner": "Republican",
-        "winnerColor": "#ef4444",
-        "winnerPct": 44.6,
-        "runnerUp": "Democratic",
-        "runnerUpPct": 40.6,
-        "margin": 4,
-        "cnnTier": "lean",
-        "isBattleground": true,
+        "winner": "Democratic",
+        "winnerColor": "#3b82f6",
+        "winnerPct": 56.2,
+        "runnerUp": "Republican",
+        "runnerUpPct": 32.9,
+        "margin": 23.3,
+        "cnnTier": "safe",
+        "isBattleground": false,
         "shares": [
-          {
-            "name": "Republican",
-            "color": "#ef4444",
-            "pct": 44.6
-          },
           {
             "name": "Democratic",
             "color": "#3b82f6",
-            "pct": 40.6
+            "pct": 56.2
+          },
+          {
+            "name": "Republican",
+            "color": "#ef4444",
+            "pct": 32.9
           },
           {
             "name": "Centrist Technocrats",
             "color": "#06b6d4",
-            "pct": 9.3
+            "pct": 6.8
           },
           {
             "name": "Progressive Labor",
             "color": "#10b981",
-            "pct": 3
+            "pct": 2.2
           },
           {
             "name": "Libertarian Free-Market",
             "color": "#f59e0b",
-            "pct": 2.5
+            "pct": 1.8
           }
         ]
       },
@@ -6155,37 +6128,37 @@
         "ev": 15,
         "winner": "Democratic",
         "winnerColor": "#3b82f6",
-        "winnerPct": 43.2,
+        "winnerPct": 58.8,
         "runnerUp": "Republican",
-        "runnerUpPct": 41.6,
-        "margin": 1.6,
-        "cnnTier": "tossup",
-        "isBattleground": true,
+        "runnerUpPct": 30.2,
+        "margin": 28.6,
+        "cnnTier": "safe",
+        "isBattleground": false,
         "shares": [
           {
             "name": "Democratic",
             "color": "#3b82f6",
-            "pct": 43.2
+            "pct": 58.8
           },
           {
             "name": "Republican",
             "color": "#ef4444",
-            "pct": 41.6
+            "pct": 30.2
           },
           {
             "name": "Centrist Technocrats",
             "color": "#06b6d4",
-            "pct": 9.7
+            "pct": 7
           },
           {
             "name": "Progressive Labor",
             "color": "#10b981",
-            "pct": 3.2
+            "pct": 2.3
           },
           {
             "name": "Libertarian Free-Market",
             "color": "#f59e0b",
-            "pct": 2.3
+            "pct": 1.7
           }
         ]
       },
@@ -6196,37 +6169,37 @@
         "ev": 14,
         "winner": "Democratic",
         "winnerColor": "#3b82f6",
-        "winnerPct": 56.4,
+        "winnerPct": 70.9,
         "runnerUp": "Republican",
-        "runnerUpPct": 28.2,
-        "margin": 28.2,
+        "runnerUpPct": 18.9,
+        "margin": 52,
         "cnnTier": "safe",
         "isBattleground": false,
         "shares": [
           {
             "name": "Democratic",
             "color": "#3b82f6",
-            "pct": 56.4
+            "pct": 70.9
           },
           {
             "name": "Republican",
             "color": "#ef4444",
-            "pct": 28.2
+            "pct": 18.9
           },
           {
             "name": "Centrist Technocrats",
             "color": "#06b6d4",
-            "pct": 9.6
+            "pct": 6.4
           },
           {
             "name": "Progressive Labor",
             "color": "#10b981",
-            "pct": 4.2
+            "pct": 2.8
           },
           {
             "name": "Libertarian Free-Market",
             "color": "#f59e0b",
-            "pct": 1.5
+            "pct": 1
           }
         ]
       },
@@ -6237,297 +6210,10 @@
         "ev": 13,
         "winner": "Democratic",
         "winnerColor": "#3b82f6",
-        "winnerPct": 49.4,
-        "runnerUp": "Republican",
-        "runnerUpPct": 35.1,
-        "margin": 14.3,
-        "cnnTier": "safe",
-        "isBattleground": false,
-        "shares": [
-          {
-            "name": "Democratic",
-            "color": "#3b82f6",
-            "pct": 49.4
-          },
-          {
-            "name": "Republican",
-            "color": "#ef4444",
-            "pct": 35.1
-          },
-          {
-            "name": "Centrist Technocrats",
-            "color": "#06b6d4",
-            "pct": 9.8
-          },
-          {
-            "name": "Progressive Labor",
-            "color": "#10b981",
-            "pct": 3.7
-          },
-          {
-            "name": "Libertarian Free-Market",
-            "color": "#f59e0b",
-            "pct": 1.9
-          }
-        ]
-      },
-      {
-        "stateName": "Washington",
-        "code": "WA",
-        "region": "California & Pacific Coast",
-        "ev": 12,
-        "winner": "Democratic",
-        "winnerColor": "#3b82f6",
-        "winnerPct": 59.8,
-        "runnerUp": "Republican",
-        "runnerUpPct": 26.3,
-        "margin": 33.5,
-        "cnnTier": "safe",
-        "isBattleground": false,
-        "shares": [
-          {
-            "name": "Democratic",
-            "color": "#3b82f6",
-            "pct": 59.8
-          },
-          {
-            "name": "Republican",
-            "color": "#ef4444",
-            "pct": 26.3
-          },
-          {
-            "name": "Centrist Technocrats",
-            "color": "#06b6d4",
-            "pct": 7.8
-          },
-          {
-            "name": "Progressive Labor",
-            "color": "#10b981",
-            "pct": 4.6
-          },
-          {
-            "name": "Libertarian Free-Market",
-            "color": "#f59e0b",
-            "pct": 1.4
-          }
-        ]
-      },
-      {
-        "stateName": "Arizona",
-        "code": "AZ",
-        "region": "Mountain West & Frontier Shelf",
-        "ev": 11,
-        "winner": "Republican",
-        "winnerColor": "#ef4444",
-        "winnerPct": 43.6,
-        "runnerUp": "Democratic",
-        "runnerUpPct": 41.8,
-        "margin": 1.8,
-        "cnnTier": "tossup",
-        "isBattleground": true,
-        "shares": [
-          {
-            "name": "Republican",
-            "color": "#ef4444",
-            "pct": 43.6
-          },
-          {
-            "name": "Democratic",
-            "color": "#3b82f6",
-            "pct": 41.8
-          },
-          {
-            "name": "Centrist Technocrats",
-            "color": "#06b6d4",
-            "pct": 9.2
-          },
-          {
-            "name": "Progressive Labor",
-            "color": "#10b981",
-            "pct": 2.9
-          },
-          {
-            "name": "Libertarian Free-Market",
-            "color": "#f59e0b",
-            "pct": 2.5
-          }
-        ]
-      },
-      {
-        "stateName": "Indiana",
-        "code": "IN",
-        "region": "Midwest Industrial Rustbelt",
-        "ev": 11,
-        "winner": "Republican",
-        "winnerColor": "#ef4444",
-        "winnerPct": 59.6,
-        "runnerUp": "Democratic",
-        "runnerUpPct": 28.7,
-        "margin": 30.9,
-        "cnnTier": "safe",
-        "isBattleground": false,
-        "shares": [
-          {
-            "name": "Republican",
-            "color": "#ef4444",
-            "pct": 59.6
-          },
-          {
-            "name": "Democratic",
-            "color": "#3b82f6",
-            "pct": 28.7
-          },
-          {
-            "name": "Centrist Technocrats",
-            "color": "#06b6d4",
-            "pct": 6.4
-          },
-          {
-            "name": "Libertarian Free-Market",
-            "color": "#f59e0b",
-            "pct": 3.4
-          },
-          {
-            "name": "Progressive Labor",
-            "color": "#10b981",
-            "pct": 2
-          }
-        ]
-      },
-      {
-        "stateName": "Massachusetts",
-        "code": "MA",
-        "region": "Northeast Atlantic Megalopolis",
-        "ev": 11,
-        "winner": "Democratic",
-        "winnerColor": "#3b82f6",
-        "winnerPct": 65.6,
-        "runnerUp": "Republican",
-        "runnerUpPct": 20.1,
-        "margin": 45.5,
-        "cnnTier": "safe",
-        "isBattleground": false,
-        "shares": [
-          {
-            "name": "Democratic",
-            "color": "#3b82f6",
-            "pct": 65.6
-          },
-          {
-            "name": "Republican",
-            "color": "#ef4444",
-            "pct": 20.1
-          },
-          {
-            "name": "Centrist Technocrats",
-            "color": "#06b6d4",
-            "pct": 7.2
-          },
-          {
-            "name": "Progressive Labor",
-            "color": "#10b981",
-            "pct": 6
-          },
-          {
-            "name": "Libertarian Free-Market",
-            "color": "#f59e0b",
-            "pct": 1.1
-          }
-        ]
-      },
-      {
-        "stateName": "Tennessee",
-        "code": "TN",
-        "region": "Southern Logistics Sunbelt",
-        "ev": 11,
-        "winner": "Republican",
-        "winnerColor": "#ef4444",
-        "winnerPct": 63.4,
-        "runnerUp": "Democratic",
-        "runnerUpPct": 25.4,
-        "margin": 38,
-        "cnnTier": "safe",
-        "isBattleground": false,
-        "shares": [
-          {
-            "name": "Republican",
-            "color": "#ef4444",
-            "pct": 63.4
-          },
-          {
-            "name": "Democratic",
-            "color": "#3b82f6",
-            "pct": 25.4
-          },
-          {
-            "name": "Centrist Technocrats",
-            "color": "#06b6d4",
-            "pct": 5.7
-          },
-          {
-            "name": "Libertarian Free-Market",
-            "color": "#f59e0b",
-            "pct": 3.6
-          },
-          {
-            "name": "Progressive Labor",
-            "color": "#10b981",
-            "pct": 1.8
-          }
-        ]
-      },
-      {
-        "stateName": "Colorado",
-        "code": "CO",
-        "region": "Mountain West & Frontier Shelf",
-        "ev": 10,
-        "winner": "Democratic",
-        "winnerColor": "#3b82f6",
-        "winnerPct": 50.2,
-        "runnerUp": "Republican",
-        "runnerUpPct": 35.5,
-        "margin": 14.7,
-        "cnnTier": "safe",
-        "isBattleground": false,
-        "shares": [
-          {
-            "name": "Democratic",
-            "color": "#3b82f6",
-            "pct": 50.2
-          },
-          {
-            "name": "Republican",
-            "color": "#ef4444",
-            "pct": 35.5
-          },
-          {
-            "name": "Centrist Technocrats",
-            "color": "#06b6d4",
-            "pct": 8.6
-          },
-          {
-            "name": "Progressive Labor",
-            "color": "#10b981",
-            "pct": 3.7
-          },
-          {
-            "name": "Libertarian Free-Market",
-            "color": "#f59e0b",
-            "pct": 2
-          }
-        ]
-      },
-      {
-        "stateName": "Maryland",
-        "code": "MD",
-        "region": "Northeast Atlantic Megalopolis",
-        "ev": 10,
-        "winner": "Democratic",
-        "winnerColor": "#3b82f6",
         "winnerPct": 64.7,
         "runnerUp": "Republican",
-        "runnerUpPct": 21.4,
-        "margin": 43.3,
+        "runnerUpPct": 24.5,
+        "margin": 40.2,
         "cnnTier": "safe",
         "isBattleground": false,
         "shares": [
@@ -6539,22 +6225,309 @@
           {
             "name": "Republican",
             "color": "#ef4444",
-            "pct": 21.4
+            "pct": 24.5
           },
           {
             "name": "Centrist Technocrats",
             "color": "#06b6d4",
-            "pct": 7
+            "pct": 6.9
           },
           {
             "name": "Progressive Labor",
             "color": "#10b981",
-            "pct": 5.7
+            "pct": 2.6
           },
           {
             "name": "Libertarian Free-Market",
             "color": "#f59e0b",
-            "pct": 1.2
+            "pct": 1.3
+          }
+        ]
+      },
+      {
+        "stateName": "Washington",
+        "code": "WA",
+        "region": "California & Pacific Coast",
+        "ev": 12,
+        "winner": "Democratic",
+        "winnerColor": "#3b82f6",
+        "winnerPct": 73.6,
+        "runnerUp": "Republican",
+        "runnerUpPct": 17.3,
+        "margin": 56.3,
+        "cnnTier": "safe",
+        "isBattleground": false,
+        "shares": [
+          {
+            "name": "Democratic",
+            "color": "#3b82f6",
+            "pct": 73.6
+          },
+          {
+            "name": "Republican",
+            "color": "#ef4444",
+            "pct": 17.3
+          },
+          {
+            "name": "Centrist Technocrats",
+            "color": "#06b6d4",
+            "pct": 5.1
+          },
+          {
+            "name": "Progressive Labor",
+            "color": "#10b981",
+            "pct": 3
+          },
+          {
+            "name": "Libertarian Free-Market",
+            "color": "#f59e0b",
+            "pct": 0.9
+          }
+        ]
+      },
+      {
+        "stateName": "Arizona",
+        "code": "AZ",
+        "region": "Mountain West & Frontier Shelf",
+        "ev": 11,
+        "winner": "Democratic",
+        "winnerColor": "#3b82f6",
+        "winnerPct": 57.4,
+        "runnerUp": "Republican",
+        "runnerUpPct": 31.9,
+        "margin": 25.5,
+        "cnnTier": "safe",
+        "isBattleground": false,
+        "shares": [
+          {
+            "name": "Democratic",
+            "color": "#3b82f6",
+            "pct": 57.4
+          },
+          {
+            "name": "Republican",
+            "color": "#ef4444",
+            "pct": 31.9
+          },
+          {
+            "name": "Centrist Technocrats",
+            "color": "#06b6d4",
+            "pct": 6.8
+          },
+          {
+            "name": "Progressive Labor",
+            "color": "#10b981",
+            "pct": 2.1
+          },
+          {
+            "name": "Libertarian Free-Market",
+            "color": "#f59e0b",
+            "pct": 1.8
+          }
+        ]
+      },
+      {
+        "stateName": "Indiana",
+        "code": "IN",
+        "region": "Midwest Industrial Rustbelt",
+        "ev": 11,
+        "winner": "Republican",
+        "winnerColor": "#ef4444",
+        "winnerPct": 47.6,
+        "runnerUp": "Democratic",
+        "runnerUpPct": 43,
+        "margin": 4.6,
+        "cnnTier": "lean",
+        "isBattleground": true,
+        "shares": [
+          {
+            "name": "Republican",
+            "color": "#ef4444",
+            "pct": 47.6
+          },
+          {
+            "name": "Democratic",
+            "color": "#3b82f6",
+            "pct": 43
+          },
+          {
+            "name": "Centrist Technocrats",
+            "color": "#06b6d4",
+            "pct": 5.1
+          },
+          {
+            "name": "Libertarian Free-Market",
+            "color": "#f59e0b",
+            "pct": 2.7
+          },
+          {
+            "name": "Progressive Labor",
+            "color": "#10b981",
+            "pct": 1.6
+          }
+        ]
+      },
+      {
+        "stateName": "Massachusetts",
+        "code": "MA",
+        "region": "Northeast Atlantic Megalopolis",
+        "ev": 11,
+        "winner": "Democratic",
+        "winnerColor": "#3b82f6",
+        "winnerPct": 78.2,
+        "runnerUp": "Republican",
+        "runnerUpPct": 12.8,
+        "margin": 65.4,
+        "cnnTier": "safe",
+        "isBattleground": false,
+        "shares": [
+          {
+            "name": "Democratic",
+            "color": "#3b82f6",
+            "pct": 78.2
+          },
+          {
+            "name": "Republican",
+            "color": "#ef4444",
+            "pct": 12.8
+          },
+          {
+            "name": "Centrist Technocrats",
+            "color": "#06b6d4",
+            "pct": 4.6
+          },
+          {
+            "name": "Progressive Labor",
+            "color": "#10b981",
+            "pct": 3.8
+          },
+          {
+            "name": "Libertarian Free-Market",
+            "color": "#f59e0b",
+            "pct": 0.7
+          }
+        ]
+      },
+      {
+        "stateName": "Tennessee",
+        "code": "TN",
+        "region": "Southern Logistics Sunbelt",
+        "ev": 11,
+        "winner": "Republican",
+        "winnerColor": "#ef4444",
+        "winnerPct": 51.9,
+        "runnerUp": "Democratic",
+        "runnerUpPct": 39,
+        "margin": 12.9,
+        "cnnTier": "likely",
+        "isBattleground": false,
+        "shares": [
+          {
+            "name": "Republican",
+            "color": "#ef4444",
+            "pct": 51.9
+          },
+          {
+            "name": "Democratic",
+            "color": "#3b82f6",
+            "pct": 39
+          },
+          {
+            "name": "Centrist Technocrats",
+            "color": "#06b6d4",
+            "pct": 4.6
+          },
+          {
+            "name": "Libertarian Free-Market",
+            "color": "#f59e0b",
+            "pct": 3
+          },
+          {
+            "name": "Progressive Labor",
+            "color": "#10b981",
+            "pct": 1.5
+          }
+        ]
+      },
+      {
+        "stateName": "Colorado",
+        "code": "CO",
+        "region": "Mountain West & Frontier Shelf",
+        "ev": 10,
+        "winner": "Democratic",
+        "winnerColor": "#3b82f6",
+        "winnerPct": 65.4,
+        "runnerUp": "Republican",
+        "runnerUpPct": 24.7,
+        "margin": 40.7,
+        "cnnTier": "safe",
+        "isBattleground": false,
+        "shares": [
+          {
+            "name": "Democratic",
+            "color": "#3b82f6",
+            "pct": 65.4
+          },
+          {
+            "name": "Republican",
+            "color": "#ef4444",
+            "pct": 24.7
+          },
+          {
+            "name": "Centrist Technocrats",
+            "color": "#06b6d4",
+            "pct": 5.9
+          },
+          {
+            "name": "Progressive Labor",
+            "color": "#10b981",
+            "pct": 2.6
+          },
+          {
+            "name": "Libertarian Free-Market",
+            "color": "#f59e0b",
+            "pct": 1.4
+          }
+        ]
+      },
+      {
+        "stateName": "Maryland",
+        "code": "MD",
+        "region": "Northeast Atlantic Megalopolis",
+        "ev": 10,
+        "winner": "Democratic",
+        "winnerColor": "#3b82f6",
+        "winnerPct": 77.5,
+        "runnerUp": "Republican",
+        "runnerUpPct": 13.7,
+        "margin": 63.8,
+        "cnnTier": "safe",
+        "isBattleground": false,
+        "shares": [
+          {
+            "name": "Democratic",
+            "color": "#3b82f6",
+            "pct": 77.5
+          },
+          {
+            "name": "Republican",
+            "color": "#ef4444",
+            "pct": 13.7
+          },
+          {
+            "name": "Centrist Technocrats",
+            "color": "#06b6d4",
+            "pct": 4.5
+          },
+          {
+            "name": "Progressive Labor",
+            "color": "#10b981",
+            "pct": 3.6
+          },
+          {
+            "name": "Libertarian Free-Market",
+            "color": "#f59e0b",
+            "pct": 0.8
           }
         ]
       },
@@ -6565,953 +6538,10 @@
         "ev": 10,
         "winner": "Democratic",
         "winnerColor": "#3b82f6",
-        "winnerPct": 46.9,
-        "runnerUp": "Republican",
-        "runnerUpPct": 37.5,
-        "margin": 9.4,
-        "cnnTier": "likely",
-        "isBattleground": false,
-        "shares": [
-          {
-            "name": "Democratic",
-            "color": "#3b82f6",
-            "pct": 46.9
-          },
-          {
-            "name": "Republican",
-            "color": "#ef4444",
-            "pct": 37.5
-          },
-          {
-            "name": "Centrist Technocrats",
-            "color": "#06b6d4",
-            "pct": 10
-          },
-          {
-            "name": "Progressive Labor",
-            "color": "#10b981",
-            "pct": 3.5
-          },
-          {
-            "name": "Libertarian Free-Market",
-            "color": "#f59e0b",
-            "pct": 2
-          }
-        ]
-      },
-      {
-        "stateName": "Missouri",
-        "code": "MO",
-        "region": "Midwest Industrial Rustbelt",
-        "ev": 10,
-        "winner": "Republican",
-        "winnerColor": "#ef4444",
-        "winnerPct": 56.6,
-        "runnerUp": "Democratic",
-        "runnerUpPct": 31.1,
-        "margin": 25.5,
-        "cnnTier": "safe",
-        "isBattleground": false,
-        "shares": [
-          {
-            "name": "Republican",
-            "color": "#ef4444",
-            "pct": 56.6
-          },
-          {
-            "name": "Democratic",
-            "color": "#3b82f6",
-            "pct": 31.1
-          },
-          {
-            "name": "Centrist Technocrats",
-            "color": "#06b6d4",
-            "pct": 6.9
-          },
-          {
-            "name": "Libertarian Free-Market",
-            "color": "#f59e0b",
-            "pct": 3.1
-          },
-          {
-            "name": "Progressive Labor",
-            "color": "#10b981",
-            "pct": 2.3
-          }
-        ]
-      },
-      {
-        "stateName": "Wisconsin",
-        "code": "WI",
-        "region": "Midwest Industrial Rustbelt",
-        "ev": 10,
-        "winner": "Democratic",
-        "winnerColor": "#3b82f6",
-        "winnerPct": 43,
-        "runnerUp": "Republican",
-        "runnerUpPct": 41.8,
-        "margin": 1.2,
-        "cnnTier": "tossup",
-        "isBattleground": true,
-        "shares": [
-          {
-            "name": "Democratic",
-            "color": "#3b82f6",
-            "pct": 43
-          },
-          {
-            "name": "Republican",
-            "color": "#ef4444",
-            "pct": 41.8
-          },
-          {
-            "name": "Centrist Technocrats",
-            "color": "#06b6d4",
-            "pct": 9.7
-          },
-          {
-            "name": "Progressive Labor",
-            "color": "#10b981",
-            "pct": 3.1
-          },
-          {
-            "name": "Libertarian Free-Market",
-            "color": "#f59e0b",
-            "pct": 2.3
-          }
-        ]
-      },
-      {
-        "stateName": "Alabama",
-        "code": "AL",
-        "region": "Texas & Gulf Energy Corridor",
-        "ev": 9,
-        "winner": "Republican",
-        "winnerColor": "#ef4444",
-        "winnerPct": 67,
-        "runnerUp": "Democratic",
-        "runnerUpPct": 22.3,
-        "margin": 44.7,
-        "cnnTier": "safe",
-        "isBattleground": false,
-        "shares": [
-          {
-            "name": "Republican",
-            "color": "#ef4444",
-            "pct": 67
-          },
-          {
-            "name": "Democratic",
-            "color": "#3b82f6",
-            "pct": 22.3
-          },
-          {
-            "name": "Centrist Technocrats",
-            "color": "#06b6d4",
-            "pct": 4.8
-          },
-          {
-            "name": "Libertarian Free-Market",
-            "color": "#f59e0b",
-            "pct": 4.4
-          },
-          {
-            "name": "Progressive Labor",
-            "color": "#10b981",
-            "pct": 1.5
-          }
-        ]
-      },
-      {
-        "stateName": "South Carolina",
-        "code": "SC",
-        "region": "Southern Logistics Sunbelt",
-        "ev": 9,
-        "winner": "Republican",
-        "winnerColor": "#ef4444",
-        "winnerPct": 53.4,
-        "runnerUp": "Democratic",
-        "runnerUpPct": 33.8,
-        "margin": 19.6,
-        "cnnTier": "safe",
-        "isBattleground": false,
-        "shares": [
-          {
-            "name": "Republican",
-            "color": "#ef4444",
-            "pct": 53.4
-          },
-          {
-            "name": "Democratic",
-            "color": "#3b82f6",
-            "pct": 33.8
-          },
-          {
-            "name": "Centrist Technocrats",
-            "color": "#06b6d4",
-            "pct": 7.4
-          },
-          {
-            "name": "Libertarian Free-Market",
-            "color": "#f59e0b",
-            "pct": 3.1
-          },
-          {
-            "name": "Progressive Labor",
-            "color": "#10b981",
-            "pct": 2.3
-          }
-        ]
-      },
-      {
-        "stateName": "Kentucky",
-        "code": "KY",
-        "region": "Southern Logistics Sunbelt",
-        "ev": 8,
-        "winner": "Republican",
-        "winnerColor": "#ef4444",
-        "winnerPct": 66.4,
-        "runnerUp": "Democratic",
-        "runnerUpPct": 22.8,
-        "margin": 43.6,
-        "cnnTier": "safe",
-        "isBattleground": false,
-        "shares": [
-          {
-            "name": "Republican",
-            "color": "#ef4444",
-            "pct": 66.4
-          },
-          {
-            "name": "Democratic",
-            "color": "#3b82f6",
-            "pct": 22.8
-          },
-          {
-            "name": "Centrist Technocrats",
-            "color": "#06b6d4",
-            "pct": 5
-          },
-          {
-            "name": "Libertarian Free-Market",
-            "color": "#f59e0b",
-            "pct": 4.3
-          },
-          {
-            "name": "Progressive Labor",
-            "color": "#10b981",
-            "pct": 1.6
-          }
-        ]
-      },
-      {
-        "stateName": "Louisiana",
-        "code": "LA",
-        "region": "Texas & Gulf Energy Corridor",
-        "ev": 8,
-        "winner": "Republican",
-        "winnerColor": "#ef4444",
-        "winnerPct": 64.9,
-        "runnerUp": "Democratic",
-        "runnerUpPct": 24.4,
-        "margin": 40.5,
-        "cnnTier": "safe",
-        "isBattleground": false,
-        "shares": [
-          {
-            "name": "Republican",
-            "color": "#ef4444",
-            "pct": 64.9
-          },
-          {
-            "name": "Democratic",
-            "color": "#3b82f6",
-            "pct": 24.4
-          },
-          {
-            "name": "Centrist Technocrats",
-            "color": "#06b6d4",
-            "pct": 5.2
-          },
-          {
-            "name": "Libertarian Free-Market",
-            "color": "#f59e0b",
-            "pct": 3.8
-          },
-          {
-            "name": "Progressive Labor",
-            "color": "#10b981",
-            "pct": 1.7
-          }
-        ]
-      },
-      {
-        "stateName": "Oregon",
-        "code": "OR",
-        "region": "California & Pacific Coast",
-        "ev": 8,
-        "winner": "Democratic",
-        "winnerColor": "#3b82f6",
-        "winnerPct": 57.1,
-        "runnerUp": "Republican",
-        "runnerUpPct": 28.5,
-        "margin": 28.6,
-        "cnnTier": "safe",
-        "isBattleground": false,
-        "shares": [
-          {
-            "name": "Democratic",
-            "color": "#3b82f6",
-            "pct": 57.1
-          },
-          {
-            "name": "Republican",
-            "color": "#ef4444",
-            "pct": 28.5
-          },
-          {
-            "name": "Centrist Technocrats",
-            "color": "#06b6d4",
-            "pct": 8.6
-          },
-          {
-            "name": "Progressive Labor",
-            "color": "#10b981",
-            "pct": 4.2
-          },
-          {
-            "name": "Libertarian Free-Market",
-            "color": "#f59e0b",
-            "pct": 1.6
-          }
-        ]
-      },
-      {
-        "stateName": "Connecticut",
-        "code": "CT",
-        "region": "Northeast Atlantic Megalopolis",
-        "ev": 7,
-        "winner": "Democratic",
-        "winnerColor": "#3b82f6",
-        "winnerPct": 61.1,
-        "runnerUp": "Republican",
-        "runnerUpPct": 24.5,
-        "margin": 36.6,
-        "cnnTier": "safe",
-        "isBattleground": false,
-        "shares": [
-          {
-            "name": "Democratic",
-            "color": "#3b82f6",
-            "pct": 61.1
-          },
-          {
-            "name": "Republican",
-            "color": "#ef4444",
-            "pct": 24.5
-          },
-          {
-            "name": "Centrist Technocrats",
-            "color": "#06b6d4",
-            "pct": 8.6
-          },
-          {
-            "name": "Progressive Labor",
-            "color": "#10b981",
-            "pct": 4.4
-          },
-          {
-            "name": "Libertarian Free-Market",
-            "color": "#f59e0b",
-            "pct": 1.4
-          }
-        ]
-      },
-      {
-        "stateName": "Oklahoma",
-        "code": "OK",
-        "region": "Texas & Gulf Energy Corridor",
-        "ev": 7,
-        "winner": "Republican",
-        "winnerColor": "#ef4444",
-        "winnerPct": 67.5,
-        "runnerUp": "Democratic",
-        "runnerUpPct": 21,
-        "margin": 46.5,
-        "cnnTier": "safe",
-        "isBattleground": false,
-        "shares": [
-          {
-            "name": "Republican",
-            "color": "#ef4444",
-            "pct": 67.5
-          },
-          {
-            "name": "Democratic",
-            "color": "#3b82f6",
-            "pct": 21
-          },
-          {
-            "name": "Libertarian Free-Market",
-            "color": "#f59e0b",
-            "pct": 5.4
-          },
-          {
-            "name": "Centrist Technocrats",
-            "color": "#06b6d4",
-            "pct": 4.5
-          },
-          {
-            "name": "Progressive Labor",
-            "color": "#10b981",
-            "pct": 1.4
-          }
-        ]
-      },
-      {
-        "stateName": "Arkansas",
-        "code": "AR",
-        "region": "Texas & Gulf Energy Corridor",
-        "ev": 6,
-        "winner": "Republican",
-        "winnerColor": "#ef4444",
-        "winnerPct": 68.7,
-        "runnerUp": "Democratic",
-        "runnerUpPct": 20.6,
-        "margin": 48.1,
-        "cnnTier": "safe",
-        "isBattleground": false,
-        "shares": [
-          {
-            "name": "Republican",
-            "color": "#ef4444",
-            "pct": 68.7
-          },
-          {
-            "name": "Democratic",
-            "color": "#3b82f6",
-            "pct": 20.6
-          },
-          {
-            "name": "Libertarian Free-Market",
-            "color": "#f59e0b",
-            "pct": 4.9
-          },
-          {
-            "name": "Centrist Technocrats",
-            "color": "#06b6d4",
-            "pct": 4.4
-          },
-          {
-            "name": "Progressive Labor",
-            "color": "#10b981",
-            "pct": 1.4
-          }
-        ]
-      },
-      {
-        "stateName": "Iowa",
-        "code": "IA",
-        "region": "Midwest Industrial Rustbelt",
-        "ev": 6,
-        "winner": "Republican",
-        "winnerColor": "#ef4444",
-        "winnerPct": 51,
-        "runnerUp": "Democratic",
-        "runnerUpPct": 35.6,
-        "margin": 15.4,
-        "cnnTier": "safe",
-        "isBattleground": false,
-        "shares": [
-          {
-            "name": "Republican",
-            "color": "#ef4444",
-            "pct": 51
-          },
-          {
-            "name": "Democratic",
-            "color": "#3b82f6",
-            "pct": 35.6
-          },
-          {
-            "name": "Centrist Technocrats",
-            "color": "#06b6d4",
-            "pct": 7.9
-          },
-          {
-            "name": "Libertarian Free-Market",
-            "color": "#f59e0b",
-            "pct": 2.9
-          },
-          {
-            "name": "Progressive Labor",
-            "color": "#10b981",
-            "pct": 2.5
-          }
-        ]
-      },
-      {
-        "stateName": "Kansas",
-        "code": "KS",
-        "region": "Mountain West & Frontier Shelf",
-        "ev": 6,
-        "winner": "Republican",
-        "winnerColor": "#ef4444",
-        "winnerPct": 58.3,
-        "runnerUp": "Democratic",
-        "runnerUpPct": 29.7,
-        "margin": 28.6,
-        "cnnTier": "safe",
-        "isBattleground": false,
-        "shares": [
-          {
-            "name": "Republican",
-            "color": "#ef4444",
-            "pct": 58.3
-          },
-          {
-            "name": "Democratic",
-            "color": "#3b82f6",
-            "pct": 29.7
-          },
-          {
-            "name": "Centrist Technocrats",
-            "color": "#06b6d4",
-            "pct": 6.6
-          },
-          {
-            "name": "Libertarian Free-Market",
-            "color": "#f59e0b",
-            "pct": 3.3
-          },
-          {
-            "name": "Progressive Labor",
-            "color": "#10b981",
-            "pct": 2.1
-          }
-        ]
-      },
-      {
-        "stateName": "Mississippi",
-        "code": "MS",
-        "region": "Texas & Gulf Energy Corridor",
-        "ev": 6,
-        "winner": "Republican",
-        "winnerColor": "#ef4444",
-        "winnerPct": 62.1,
-        "runnerUp": "Democratic",
-        "runnerUpPct": 26.6,
-        "margin": 35.5,
-        "cnnTier": "safe",
-        "isBattleground": false,
-        "shares": [
-          {
-            "name": "Republican",
-            "color": "#ef4444",
-            "pct": 62.1
-          },
-          {
-            "name": "Democratic",
-            "color": "#3b82f6",
-            "pct": 26.6
-          },
-          {
-            "name": "Centrist Technocrats",
-            "color": "#06b6d4",
-            "pct": 5.7
-          },
-          {
-            "name": "Libertarian Free-Market",
-            "color": "#f59e0b",
-            "pct": 3.7
-          },
-          {
-            "name": "Progressive Labor",
-            "color": "#10b981",
-            "pct": 1.8
-          }
-        ]
-      },
-      {
-        "stateName": "Nevada",
-        "code": "NV",
-        "region": "California & Pacific Coast",
-        "ev": 6,
-        "winner": "Democratic",
-        "winnerColor": "#3b82f6",
-        "winnerPct": 44.3,
-        "runnerUp": "Republican",
-        "runnerUpPct": 40.9,
-        "margin": 3.4,
-        "cnnTier": "lean",
-        "isBattleground": true,
-        "shares": [
-          {
-            "name": "Democratic",
-            "color": "#3b82f6",
-            "pct": 44.3
-          },
-          {
-            "name": "Republican",
-            "color": "#ef4444",
-            "pct": 40.9
-          },
-          {
-            "name": "Centrist Technocrats",
-            "color": "#06b6d4",
-            "pct": 9.4
-          },
-          {
-            "name": "Progressive Labor",
-            "color": "#10b981",
-            "pct": 3
-          },
-          {
-            "name": "Libertarian Free-Market",
-            "color": "#f59e0b",
-            "pct": 2.4
-          }
-        ]
-      },
-      {
-        "stateName": "Utah",
-        "code": "UT",
-        "region": "Mountain West & Frontier Shelf",
-        "ev": 6,
-        "winner": "Republican",
-        "winnerColor": "#ef4444",
-        "winnerPct": 64.5,
-        "runnerUp": "Democratic",
-        "runnerUpPct": 24.4,
-        "margin": 40.1,
-        "cnnTier": "safe",
-        "isBattleground": false,
-        "shares": [
-          {
-            "name": "Republican",
-            "color": "#ef4444",
-            "pct": 64.5
-          },
-          {
-            "name": "Democratic",
-            "color": "#3b82f6",
-            "pct": 24.4
-          },
-          {
-            "name": "Centrist Technocrats",
-            "color": "#06b6d4",
-            "pct": 5.6
-          },
-          {
-            "name": "Libertarian Free-Market",
-            "color": "#f59e0b",
-            "pct": 3.7
-          },
-          {
-            "name": "Progressive Labor",
-            "color": "#10b981",
-            "pct": 1.8
-          }
-        ]
-      },
-      {
-        "stateName": "Nebraska",
-        "code": "NE",
-        "region": "Mountain West & Frontier Shelf",
-        "ev": 5,
-        "winner": "Republican",
-        "winnerColor": "#ef4444",
-        "winnerPct": 58.5,
-        "runnerUp": "Democratic",
-        "runnerUpPct": 29.5,
-        "margin": 29,
-        "cnnTier": "safe",
-        "isBattleground": false,
-        "shares": [
-          {
-            "name": "Republican",
-            "color": "#ef4444",
-            "pct": 58.5
-          },
-          {
-            "name": "Democratic",
-            "color": "#3b82f6",
-            "pct": 29.5
-          },
-          {
-            "name": "Centrist Technocrats",
-            "color": "#06b6d4",
-            "pct": 6.6
-          },
-          {
-            "name": "Libertarian Free-Market",
-            "color": "#f59e0b",
-            "pct": 3.3
-          },
-          {
-            "name": "Progressive Labor",
-            "color": "#10b981",
-            "pct": 2.1
-          }
-        ]
-      },
-      {
-        "stateName": "New Mexico",
-        "code": "NM",
-        "region": "Mountain West & Frontier Shelf",
-        "ev": 5,
-        "winner": "Democratic",
-        "winnerColor": "#3b82f6",
-        "winnerPct": 44.7,
-        "runnerUp": "Republican",
-        "runnerUpPct": 41.4,
-        "margin": 3.3,
-        "cnnTier": "lean",
-        "isBattleground": true,
-        "shares": [
-          {
-            "name": "Democratic",
-            "color": "#3b82f6",
-            "pct": 44.7
-          },
-          {
-            "name": "Republican",
-            "color": "#ef4444",
-            "pct": 41.4
-          },
-          {
-            "name": "Centrist Technocrats",
-            "color": "#06b6d4",
-            "pct": 8.3
-          },
-          {
-            "name": "Progressive Labor",
-            "color": "#10b981",
-            "pct": 3.1
-          },
-          {
-            "name": "Libertarian Free-Market",
-            "color": "#f59e0b",
-            "pct": 2.5
-          }
-        ]
-      },
-      {
-        "stateName": "Hawaii",
-        "code": "HI",
-        "region": "California & Pacific Coast",
-        "ev": 4,
-        "winner": "Democratic",
-        "winnerColor": "#3b82f6",
-        "winnerPct": 65.3,
-        "runnerUp": "Republican",
-        "runnerUpPct": 21.9,
-        "margin": 43.4,
-        "cnnTier": "safe",
-        "isBattleground": false,
-        "shares": [
-          {
-            "name": "Democratic",
-            "color": "#3b82f6",
-            "pct": 65.3
-          },
-          {
-            "name": "Republican",
-            "color": "#ef4444",
-            "pct": 21.9
-          },
-          {
-            "name": "Centrist Technocrats",
-            "color": "#06b6d4",
-            "pct": 6.7
-          },
-          {
-            "name": "Progressive Labor",
-            "color": "#10b981",
-            "pct": 4.8
-          },
-          {
-            "name": "Libertarian Free-Market",
-            "color": "#f59e0b",
-            "pct": 1.3
-          }
-        ]
-      },
-      {
-        "stateName": "Idaho",
-        "code": "ID",
-        "region": "Mountain West & Frontier Shelf",
-        "ev": 4,
-        "winner": "Republican",
-        "winnerColor": "#ef4444",
-        "winnerPct": 65.3,
-        "runnerUp": "Democratic",
-        "runnerUpPct": 23,
-        "margin": 42.3,
-        "cnnTier": "safe",
-        "isBattleground": false,
-        "shares": [
-          {
-            "name": "Republican",
-            "color": "#ef4444",
-            "pct": 65.3
-          },
-          {
-            "name": "Democratic",
-            "color": "#3b82f6",
-            "pct": 23
-          },
-          {
-            "name": "Centrist Technocrats",
-            "color": "#06b6d4",
-            "pct": 5.1
-          },
-          {
-            "name": "Libertarian Free-Market",
-            "color": "#f59e0b",
-            "pct": 4.9
-          },
-          {
-            "name": "Progressive Labor",
-            "color": "#10b981",
-            "pct": 1.6
-          }
-        ]
-      },
-      {
-        "stateName": "Maine",
-        "code": "ME",
-        "region": "Northeast Atlantic Megalopolis",
-        "ev": 4,
-        "winner": "Democratic",
-        "winnerColor": "#3b82f6",
-        "winnerPct": 50.2,
-        "runnerUp": "Republican",
-        "runnerUpPct": 34.5,
-        "margin": 15.7,
-        "cnnTier": "safe",
-        "isBattleground": false,
-        "shares": [
-          {
-            "name": "Democratic",
-            "color": "#3b82f6",
-            "pct": 50.2
-          },
-          {
-            "name": "Republican",
-            "color": "#ef4444",
-            "pct": 34.5
-          },
-          {
-            "name": "Centrist Technocrats",
-            "color": "#06b6d4",
-            "pct": 9.8
-          },
-          {
-            "name": "Progressive Labor",
-            "color": "#10b981",
-            "pct": 3.4
-          },
-          {
-            "name": "Libertarian Free-Market",
-            "color": "#f59e0b",
-            "pct": 2.1
-          }
-        ]
-      },
-      {
-        "stateName": "Montana",
-        "code": "MT",
-        "region": "Mountain West & Frontier Shelf",
-        "ev": 4,
-        "winner": "Republican",
-        "winnerColor": "#ef4444",
-        "winnerPct": 63.1,
-        "runnerUp": "Democratic",
-        "runnerUpPct": 25.6,
-        "margin": 37.5,
-        "cnnTier": "safe",
-        "isBattleground": false,
-        "shares": [
-          {
-            "name": "Republican",
-            "color": "#ef4444",
-            "pct": 63.1
-          },
-          {
-            "name": "Democratic",
-            "color": "#3b82f6",
-            "pct": 25.6
-          },
-          {
-            "name": "Centrist Technocrats",
-            "color": "#06b6d4",
-            "pct": 5.8
-          },
-          {
-            "name": "Libertarian Free-Market",
-            "color": "#f59e0b",
-            "pct": 3.7
-          },
-          {
-            "name": "Progressive Labor",
-            "color": "#10b981",
-            "pct": 1.8
-          }
-        ]
-      },
-      {
-        "stateName": "New Hampshire",
-        "code": "NH",
-        "region": "Northeast Atlantic Megalopolis",
-        "ev": 4,
-        "winner": "Democratic",
-        "winnerColor": "#3b82f6",
-        "winnerPct": 48.6,
-        "runnerUp": "Republican",
-        "runnerUpPct": 35,
-        "margin": 13.6,
-        "cnnTier": "safe",
-        "isBattleground": false,
-        "shares": [
-          {
-            "name": "Democratic",
-            "color": "#3b82f6",
-            "pct": 48.6
-          },
-          {
-            "name": "Republican",
-            "color": "#ef4444",
-            "pct": 35
-          },
-          {
-            "name": "Centrist Technocrats",
-            "color": "#06b6d4",
-            "pct": 10.9
-          },
-          {
-            "name": "Progressive Labor",
-            "color": "#10b981",
-            "pct": 3.4
-          },
-          {
-            "name": "Libertarian Free-Market",
-            "color": "#f59e0b",
-            "pct": 2.1
-          }
-        ]
-      },
-      {
-        "stateName": "Rhode Island",
-        "code": "RI",
-        "region": "Northeast Atlantic Megalopolis",
-        "ev": 4,
-        "winner": "Democratic",
-        "winnerColor": "#3b82f6",
         "winnerPct": 62.4,
         "runnerUp": "Republican",
-        "runnerUpPct": 23.5,
-        "margin": 38.9,
+        "runnerUpPct": 26.6,
+        "margin": 35.8,
         "cnnTier": "safe",
         "isBattleground": false,
         "shares": [
@@ -7523,22 +6553,965 @@
           {
             "name": "Republican",
             "color": "#ef4444",
-            "pct": 23.5
+            "pct": 26.6
           },
           {
             "name": "Centrist Technocrats",
             "color": "#06b6d4",
-            "pct": 8.3
+            "pct": 7.1
           },
           {
             "name": "Progressive Labor",
             "color": "#10b981",
-            "pct": 4.4
+            "pct": 2.5
+          },
+          {
+            "name": "Libertarian Free-Market",
+            "color": "#f59e0b",
+            "pct": 1.5
+          }
+        ]
+      },
+      {
+        "stateName": "Missouri",
+        "code": "MO",
+        "region": "Midwest Industrial Rustbelt",
+        "ev": 10,
+        "winner": "Democratic",
+        "winnerColor": "#3b82f6",
+        "winnerPct": 45.8,
+        "runnerUp": "Republican",
+        "runnerUpPct": 44.5,
+        "margin": 1.3,
+        "cnnTier": "tossup",
+        "isBattleground": true,
+        "shares": [
+          {
+            "name": "Democratic",
+            "color": "#3b82f6",
+            "pct": 45.8
+          },
+          {
+            "name": "Republican",
+            "color": "#ef4444",
+            "pct": 44.5
+          },
+          {
+            "name": "Centrist Technocrats",
+            "color": "#06b6d4",
+            "pct": 5.4
+          },
+          {
+            "name": "Libertarian Free-Market",
+            "color": "#f59e0b",
+            "pct": 2.5
+          },
+          {
+            "name": "Progressive Labor",
+            "color": "#10b981",
+            "pct": 1.8
+          }
+        ]
+      },
+      {
+        "stateName": "Wisconsin",
+        "code": "WI",
+        "region": "Midwest Industrial Rustbelt",
+        "ev": 10,
+        "winner": "Democratic",
+        "winnerColor": "#3b82f6",
+        "winnerPct": 58.6,
+        "runnerUp": "Republican",
+        "runnerUpPct": 30.4,
+        "margin": 28.2,
+        "cnnTier": "safe",
+        "isBattleground": false,
+        "shares": [
+          {
+            "name": "Democratic",
+            "color": "#3b82f6",
+            "pct": 58.6
+          },
+          {
+            "name": "Republican",
+            "color": "#ef4444",
+            "pct": 30.4
+          },
+          {
+            "name": "Centrist Technocrats",
+            "color": "#06b6d4",
+            "pct": 7
+          },
+          {
+            "name": "Progressive Labor",
+            "color": "#10b981",
+            "pct": 2.3
+          },
+          {
+            "name": "Libertarian Free-Market",
+            "color": "#f59e0b",
+            "pct": 1.7
+          }
+        ]
+      },
+      {
+        "stateName": "Alabama",
+        "code": "AL",
+        "region": "Texas & Gulf Energy Corridor",
+        "ev": 9,
+        "winner": "Republican",
+        "winnerColor": "#ef4444",
+        "winnerPct": 56.1,
+        "runnerUp": "Democratic",
+        "runnerUpPct": 35,
+        "margin": 21.1,
+        "cnnTier": "safe",
+        "isBattleground": false,
+        "shares": [
+          {
+            "name": "Republican",
+            "color": "#ef4444",
+            "pct": 56.1
+          },
+          {
+            "name": "Democratic",
+            "color": "#3b82f6",
+            "pct": 35
+          },
+          {
+            "name": "Centrist Technocrats",
+            "color": "#06b6d4",
+            "pct": 4
+          },
+          {
+            "name": "Libertarian Free-Market",
+            "color": "#f59e0b",
+            "pct": 3.7
+          },
+          {
+            "name": "Progressive Labor",
+            "color": "#10b981",
+            "pct": 1.2
+          }
+        ]
+      },
+      {
+        "stateName": "South Carolina",
+        "code": "SC",
+        "region": "Southern Logistics Sunbelt",
+        "ev": 9,
+        "winner": "Democratic",
+        "winnerColor": "#3b82f6",
+        "winnerPct": 48.9,
+        "runnerUp": "Republican",
+        "runnerUpPct": 41.2,
+        "margin": 7.7,
+        "cnnTier": "likely",
+        "isBattleground": false,
+        "shares": [
+          {
+            "name": "Democratic",
+            "color": "#3b82f6",
+            "pct": 48.9
+          },
+          {
+            "name": "Republican",
+            "color": "#ef4444",
+            "pct": 41.2
+          },
+          {
+            "name": "Centrist Technocrats",
+            "color": "#06b6d4",
+            "pct": 5.7
+          },
+          {
+            "name": "Libertarian Free-Market",
+            "color": "#f59e0b",
+            "pct": 2.4
+          },
+          {
+            "name": "Progressive Labor",
+            "color": "#10b981",
+            "pct": 1.8
+          }
+        ]
+      },
+      {
+        "stateName": "Kentucky",
+        "code": "KY",
+        "region": "Southern Logistics Sunbelt",
+        "ev": 8,
+        "winner": "Republican",
+        "winnerColor": "#ef4444",
+        "winnerPct": 55.3,
+        "runnerUp": "Democratic",
+        "runnerUpPct": 35.7,
+        "margin": 19.6,
+        "cnnTier": "safe",
+        "isBattleground": false,
+        "shares": [
+          {
+            "name": "Republican",
+            "color": "#ef4444",
+            "pct": 55.3
+          },
+          {
+            "name": "Democratic",
+            "color": "#3b82f6",
+            "pct": 35.7
+          },
+          {
+            "name": "Centrist Technocrats",
+            "color": "#06b6d4",
+            "pct": 4.2
+          },
+          {
+            "name": "Libertarian Free-Market",
+            "color": "#f59e0b",
+            "pct": 3.5
+          },
+          {
+            "name": "Progressive Labor",
+            "color": "#10b981",
+            "pct": 1.3
+          }
+        ]
+      },
+      {
+        "stateName": "Louisiana",
+        "code": "LA",
+        "region": "Texas & Gulf Energy Corridor",
+        "ev": 8,
+        "winner": "Republican",
+        "winnerColor": "#ef4444",
+        "winnerPct": 53.4,
+        "runnerUp": "Democratic",
+        "runnerUpPct": 37.8,
+        "margin": 15.6,
+        "cnnTier": "safe",
+        "isBattleground": false,
+        "shares": [
+          {
+            "name": "Republican",
+            "color": "#ef4444",
+            "pct": 53.4
+          },
+          {
+            "name": "Democratic",
+            "color": "#3b82f6",
+            "pct": 37.8
+          },
+          {
+            "name": "Centrist Technocrats",
+            "color": "#06b6d4",
+            "pct": 4.3
+          },
+          {
+            "name": "Libertarian Free-Market",
+            "color": "#f59e0b",
+            "pct": 3.1
+          },
+          {
+            "name": "Progressive Labor",
+            "color": "#10b981",
+            "pct": 1.4
+          }
+        ]
+      },
+      {
+        "stateName": "Oregon",
+        "code": "OR",
+        "region": "California & Pacific Coast",
+        "ev": 8,
+        "winner": "Democratic",
+        "winnerColor": "#3b82f6",
+        "winnerPct": 71.4,
+        "runnerUp": "Republican",
+        "runnerUpPct": 19,
+        "margin": 52.4,
+        "cnnTier": "safe",
+        "isBattleground": false,
+        "shares": [
+          {
+            "name": "Democratic",
+            "color": "#3b82f6",
+            "pct": 71.4
+          },
+          {
+            "name": "Republican",
+            "color": "#ef4444",
+            "pct": 19
+          },
+          {
+            "name": "Centrist Technocrats",
+            "color": "#06b6d4",
+            "pct": 5.7
+          },
+          {
+            "name": "Progressive Labor",
+            "color": "#10b981",
+            "pct": 2.8
+          },
+          {
+            "name": "Libertarian Free-Market",
+            "color": "#f59e0b",
+            "pct": 1.1
+          }
+        ]
+      },
+      {
+        "stateName": "Connecticut",
+        "code": "CT",
+        "region": "Northeast Atlantic Megalopolis",
+        "ev": 7,
+        "winner": "Democratic",
+        "winnerColor": "#3b82f6",
+        "winnerPct": 74.7,
+        "runnerUp": "Republican",
+        "runnerUpPct": 16,
+        "margin": 58.7,
+        "cnnTier": "safe",
+        "isBattleground": false,
+        "shares": [
+          {
+            "name": "Democratic",
+            "color": "#3b82f6",
+            "pct": 74.7
+          },
+          {
+            "name": "Republican",
+            "color": "#ef4444",
+            "pct": 16
+          },
+          {
+            "name": "Centrist Technocrats",
+            "color": "#06b6d4",
+            "pct": 5.6
+          },
+          {
+            "name": "Progressive Labor",
+            "color": "#10b981",
+            "pct": 2.9
+          },
+          {
+            "name": "Libertarian Free-Market",
+            "color": "#f59e0b",
+            "pct": 0.9
+          }
+        ]
+      },
+      {
+        "stateName": "Oklahoma",
+        "code": "OK",
+        "region": "Texas & Gulf Energy Corridor",
+        "ev": 7,
+        "winner": "Republican",
+        "winnerColor": "#ef4444",
+        "winnerPct": 57,
+        "runnerUp": "Democratic",
+        "runnerUpPct": 33.3,
+        "margin": 23.7,
+        "cnnTier": "safe",
+        "isBattleground": false,
+        "shares": [
+          {
+            "name": "Republican",
+            "color": "#ef4444",
+            "pct": 57
+          },
+          {
+            "name": "Democratic",
+            "color": "#3b82f6",
+            "pct": 33.3
+          },
+          {
+            "name": "Libertarian Free-Market",
+            "color": "#f59e0b",
+            "pct": 4.6
+          },
+          {
+            "name": "Centrist Technocrats",
+            "color": "#06b6d4",
+            "pct": 3.8
+          },
+          {
+            "name": "Progressive Labor",
+            "color": "#10b981",
+            "pct": 1.2
+          }
+        ]
+      },
+      {
+        "stateName": "Arkansas",
+        "code": "AR",
+        "region": "Texas & Gulf Energy Corridor",
+        "ev": 6,
+        "winner": "Republican",
+        "winnerColor": "#ef4444",
+        "winnerPct": 58.2,
+        "runnerUp": "Democratic",
+        "runnerUpPct": 32.7,
+        "margin": 25.5,
+        "cnnTier": "safe",
+        "isBattleground": false,
+        "shares": [
+          {
+            "name": "Republican",
+            "color": "#ef4444",
+            "pct": 58.2
+          },
+          {
+            "name": "Democratic",
+            "color": "#3b82f6",
+            "pct": 32.7
+          },
+          {
+            "name": "Libertarian Free-Market",
+            "color": "#f59e0b",
+            "pct": 4.1
+          },
+          {
+            "name": "Centrist Technocrats",
+            "color": "#06b6d4",
+            "pct": 3.8
+          },
+          {
+            "name": "Progressive Labor",
+            "color": "#10b981",
+            "pct": 1.2
+          }
+        ]
+      },
+      {
+        "stateName": "Iowa",
+        "code": "IA",
+        "region": "Midwest Industrial Rustbelt",
+        "ev": 6,
+        "winner": "Democratic",
+        "winnerColor": "#3b82f6",
+        "winnerPct": 50.9,
+        "runnerUp": "Republican",
+        "runnerUpPct": 38.9,
+        "margin": 12,
+        "cnnTier": "likely",
+        "isBattleground": false,
+        "shares": [
+          {
+            "name": "Democratic",
+            "color": "#3b82f6",
+            "pct": 50.9
+          },
+          {
+            "name": "Republican",
+            "color": "#ef4444",
+            "pct": 38.9
+          },
+          {
+            "name": "Centrist Technocrats",
+            "color": "#06b6d4",
+            "pct": 6.1
+          },
+          {
+            "name": "Libertarian Free-Market",
+            "color": "#f59e0b",
+            "pct": 2.2
+          },
+          {
+            "name": "Progressive Labor",
+            "color": "#10b981",
+            "pct": 1.9
+          }
+        ]
+      },
+      {
+        "stateName": "Kansas",
+        "code": "KS",
+        "region": "Mountain West & Frontier Shelf",
+        "ev": 6,
+        "winner": "Republican",
+        "winnerColor": "#ef4444",
+        "winnerPct": 46.3,
+        "runnerUp": "Democratic",
+        "runnerUpPct": 44.2,
+        "margin": 2.1,
+        "cnnTier": "tossup",
+        "isBattleground": true,
+        "shares": [
+          {
+            "name": "Republican",
+            "color": "#ef4444",
+            "pct": 46.3
+          },
+          {
+            "name": "Democratic",
+            "color": "#3b82f6",
+            "pct": 44.2
+          },
+          {
+            "name": "Centrist Technocrats",
+            "color": "#06b6d4",
+            "pct": 5.3
+          },
+          {
+            "name": "Libertarian Free-Market",
+            "color": "#f59e0b",
+            "pct": 2.6
+          },
+          {
+            "name": "Progressive Labor",
+            "color": "#10b981",
+            "pct": 1.7
+          }
+        ]
+      },
+      {
+        "stateName": "Mississippi",
+        "code": "MS",
+        "region": "Texas & Gulf Energy Corridor",
+        "ev": 6,
+        "winner": "Republican",
+        "winnerColor": "#ef4444",
+        "winnerPct": 50.4,
+        "runnerUp": "Democratic",
+        "runnerUpPct": 40.5,
+        "margin": 9.9,
+        "cnnTier": "likely",
+        "isBattleground": false,
+        "shares": [
+          {
+            "name": "Republican",
+            "color": "#ef4444",
+            "pct": 50.4
+          },
+          {
+            "name": "Democratic",
+            "color": "#3b82f6",
+            "pct": 40.5
+          },
+          {
+            "name": "Centrist Technocrats",
+            "color": "#06b6d4",
+            "pct": 4.6
+          },
+          {
+            "name": "Libertarian Free-Market",
+            "color": "#f59e0b",
+            "pct": 3
+          },
+          {
+            "name": "Progressive Labor",
+            "color": "#10b981",
+            "pct": 1.4
+          }
+        ]
+      },
+      {
+        "stateName": "Nevada",
+        "code": "NV",
+        "region": "California & Pacific Coast",
+        "ev": 6,
+        "winner": "Democratic",
+        "winnerColor": "#3b82f6",
+        "winnerPct": 59.8,
+        "runnerUp": "Republican",
+        "runnerUpPct": 29.5,
+        "margin": 30.3,
+        "cnnTier": "safe",
+        "isBattleground": false,
+        "shares": [
+          {
+            "name": "Democratic",
+            "color": "#3b82f6",
+            "pct": 59.8
+          },
+          {
+            "name": "Republican",
+            "color": "#ef4444",
+            "pct": 29.5
+          },
+          {
+            "name": "Centrist Technocrats",
+            "color": "#06b6d4",
+            "pct": 6.8
+          },
+          {
+            "name": "Progressive Labor",
+            "color": "#10b981",
+            "pct": 2.2
+          },
+          {
+            "name": "Libertarian Free-Market",
+            "color": "#f59e0b",
+            "pct": 1.7
+          }
+        ]
+      },
+      {
+        "stateName": "Utah",
+        "code": "UT",
+        "region": "Mountain West & Frontier Shelf",
+        "ev": 6,
+        "winner": "Republican",
+        "winnerColor": "#ef4444",
+        "winnerPct": 53.1,
+        "runnerUp": "Democratic",
+        "runnerUpPct": 37.8,
+        "margin": 15.3,
+        "cnnTier": "safe",
+        "isBattleground": false,
+        "shares": [
+          {
+            "name": "Republican",
+            "color": "#ef4444",
+            "pct": 53.1
+          },
+          {
+            "name": "Democratic",
+            "color": "#3b82f6",
+            "pct": 37.8
+          },
+          {
+            "name": "Centrist Technocrats",
+            "color": "#06b6d4",
+            "pct": 4.6
+          },
+          {
+            "name": "Libertarian Free-Market",
+            "color": "#f59e0b",
+            "pct": 3
+          },
+          {
+            "name": "Progressive Labor",
+            "color": "#10b981",
+            "pct": 1.4
+          }
+        ]
+      },
+      {
+        "stateName": "Nebraska",
+        "code": "NE",
+        "region": "Mountain West & Frontier Shelf",
+        "ev": 5,
+        "winner": "Republican",
+        "winnerColor": "#ef4444",
+        "winnerPct": 46.4,
+        "runnerUp": "Democratic",
+        "runnerUpPct": 44,
+        "margin": 2.4,
+        "cnnTier": "tossup",
+        "isBattleground": true,
+        "shares": [
+          {
+            "name": "Republican",
+            "color": "#ef4444",
+            "pct": 46.4
+          },
+          {
+            "name": "Democratic",
+            "color": "#3b82f6",
+            "pct": 44
+          },
+          {
+            "name": "Centrist Technocrats",
+            "color": "#06b6d4",
+            "pct": 5.3
+          },
+          {
+            "name": "Libertarian Free-Market",
+            "color": "#f59e0b",
+            "pct": 2.6
+          },
+          {
+            "name": "Progressive Labor",
+            "color": "#10b981",
+            "pct": 1.7
+          }
+        ]
+      },
+      {
+        "stateName": "New Mexico",
+        "code": "NM",
+        "region": "Mountain West & Frontier Shelf",
+        "ev": 5,
+        "winner": "Democratic",
+        "winnerColor": "#3b82f6",
+        "winnerPct": 60.3,
+        "runnerUp": "Republican",
+        "runnerUpPct": 29.8,
+        "margin": 30.5,
+        "cnnTier": "safe",
+        "isBattleground": false,
+        "shares": [
+          {
+            "name": "Democratic",
+            "color": "#3b82f6",
+            "pct": 60.3
+          },
+          {
+            "name": "Republican",
+            "color": "#ef4444",
+            "pct": 29.8
+          },
+          {
+            "name": "Centrist Technocrats",
+            "color": "#06b6d4",
+            "pct": 6
+          },
+          {
+            "name": "Progressive Labor",
+            "color": "#10b981",
+            "pct": 2.2
+          },
+          {
+            "name": "Libertarian Free-Market",
+            "color": "#f59e0b",
+            "pct": 1.8
+          }
+        ]
+      },
+      {
+        "stateName": "Hawaii",
+        "code": "HI",
+        "region": "California & Pacific Coast",
+        "ev": 4,
+        "winner": "Democratic",
+        "winnerColor": "#3b82f6",
+        "winnerPct": 77.9,
+        "runnerUp": "Republican",
+        "runnerUpPct": 13.9,
+        "margin": 64,
+        "cnnTier": "safe",
+        "isBattleground": false,
+        "shares": [
+          {
+            "name": "Democratic",
+            "color": "#3b82f6",
+            "pct": 77.9
+          },
+          {
+            "name": "Republican",
+            "color": "#ef4444",
+            "pct": 13.9
+          },
+          {
+            "name": "Centrist Technocrats",
+            "color": "#06b6d4",
+            "pct": 4.3
+          },
+          {
+            "name": "Progressive Labor",
+            "color": "#10b981",
+            "pct": 3.1
+          },
+          {
+            "name": "Libertarian Free-Market",
+            "color": "#f59e0b",
+            "pct": 0.8
+          }
+        ]
+      },
+      {
+        "stateName": "Idaho",
+        "code": "ID",
+        "region": "Mountain West & Frontier Shelf",
+        "ev": 4,
+        "winner": "Republican",
+        "winnerColor": "#ef4444",
+        "winnerPct": 54.4,
+        "runnerUp": "Democratic",
+        "runnerUpPct": 36,
+        "margin": 18.4,
+        "cnnTier": "safe",
+        "isBattleground": false,
+        "shares": [
+          {
+            "name": "Republican",
+            "color": "#ef4444",
+            "pct": 54.4
+          },
+          {
+            "name": "Democratic",
+            "color": "#3b82f6",
+            "pct": 36
+          },
+          {
+            "name": "Centrist Technocrats",
+            "color": "#06b6d4",
+            "pct": 4.3
+          },
+          {
+            "name": "Libertarian Free-Market",
+            "color": "#f59e0b",
+            "pct": 4
+          },
+          {
+            "name": "Progressive Labor",
+            "color": "#10b981",
+            "pct": 1.3
+          }
+        ]
+      },
+      {
+        "stateName": "Maine",
+        "code": "ME",
+        "region": "Northeast Atlantic Megalopolis",
+        "ev": 4,
+        "winner": "Democratic",
+        "winnerColor": "#3b82f6",
+        "winnerPct": 65.4,
+        "runnerUp": "Republican",
+        "runnerUpPct": 24,
+        "margin": 41.4,
+        "cnnTier": "safe",
+        "isBattleground": false,
+        "shares": [
+          {
+            "name": "Democratic",
+            "color": "#3b82f6",
+            "pct": 65.4
+          },
+          {
+            "name": "Republican",
+            "color": "#ef4444",
+            "pct": 24
+          },
+          {
+            "name": "Centrist Technocrats",
+            "color": "#06b6d4",
+            "pct": 6.8
+          },
+          {
+            "name": "Progressive Labor",
+            "color": "#10b981",
+            "pct": 2.4
           },
           {
             "name": "Libertarian Free-Market",
             "color": "#f59e0b",
             "pct": 1.4
+          }
+        ]
+      },
+      {
+        "stateName": "Montana",
+        "code": "MT",
+        "region": "Mountain West & Frontier Shelf",
+        "ev": 4,
+        "winner": "Republican",
+        "winnerColor": "#ef4444",
+        "winnerPct": 51.5,
+        "runnerUp": "Democratic",
+        "runnerUpPct": 39.3,
+        "margin": 12.2,
+        "cnnTier": "likely",
+        "isBattleground": false,
+        "shares": [
+          {
+            "name": "Republican",
+            "color": "#ef4444",
+            "pct": 51.5
+          },
+          {
+            "name": "Democratic",
+            "color": "#3b82f6",
+            "pct": 39.3
+          },
+          {
+            "name": "Centrist Technocrats",
+            "color": "#06b6d4",
+            "pct": 4.7
+          },
+          {
+            "name": "Libertarian Free-Market",
+            "color": "#f59e0b",
+            "pct": 3.1
+          },
+          {
+            "name": "Progressive Labor",
+            "color": "#10b981",
+            "pct": 1.4
+          }
+        ]
+      },
+      {
+        "stateName": "New Hampshire",
+        "code": "NH",
+        "region": "Northeast Atlantic Megalopolis",
+        "ev": 4,
+        "winner": "Democratic",
+        "winnerColor": "#3b82f6",
+        "winnerPct": 64,
+        "runnerUp": "Republican",
+        "runnerUpPct": 24.6,
+        "margin": 39.4,
+        "cnnTier": "safe",
+        "isBattleground": false,
+        "shares": [
+          {
+            "name": "Democratic",
+            "color": "#3b82f6",
+            "pct": 64
+          },
+          {
+            "name": "Republican",
+            "color": "#ef4444",
+            "pct": 24.6
+          },
+          {
+            "name": "Centrist Technocrats",
+            "color": "#06b6d4",
+            "pct": 7.6
+          },
+          {
+            "name": "Progressive Labor",
+            "color": "#10b981",
+            "pct": 2.4
+          },
+          {
+            "name": "Libertarian Free-Market",
+            "color": "#f59e0b",
+            "pct": 1.4
+          }
+        ]
+      },
+      {
+        "stateName": "Rhode Island",
+        "code": "RI",
+        "region": "Northeast Atlantic Megalopolis",
+        "ev": 4,
+        "winner": "Democratic",
+        "winnerColor": "#3b82f6",
+        "winnerPct": 75.7,
+        "runnerUp": "Republican",
+        "runnerUpPct": 15.2,
+        "margin": 60.5,
+        "cnnTier": "safe",
+        "isBattleground": false,
+        "shares": [
+          {
+            "name": "Democratic",
+            "color": "#3b82f6",
+            "pct": 75.7
+          },
+          {
+            "name": "Republican",
+            "color": "#ef4444",
+            "pct": 15.2
+          },
+          {
+            "name": "Centrist Technocrats",
+            "color": "#06b6d4",
+            "pct": 5.4
+          },
+          {
+            "name": "Progressive Labor",
+            "color": "#10b981",
+            "pct": 2.8
+          },
+          {
+            "name": "Libertarian Free-Market",
+            "color": "#f59e0b",
+            "pct": 0.9
           }
         ]
       },
@@ -7549,37 +7522,37 @@
         "ev": 4,
         "winner": "Republican",
         "winnerColor": "#ef4444",
-        "winnerPct": 66.9,
+        "winnerPct": 56.9,
         "runnerUp": "Democratic",
-        "runnerUpPct": 20.1,
-        "margin": 46.8,
+        "runnerUpPct": 32.1,
+        "margin": 24.8,
         "cnnTier": "safe",
         "isBattleground": false,
         "shares": [
           {
             "name": "Republican",
             "color": "#ef4444",
-            "pct": 66.9
+            "pct": 56.9
           },
           {
             "name": "Democratic",
             "color": "#3b82f6",
-            "pct": 20.1
+            "pct": 32.1
           },
           {
             "name": "Libertarian Free-Market",
             "color": "#f59e0b",
-            "pct": 7.3
+            "pct": 6.2
           },
           {
             "name": "Centrist Technocrats",
             "color": "#06b6d4",
-            "pct": 4.4
+            "pct": 3.7
           },
           {
             "name": "Progressive Labor",
             "color": "#10b981",
-            "pct": 1.3
+            "pct": 1.1
           }
         ]
       },
@@ -7590,37 +7563,37 @@
         "ev": 3,
         "winner": "Republican",
         "winnerColor": "#ef4444",
-        "winnerPct": 59.4,
+        "winnerPct": 47.4,
         "runnerUp": "Democratic",
-        "runnerUpPct": 28.8,
-        "margin": 30.6,
-        "cnnTier": "safe",
-        "isBattleground": false,
+        "runnerUpPct": 43.1,
+        "margin": 4.3,
+        "cnnTier": "lean",
+        "isBattleground": true,
         "shares": [
           {
             "name": "Republican",
             "color": "#ef4444",
-            "pct": 59.4
+            "pct": 47.4
           },
           {
             "name": "Democratic",
             "color": "#3b82f6",
-            "pct": 28.8
+            "pct": 43.1
           },
           {
             "name": "Centrist Technocrats",
             "color": "#06b6d4",
-            "pct": 6.2
+            "pct": 5
           },
           {
             "name": "Libertarian Free-Market",
             "color": "#f59e0b",
-            "pct": 3.9
+            "pct": 3.1
           },
           {
             "name": "Progressive Labor",
             "color": "#10b981",
-            "pct": 1.8
+            "pct": 1.4
           }
         ]
       },
@@ -7631,37 +7604,37 @@
         "ev": 3,
         "winner": "Democratic",
         "winnerColor": "#3b82f6",
-        "winnerPct": 59.5,
+        "winnerPct": 73.4,
         "runnerUp": "Republican",
-        "runnerUpPct": 26.3,
-        "margin": 33.2,
+        "runnerUpPct": 17.3,
+        "margin": 56.1,
         "cnnTier": "safe",
         "isBattleground": false,
         "shares": [
           {
             "name": "Democratic",
             "color": "#3b82f6",
-            "pct": 59.5
+            "pct": 73.4
           },
           {
             "name": "Republican",
             "color": "#ef4444",
-            "pct": 26.3
+            "pct": 17.3
           },
           {
             "name": "Centrist Technocrats",
             "color": "#06b6d4",
-            "pct": 8.5
+            "pct": 5.6
           },
           {
             "name": "Progressive Labor",
             "color": "#10b981",
-            "pct": 4.2
+            "pct": 2.8
           },
           {
             "name": "Libertarian Free-Market",
             "color": "#f59e0b",
-            "pct": 1.5
+            "pct": 1
           }
         ]
       },
@@ -7672,37 +7645,37 @@
         "ev": 3,
         "winner": "Democratic",
         "winnerColor": "#3b82f6",
-        "winnerPct": 54.9,
+        "winnerPct": 69.6,
         "runnerUp": "Progressive Labor",
-        "runnerUpPct": 21.2,
-        "margin": 33.7,
+        "runnerUpPct": 14.3,
+        "margin": 55.3,
         "cnnTier": "safe",
         "isBattleground": false,
         "shares": [
           {
             "name": "Democratic",
             "color": "#3b82f6",
-            "pct": 54.9
+            "pct": 69.6
           },
           {
             "name": "Progressive Labor",
             "color": "#10b981",
-            "pct": 21.2
+            "pct": 14.3
           },
           {
             "name": "Republican",
             "color": "#ef4444",
-            "pct": 17.4
+            "pct": 11.8
           },
           {
             "name": "Centrist Technocrats",
             "color": "#06b6d4",
-            "pct": 5.3
+            "pct": 3.6
           },
           {
             "name": "Libertarian Free-Market",
             "color": "#f59e0b",
-            "pct": 1.1
+            "pct": 0.8
           }
         ]
       },
@@ -7713,37 +7686,37 @@
         "ev": 3,
         "winner": "Republican",
         "winnerColor": "#ef4444",
-        "winnerPct": 68.9,
+        "winnerPct": 58.6,
         "runnerUp": "Democratic",
-        "runnerUpPct": 19.9,
-        "margin": 49,
+        "runnerUpPct": 31.8,
+        "margin": 26.8,
         "cnnTier": "safe",
         "isBattleground": false,
         "shares": [
           {
             "name": "Republican",
             "color": "#ef4444",
-            "pct": 68.9
+            "pct": 58.6
           },
           {
             "name": "Democratic",
             "color": "#3b82f6",
-            "pct": 19.9
+            "pct": 31.8
           },
           {
             "name": "Libertarian Free-Market",
             "color": "#f59e0b",
-            "pct": 5.5
+            "pct": 4.7
           },
           {
             "name": "Centrist Technocrats",
             "color": "#06b6d4",
-            "pct": 4.4
+            "pct": 3.8
           },
           {
             "name": "Progressive Labor",
             "color": "#10b981",
-            "pct": 1.4
+            "pct": 1.2
           }
         ]
       },
@@ -7754,37 +7727,37 @@
         "ev": 3,
         "winner": "Republican",
         "winnerColor": "#ef4444",
-        "winnerPct": 65.6,
+        "winnerPct": 54.5,
         "runnerUp": "Democratic",
-        "runnerUpPct": 23.3,
-        "margin": 42.3,
+        "runnerUpPct": 36.3,
+        "margin": 18.2,
         "cnnTier": "safe",
         "isBattleground": false,
         "shares": [
           {
             "name": "Republican",
             "color": "#ef4444",
-            "pct": 65.6
+            "pct": 54.5
           },
           {
             "name": "Democratic",
             "color": "#3b82f6",
-            "pct": 23.3
+            "pct": 36.3
           },
           {
             "name": "Centrist Technocrats",
             "color": "#06b6d4",
-            "pct": 5.2
+            "pct": 4.3
           },
           {
             "name": "Libertarian Free-Market",
             "color": "#f59e0b",
-            "pct": 4.2
+            "pct": 3.5
           },
           {
             "name": "Progressive Labor",
             "color": "#10b981",
-            "pct": 1.6
+            "pct": 1.3
           }
         ]
       },
@@ -7795,37 +7768,37 @@
         "ev": 3,
         "winner": "Democratic",
         "winnerColor": "#3b82f6",
-        "winnerPct": 61.4,
+        "winnerPct": 74.9,
         "runnerUp": "Republican",
-        "runnerUpPct": 24.7,
-        "margin": 36.7,
+        "runnerUpPct": 16,
+        "margin": 58.9,
         "cnnTier": "safe",
         "isBattleground": false,
         "shares": [
           {
             "name": "Democratic",
             "color": "#3b82f6",
-            "pct": 61.4
+            "pct": 74.9
           },
           {
             "name": "Republican",
             "color": "#ef4444",
-            "pct": 24.7
+            "pct": 16
           },
           {
             "name": "Centrist Technocrats",
             "color": "#06b6d4",
-            "pct": 6.7
+            "pct": 4.3
           },
           {
             "name": "Progressive Labor",
             "color": "#10b981",
-            "pct": 5.8
+            "pct": 3.8
           },
           {
             "name": "Libertarian Free-Market",
             "color": "#f59e0b",
-            "pct": 1.5
+            "pct": 1
           }
         ]
       },
@@ -7836,37 +7809,37 @@
         "ev": 3,
         "winner": "Republican",
         "winnerColor": "#ef4444",
-        "winnerPct": 68.6,
+        "winnerPct": 59.5,
         "runnerUp": "Democratic",
-        "runnerUpPct": 17.6,
-        "margin": 51,
+        "runnerUpPct": 28.6,
+        "margin": 30.9,
         "cnnTier": "safe",
         "isBattleground": false,
         "shares": [
           {
             "name": "Republican",
             "color": "#ef4444",
-            "pct": 68.6
+            "pct": 59.5
           },
           {
             "name": "Democratic",
             "color": "#3b82f6",
-            "pct": 17.6
+            "pct": 28.6
           },
           {
             "name": "Libertarian Free-Market",
             "color": "#f59e0b",
-            "pct": 8.7
+            "pct": 7.5
           },
           {
             "name": "Centrist Technocrats",
             "color": "#06b6d4",
-            "pct": 3.9
+            "pct": 3.4
           },
           {
             "name": "Progressive Labor",
             "color": "#10b981",
-            "pct": 1.2
+            "pct": 1
           }
         ]
       }

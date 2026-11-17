@@ -629,18 +629,23 @@ app.patch("/api/sessions/:id/nations/:nationId", (req, res) => {
     "baseTaxLevel",
     "taxDistributionMode",
     "socialPolicies",
+    "governmentFatigue",
     "equalityDrift",
     "centralBankRate",
     "freightDelayFriction",
     "cumulativeGrowthFactor",
   ];
 
+  const prevRulingParty = nation.rulingParty;
   const changedKeys = [];
   for (const key of allowedFields) {
     if (updates[key] !== undefined) {
       nation[key] = updates[key];
       changedKeys.push(key);
     }
+  }
+  if (updates.rulingParty && updates.rulingParty !== prevRulingParty && updates.governmentFatigue === undefined) {
+    nation.governmentFatigue = 0;
   }
 
   persistAndBroadcast(

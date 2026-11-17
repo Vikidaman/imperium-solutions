@@ -98,6 +98,7 @@ export default function App() {
   const [activityLog, setActivityLog] = useState([]);
   const [activeTab, setActiveTab] = useState("map");
   const [marketsSubTab, setMarketsSubTab] = useState("supplychain");
+  const [partiesSubTab, setPartiesSubTab] = useState("studio");
   const [actorName, setActorName] = useState("Director");
   const [headerSpeedInput, setHeaderSpeedInput] = useState("90");
   const [loading, setLoading] = useState(true);
@@ -108,6 +109,7 @@ export default function App() {
 
   const handleJumpToTab = useCallback((tabId) => {
     if (tabId === "markets") setMarketsSubTab("supplychain");
+    if (tabId === "parties") setPartiesSubTab("studio");
     setActiveTab(tabId);
   }, []);
 
@@ -756,6 +758,10 @@ export default function App() {
                 state={state}
                 onUpdateNation={handleUpdateNation}
                 onResetScenario={handleResetScenario}
+                onOpenPartyStudio={() => {
+                  setPartiesSubTab("studio");
+                  setActiveTab("parties");
+                }}
                 isReadOnly={isReadOnly}
               />
             )}
@@ -763,6 +769,7 @@ export default function App() {
             {activeTab === "parties" && (
               <PoliticalPartiesAndElectionsView
                 state={state}
+                initialSubView={partiesSubTab}
                 isReadOnly={isReadOnly}
                 onUpsertParty={handleUpsertParty}
                 onDeleteParty={handleDeleteParty}

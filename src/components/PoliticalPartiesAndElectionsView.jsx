@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import * as topojson from "topojson-client";
 import usAtlas from "us-atlas/states-10m.json";
 import {
@@ -188,6 +188,7 @@ function CnnElectoralWallMap({
   selectedStateName,
   onSelectState,
   highlightTossups = true,
+  wallTitle = "CNN Election Night Magic Wall — 538 Electoral Votes",
 }) {
   const byName = useMemo(() => {
     const m = new Map();
@@ -227,7 +228,7 @@ function CnnElectoralWallMap({
         <div className="flex flex-wrap items-center justify-between gap-2 text-[11px]">
           <div className="flex items-center gap-2 font-bold uppercase tracking-wider text-slate-200">
             <span className="inline-block w-2 h-2 rounded-full bg-rose-500 animate-pulse" />
-            CNN Election Night Magic Wall — 538 Electoral Votes
+            {wallTitle}
           </div>
           <div className="flex flex-wrap items-center gap-3 text-[10px] text-slate-400">
             <span className="flex items-center gap-1">
@@ -240,7 +241,15 @@ function CnnElectoralWallMap({
               <span className="w-3 h-2.5 rounded-sm bg-blue-400 inline-block opacity-45" /> Lean (3–7%)
             </span>
             <span className="flex items-center gap-1">
-              <span className="w-3 h-2.5 rounded-sm bg-yellow-500 inline-block opacity-85" /> Toss-Up (&lt;3%)
+              {highlightTossups ? (
+                <>
+                  <span className="w-3 h-2.5 rounded-sm bg-yellow-500 inline-block opacity-85" /> Toss-Up (&lt;3%)
+                </>
+              ) : (
+                <>
+                  <span className="w-3 h-2.5 rounded-sm bg-blue-300 inline-block opacity-35" /> Tilt (&lt;3%, Leader Awarded)
+                </>
+              )}
             </span>
           </div>
         </div>
@@ -526,6 +535,7 @@ export default function PoliticalPartiesAndElectionsView({
   state,
   role = "director",
   isReadOnly = false,
+  initialSubView = "studio",
   onUpsertParty,
   onDeleteParty,
   onRunElection,
@@ -552,8 +562,8 @@ export default function PoliticalPartiesAndElectionsView({
   };
   const currentSimDate = state?.timeManager?.crisisDate || "2025-01-01";
 
-  // 3 Pages: "elections" (CNN Map & Forecast) | "schedule" (Call & Schedule Elections) | "studio" (Party Studio)
-  const [activeSubView, setActiveSubView] = useState("elections");
+  // 3 Pages: "studio" (Default Party Studio) | "elections" (CNN Map & Forecast) | "schedule" (Call & Schedule Elections)
+  const [activeSubView, setActiveSubView] = useState(initialSubView || "studio");
   const [selectedPartyName, setSelectedPartyName] = useState(rulingPartyName);
   const [draft, setDraft] = useState(() =>
     buildPartyDraft(parties.find((p) => p.name === rulingPartyName) || parties[0])
@@ -563,9 +573,24 @@ export default function PoliticalPartiesAndElectionsView({
   const [stateFilter, setStateFilter] = useState("all");
   const [selectedMapState, setSelectedMapState] = useState("Pennsylvania");
   const [highlightTossups, setHighlightTossups] = useState(true);
+  const [selectedHistoryId, setSelectedHistoryId] = useState(null);
+  const [selectedHistMapState, setSelectedHistMapState] = useState("Pennsylvania");
+  const liveSaveTimerRef = useRef(null);
 
   const [scheduleDraft, setScheduleDraft] = useState(serverSchedule);
   const [resetCycleFromToday, setResetCycleFromToday] = useState(true);
+
+  useEffect(() => {
+    if (initialSubView) {
+      setActiveSubView(initialSubView);
+    }
+  }, [initialSubView]);
+
+  useEffect(() => {
+    return () => {
+      if (liveSaveTimerRef.current) clearTimeout(liveSaveTimerRef.current);
+    };
+  }, []);
 
   useEffect(() => {
     setScheduleDraft({
@@ -584,13 +609,47 @@ export default function PoliticalPartiesAndElectionsView({
     serverSchedule.autoInaugurate,
   ]);
 
+  // Only resync the editor draft when the user picks a different party roster item,
+  // preventing periodic SSE/poll updates on `state.politicalParties` from overwriting edits.
   useEffect(() => {
-    if (draft.isNew) return;
+    if (selectedPartyName === "__NEW__") return;
     const matched = parties.find((p) => p.name === selectedPartyName) || parties[0];
     if (matched) {
       setDraft(buildPartyDraft(matched));
     }
-  }, [parties, selectedPartyName]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedPartyName]);
+
+  const buildPartyPayload = (d) => ({
+    name: (d.name || "").trim(),
+    color: d.color,
+    politicalAlignment: d.politicalAlignment,
+    platformSummary: d.platformSummary,
+    baseTaxLevel: d.baseTaxLevel,
+    taxDistributionMode: d.taxDistributionMode,
+    workerShareOfGdp: d.workerShareOfGdp,
+    budgetAsPercentOfGdp: d.budgetAsPercentOfGdp,
+    deficitTargetAsPercentOfGdp: d.deficitTargetAsPercentOfGdp,
+    currentSupport: d.currentSupport,
+    defaultPolicies: d.defaultPolicies,
+    socialPolicies: d.socialPolicies,
+    makeRulingParty: d.makeRulingParty,
+    syncRulingNation: true,
+  });
+
+  const persistExistingDraft = (nextDraft, immediate = false) => {
+    setDraft(nextDraft);
+    if (!canEdit || !onUpsertParty || nextDraft.isNew || !nextDraft.name?.trim()) return;
+    if (liveSaveTimerRef.current) clearTimeout(liveSaveTimerRef.current);
+    const runSave = () => {
+      onUpsertParty(buildPartyPayload(nextDraft), nextDraft.originalName);
+    };
+    if (immediate) {
+      runSave();
+    } else {
+      liveSaveTimerRef.current = setTimeout(runSave, 220);
+    }
+  };
 
   const previewTaxRates = useMemo(
     () => computeTaxRatesFromPosture(draft.baseTaxLevel, draft.taxDistributionMode),
@@ -598,11 +657,13 @@ export default function PoliticalPartiesAndElectionsView({
   );
 
   const handleSelectParty = (party) => {
+    if (liveSaveTimerRef.current) clearTimeout(liveSaveTimerRef.current);
     setSelectedPartyName(party.name);
     setDraft(buildPartyDraft(party));
   };
 
   const handleStartNewParty = () => {
+    if (liveSaveTimerRef.current) clearTimeout(liveSaveTimerRef.current);
     setSelectedPartyName("__NEW__");
     setDraft(buildPartyDraft(null));
     setActiveSubView("studio");
@@ -612,24 +673,10 @@ export default function PoliticalPartiesAndElectionsView({
     e.preventDefault();
     if (!canEdit || !onUpsertParty) return;
     if (!draft.name.trim()) return;
+    if (liveSaveTimerRef.current) clearTimeout(liveSaveTimerRef.current);
     setBusyAction(true);
     try {
-      const payload = {
-        name: draft.name.trim(),
-        color: draft.color,
-        politicalAlignment: draft.politicalAlignment,
-        platformSummary: draft.platformSummary,
-        baseTaxLevel: draft.baseTaxLevel,
-        taxDistributionMode: draft.taxDistributionMode,
-        workerShareOfGdp: draft.workerShareOfGdp,
-        budgetAsPercentOfGdp: draft.budgetAsPercentOfGdp,
-        deficitTargetAsPercentOfGdp: draft.deficitTargetAsPercentOfGdp,
-        currentSupport: draft.currentSupport,
-        defaultPolicies: draft.defaultPolicies,
-        socialPolicies: draft.socialPolicies,
-        makeRulingParty: draft.makeRulingParty,
-        syncRulingNation: true,
-      };
+      const payload = buildPartyPayload(draft);
       await onUpsertParty(payload, draft.isNew ? null : draft.originalName);
       setSelectedPartyName(payload.name);
       setDraft((prev) => ({
@@ -646,10 +693,13 @@ export default function PoliticalPartiesAndElectionsView({
   const handleDeleteSelected = async () => {
     if (!canEdit || !onDeleteParty || draft.isNew) return;
     if (draft.originalName === rulingPartyName) return;
+    if (liveSaveTimerRef.current) clearTimeout(liveSaveTimerRef.current);
     setBusyAction(true);
     try {
       await onDeleteParty(draft.originalName);
-      setSelectedPartyName(rulingPartyName);
+      const fallback = parties.find((p) => p.name === rulingPartyName) || parties[0];
+      setSelectedPartyName(fallback?.name || rulingPartyName);
+      if (fallback) setDraft(buildPartyDraft(fallback));
     } finally {
       setBusyAction(false);
     }
@@ -753,6 +803,38 @@ export default function PoliticalPartiesAndElectionsView({
     setScheduleDraft((prev) => ({ ...prev, nextElectionDate: ymd }));
   };
 
+  const fatigueVal = Number(forecast.governmentFatigue ?? usa.governmentFatigue ?? 0);
+  const fatigueRate = Number(forecast.fatigueRatePerQuarter ?? 0);
+  const fatigueStatus = forecast.fatigueStatusLabel || "Satisfied";
+  const fatigueReason =
+    forecast.fatigueTrajectoryReason ||
+    "Resets to 0% whenever a new party enters office and climbs slowly under strong reform or rapidly during mismanaged crises.";
+
+  const selectedHistRecord = useMemo(() => {
+    if (electionHistory.length === 0) return null;
+    if (selectedHistoryId) {
+      const found = electionHistory.find((r) => r.id === selectedHistoryId);
+      if (found) return found;
+    }
+    return electionHistory[0];
+  }, [electionHistory, selectedHistoryId]);
+
+  const histSummaryStandings = useMemo(() => {
+    if (!selectedHistRecord) return [];
+    if (Array.isArray(selectedHistRecord.electoralStandings) && selectedHistRecord.electoralStandings.length > 0) {
+      return selectedHistRecord.electoralStandings;
+    }
+    const tally = {};
+    for (const s of selectedHistRecord.stateResults || []) {
+      tally[s.winner] = {
+        name: s.winner,
+        color: s.winnerColor || "#64748b",
+        ev: (tally[s.winner]?.ev || 0) + (s.ev || 0),
+      };
+    }
+    return Object.values(tally).sort((a, b) => b.ev - a.ev);
+  }, [selectedHistRecord]);
+
   return (
     <div className="space-y-6">
       {/* Top Banner & 3-Page Sub-View Switcher */}
@@ -772,6 +854,18 @@ export default function PoliticalPartiesAndElectionsView({
 
         <div className="flex flex-wrap items-center gap-2">
           <div className="inline-flex flex-wrap bg-slate-950 p-1 rounded-xl border border-slate-800 gap-1">
+            <button
+              type="button"
+              onClick={() => setActiveSubView("studio")}
+              className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer ${
+                activeSubView === "studio"
+                  ? "bg-amber-600 text-white shadow"
+                  : "text-slate-400 hover:text-white"
+              }`}
+            >
+              <Scale className="w-3.5 h-3.5" />
+              Party Studio ({parties.length})
+            </button>
             <button
               type="button"
               onClick={() => setActiveSubView("elections")}
@@ -795,18 +889,6 @@ export default function PoliticalPartiesAndElectionsView({
             >
               <Calendar className="w-3.5 h-3.5" />
               Call &amp; Schedule Elections
-            </button>
-            <button
-              type="button"
-              onClick={() => setActiveSubView("studio")}
-              className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer ${
-                activeSubView === "studio"
-                  ? "bg-amber-600 text-white shadow"
-                  : "text-slate-400 hover:text-white"
-              }`}
-            >
-              <Scale className="w-3.5 h-3.5" />
-              Party Studio ({parties.length})
             </button>
           </div>
 
@@ -833,16 +915,19 @@ export default function PoliticalPartiesAndElectionsView({
                 <span className="px-2.5 py-1 rounded-full bg-slate-900 border border-slate-700 font-mono text-white font-semibold">
                   Approval: {Number(forecast.incumbentApproval ?? 50).toFixed(1)}%
                 </span>
-                {forecast.honeymoonActive ? (
-                  <span className="px-2.5 py-1 rounded-full bg-emerald-500/15 border border-emerald-500/40 font-mono text-emerald-300 font-semibold flex items-center gap-1">
-                    <Timer className="w-3.5 h-3.5" />
-                    Honeymoon Active: {forecast.honeymoonDaysRemaining}d left
-                  </span>
-                ) : (
-                  <span className="px-2.5 py-1 rounded-full bg-slate-900 border border-slate-700 font-mono text-slate-300">
-                    Post-Honeymoon Governance Track
-                  </span>
-                )}
+                <span
+                  title={fatigueReason}
+                  className={`px-2.5 py-1 rounded-full border font-mono font-semibold flex items-center gap-1 ${
+                    fatigueVal >= 55
+                      ? "bg-rose-500/15 border-rose-500/40 text-rose-300"
+                      : fatigueVal >= 25
+                      ? "bg-amber-500/15 border-amber-500/40 text-amber-300"
+                      : "bg-emerald-500/15 border-emerald-500/40 text-emerald-300"
+                  }`}
+                >
+                  <Timer className="w-3.5 h-3.5" />
+                  Gov Fatigue: {fatigueVal.toFixed(1)}% (+{fatigueRate.toFixed(1)}/qtr · {fatigueStatus})
+                </span>
                 <span className="px-2.5 py-1 rounded-full bg-sky-500/15 border border-sky-500/40 font-mono text-sky-300 flex items-center gap-1">
                   <Megaphone className="w-3.5 h-3.5" />
                   {forecast.speechFreedomLabel ||
@@ -1170,6 +1255,151 @@ export default function PoliticalPartiesAndElectionsView({
               </table>
             </div>
           </div>
+
+          {/* Past Presidential Elections & Full 538-EV Map Archive (Toss-Ups Awarded to Leader) */}
+          <div className="bg-slate-900/75 border border-slate-800 rounded-2xl p-4 sm:p-5 space-y-4">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                  <History className="w-4 h-4 text-blue-400" />
+                  Past Elections Archive — Full Presidential Map (Toss-Ups Awarded to Leader)
+                </h3>
+                <p className="text-[11px] text-slate-400">
+                  Every historical election displays all 51 jurisdictions with close toss-up states assigned directly to the leading party.
+                </p>
+              </div>
+              {electionHistory.length > 0 && (
+                <span className="px-2.5 py-1 rounded-full text-[11px] font-mono bg-slate-950 border border-slate-800 text-slate-300">
+                  {electionHistory.length} Recorded {electionHistory.length === 1 ? "Election" : "Elections"}
+                </span>
+              )}
+            </div>
+
+            {electionHistory.length === 0 ? (
+              <div className="bg-slate-950/70 border border-slate-800 rounded-xl p-4 flex flex-wrap items-center justify-between gap-3 text-xs text-slate-400">
+                <span>
+                  No historical elections have been held yet. Call a snap election or let simulation time reach Election Day to inspect past full-map results here.
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setActiveSubView("schedule")}
+                  className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-blue-600/20 hover:bg-blue-600/30 text-blue-300 border border-blue-500/30 cursor-pointer"
+                >
+                  Go to Call &amp; Schedule Elections
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div className="flex flex-wrap gap-2">
+                  {electionHistory.map((rec) => {
+                    const isSel = selectedHistRecord?.id === rec.id;
+                    const winStanding = (rec.electoralStandings || []).find(
+                      (e) => e.name === rec.winner
+                    );
+                    return (
+                      <button
+                        key={rec.id}
+                        type="button"
+                        onClick={() => setSelectedHistoryId(rec.id)}
+                        className={`text-left px-3 py-2 rounded-xl border text-xs transition cursor-pointer space-y-0.5 ${
+                          isSel
+                            ? "bg-slate-800 border-blue-500/70 shadow-lg"
+                            : "bg-slate-950/80 border-slate-800 hover:border-slate-700"
+                        }`}
+                      >
+                        <div className="flex items-center justify-between gap-3 text-[10px] font-mono text-slate-400">
+                          <span>Q{rec.quarter} · {rec.date}</span>
+                          <span className="uppercase text-blue-300">
+                            {rec.electionType || "Election"}
+                          </span>
+                        </div>
+                        <div className="font-bold text-white flex items-center gap-1.5">
+                          <span
+                            className="w-2.5 h-2.5 rounded-full shrink-0"
+                            style={{ backgroundColor: winStanding?.color || "#3b82f6" }}
+                          />
+                          <span>{rec.winner}</span>
+                          <span className="font-mono text-slate-300 font-semibold">
+                            ({rec.winnerEv} EV · {rec.winnerPollPct}%)
+                          </span>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {selectedHistRecord && (
+                  <div className="space-y-3">
+                    {/* Historical Final EV Breakdown Bar (All 538 EVs Awarded) */}
+                    <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-3 space-y-2">
+                      <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
+                        <div className="font-semibold text-white">
+                          Certified {selectedHistRecord.electionType || "Election"} ({selectedHistRecord.date}) — Winner:{" "}
+                          <span className="text-emerald-300">{selectedHistRecord.winner}</span>
+                        </div>
+                        <div className="flex flex-wrap items-center gap-2 text-[11px] font-mono text-slate-400">
+                          <span>Incumbent Fatigue: {Number(selectedHistRecord.governmentFatigue ?? 0).toFixed(1)}%</span>
+                          <span>·</span>
+                          <span>Approval: {Number(selectedHistRecord.incumbentApproval ?? 50).toFixed(1)}%</span>
+                          {selectedHistRecord.inaugurated && (
+                            <span className="px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 font-sans text-[10px] font-semibold">
+                              Inaugurated
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      <div className="w-full h-5 bg-slate-900 rounded-lg overflow-hidden border border-slate-800 flex">
+                        {histSummaryStandings.map((s) => (
+                          <div
+                            key={s.name}
+                            style={{
+                              width: `${(Number(s.ev || 0) / 538) * 100}%`,
+                              backgroundColor: s.color || "#64748b",
+                            }}
+                            title={`${s.name}: ${s.ev} EV`}
+                            className="h-full flex items-center justify-center text-[10px] font-mono font-bold text-white"
+                          >
+                            {s.ev >= 28 ? `${s.ev}` : ""}
+                          </div>
+                        ))}
+                      </div>
+                      <div className="flex flex-wrap gap-3 text-[11px] text-slate-300 font-mono">
+                        {histSummaryStandings.map((s) => {
+                          const pop = (selectedHistRecord.nationalPolls || []).find(
+                            (p) => p.name === s.name
+                          );
+                          return (
+                            <span key={s.name} className="inline-flex items-center gap-1.5">
+                              <span
+                                className="w-2 h-2 rounded-full"
+                                style={{ backgroundColor: s.color || "#64748b" }}
+                              />
+                              {s.name}: {s.ev} EV{pop ? ` (${pop.pollPct}%)` : ""}
+                            </span>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {Array.isArray(selectedHistRecord.stateResults) &&
+                    selectedHistRecord.stateResults.length > 0 ? (
+                      <CnnElectoralWallMap
+                        stateResults={selectedHistRecord.stateResults}
+                        selectedStateName={selectedHistMapState}
+                        onSelectState={setSelectedHistMapState}
+                        highlightTossups={false}
+                        wallTitle={`Past Election Archive Map — Q${selectedHistRecord.quarter} (${selectedHistRecord.date}) · Toss-Ups Awarded to Leader`}
+                      />
+                    ) : (
+                      <div className="bg-slate-950/70 border border-slate-800 rounded-xl p-4 text-xs text-slate-400">
+                        This earlier election record was logged before full 51-state archive snapshots were enabled.
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
         </div>
       )}
 
@@ -1322,7 +1552,7 @@ export default function PoliticalPartiesAndElectionsView({
                   }
                   className="accent-emerald-500"
                 />
-                Automatically inaugurate winner with 180-day Honeymoon Period
+                Automatically inaugurate winner (resets Government Fatigue to 0% if party changes)
               </label>
 
               {canEdit && (
@@ -1353,27 +1583,33 @@ export default function PoliticalPartiesAndElectionsView({
                 <div className="bg-slate-950/75 border border-slate-800 rounded-xl p-3.5 space-y-2 text-xs text-slate-300">
                   <div className="font-semibold text-white flex items-center gap-1.5">
                     <Timer className="w-4 h-4 text-emerald-400" />
-                    Honeymoon Period &amp; Speech-Weighted Accountability
+                    Government Fatigue &amp; Speech-Weighted Accountability
                   </div>
                   <p className="text-[11px] text-slate-400 leading-relaxed">
-                    Inaugurating a new winner grants a{" "}
-                    <span className="text-emerald-300 font-semibold">180-day Honeymoon Period</span>{" "}
-                    so an unpopular outgoing crisis does not instantly flip polls on Day 1. Over subsequent months, approval evolves across{" "}
-                    <span className="text-white font-semibold">all 8 Good Governance indicators</span>,{" "}
-                    weighted heavily by the{" "}
-                    <span className="text-sky-300 font-semibold">Freedom of Speech Index</span>{" "}
-                    ({forecast.speechFreedomLabel}).
+                    <span className="text-emerald-300 font-semibold">Government Fatigue</span> resets to{" "}
+                    <span className="text-white font-mono font-semibold">0%</span> when a different party takes power and accumulates based on national trajectory: very slowly for swift decisive fixes, proportionally slower when alleviating hardship, moderately under stagnant crises, and sharply under harmful policy mistakes. High fatigue triggers an opposition surge while broad satisfaction strengthens the incumbent.
                   </p>
                 </div>
 
-                {forecast.honeymoonActive && (
-                  <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-xl p-3 text-xs text-emerald-200 flex items-center justify-between">
-                    <span>Active Administration Honeymoon</span>
+                <div
+                  className={`border rounded-xl p-3 text-xs space-y-1 ${
+                    fatigueVal >= 55
+                      ? "bg-rose-500/10 border-rose-500/30 text-rose-200"
+                      : fatigueVal >= 25
+                      ? "bg-amber-500/10 border-amber-500/30 text-amber-200"
+                      : "bg-emerald-500/10 border-emerald-500/30 text-emerald-200"
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="font-semibold">
+                      Incumbent Fatigue: {fatigueStatus}
+                    </span>
                     <span className="font-mono font-bold">
-                      {forecast.honeymoonDaysRemaining} days remaining
+                      {fatigueVal.toFixed(1)}% (+{fatigueRate.toFixed(1)}/qtr)
                     </span>
                   </div>
-                )}
+                  <div className="text-[11px] opacity-85">{fatigueReason}</div>
+                </div>
 
                 <label className="flex items-center gap-2 text-xs text-slate-300 pt-1 cursor-pointer">
                   <input
@@ -1554,7 +1790,9 @@ export default function PoliticalPartiesAndElectionsView({
                     : `Edit Party Posture: ${draft.originalName}`}
                 </h3>
                 <p className="text-xs text-slate-400">
-                  Configure 0–100% tax levels, bell-curve class incidence, 6 core governance acts, and 7 social &amp; anti-corruption charter stances.
+                  {draft.isNew
+                    ? "Configure 0–100% tax levels, bell-curve class incidence, 6 core governance acts, and 7 social & anti-corruption charter stances."
+                    : "Primary workspace for party tax posture, 6 core governance acts, and 7 social charter & corruption stances — slider/policy updates save live without background resets."}
                 </p>
               </div>
               <div className="flex items-center gap-2">
@@ -1626,7 +1864,7 @@ export default function PoliticalPartiesAndElectionsView({
                       key={hex}
                       type="button"
                       disabled={!canEdit}
-                      onClick={() => setDraft({ ...draft, color: hex })}
+                      onClick={() => persistExistingDraft({ ...draft, color: hex }, true)}
                       className={`w-6 h-6 rounded-full border-2 cursor-pointer transition ${
                         draft.color === hex
                           ? "border-white scale-110"
@@ -1662,7 +1900,7 @@ export default function PoliticalPartiesAndElectionsView({
                   Party Tax Posture (0%–100%) &amp; Bell-Curve Class Incidence
                 </span>
                 <span className="text-[11px] font-mono text-slate-400">
-                  Live statutory tax calculator
+                  {draft.isNew ? "Live preview" : "Auto-syncs active posture"}
                 </span>
               </div>
 
@@ -1684,7 +1922,10 @@ export default function PoliticalPartiesAndElectionsView({
                     disabled={!canEdit}
                     value={draft.baseTaxLevel}
                     onChange={(e) =>
-                      setDraft({ ...draft, baseTaxLevel: Number(e.target.value) })
+                      persistExistingDraft(
+                        { ...draft, baseTaxLevel: Number(e.target.value) },
+                        false
+                      )
                     }
                     className="w-full accent-amber-500 cursor-pointer"
                   />
@@ -1712,7 +1953,10 @@ export default function PoliticalPartiesAndElectionsView({
                     disabled={!canEdit}
                     value={draft.taxDistributionMode}
                     onChange={(e) =>
-                      setDraft({ ...draft, taxDistributionMode: Number(e.target.value) })
+                      persistExistingDraft(
+                        { ...draft, taxDistributionMode: Number(e.target.value) },
+                        false
+                      )
                     }
                     className="w-full accent-sky-500 cursor-pointer"
                   />
@@ -1776,21 +2020,36 @@ export default function PoliticalPartiesAndElectionsView({
                       key={spec.id}
                       className="bg-slate-950/70 border border-slate-800 rounded-xl p-3 space-y-2"
                     >
-                      <div className="flex items-center justify-between text-xs">
-                        <span className="font-semibold text-white">{spec.shortName}</span>
+                      <div className="flex items-start justify-between gap-2 text-xs">
+                        <div>
+                          <div className="font-semibold text-white">{spec.name || spec.shortName}</div>
+                          {Array.isArray(spec.drives) && spec.drives.length > 0 && (
+                            <div className="text-[10px] text-cyan-300/90 mt-0.5">
+                              Drives: {spec.drives.join(" · ")}
+                            </div>
+                          )}
+                          {spec.description && (
+                            <p className="text-[11px] text-slate-400 leading-snug mt-1">
+                              {spec.description}
+                            </p>
+                          )}
+                        </div>
                         {canEdit && (
                           <button
                             type="button"
                             onClick={() =>
-                              setDraft({
-                                ...draft,
-                                defaultPolicies: {
-                                  ...draft.defaultPolicies,
-                                  [spec.id]: { ...cur, enacted: !cur.enacted },
+                              persistExistingDraft(
+                                {
+                                  ...draft,
+                                  defaultPolicies: {
+                                    ...draft.defaultPolicies,
+                                    [spec.id]: { ...cur, enacted: !cur.enacted },
+                                  },
                                 },
-                              })
+                                true
+                              )
                             }
-                            className={`px-2 py-0.5 rounded text-[10px] font-bold border cursor-pointer ${
+                            className={`px-2 py-0.5 rounded text-[10px] font-bold border shrink-0 cursor-pointer ${
                               cur.enacted
                                 ? "bg-emerald-500/15 text-emerald-300 border-emerald-500/30"
                                 : "bg-rose-500/10 text-rose-300 border-rose-500/30"
@@ -1809,13 +2068,16 @@ export default function PoliticalPartiesAndElectionsView({
                               type="button"
                               disabled={!canEdit}
                               onClick={() =>
-                                setDraft({
-                                  ...draft,
-                                  defaultPolicies: {
-                                    ...draft.defaultPolicies,
-                                    [spec.id]: { enacted: true, funding: tKey },
+                                persistExistingDraft(
+                                  {
+                                    ...draft,
+                                    defaultPolicies: {
+                                      ...draft.defaultPolicies,
+                                      [spec.id]: { enacted: true, funding: tKey },
+                                    },
                                   },
-                                })
+                                  true
+                                )
                               }
                               className={`py-1 rounded text-[10px] font-semibold border cursor-pointer ${
                                 isSel
@@ -1847,10 +2109,18 @@ export default function PoliticalPartiesAndElectionsView({
                       key={spec.id}
                       className="bg-slate-950/70 border border-slate-800 rounded-xl p-2.5 space-y-1.5"
                     >
-                      <div className="flex items-center justify-between gap-2 text-[11px]">
-                        <span className="font-semibold text-white truncate">
-                          {spec.shortName}
-                        </span>
+                      <div className="flex items-start justify-between gap-2 text-[11px]">
+                        <div className="min-w-0">
+                          <div className="font-semibold text-white truncate">
+                            {spec.shortName}
+                          </div>
+                          <div className="text-[10px] text-slate-400">
+                            {spec.articleRef}
+                            {Array.isArray(spec.drives) && spec.drives.length > 0
+                              ? ` · Drives: ${spec.drives.join(" · ")}`
+                              : ""}
+                          </div>
+                        </div>
                         <span
                           className={`px-1.5 py-0.5 rounded text-[9px] font-bold uppercase shrink-0 ${
                             isCorruption
@@ -1873,13 +2143,16 @@ export default function PoliticalPartiesAndElectionsView({
                               type="button"
                               disabled={!canEdit}
                               onClick={() =>
-                                setDraft({
-                                  ...draft,
-                                  socialPolicies: {
-                                    ...draft.socialPolicies,
-                                    [spec.id]: lvlKey,
+                                persistExistingDraft(
+                                  {
+                                    ...draft,
+                                    socialPolicies: {
+                                      ...draft.socialPolicies,
+                                      [spec.id]: lvlKey,
+                                    },
                                   },
-                                })
+                                  true
+                                )
                               }
                               className={`py-1 px-1 rounded text-[9px] font-semibold border truncate cursor-pointer ${
                                 isSel
@@ -1912,7 +2185,7 @@ export default function PoliticalPartiesAndElectionsView({
                   className="rounded accent-emerald-500"
                 />
                 <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-                Immediately inaugurate as Governing Ruling Party (with 180d Honeymoon)
+                Immediately inaugurate as Governing Ruling Party (resets Government Fatigue to 0%)
               </label>
             )}
           </form>

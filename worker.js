@@ -777,13 +777,18 @@ export default {
             "baseTaxLevel",
             "taxDistributionMode",
             "socialPolicies",
+            "governmentFatigue",
             "equalityDrift",
             "centralBankRate",
             "freightDelayFriction",
             "cumulativeGrowthFactor",
           ];
+          const prevRulingParty = nation.rulingParty;
           for (const k of allowed) {
             if (body[k] !== undefined) nation[k] = body[k];
+          }
+          if (body.rulingParty && body.rulingParty !== prevRulingParty && body.governmentFatigue === undefined) {
+            nation.governmentFatigue = 0;
           }
           evaluateSimulation(sess.state);
           await saveStateToD1(db, sess);

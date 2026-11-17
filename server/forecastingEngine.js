@@ -257,9 +257,9 @@ export function computeGdpForecast(nation, state, modelData = null) {
   const equalityConsBonus = (incomeEqualityIndex - 0.613) * 2.4;
   const creditRateDrag = (centralBankRate - 0.045) * 7.5;
   const consumptionGrowthContrib =
-    1.10 +
-    (cIdx - 1.0) * 4.8 +
-    (sentimentRatio - 1.0) * 1.45 +
+    0.66 +
+    (cIdx - 1.0) * 4.5 +
+    (sentimentRatio - 1.0) * 1.40 +
     mpcIncidenceAdj +
     equalityConsBonus +
     sentMomentum * 0.5 -
@@ -281,8 +281,8 @@ export function computeGdpForecast(nation, state, modelData = null) {
   const racialEqualityBonus = (racialEqualityIndex - 0.68) * 5.5;
   const crimeControlBonus = (crimeControlIndex - 0.74) * 6.5;
   const investmentGrowthContrib =
-    0.75 +
-    (afterTaxProfitRatio - 1.0) * 2.8 -
+    0.45 +
+    (afterTaxProfitRatio - 1.0) * 2.7 -
     interestDrag +
     infraBonus +
     partyInfraBonus +
@@ -304,7 +304,7 @@ export function computeGdpForecast(nation, state, modelData = null) {
     debtToGdpRatio > 130
       ? Math.min(2.8, ((debtToGdpRatio - 130) / 100) * 1.35)
       : (130 - debtToGdpRatio) / 100 * 0.22;
-  const governmentGrowthContrib = 0.42 + fiscalStimulus - debtCrowdingOut - zeroTaxChaos + sentMomentum * 0.4 + eqMomentum * 0.5;
+  const governmentGrowthContrib = 0.28 + fiscalStimulus - debtCrowdingOut - zeroTaxChaos + sentMomentum * 0.4 + eqMomentum * 0.5;
 
   // --- Component 4: Net Exports & Trade Competitiveness Contribution (ΔNX) ---
   const nxShare = ad.nxShare !== undefined ? Number(ad.nxShare) : -0.03;
@@ -319,7 +319,7 @@ export function computeGdpForecast(nation, state, modelData = null) {
     -8.5,
     Math.min(
       6.5,
-      annualizedPopGrowthPct * 0.75 -
+      annualizedPopGrowthPct * 0.60 -
         crimeDrag +
         mlSignalAdjustment +
         litMomentum * 0.55 +

@@ -624,8 +624,98 @@ export function computeEndowmentPolicyMultipliers({
 }
 
 /**
- * Simulates US National Polling, Cohort Voter Support, Incumbent Approval, and
- * 50-State + D.C. (538 Electoral Votes) State-by-State Electoral College projections.
+ * Computes Government Fatigue (0–100) accumulation rate and effective voter fatigue
+ * based on national conditions, enacted policy trajectory, and Freedom of Speech sensitivity.
+ */
+export function computeGovernmentFatigueMetrics(
+  nation = {},
+  policyProgression = {},
+  socialPolicyEval = {},
+  govCompositePct = 76.0,
+  growth = 1.8,
+  inflationPct = 2.4,
+  unempPct = 4.5
+) {
+  const baseFatigue = Math.max(0, Math.min(100, Number(nation.governmentFatigue ?? 0)));
+  const corruptionIdx = Number(socialPolicyEval.corruptionIndex ?? 20);
+  const speechMult = Number(socialPolicyEval.speechSensitivityMultiplier ?? 1.15);
+
+  // Measure how troubled the country's current conditions are (0 = healthy baseline, higher = crisis)
+  const conditionBadness = Math.max(
+    0,
+    Math.max(0, 73.0 - govCompositePct) * 0.45 +
+      Math.max(0, 1.4 - growth) * 2.1 +
+      Math.max(0, inflationPct - 3.2) * 1.8 +
+      Math.max(0, unempPct - 5.0) * 2.0 +
+      Math.max(0, corruptionIdx - 28) * 0.16
+  );
+
+  // Measure whether current policies are fixing or worsening conditions, and how rapidly
+  const policyImpulse =
+    Number(policyProgression.literacyDelta || 0) * 650 +
+    Number(policyProgression.infrastructureDelta || 0) * 600 +
+    Number(policyProgression.racialEqualityDelta || 0) * 550 +
+    Number(policyProgression.crimeControlDelta || 0) * 550 +
+    Number(policyProgression.equalityDelta || 0) * 550 +
+    Number(policyProgression.sentimentDelta || 0) * 1.5 +
+    Number(policyProgression.tfpDelta || 0) * 0.06 -
+    Math.max(0, corruptionIdx - 25) * 0.12;
+
+  let rawRate = 3.5;
+  let fatigueTrajectoryReason = "Normal governing wear-and-tear over time in office.";
+
+  if (policyImpulse >= 5.5) {
+    // Extremely good and rapid reforms: fatigue increases very slowly
+    rawRate = Math.max(0.6, 1.2 - Math.min(0.6, (policyImpulse - 5.5) * 0.08) + conditionBadness * 0.06);
+    fatigueTrajectoryReason =
+      "Rapid, high-impact reforms are alleviating national pressure and keeping voter fatigue minimal.";
+  } else if (policyImpulse >= 1.2) {
+    // Good reforms alleviating conditions: fatigue increases less proportionately
+    rawRate = 2.4 + (5.5 - policyImpulse) * 0.35 + conditionBadness * 0.18;
+    fatigueTrajectoryReason =
+      "Constructive reforms are cushioning public frustration, slowing the build-up of voter fatigue.";
+  } else if (policyImpulse <= -1.2) {
+    // Bad policy changes worsening conditions: fatigue increases greatly
+    rawRate = (10.5 + Math.abs(policyImpulse) * 1.85 + conditionBadness * 0.70) * speechMult;
+    fatigueTrajectoryReason =
+      "Damaging policy cuts and deteriorating governance are triggering a sharp surge in government fatigue.";
+  } else if (conditionBadness >= 3.0) {
+    // Terrible conditions with stagnant/no meaningful change: fatigue increases moderately
+    rawRate = (5.8 + conditionBadness * 0.55) * speechMult;
+    fatigueTrajectoryReason =
+      "Terrible national conditions without bold corrective policy are moderately compounding public fatigue.";
+  } else {
+    rawRate = 3.2 + conditionBadness * 0.30;
+  }
+
+  const fatigueRatePerQuarter = Number(Math.max(0.5, Math.min(48.0, rawRate)).toFixed(2));
+
+  // Immediate intra-quarter reaction when disastrous policies are actively enacted in office
+  const instantPolicyShock =
+    policyImpulse < -1.5 ? Math.min(24, Math.abs(policyImpulse) * 1.2 * Math.max(0.6, speechMult)) : 0;
+  const effectiveFatigue = Number(
+    Math.max(0, Math.min(100, baseFatigue + instantPolicyShock)).toFixed(1)
+  );
+
+  let fatigueStatusLabel = "Fresh Mandate";
+  if (effectiveFatigue >= 65) fatigueStatusLabel = "Severe Voter Exhaustion";
+  else if (effectiveFatigue >= 40) fatigueStatusLabel = "Rising Public Weariness";
+  else if (effectiveFatigue >= 20) fatigueStatusLabel = "Moderate Incumbent Wear";
+
+  return {
+    baseFatigue: Number(baseFatigue.toFixed(1)),
+    effectiveFatigue,
+    fatigueRatePerQuarter,
+    fatigueStatusLabel,
+    fatigueTrajectoryReason,
+    conditionBadness: Number(conditionBadness.toFixed(2)),
+    policyImpulse: Number(policyImpulse.toFixed(2)),
+  };
+}
+
+/**
+ * Simulates US National Polling, Cohort Voter Support, Government Fatigue & Incumbent Approval,
+ * and 50-State + D.C. (538 Electoral Votes) CNN-Tiered State-by-State Projections.
  */
 export function computeElectionSimulation(state = {}) {
   const parties = Array.isArray(state.politicalParties) && state.politicalParties.length > 0
@@ -635,14 +725,16 @@ export function computeElectionSimulation(state = {}) {
   const c = usa.computed || {};
 
   const rulingName = usa.rulingParty || "Democratic";
-  const growth = Number(c.annualRealGdpGrowth ?? c.forecast?.finalGrowth ?? 2.4);
+  const rulingPartyObj = resolvePoliticalParty(parties, rulingName);
+  const growth = Number(c.annualRealGdpGrowth ?? c.forecast?.finalGrowth ?? 1.75);
   const inflationPct = Number(c.inflationRate ?? 0.024) * 100;
   const unempPct = Number(c.unemploymentRate ?? 0.045) * 100;
-  const sol = Number(c.sol ?? 38.9);
   const equality = Number(c.incomeEqualityIndex ?? 0.613);
   const racialEquality = Number(c.racialEqualityIndex ?? usa.racialEqualityIndex ?? 0.68);
   const crimeControl = Number(c.crimeControlIndex ?? usa.crimeControlIndex ?? 0.74);
-  const socialEvalCurr = c.socialPolicyEval || evaluateSocialPolicies(usa, resolvePoliticalParty(parties, rulingName));
+  const socialEvalCurr =
+    c.socialPolicyEval ||
+    evaluateSocialPolicies(usa, rulingPartyObj, usa.enactedPolicies || rulingPartyObj?.defaultPolicies);
   const corruptionIdx = Number(socialEvalCurr.corruptionIndex ?? 20);
   const speechMult = Number(socialEvalCurr.speechSensitivityMultiplier ?? 1.15);
   const speechFreedomLabel = socialEvalCurr.speechFreedomLabel || "Constitutional Std (1.15x Voter Reactivity)";
@@ -652,46 +744,53 @@ export function computeElectionSimulation(state = {}) {
       (((9 * 0.92 + 8 * 0.82 + 6 * 0.83 + 7 * 0.65 + 7 * 0.60 + 5 * (equality / 0.75) + 4 * racialEquality + 4 * crimeControl) / 50.0) * 100)
   );
 
-  // Honeymoon Period: Newly inaugurated government gets a 180-day honeymoon grace period
-  const inaug = usa.inaugurationState;
-  const currSimDate = state.timeManager?.crisisDate || "2025-01-01";
-  const inHoneymoonParty = Boolean(inaug && inaug.partyName === rulingName);
-  const daysInOffice = inHoneymoonParty
-    ? Math.max(0, diffSimDays(currSimDate, inaug.inauguratedDate || currSimDate))
-    : 999;
-  const honeymoonTotalDays = Number(inaug?.honeymoonTotalDays || 180);
-  const honeymoonRemainingRatio = inHoneymoonParty
-    ? Math.max(0, Math.min(1, 1 - daysInOffice / honeymoonTotalDays))
-    : 0;
-  const honeymoonDaysRemaining = inHoneymoonParty
-    ? Math.max(0, Math.round(honeymoonTotalDays - daysInOffice))
-    : 0;
+  const policyProgCurr =
+    c.policyProgression ||
+    computePolicyProgression(
+      usa,
+      rulingPartyObj,
+      Number(c.inflationRate ?? 0.024),
+      Number(c.unemploymentRate ?? 0.045),
+      c.taxDistributionMode,
+      corruptionIdx
+    );
 
-  const govDeltaSinceInaug = inHoneymoonParty
-    ? govCompositePct - Number(inaug?.baselineGovComposite ?? govCompositePct)
-    : 0;
+  const fatigueMetrics =
+    c.fatigueMetrics ||
+    computeGovernmentFatigueMetrics(
+      usa,
+      policyProgCurr,
+      socialEvalCurr,
+      govCompositePct,
+      growth,
+      inflationPct,
+      unempPct
+    );
 
-  const rawMacroGovDelta =
-    (govCompositePct - 76.0) * 1.15 +
-    govDeltaSinceInaug * 2.2 -
-    (corruptionIdx - 20) * 0.32 +
-    (growth - 2.0) * 2.6 -
-    Math.max(0, Math.abs(inflationPct - 2.2) - 0.5) * 2.8 -
-    (unempPct - 4.5) * 2.4 +
-    (equality - 0.61) * 32 +
-    (racialEquality - 0.68) * 18 +
-    (crimeControl - 0.74) * 22;
+  const effectiveFatigue = fatigueMetrics.effectiveFatigue;
 
-  const structuralApproval = Math.max(12, Math.min(88, 47.5 + rawMacroGovDelta * speechMult));
-  const honeymoonApproval = 62.0 + (structuralApproval - 47.5) * 0.15;
-  const blendedApproval =
-    honeymoonRemainingRatio > 0
-      ? honeymoonRemainingRatio * honeymoonApproval + (1 - honeymoonRemainingRatio) * structuralApproval
-      : structuralApproval;
+  // Approval driven primarily by Government Fatigue + Freedom-of-Speech weighted Governance & Macro conditions
+  const macroPerformanceAdj =
+    ((govCompositePct - 75.5) * 0.65 +
+      (growth - 1.65) * 2.2 -
+      Math.max(0, Math.abs(inflationPct - 2.2) - 0.5) * 2.2 -
+      (unempPct - 4.5) * 2.0 -
+      (corruptionIdx - 20) * 0.24) *
+    (speechMult * 0.75);
 
-  const incumbentApproval = Number(Math.max(12, Math.min(88, blendedApproval)).toFixed(1));
-  const incumbentSwing = (incumbentApproval - 47.5) * 0.0044;
-  const honeymoonPollShield = honeymoonRemainingRatio * 0.42;
+  const incumbentApproval = Number(
+    Math.max(10, Math.min(88, 66.0 - effectiveFatigue * 0.52 + macroPerformanceAdj)).toFixed(1)
+  );
+
+  // Voting intention follows Government Fatigue strongly:
+  // Low fatigue (<32) rewards broadly satisfied governing party & shrinks opposition;
+  // High fatigue (>32) slams the ruling party and massively boosts opposition challengers.
+  const fatigueSwing =
+    effectiveFatigue <= 32
+      ? (32 - effectiveFatigue) * 0.015
+      : -(effectiveFatigue - 32) * 0.021;
+  const approvalNudge = (incumbentApproval - 50.0) * 0.004;
+  const netIncumbentMomentum = fatigueSwing + approvalNudge;
 
   const partyProfiles = parties.map((p) => {
     const mode = Number(p.taxDistributionMode ?? 0.52);
@@ -721,14 +820,15 @@ export function computeElectionSimulation(state = {}) {
 
     const baseSupportWeight = Math.max(0.08, Number(p.currentSupport ?? 0.08));
     const isIncumbent = p.name === rulingName;
-    const incumbentBonus = isIncumbent ? incumbentSwing : -incumbentSwing * (1 / Math.max(1, parties.length - 1));
-    const shieldTerm = isIncumbent ? honeymoonPollShield : -honeymoonPollShield * (1 / Math.max(1, parties.length - 1));
+    const oppDivisor = Math.max(1, parties.length - 1);
+    const fatiguePollTerm = isIncumbent
+      ? netIncumbentMomentum
+      : -netIncumbentMomentum * (1.25 / oppDivisor);
 
     const nationalScore = Math.exp(
       Math.log(baseSupportWeight) +
         0.35 * (0.45 * lowAppeal + 0.45 * midAppeal + 0.10 * upperAppeal) +
-        incumbentBonus * 3.2 +
-        shieldTerm
+        fatiguePollTerm
     );
 
     return {
@@ -798,13 +898,15 @@ export function computeElectionSimulation(state = {}) {
         urbanScore * (p.govScore * 0.10 + (p.mode > 0.5 ? 0.22 : -0.10));
 
       const baseLogit = Math.log(Math.max(0.06, Number(p.party.currentSupport ?? 0.08)));
-      const logitShield = p.isIncumbent ? honeymoonPollShield : -honeymoonPollShield * 0.35;
+      const oppDiv = Math.max(1, partyProfiles.length - 1);
+      const stateFatigueTerm = p.isIncumbent
+        ? netIncumbentMomentum * 0.95
+        : -netIncumbentMomentum * (1.15 / oppDiv);
       const logit =
         baseLogit -
         ideologyDistance * 1.75 +
         resourceAlignment +
-        (p.isIncumbent ? incumbentSwing * 2.8 : 0) +
-        logitShield;
+        stateFatigueTerm;
 
       return { name: p.name, color: p.color, expVal: Math.exp(Math.max(-6, Math.min(6, logit))) };
     });
@@ -859,10 +961,18 @@ export function computeElectionSimulation(state = {}) {
   const battlegrounds = stateResults.filter((s) => s.isBattleground).sort((a, b) => a.margin - b.margin);
 
   const cohortPoll = (appealKey) => {
+    const oppDiv = Math.max(1, partyProfiles.length - 1);
     const exps = partyProfiles.map((p) => ({
       name: p.name,
       color: p.color,
-      v: Math.max(0.05, Number(p.party.currentSupport ?? 0.08)) * Math.exp(p[appealKey] + (p.isIncumbent ? incumbentSwing * 2.5 + honeymoonPollShield * 0.6 : 0)),
+      v:
+        Math.max(0.05, Number(p.party.currentSupport ?? 0.08)) *
+        Math.exp(
+          p[appealKey] +
+            (p.isIncumbent
+              ? netIncumbentMomentum * 0.85
+              : -netIncumbentMomentum * (1.0 / oppDiv))
+        ),
     }));
     const tot = exps.reduce((s, x) => s + x.v, 0) || 1;
     return exps.map((x) => ({ name: x.name, color: x.color, pct: Number(((x.v / tot) * 100).toFixed(1)) })).sort((a, b) => b.pct - a.pct);
@@ -871,8 +981,11 @@ export function computeElectionSimulation(state = {}) {
   return {
     incumbentParty: rulingName,
     incumbentApproval,
-    honeymoonActive: honeymoonRemainingRatio > 0,
-    honeymoonDaysRemaining,
+    governmentFatigue: effectiveFatigue,
+    fatigueRatePerQuarter: fatigueMetrics.fatigueRatePerQuarter,
+    fatigueStatusLabel: fatigueMetrics.fatigueStatusLabel,
+    fatigueTrajectoryReason: fatigueMetrics.fatigueTrajectoryReason,
+    honeymoonActive: effectiveFatigue < 20,
     speechSensitivityMultiplier: speechMult,
     speechFreedomLabel,
     govCompositePct: Number(govCompositePct.toFixed(1)),
@@ -2227,6 +2340,19 @@ export function evaluateSimulation(state) {
     const fc = computeGdpForecast(nation, state);
     nation.computed.forecast = fc;
     nation.computed.annualRealGdpGrowth = fc.finalGrowth;
+
+    const fatigueMetrics = computeGovernmentFatigueMetrics(
+      nation,
+      policyProgression,
+      socialPolicyEval,
+      solBreakdown.govCompositePct,
+      fc.finalGrowth,
+      inflationRate * 100,
+      unemploymentRate * 100
+    );
+    nation.computed.fatigueMetrics = fatigueMetrics;
+    nation.computed.governmentFatigue = fatigueMetrics.effectiveFatigue;
+    nation.computed.fatigueRatePerQuarter = fatigueMetrics.fatigueRatePerQuarter;
   }
 
   if (state.timeManager) {
@@ -2330,6 +2456,21 @@ export function runBudgetAndDividendUpdater(state) {
       Math.min(0.999, Math.max(0.20, currCrimeCtrl + prog.crimeControlDelta)).toFixed(4)
     );
     nation.enactedPolicies = prog.policies;
+
+    // Accumulate Government Fatigue based on national trajectory & policy urgency
+    const qtrFatigue = computeGovernmentFatigueMetrics(
+      nation,
+      prog,
+      c.socialPolicyEval || {},
+      Number(c.solBreakdown?.govCompositePct ?? 76),
+      annualGrowthPct,
+      Number(c.inflationRate ?? 0.024) * 100,
+      Number(c.unemploymentRate ?? 0.045) * 100
+    );
+    const currFatigue = Math.max(0, Math.min(100, Number(nation.governmentFatigue) || 0));
+    nation.governmentFatigue = Number(
+      Math.max(0, Math.min(100, currFatigue + qtrFatigue.fatigueRatePerQuarter)).toFixed(2)
+    );
 
     const basePops =
       !state.strictSheetQuirks && nation.workingPops < c.totalEmployed
@@ -2601,9 +2742,10 @@ export function upsertPoliticalPartyInState(state, payload = {}, targetName = nu
   if (
     usa &&
     (payload.makeRulingParty ||
-      (payload.syncRulingNation &&
+      (payload.syncRulingNation !== false &&
         (usa.rulingParty === lookupKey || usa.rulingParty === partyObj.name)))
   ) {
+    const switchingToDifferentParty = usa.rulingParty !== partyObj.name && usa.rulingParty !== lookupKey;
     usa.rulingParty = partyObj.name;
     usa.baseTaxLevel = partyObj.baseTaxLevel;
     usa.taxDistributionMode = partyObj.taxDistributionMode;
@@ -2615,13 +2757,8 @@ export function upsertPoliticalPartyInState(state, payload = {}, targetName = nu
     usa.corporateTaxOverride = null;
     usa.capitalGainsTaxOverride = null;
     usa.salesTaxOverride = null;
-    if (payload.makeRulingParty) {
-      usa.inaugurationState = {
-        partyName: partyObj.name,
-        inauguratedDate: state.timeManager?.crisisDate || "2025-01-01",
-        honeymoonTotalDays: 180,
-        baselineGovComposite: Number(usa.computed?.solBreakdown?.govCompositePct ?? 76),
-      };
+    if (payload.makeRulingParty && switchingToDifferentParty) {
+      usa.governmentFatigue = 0;
     }
   }
 
@@ -2653,9 +2790,9 @@ export function deletePoliticalPartyInState(state, partyName) {
 }
 
 /**
- * Conducts a full 50-state + DC National Election based on current polling & macro conditions,
- * stores the result in `usa.electionHistory`, and optionally inaugurates the winning party
- * with a 180-day Honeymoon grace period whose subsequent decay is weighted by Freedom of Speech.
+ * Conducts a full 50-state + DC National Election based on Government Fatigue, national conditions,
+ * and voter polling; stores full 51-state presidential results in `usa.electionHistory`; and
+ * resets `governmentFatigue` to 0 when a different party assumes control of government.
  */
 export function executeSimulatedElectionInState(
   state,
@@ -2667,6 +2804,7 @@ export function executeSimulatedElectionInState(
   const leader = election.electoralStandings[0];
   const winnerName = leader?.name || usa.rulingParty;
   const electionDate = state.timeManager?.crisisDate || "2025-01-01";
+  const prevRulingParty = usa.rulingParty;
 
   const record = {
     id: `elec_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 6)}`,
@@ -2675,11 +2813,27 @@ export function executeSimulatedElectionInState(
     electionType,
     incumbentParty: election.incumbentParty,
     incumbentApproval: election.incumbentApproval,
+    governmentFatigue: election.governmentFatigue,
     winner: winnerName,
     winnerEv: Number(leader?.ev || 0),
     winnerPollPct: Number(leader?.pollPct || 0),
     electoralStandings: election.electoralStandings,
     nationalPolls: election.nationalPolls,
+    stateResults: (election.stateResults || []).map((st) => ({
+      stateName: st.stateName,
+      code: st.code,
+      region: st.region,
+      ev: st.ev,
+      winner: st.winner,
+      winnerColor: st.winnerColor,
+      winnerPct: st.winnerPct,
+      runnerUp: st.runnerUp,
+      runnerUpPct: st.runnerUpPct,
+      margin: st.margin,
+      cnnTier: st.cnnTier,
+      isBattleground: st.isBattleground,
+      shares: st.shares,
+    })),
     inaugurated: Boolean(inaugurateWinner),
   };
 
@@ -2687,7 +2841,7 @@ export function executeSimulatedElectionInState(
     usa.electionHistory = [];
   }
   usa.electionHistory.unshift(record);
-  if (usa.electionHistory.length > 20) {
+  if (usa.electionHistory.length > 12) {
     usa.electionHistory.pop();
   }
 
@@ -2704,12 +2858,13 @@ export function executeSimulatedElectionInState(
     usa.corporateTaxOverride = null;
     usa.capitalGainsTaxOverride = null;
     usa.salesTaxOverride = null;
-    usa.inaugurationState = {
-      partyName: winParty.name,
-      inauguratedDate: electionDate,
-      honeymoonTotalDays: 180,
-      baselineGovComposite: Number(usa.computed?.solBreakdown?.govCompositePct ?? 76),
-    };
+    if (winParty.name !== prevRulingParty) {
+      usa.governmentFatigue = 0;
+    } else {
+      usa.governmentFatigue = Number(
+        Math.max(0, (Number(usa.governmentFatigue) || 0) - 5).toFixed(2)
+      );
+    }
   }
 
   if (resetCycleFromToday && state.electionSchedule) {

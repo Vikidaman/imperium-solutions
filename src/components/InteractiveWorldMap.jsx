@@ -185,6 +185,7 @@ const InteractiveWorldMap = ({
   nations: nationsProp,
   onUpdateNation,
   onResetScenario,
+  onOpenPartyStudio,
   canConfigure,
   isReadOnly = false,
 }) => {
@@ -1374,432 +1375,185 @@ const InteractiveWorldMap = ({
               </div>
             )}
 
-            {/* Party Fiscal & Infrastructure Posture (ONLY: Base Tax Level, Bell-Curve Tax Burden Distribution, Policy Enactment & Funding Allocation) */}
-            <div className="bg-slate-950/70 border border-amber-500/30 rounded-xl p-3.5 space-y-4">
-              <div className="flex items-center justify-between border-b border-slate-800/80 pb-2">
-                <span className="text-[11px] font-semibold uppercase tracking-wider text-amber-300">
-                  Party Fiscal & Infrastructure Posture
-                </span>
-                <span className="text-[10px] text-slate-400 font-medium">
-                  Mandate: {activeParty.name}
-                </span>
-              </div>
-
-              {/* 1. Base Level of Tax Slider & Correlated Statutory Tax Rates */}
-              <div className="space-y-2">
-                <div className="flex items-center justify-between text-xs">
-                  <div>
-                    <span className="text-white font-semibold">Base Level of Tax</span>
-                    <div className="text-[10px] text-slate-400">
-                      Overall statutory tax intensity scaled by bell-curve class incidence
-                    </div>
-                  </div>
-                  <span className="font-mono text-amber-300 font-bold text-sm">
-                    {(effectiveBaseTax * 100).toFixed(0)}%
+            {/* Active Party Fiscal & Policy Posture Overview (Configured Authoritatively in Party Studio) */}
+            <div className="bg-slate-950/70 border border-amber-500/30 rounded-xl p-3.5 space-y-3">
+              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800/80 pb-2">
+                <div>
+                  <span className="text-[11px] font-semibold uppercase tracking-wider text-amber-300 flex items-center gap-1.5">
+                    <Sliders className="w-3.5 h-3.5" />
+                    Party Fiscal &amp; Policy Posture
                   </span>
+                  <div className="text-[10px] text-slate-400 mt-0.5">
+                    Authoritative mandate: <span className="text-white font-semibold">{activeParty.name}</span>
+                  </div>
                 </div>
-                {canEdit ? (
-                  <div className="space-y-1">
-                    <BufferedRangeSlider
-                      min={0.0}
-                      max={1.0}
-                      step={0.01}
-                      value={effectiveBaseTax}
-                      disabled={!canEdit}
-                      onCommit={(num) =>
-                        updatePolicy({
-                          baseTaxLevel: num,
-                          incomeTaxOverride: null,
-                          corporateTaxOverride: null,
-                          salesTaxOverride: null,
-                          capitalGainsTaxOverride: null,
-                        })
-                      }
-                      className="w-full accent-amber-500 cursor-pointer"
-                    />
-                    <div className="flex items-center justify-between text-[9px] text-slate-500 font-mono">
-                      <span>0% Tax Free</span>
-                      <span>25% Mixed</span>
-                      <span>50% Nordic</span>
-                      <span>100% Full Nat. Inc.</span>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="w-full h-2 bg-slate-900 rounded-full overflow-hidden border border-slate-800">
-                    <div
-                      className="h-full bg-amber-500 transition-all"
-                      style={{
-                        width: `${Math.min(100, Math.max(0, effectiveBaseTax * 100))}%`,
-                      }}
-                    />
-                  </div>
+                {onOpenPartyStudio && (
+                  <button
+                    type="button"
+                    onClick={() => onOpenPartyStudio()}
+                    className="px-2.5 py-1.5 rounded-lg text-[11px] font-bold bg-amber-500/20 hover:bg-amber-500/30 text-amber-200 border border-amber-500/40 flex items-center gap-1 cursor-pointer transition"
+                  >
+                    <Edit2 className="w-3 h-3" />
+                    Open Party Studio
+                    <ArrowUpRight className="w-3 h-3" />
+                  </button>
                 )}
-
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 text-xs pt-1">
-                  <div className="bg-slate-900/75 border border-slate-800/80 rounded-lg p-2">
-                    <div className="text-[10px] text-slate-400">Income Tax</div>
-                    <div className="font-mono font-bold text-sky-300 mt-0.5">
-                      {(effectiveIncomeTax * 100).toFixed(1)}%
-                    </div>
-                    <div className="text-[9px] text-slate-500 mt-0.5">Max @ Mid Class</div>
-                  </div>
-                  <div className="bg-slate-900/75 border border-slate-800/80 rounded-lg p-2">
-                    <div className="text-[10px] text-slate-400">Corporate Tax</div>
-                    <div className="font-mono font-bold text-emerald-300 mt-0.5">
-                      {(effectiveCorpTax * 100).toFixed(1)}%
-                    </div>
-                    <div className="text-[9px] text-slate-500 mt-0.5">Max @ Upper Inc</div>
-                  </div>
-                  <div className="bg-slate-900/75 border border-slate-800/80 rounded-lg p-2">
-                    <div className="text-[10px] text-slate-400">Capital Gains</div>
-                    <div className="font-mono font-bold text-emerald-300 mt-0.5">
-                      {(effectiveCapGainsTax * 100).toFixed(1)}%
-                    </div>
-                    <div className="text-[9px] text-slate-500 mt-0.5">Max @ Upper Inc</div>
-                  </div>
-                  <div className="bg-slate-900/75 border border-slate-800/80 rounded-lg p-2">
-                    <div className="text-[10px] text-slate-400">Sales / Cons.</div>
-                    <div className="font-mono font-bold text-amber-300 mt-0.5">
-                      {(effectiveSalesTax * 100).toFixed(1)}%
-                    </div>
-                    <div className="text-[9px] text-slate-500 mt-0.5">Max @ Lower Inc</div>
-                  </div>
-                </div>
               </div>
 
-              {/* 2. Tax Burden Distribution Bell Curve */}
-              <div className="border-t border-slate-800/80 pt-3.5 space-y-2.5">
-                <div className="flex flex-wrap items-start justify-between gap-2 text-xs">
-                  <div>
-                    <div className="flex items-center gap-1.5">
-                      <Scale className="w-3.5 h-3.5 text-amber-400" />
-                      <span className="text-white font-semibold">
-                        Tax Burden Distribution Bell Curve
-                      </span>
-                    </div>
-                    <div className="text-[10px] text-slate-400 mt-0.5">
-                      {bellCurveTax.skewLabel || "Modal incidence across income deciles"}
-                    </div>
+              {/* Active Statutory Tax Profile & Fatigue / Corruption Summary */}
+              <div className="grid grid-cols-3 sm:grid-cols-6 gap-1.5 text-xs">
+                <div className="bg-slate-900/75 border border-slate-800/80 rounded-lg p-2">
+                  <div className="text-[9px] text-slate-400">Base Tax</div>
+                  <div className="font-mono font-bold text-amber-300 mt-0.5">
+                    {(effectiveBaseTax * 100).toFixed(0)}%
                   </div>
-                  <span
-                    className={`font-mono font-bold text-[11px] px-2 py-0.5 rounded-full border ${
-                      bellCurveTax.skewDirection === "right-tailed"
-                        ? "bg-amber-500/15 text-amber-300 border-amber-500/40"
-                        : bellCurveTax.skewDirection === "left-tailed"
-                        ? "bg-emerald-500/15 text-emerald-300 border-emerald-500/40"
-                        : "bg-sky-500/15 text-sky-300 border-sky-500/40"
+                </div>
+                <div className="bg-slate-900/75 border border-slate-800/80 rounded-lg p-2">
+                  <div className="text-[9px] text-slate-400">Income Tax</div>
+                  <div className="font-mono font-bold text-sky-300 mt-0.5">
+                    {(effectiveIncomeTax * 100).toFixed(1)}%
+                  </div>
+                </div>
+                <div className="bg-slate-900/75 border border-slate-800/80 rounded-lg p-2">
+                  <div className="text-[9px] text-slate-400">Corp Tax</div>
+                  <div className="font-mono font-bold text-emerald-300 mt-0.5">
+                    {(effectiveCorpTax * 100).toFixed(1)}%
+                  </div>
+                </div>
+                <div className="bg-slate-900/75 border border-slate-800/80 rounded-lg p-2">
+                  <div className="text-[9px] text-slate-400">Cap Gains</div>
+                  <div className="font-mono font-bold text-emerald-300 mt-0.5">
+                    {(effectiveCapGainsTax * 100).toFixed(1)}%
+                  </div>
+                </div>
+                <div className="bg-slate-900/75 border border-slate-800/80 rounded-lg p-2">
+                  <div className="text-[9px] text-slate-400">Sales / VAT</div>
+                  <div className="font-mono font-bold text-amber-300 mt-0.5">
+                    {(effectiveSalesTax * 100).toFixed(1)}%
+                  </div>
+                </div>
+                <div className="bg-slate-900/75 border border-slate-800/80 rounded-lg p-2">
+                  <div className="text-[9px] text-slate-400">Gov Fatigue</div>
+                  <div
+                    className={`font-mono font-bold mt-0.5 ${
+                      Number(c.governmentFatigue ?? 0) >= 40
+                        ? "text-rose-300"
+                        : Number(c.governmentFatigue ?? 0) >= 20
+                        ? "text-amber-300"
+                        : "text-emerald-300"
                     }`}
                   >
+                    {Number(c.governmentFatigue ?? 0).toFixed(1)}%
+                  </div>
+                </div>
+              </div>
+
+              {/* Bell Curve Visualization (Read-Only Summary) */}
+              <div className="space-y-1.5 pt-1 border-t border-slate-800/70">
+                <div className="flex items-center justify-between text-[10px]">
+                  <span className="text-slate-300 font-semibold flex items-center gap-1">
+                    <Scale className="w-3 h-3 text-amber-400" />
+                    Tax Burden Bell Curve: {bellCurveTax.skewLabel || "Modal incidence"}
+                  </span>
+                  <span className="font-mono font-bold text-amber-300">
                     Mode: P{Math.round(effectiveTaxMode * 100)}
                   </span>
                 </div>
-
                 <TaxBellCurveSvg
                   curvePoints={bellCurveTax.curvePoints}
                   mode={effectiveTaxMode}
                   skewDirection={bellCurveTax.skewDirection}
                 />
-
-                {canEdit ? (
-                  <div className="space-y-1">
-                    <BufferedRangeSlider
-                      min={0.10}
-                      max={0.90}
-                      step={0.02}
-                      value={effectiveTaxMode}
-                      disabled={!canEdit}
-                      onCommit={(num) =>
-                        updatePolicy({
-                          taxDistributionMode: num,
-                          incomeTaxOverride: null,
-                          corporateTaxOverride: null,
-                          salesTaxOverride: null,
-                          capitalGainsTaxOverride: null,
-                        })
-                      }
-                      className="w-full accent-amber-500 cursor-pointer"
-                    />
-                    <div className="flex items-center justify-between text-[10px] text-slate-400">
-                      <span>Low-Income Peak (Sales Tax Max)</span>
-                      <span>Middle Class (Income Tax Max)</span>
-                      <span>Upper-Income Peak (Corp/CG Max)</span>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="flex items-center justify-between text-[10px] text-slate-400">
-                    <span>Lower-Income Deciles</span>
-                    <span>Middle Deciles</span>
-                    <span>Top Capital Deciles</span>
-                  </div>
-                )}
-
-                <div className="grid grid-cols-3 gap-1.5 text-[10px] pt-1 border-t border-slate-800/80">
-                  <div className="bg-slate-900/70 rounded-lg px-2 py-1.5 flex items-center justify-between">
+                <div className="grid grid-cols-3 gap-1.5 text-[10px]">
+                  <div className="bg-slate-900/70 rounded px-2 py-1 flex items-center justify-between">
                     <span className="text-slate-400">Low Tax:</span>
                     <span className="font-mono font-bold text-amber-300">
                       {((bellCurveTax.cohortTaxBurdens?.lowIncome ?? 0.2) * 100).toFixed(1)}%
                     </span>
                   </div>
-                  <div className="bg-slate-900/70 rounded-lg px-2 py-1.5 flex items-center justify-between">
+                  <div className="bg-slate-900/70 rounded px-2 py-1 flex items-center justify-between">
                     <span className="text-slate-400">Mid Tax:</span>
                     <span className="font-mono font-bold text-blue-300">
                       {((bellCurveTax.cohortTaxBurdens?.middleClass ?? 0.38) * 100).toFixed(1)}%
                     </span>
                   </div>
-                  <div className="bg-slate-900/70 rounded-lg px-2 py-1.5 flex items-center justify-between">
+                  <div className="bg-slate-900/70 rounded px-2 py-1 flex items-center justify-between">
                     <span className="text-slate-400">Top Tax:</span>
                     <span className="font-mono font-bold text-emerald-300">
                       {((bellCurveTax.cohortTaxBurdens?.upperClass ?? 0.44) * 100).toFixed(1)}%
                     </span>
                   </div>
                 </div>
-                <div className="flex items-center justify-between text-[10px] text-slate-400 font-mono">
-                  <span>
-                    MPC Consumption Impulse:{" "}
-                    <span
-                      className={
-                        (bellCurveTax.consumptionMpcMultiplier ?? 1) >= 1
-                          ? "text-emerald-300 font-semibold"
-                          : "text-rose-300 font-semibold"
-                      }
-                    >
-                      {((bellCurveTax.consumptionMpcMultiplier ?? 1) * 100 - 100 >= 0 ? "+" : "")}
-                      {(((bellCurveTax.consumptionMpcMultiplier ?? 1) - 1) * 100).toFixed(1)}% C
-                    </span>
-                  </span>
-                  <span>
-                    Equality Index:{" "}
-                    <span className="text-cyan-300 font-semibold">
-                      {((c.incomeEqualityIndex ?? 0.615) * 100).toFixed(1)}%
-                    </span>
-                  </span>
-                </div>
               </div>
 
-              {/* 3. Policy Enactment & Funding Allocation (Core Acts + Social Charter & Obligations) */}
-              <div className="border-t border-slate-800/80 pt-3.5 space-y-2.5">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-1.5">
-                    <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
-                    <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-300">
-                      Policy Enactment & Funding Allocation
+              {/* Compact Active Core Acts & Social Charter Summary */}
+              <div className="pt-2 border-t border-slate-800/70 space-y-2">
+                <div className="flex flex-wrap items-center justify-between gap-2 text-[10px]">
+                  <span className="font-semibold uppercase tracking-wider text-emerald-300 flex items-center gap-1">
+                    <ShieldCheck className="w-3 h-3" />
+                    Active Policy &amp; Charter Stances
+                  </span>
+                  <div className="flex flex-wrap items-center gap-2 font-mono">
+                    <span className="text-sky-300">
+                      UDHR: {Math.round(Number(socialEffects.humanRightsIndex ?? 48))}/100
+                    </span>
+                    <span className="text-amber-300">
+                      Duty: {Math.round(Number(socialEffects.civicObligationIndex ?? 56))}/100
+                    </span>
+                    <span
+                      className={
+                        Number(socialEffects.corruptionIndex ?? 20) >= 40
+                          ? "text-rose-300 font-bold"
+                          : "text-emerald-300"
+                      }
+                    >
+                      Corruption: {Math.round(Number(socialEffects.corruptionIndex ?? 20))}/100
                     </span>
                   </div>
-                  <span className="text-[10px] text-slate-500">
-                    Drives governance, endowments & SoL
-                  </span>
                 </div>
 
-                <div className="space-y-2">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
                   {POLICY_CATALOG.map((spec) => {
                     const entry = enactedPolicies[spec.id] || {
                       enacted: true,
                       funding: "standard",
                     };
                     const tierMeta = FUNDING_TIERS[entry.funding] || FUNDING_TIERS.standard;
-
-                    const toggleEnacted = () => {
-                      updatePolicy({
-                        enactedPolicies: {
-                          ...enactedPolicies,
-                          [spec.id]: { ...entry, enacted: !entry.enacted },
-                        },
-                      });
-                    };
-
-                    const setFundingTier = (tierKey) => {
-                      updatePolicy({
-                        enactedPolicies: {
-                          ...enactedPolicies,
-                          [spec.id]: { ...entry, enacted: true, funding: tierKey },
-                        },
-                      });
-                    };
-
                     return (
                       <div
                         key={spec.id}
-                        className="bg-slate-900/70 border border-slate-800/90 rounded-xl p-3 space-y-2"
+                        className="bg-slate-900/70 border border-slate-800/80 rounded-lg px-2.5 py-1.5 flex items-center justify-between gap-2 text-[10px]"
                       >
-                        <div className="flex items-start justify-between gap-2">
-                          <div>
-                            <div className="text-xs font-semibold text-white">
-                              {spec.shortName}
-                            </div>
-                            <div className="text-[10px] text-slate-400 mt-0.5">
-                              {canEdit ? spec.drives.join(" · ") : spec.description}
-                            </div>
-                          </div>
-
-                          {canEdit ? (
-                            <button
-                              type="button"
-                              onClick={toggleEnacted}
-                              className={`shrink-0 px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider border transition cursor-pointer ${
-                                entry.enacted
-                                  ? "bg-emerald-500/15 text-emerald-300 border-emerald-500/40 hover:bg-emerald-500/25"
-                                  : "bg-rose-500/10 text-rose-300 border-rose-500/30 hover:bg-rose-500/20"
-                              }`}
-                            >
-                              {entry.enacted ? "Enacted" : "Repealed"}
-                            </button>
-                          ) : (
-                            <span
-                              className={`shrink-0 px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${
-                                entry.enacted
-                                  ? "bg-emerald-500/15 text-emerald-300 border-emerald-500/30"
-                                  : "bg-slate-800 text-slate-400 border-slate-700"
-                              }`}
-                            >
-                              {entry.enacted ? `Enacted · ${tierMeta.label}` : "Repealed"}
-                            </span>
-                          )}
-                        </div>
-
-                        {canEdit && (
-                          <div className="grid grid-cols-4 gap-1.5">
-                            {FUNDING_TIER_ORDER.map((tierKey) => {
-                              const meta = FUNDING_TIERS[tierKey];
-                              const isActive = entry.enacted && entry.funding === tierKey;
-                              return (
-                                <button
-                                  key={tierKey}
-                                  type="button"
-                                  onClick={() => setFundingTier(tierKey)}
-                                  className={`py-1 px-1.5 rounded-lg text-[10px] font-semibold border transition cursor-pointer ${
-                                    isActive
-                                      ? "bg-cyan-500/20 text-cyan-200 border-cyan-500/50 shadow-sm"
-                                      : "bg-slate-950 text-slate-400 border-slate-800 hover:text-slate-200 hover:border-slate-700"
-                                  }`}
-                                >
-                                  {meta.label}
-                                </button>
-                              );
-                            })}
-                          </div>
-                        )}
+                        <span className="text-slate-200 font-medium truncate">
+                          {spec.shortName}
+                        </span>
+                        <span
+                          className={`shrink-0 px-1.5 py-0.5 rounded font-semibold ${
+                            !entry.enacted
+                              ? "bg-rose-500/15 text-rose-300"
+                              : entry.funding === "underfunded"
+                              ? "bg-amber-500/15 text-amber-300"
+                              : "bg-emerald-500/15 text-emerald-300"
+                          }`}
+                        >
+                          {entry.enacted ? tierMeta.label : "Repealed"}
+                        </span>
                       </div>
                     );
                   })}
                 </div>
 
-                {/* Social Policies: UN Human Rights Charter Freedoms & Social Obligations */}
-                <div className="pt-2 border-t border-slate-800/70 space-y-2">
-                  <div className="flex flex-wrap items-center justify-between gap-2 text-[10px]">
-                    <span className="font-semibold uppercase tracking-wider text-indigo-300">
-                      Social Charter & Obligations
-                    </span>
-                    <div className="flex flex-wrap items-center gap-2 font-mono">
-                      <span className="text-sky-300">
-                        UDHR Freedoms:{" "}
-                        {Math.round(Number(socialEffects.humanRightsIndex ?? 48))}/100
-                      </span>
-                      <span className="text-slate-600">|</span>
-                      <span className="text-amber-300">
-                        Civic Duty:{" "}
-                        {Math.round(Number(socialEffects.civicObligationIndex ?? 56))}/100
-                      </span>
-                      <span className="text-slate-600">|</span>
-                      <span
-                        className={
-                          Number(socialEffects.corruptionIndex ?? 20) >= 40
-                            ? "text-rose-300 font-bold"
-                            : "text-emerald-300"
-                        }
-                      >
-                        Corruption: {Math.round(Number(socialEffects.corruptionIndex ?? 20))}/100
-                      </span>
-                      {Number(socialEffects.businessEstablishmentBoost || 0) !== 0 && (
-                        <>
-                          <span className="text-slate-600">|</span>
-                          <span
-                            className={
-                              Number(socialEffects.businessEstablishmentBoost) > 0
-                                ? "text-emerald-300"
-                                : "text-slate-400"
-                            }
-                          >
-                            Biz Permits:{" "}
-                            {Number(socialEffects.businessEstablishmentBoost) > 0 ? "+" : ""}
-                            {Math.round(Number(socialEffects.businessEstablishmentBoost) * 100)}%
-                          </span>
-                        </>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="space-y-1.5">
-                    {SOCIAL_POLICY_CATALOG.map((spec) => {
-                      const activeLevel = socialPolicies[spec.id] || "balanced";
-                      const levelMeta = spec.levels[activeLevel] || spec.levels.balanced;
-                      const isFreedom = spec.category === "individual_freedom";
-
-                      return (
-                        <div
-                          key={spec.id}
-                          className="bg-slate-900/70 border border-slate-800/90 rounded-xl p-2.5 space-y-1.5"
-                        >
-                          <div className="flex items-start justify-between gap-2">
-                            <div>
-                              <div className="text-[11px] font-semibold text-white flex items-center gap-1.5">
-                                <span>{spec.shortName}</span>
-                              </div>
-                              <div className="text-[9px] text-slate-400 mt-0.5">
-                                {spec.articleRef} · {spec.drives.join(" · ")}
-                              </div>
-                            </div>
-                            <span
-                              className={`shrink-0 px-2 py-0.5 rounded-full text-[9px] font-bold uppercase border ${
-                                isFreedom
-                                  ? "bg-sky-500/15 text-sky-300 border-sky-500/30"
-                                  : "bg-amber-500/15 text-amber-300 border-amber-500/30"
-                              }`}
-                            >
-                              {isFreedom ? "Freedom" : "Obligation"}
-                            </span>
-                          </div>
-
-                          {canEdit ? (
-                            <div className="grid grid-cols-3 gap-1">
-                              {SOCIAL_LEVEL_ORDER.map((lvlKey) => {
-                                const lvl = spec.levels[lvlKey];
-                                const isSel = activeLevel === lvlKey;
-                                return (
-                                  <button
-                                    key={lvlKey}
-                                    type="button"
-                                    onClick={() =>
-                                      updatePolicy({
-                                        socialPolicies: {
-                                          ...socialPolicies,
-                                          [spec.id]: lvlKey,
-                                        },
-                                      })
-                                    }
-                                    className={`py-1 px-1.5 rounded-lg text-[9px] font-semibold border transition cursor-pointer truncate ${
-                                      isSel
-                                        ? isFreedom
-                                          ? "bg-sky-500/20 text-sky-200 border-sky-500/50"
-                                          : "bg-amber-500/20 text-amber-200 border-amber-500/50"
-                                        : "bg-slate-950 text-slate-400 border-slate-800 hover:text-slate-200 hover:border-slate-700"
-                                    }`}
-                                    title={lvl.label}
-                                  >
-                                    {lvl.label}
-                                  </button>
-                                );
-                              })}
-                            </div>
-                          ) : (
-                            <div className="text-[10px] font-semibold text-slate-300">
-                              Stance: <span className="text-white">{levelMeta.label}</span>
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
+                {onOpenPartyStudio && (
+                  <button
+                    type="button"
+                    onClick={() => onOpenPartyStudio()}
+                    className="w-full py-2 px-3 rounded-xl text-xs font-semibold bg-slate-900 hover:bg-slate-800 text-cyan-300 border border-cyan-500/30 flex items-center justify-center gap-1.5 cursor-pointer transition"
+                  >
+                    <Edit2 className="w-3.5 h-3.5" />
+                    Modify Taxes, Core Acts &amp; Social Charter in Party Studio
+                    <ArrowUpRight className="w-3.5 h-3.5" />
+                  </button>
+                )}
               </div>
             </div>
 
