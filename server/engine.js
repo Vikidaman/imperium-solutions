@@ -1979,15 +1979,17 @@ export function evaluateSimulation(state) {
     const startStr = tm.crisisStartDate || "2025-01-01";
     const currStr = tm.crisisDate || startStr;
     const nextPayStr = tm.nextPaymentDate || addDaysToSimDate(startStr, 90);
+    const frac = Number(tm.fractionalDays) || 0;
 
-    const daysElapsed = Math.max(0, diffSimDays(currStr, startStr));
-    const dateDiff = diffSimDays(nextPayStr, currStr);
+    const daysElapsed = Math.max(0, diffSimDays(currStr, startStr) + frac);
+    const dateDiff = diffSimDays(nextPayStr, currStr) - frac;
+    const speedVal = Number(tm.intervalDaysPerHour) > 0 ? Number(tm.intervalDaysPerHour) : 90;
 
     tm.daysElapsed = Number(daysElapsed.toFixed(2));
     tm.quarterNumber = Math.max(1, Math.round(1 + daysElapsed / 90));
     tm.quarter = tm.quarterNumber;
     tm.dateDiff = Number(dateDiff.toFixed(2));
-    tm.daysPerMinute = Number(((Number(tm.intervalDaysPerHour) || 90) / 60).toFixed(4));
+    tm.daysPerMinute = Number((speedVal / 60).toFixed(6));
     if (tm.liveStatus === undefined) {
       tm.liveStatus = tm.isLive ? "TRUE" : "VIRGIN";
     }
@@ -2186,20 +2188,29 @@ export function advanceSimulationTime(state, daysToAdd = 90) {
 
   const tm = state.timeManager;
   const prevDateStr = tm.crisisDate || tm.crisisStartDate || "2025-01-01";
-  const targetDateStr = addDaysToSimDate(prevDateStr, daysToAdd);
+  const totalPendingDays = (Number(tm.fractionalDays) || 0) + Number(daysToAdd);
+  const wholeDays =
+    totalPendingDays >= 0
+      ? Math.floor(totalPendingDays + 1e-9)
+      : Math.ceil(totalPendingDays - 1e-9);
+  tm.fractionalDays = Number(Math.max(0, totalPendingDays - wholeDays).toFixed(6));
+
+  const targetDateStr =
+    wholeDays !== 0 ? addDaysToSimDate(prevDateStr, wholeDays) : prevDateStr;
   tm.crisisDate = targetDateStr;
 
   let nextPayDateStr = tm.nextPaymentDate || addDaysToSimDate(prevDateStr, 90);
 
   let quartersCrossed = 0;
-  let dateDiff = diffSimDays(nextPayDateStr, targetDateStr);
+  let dateDiff = diffSimDays(nextPayDateStr, targetDateStr) - tm.fractionalDays;
+  let maxQuartersPerTick = 120;
 
-  while (dateDiff < 3) {
+  while (dateDiff < 3 && maxQuartersPerTick-- > 0) {
     nextPayDateStr = addDaysToSimDate(nextPayDateStr, 90);
     tm.nextPaymentDate = nextPayDateStr;
     runBudgetAndDividendUpdater(state);
     quartersCrossed++;
-    dateDiff = diffSimDays(nextPayDateStr, targetDateStr);
+    dateDiff = diffSimDays(nextPayDateStr, targetDateStr) - tm.fractionalDays;
   }
 
   state.version = (state.version || 0) + 1;

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Clock,
   Play,
@@ -35,6 +35,23 @@ export default function LedgerAndTimeView({
   const tm = state.timeManager || {};
   const [randomizeHype, setRandomizeHype] = useState(true);
   const [chartMetric, setChartMetric] = useState("aggregateGdp");
+  const [speedInput, setSpeedInput] = useState(String(tm.intervalDaysPerHour || 90));
+
+  useEffect(() => {
+    if (tm.intervalDaysPerHour !== undefined && tm.intervalDaysPerHour !== null) {
+      setSpeedInput(String(tm.intervalDaysPerHour));
+    }
+  }, [tm.intervalDaysPerHour]);
+
+  const commitSpeedInput = (rawVal) => {
+    const parsed = Number(rawVal ?? speedInput);
+    if (Number.isFinite(parsed) && parsed > 0) {
+      setSpeedInput(String(parsed));
+      onTimeAction({ intervalDaysPerHour: parsed });
+    } else {
+      setSpeedInput(String(tm.intervalDaysPerHour || 90));
+    }
+  };
 
   const usa = state.nations?.[0] || { id: "usa", name: "United States" };
 
@@ -141,23 +158,57 @@ export default function LedgerAndTimeView({
               </div>
             </div>
 
-            <div className="bg-slate-950/70 border border-slate-800 rounded-xl p-3">
-              <div className="text-[10px] text-slate-400">
-                Auto-Clock Speed (Days/Hr)
+            <div className="bg-slate-950/70 border border-slate-800 rounded-xl p-3 space-y-1.5">
+              <div className="flex items-center justify-between text-[10px] text-slate-400">
+                <span>Auto-Clock Speed (Days/Hr · Unlocked)</span>
+                <span className="font-mono text-cyan-300">
+                  +{(((Number(tm.intervalDaysPerHour) || 90) / 60) < 0.1
+                    ? ((Number(tm.intervalDaysPerHour) || 90) / 60).toFixed(4)
+                    : ((Number(tm.intervalDaysPerHour) || 90) / 60).toFixed(2))}d/tick
+                </span>
               </div>
               {canEdit ? (
-                <input
-                  type="number"
-                  min="1"
-                  step="15"
-                  value={tm.intervalDaysPerHour || 90}
-                  onChange={(e) =>
-                    onTimeAction({
-                      intervalDaysPerHour: Number(e.target.value),
-                    })
-                  }
-                  className="mt-1 w-full px-2 py-1 rounded bg-slate-900 border border-slate-700 font-mono-num font-bold text-white"
-                />
+                <>
+                  <div className="flex items-center gap-1.5">
+                    <input
+                      type="number"
+                      min="0.0001"
+                      step="any"
+                      value={speedInput}
+                      onChange={(e) => setSpeedInput(e.target.value)}
+                      onBlur={() => commitSpeedInput(speedInput)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          commitSpeedInput(speedInput);
+                        }
+                      }}
+                      className="w-full px-2 py-1 rounded bg-slate-900 border border-slate-700 font-mono-num font-bold text-white text-xs"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => commitSpeedInput(speedInput)}
+                      className="px-2 py-1 rounded bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-200 border border-cyan-500/40 text-[10px] font-bold cursor-pointer shrink-0"
+                    >
+                      Apply
+                    </button>
+                  </div>
+                  <div className="flex flex-wrap gap-1 pt-0.5">
+                    {[0.5, 1, 15, 90, 360, 1800, 7200].map((preset) => (
+                      <button
+                        key={preset}
+                        type="button"
+                        onClick={() => commitSpeedInput(preset)}
+                        className={`px-1.5 py-0.5 rounded text-[9px] font-mono border cursor-pointer transition ${
+                          Number(tm.intervalDaysPerHour || 90) === preset
+                            ? "bg-cyan-500/25 text-cyan-200 border-cyan-500/50"
+                            : "bg-slate-900 text-slate-400 border-slate-800 hover:text-slate-200"
+                        }`}
+                      >
+                        {preset}d
+                      </button>
+                    ))}
+                  </div>
+                </>
               ) : (
                 <div className="text-base font-bold font-mono-num text-slate-200 mt-0.5">
                   {tm.intervalDaysPerHour || 90}d / hr

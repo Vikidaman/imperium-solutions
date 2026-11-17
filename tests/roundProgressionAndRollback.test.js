@@ -529,4 +529,25 @@ describe("Round Progression and United States Simulation Mechanics", () => {
       "Deleted non-ruling party should be removed from roster"
     );
   });
+
+  it("supports unlocked fractional ultra-slow and multi-year ultra-fast auto-clock day accumulation", () => {
+    const clockState = buildSimplifiedSeed();
+    evaluateSimulation(clockState);
+    assert.equal(clockState.timeManager.crisisDate, "2025-01-01");
+
+    // 4 fractional ticks of 0.25 days (simulating e.g. 15 d/hr => 0.25 d/tick) must accumulate to +1 day
+    for (let i = 0; i < 3; i++) {
+      advanceSimulationTime(clockState, 0.25);
+      assert.equal(clockState.timeManager.crisisDate, "2025-01-01");
+      assert.ok(clockState.timeManager.fractionalDays > 0);
+    }
+    advanceSimulationTime(clockState, 0.25);
+    assert.equal(clockState.timeManager.crisisDate, "2025-01-02");
+    assert.equal(clockState.timeManager.fractionalDays, 0);
+
+    // High-speed 720-day leap (e.g. 43200 d/hr) must settle 8 quarters without hanging
+    const { quartersCrossed } = advanceSimulationTime(clockState, 720);
+    assert.equal(quartersCrossed, 8);
+    assert.ok(clockState.timeManager.quarterNumber >= 9);
+  });
 });

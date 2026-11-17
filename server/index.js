@@ -246,6 +246,7 @@ ensureDefaultSessions();
 const sessionCache = new Map();
 const sseClients = new Map();
 const liveTimers = new Map();
+const lastClientTickMap = new Map();
 
 function getCachedSession(sessionId) {
   if (!sessionCache.has(sessionId)) {
@@ -318,8 +319,13 @@ function syncLiveTimer(sessionId) {
         liveTimers.delete(sessionId);
         return;
       }
-      const intervalVal = Number(currentSess.state.timeManager.intervalDaysPerHour) || 90;
-      const daysToAdd = intervalVal / 60;
+      const lastClientTick = lastClientTickMap.get(sessionId) || 0;
+      if (Date.now() - lastClientTick < 4500) {
+        return;
+      }
+      const rawSpeed = Number(currentSess.state.timeManager.intervalDaysPerHour);
+      const speedVal = Number.isFinite(rawSpeed) && rawSpeed > 0 ? rawSpeed : 90;
+      const daysToAdd = speedVal / 60;
       const { quartersCrossed } = advanceSimulationTime(currentSess.state, daysToAdd);
       if (quartersCrossed > 0) {
         recordLedgerSnapshot(sessionId, currentSess.state);
@@ -329,7 +335,7 @@ function syncLiveTimer(sessionId) {
         "Auto-Clock",
         quartersCrossed > 0
           ? `Quarterly Settlement Executed (Q${currentSess.state.timeManager.quarterNumber})`
-          : `Timer Tick (+${daysToAdd.toFixed(2)}d)`,
+          : `Timer Tick (+${daysToAdd < 0.1 ? daysToAdd.toFixed(4) : daysToAdd.toFixed(2)}d)`,
         `Date: ${currentSess.state.timeManager.crisisDate}`
       );
     }, 3000);
@@ -507,16 +513,23 @@ app.post("/api/sessions/:id/time", (req, res) => {
     syncLiveTimer(id);
     const startStr = tm.crisisStartDate || "2025-01-01";
     tm.crisisDate = startStr;
+    tm.fractionalDays = 0;
     tm.nextPaymentDate = addDaysToSimDate(startStr, 90);
     toastMessage = "Time Manager reset to start date.";
     actionDesc = "Reset Time Manager";
   } else if (command === "TIMER_TICK") {
-    const d = (Number(tm.intervalDaysPerHour) || 90) / 60;
+    lastClientTickMap.set(id, Date.now());
+    const rawSpeed = Number(tm.intervalDaysPerHour);
+    const speedVal = Number.isFinite(rawSpeed) && rawSpeed > 0 ? rawSpeed : 90;
+    const d = speedVal / 60;
     const { quartersCrossed } = advanceSimulationTime(sess.state, d);
     if (quartersCrossed > 0) {
       recordLedgerSnapshot(id, sess.state);
     }
-    actionDesc = `Timer Tick (+${d.toFixed(2)} days)`;
+    actionDesc =
+      quartersCrossed > 0
+        ? `Auto-Clock Quarterly Settlement (Q${sess.state.timeManager.quarterNumber})`
+        : `Timer Tick (+${d < 0.1 ? d.toFixed(4) : d.toFixed(2)} days)`;
   } else if (command === "NUEVO_GDP_MANAGER") {
     tm.nextPaymentDate = addDaysToSimDate(tm.nextPaymentDate || "2025-04-01", 90);
     runBudgetAndDividendUpdater(sess.state);
@@ -527,6 +540,7 @@ app.post("/api/sessions/:id/time", (req, res) => {
     const startDate = crisisStartDate || req.body.startDate || "2025-01-01";
     tm.crisisStartDate = startDate;
     tm.crisisDate = startDate;
+    tm.fractionalDays = 0;
     tm.nextPaymentDate = addDaysToSimDate(startDate, 90);
     tm.quarterNumber = 1;
     tm.daysElapsed = 0;
@@ -539,7 +553,12 @@ app.post("/api/sessions/:id/time", (req, res) => {
   }
 
   if (intervalDaysPerHour !== undefined) {
-    tm.intervalDaysPerHour = Math.max(1, Number(intervalDaysPerHour) || 90);
+    const parsedSpeed = Number(intervalDaysPerHour);
+    if (Number.isFinite(parsedSpeed) && parsedSpeed > 0) {
+      tm.intervalDaysPerHour = parsedSpeed;
+      toastMessage = `Auto-clock speed set to ${parsedSpeed} days/hr`;
+      actionDesc = `Set Auto-Clock Speed to ${parsedSpeed} d/hr`;
+    }
   }
 
   if (isLive !== undefined && !command) {

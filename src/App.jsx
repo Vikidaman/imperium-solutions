@@ -99,6 +99,7 @@ export default function App() {
   const [activeTab, setActiveTab] = useState("map");
   const [marketsSubTab, setMarketsSubTab] = useState("supplychain");
   const [actorName, setActorName] = useState("Director");
+  const [headerSpeedInput, setHeaderSpeedInput] = useState("90");
   const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState(null);
   const lastMutationTimeRef = useRef(0);
@@ -303,6 +304,13 @@ export default function App() {
   };
 
   useEffect(() => {
+    const srvSpeed = sessionData?.state?.timeManager?.intervalDaysPerHour;
+    if (srvSpeed !== undefined && srvSpeed !== null) {
+      setHeaderSpeedInput(String(srvSpeed));
+    }
+  }, [sessionData?.state?.timeManager?.intervalDaysPerHour]);
+
+  useEffect(() => {
     const isLive = sessionData?.state?.timeManager?.isLive;
     if (!isLive || isReadOnly) return;
 
@@ -311,7 +319,7 @@ export default function App() {
       if (inFlight) return;
       inFlight = true;
       try {
-        await handleTimeAction({ daysToAdd: 3 });
+        await handleTimeAction({ command: "TIMER_TICK" });
       } catch (err) {
         console.error("Auto tick error:", err);
       } finally {
@@ -631,6 +639,32 @@ export default function App() {
                   <RotateCcw className="w-3.5 h-3.5" />
                   Reset Baseline
                 </button>
+
+                <div className="flex items-center bg-slate-900 border border-slate-800 rounded-xl px-2 py-1 gap-1.5">
+                  <input
+                    type="number"
+                    min="0.0001"
+                    step="any"
+                    value={headerSpeedInput}
+                    onChange={(e) => setHeaderSpeedInput(e.target.value)}
+                    onBlur={() => {
+                      const val = Number(headerSpeedInput);
+                      if (Number.isFinite(val) && val > 0 && val !== Number(tm.intervalDaysPerHour || 90)) {
+                        handleTimeAction({ intervalDaysPerHour: val });
+                      } else {
+                        setHeaderSpeedInput(String(tm.intervalDaysPerHour || 90));
+                      }
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.currentTarget.blur();
+                      }
+                    }}
+                    title="Auto-Clock Speed (Days per Hour) — type any positive speed (e.g. 0.5, 90, 3600)"
+                    className="w-16 bg-transparent text-right font-mono-num font-bold text-xs text-cyan-300 focus:outline-none"
+                  />
+                  <span className="text-[10px] text-slate-400 font-semibold pr-0.5">d/hr</span>
+                </div>
 
                 <button
                   onClick={() =>

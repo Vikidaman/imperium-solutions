@@ -681,10 +681,13 @@ export default {
           tm.liveStatus = "VIRGIN";
           const startStr = tm.crisisStartDate || "2025-01-01";
           tm.crisisDate = startStr;
+          tm.fractionalDays = 0;
           tm.nextPaymentDate = addDaysToSimDate(startStr, 90);
           toastMessage = "Time Manager reset.";
         } else if (body.command === "TIMER_TICK") {
-          const d = (Number(tm.intervalDaysPerHour) || 90) / 60;
+          const rawSpeed = Number(tm.intervalDaysPerHour);
+          const speedVal = Number.isFinite(rawSpeed) && rawSpeed > 0 ? rawSpeed : 90;
+          const d = speedVal / 60;
           const { quartersCrossed } = advanceSimulationTime(sess.state, d);
           if (quartersCrossed > 0) {
             await recordLedgerSnapshot(db, sessionId, sess.state);
@@ -698,6 +701,7 @@ export default {
           const startDate = body.crisisStartDate || body.startDate || "2025-01-01";
           tm.crisisStartDate = startDate;
           tm.crisisDate = startDate;
+          tm.fractionalDays = 0;
           tm.nextPaymentDate = addDaysToSimDate(startDate, 90);
           tm.quarterNumber = 1;
           tm.daysElapsed = 0;
@@ -708,7 +712,11 @@ export default {
           tm.crisisStartDate = body.crisisStartDate;
         }
         if (body.intervalDaysPerHour !== undefined) {
-          tm.intervalDaysPerHour = Math.max(1, Number(body.intervalDaysPerHour) || 90);
+          const parsedSpeed = Number(body.intervalDaysPerHour);
+          if (Number.isFinite(parsedSpeed) && parsedSpeed > 0) {
+            tm.intervalDaysPerHour = parsedSpeed;
+            toastMessage = `Auto-clock speed set to ${parsedSpeed} days/hr`;
+          }
         }
 
         if (body.daysToAdd && Number(body.daysToAdd) !== 0) {
