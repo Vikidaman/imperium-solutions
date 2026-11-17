@@ -385,6 +385,8 @@ const InteractiveWorldMap = ({
       infrastructureEfficiency: 0.82,
       literacyRate: 0.92,
       urbanisationIndex: 0.83,
+      racialEqualityIndex: 0.68,
+      crimeControlIndex: 0.74,
       consumerSentiment: 65,
       kFactorScaler: 1500,
       freightDelayFriction: 0,
@@ -396,6 +398,8 @@ const InteractiveWorldMap = ({
         consumerSentiment: 65,
         kFactorScaler: 1500,
         incomeEqualityIndex: 0.615,
+        racialEqualityIndex: 0.68,
+        crimeControlIndex: 0.74,
         publicDebt: Number(usa.publicDebt ?? 34500000000000),
       },
     });
@@ -1395,29 +1399,37 @@ const InteractiveWorldMap = ({
                   </span>
                 </div>
                 {canEdit ? (
-                  <BufferedRangeSlider
-                    min={0.12}
-                    max={0.40}
-                    step={0.01}
-                    value={effectiveBaseTax}
-                    disabled={!canEdit}
-                    onCommit={(num) =>
-                      updatePolicy({
-                        baseTaxLevel: num,
-                        incomeTaxOverride: null,
-                        corporateTaxOverride: null,
-                        salesTaxOverride: null,
-                        capitalGainsTaxOverride: null,
-                      })
-                    }
-                    className="w-full accent-amber-500 cursor-pointer"
-                  />
+                  <div className="space-y-1">
+                    <BufferedRangeSlider
+                      min={0.0}
+                      max={1.0}
+                      step={0.01}
+                      value={effectiveBaseTax}
+                      disabled={!canEdit}
+                      onCommit={(num) =>
+                        updatePolicy({
+                          baseTaxLevel: num,
+                          incomeTaxOverride: null,
+                          corporateTaxOverride: null,
+                          salesTaxOverride: null,
+                          capitalGainsTaxOverride: null,
+                        })
+                      }
+                      className="w-full accent-amber-500 cursor-pointer"
+                    />
+                    <div className="flex items-center justify-between text-[9px] text-slate-500 font-mono">
+                      <span>0% Tax Free</span>
+                      <span>25% Mixed</span>
+                      <span>50% Nordic</span>
+                      <span>100% Full Nat. Inc.</span>
+                    </div>
+                  </div>
                 ) : (
                   <div className="w-full h-2 bg-slate-900 rounded-full overflow-hidden border border-slate-800">
                     <div
                       className="h-full bg-amber-500 transition-all"
                       style={{
-                        width: `${Math.min(100, Math.max(0, ((effectiveBaseTax - 0.12) / 0.28) * 100))}%`,
+                        width: `${Math.min(100, Math.max(0, effectiveBaseTax * 100))}%`,
                       }}
                     />
                   </div>
@@ -1677,7 +1689,7 @@ const InteractiveWorldMap = ({
                     <span className="font-semibold uppercase tracking-wider text-indigo-300">
                       Social Charter & Obligations
                     </span>
-                    <div className="flex items-center gap-2 font-mono">
+                    <div className="flex flex-wrap items-center gap-2 font-mono">
                       <span className="text-sky-300">
                         UDHR Freedoms:{" "}
                         {Math.round(Number(socialEffects.humanRightsIndex ?? 48))}/100
@@ -1687,6 +1699,32 @@ const InteractiveWorldMap = ({
                         Civic Duty:{" "}
                         {Math.round(Number(socialEffects.civicObligationIndex ?? 56))}/100
                       </span>
+                      <span className="text-slate-600">|</span>
+                      <span
+                        className={
+                          Number(socialEffects.corruptionIndex ?? 20) >= 40
+                            ? "text-rose-300 font-bold"
+                            : "text-emerald-300"
+                        }
+                      >
+                        Corruption: {Math.round(Number(socialEffects.corruptionIndex ?? 20))}/100
+                      </span>
+                      {Number(socialEffects.businessEstablishmentBoost || 0) !== 0 && (
+                        <>
+                          <span className="text-slate-600">|</span>
+                          <span
+                            className={
+                              Number(socialEffects.businessEstablishmentBoost) > 0
+                                ? "text-emerald-300"
+                                : "text-slate-400"
+                            }
+                          >
+                            Biz Permits:{" "}
+                            {Number(socialEffects.businessEstablishmentBoost) > 0 ? "+" : ""}
+                            {Math.round(Number(socialEffects.businessEstablishmentBoost) * 100)}%
+                          </span>
+                        </>
+                      )}
                     </div>
                   </div>
 
@@ -1970,6 +2008,32 @@ const InteractiveWorldMap = ({
                     fmtDelta: (d) => `${d >= 0 ? "+" : ""}${(d * 100).toFixed(2)}%/qtr`,
                     explanation: govDiag.explanations?.equality,
                     malus: govDiag.maluses?.equality,
+                  },
+                  {
+                    key: "racialEquality",
+                    label: "Racial Equality & Civil Inclusion",
+                    current: Number(usa.racialEqualityIndex ?? c.racialEqualityIndex ?? 0.68),
+                    start: Number(startingBaseline.racialEqualityIndex ?? 0.68),
+                    delta: Number(policyProg.racialEqualityDelta ?? 0),
+                    min: 0.25,
+                    max: 1.0,
+                    fmt: (v) => `${(v * 100).toFixed(1)}%`,
+                    fmtDelta: (d) => `${d >= 0 ? "+" : ""}${(d * 100).toFixed(2)}%/qtr`,
+                    explanation: govDiag.explanations?.racialEquality,
+                    malus: govDiag.maluses?.racialEquality,
+                  },
+                  {
+                    key: "crimeControl",
+                    label: "Public Safety & Crime Control",
+                    current: Number(usa.crimeControlIndex ?? c.crimeControlIndex ?? 0.74),
+                    start: Number(startingBaseline.crimeControlIndex ?? 0.74),
+                    delta: Number(policyProg.crimeControlDelta ?? 0),
+                    min: 0.20,
+                    max: 1.0,
+                    fmt: (v) => `${(v * 100).toFixed(1)}%`,
+                    fmtDelta: (d) => `${d >= 0 ? "+" : ""}${(d * 100).toFixed(2)}%/qtr`,
+                    explanation: govDiag.explanations?.crimeControl,
+                    malus: govDiag.maluses?.crimeControl,
                   },
                 ].map((metric) => {
                   const pctFill = Math.min(

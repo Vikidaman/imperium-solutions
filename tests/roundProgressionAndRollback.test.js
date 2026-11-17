@@ -550,4 +550,167 @@ describe("Round Progression and United States Simulation Mechanics", () => {
     assert.equal(quartersCrossed, 8);
     assert.ok(clockState.timeManager.quarterNumber >= 9);
   });
+
+  it("models 0-100% tax bounds, corruption vs business-permit trade-off, racial equality & crime control trajectories, honeymoon approval with speech weighting, and scheduled elections", () => {
+    // 1. 0% to 100% Base Level of Tax
+    const zeroRates = computeTaxRatesFromPosture(0.0, 0.50);
+    assert.equal(zeroRates.incomeTax, 0);
+    assert.equal(zeroRates.corporateTax, 0);
+    assert.equal(zeroRates.capitalGainsTax, 0);
+    assert.equal(zeroRates.salesTax, 0);
+
+    const highTaxState = buildSimplifiedSeed();
+    highTaxState.nations[0].baseTaxLevel = 0.85;
+    evaluateSimulation(highTaxState);
+    assert.ok(
+      highTaxState.nations[0].computed.incomeTax > 0.70,
+      "High base tax (85%) should drive extreme income tax rates"
+    );
+    assert.ok(
+      highTaxState.nations[0].computed.forecast.finalGrowth < -4.0,
+      `Exaggerated Laffer tax choke at 85% must steeply contract GDP outlook, got ${highTaxState.nations[0].computed.forecast.finalGrowth}%`
+    );
+
+    // 2. Corruption Index trade-off (fast-track permits vs trust, sentiment & crime)
+    const corruptState = buildSimplifiedSeed();
+    corruptState.nations[0].socialPolicies = {
+      civilLibertiesCharter: "low",
+      privacyAndDueProcess: "balanced",
+      economicAndLaborRights: "balanced",
+      nationalCivicService: "balanced",
+      environmentalStewardship: "balanced",
+      corporateSocialObligation: "balanced",
+      antiCorruptionAndEthics: "low",
+    };
+    evaluateSimulation(corruptState);
+
+    const cleanState = buildSimplifiedSeed();
+    cleanState.nations[0].socialPolicies = {
+      civilLibertiesCharter: "strong",
+      privacyAndDueProcess: "strong",
+      economicAndLaborRights: "balanced",
+      nationalCivicService: "balanced",
+      environmentalStewardship: "balanced",
+      corporateSocialObligation: "balanced",
+      antiCorruptionAndEthics: "strong",
+    };
+    evaluateSimulation(cleanState);
+
+    assert.ok(
+      corruptState.nations[0].computed.corruptionIndex > 60 &&
+        cleanState.nations[0].computed.corruptionIndex < 15,
+      "Patronage + restricted press must spike corruptionIndex well above clean ICAC governance"
+    );
+    assert.ok(
+      corruptState.nations[0].computed.socialPolicyEval.businessEstablishmentBoost > 0,
+      "Corrupt fast-track permits must provide a businessEstablishmentBoost"
+    );
+    assert.ok(
+      corruptState.nations[0].computed.institutionalTrust <
+        cleanState.nations[0].computed.institutionalTrust - 0.35,
+      "Corruption must sharply depress institutional trust in government"
+    );
+    assert.ok(
+      corruptState.nations[0].computed.crimeRate > cleanState.nations[0].computed.crimeRate + 0.03,
+      "Corruption must increase crimeRate sharply"
+    );
+
+    // 3. Racial Equality & Public Safety / Crime Control trajectories
+    const safetyCrisisState = buildSimplifiedSeed();
+    safetyCrisisState.nations[0].enactedPolicies = {
+      ...cloneDefaultPolicies("Democratic"),
+      civilRights: { enacted: false, funding: "underfunded" },
+      publicSafety: { enacted: false, funding: "underfunded" },
+    };
+    advanceSimulationTime(safetyCrisisState, 270);
+    assert.ok(
+      safetyCrisisState.nations[0].racialEqualityIndex < 0.63,
+      "Repealed civilRights act must erode racialEqualityIndex over quarters"
+    );
+    assert.ok(
+      safetyCrisisState.nations[0].crimeControlIndex < 0.68,
+      "Repealed publicSafety act must erode crimeControlIndex over quarters"
+    );
+
+    // 4. Honeymoon Period + Freedom-of-Speech Weighted Approval + CNN margin tiers
+    const crisisElecState = buildSimplifiedSeed();
+    // Put country in deep crisis before inauguration
+    crisisElecState.nations[0].literacyRate = 0.62;
+    crisisElecState.nations[0].infrastructureEfficiency = 0.52;
+    crisisElecState.nations[0].consumerSentiment = 35;
+    crisisElecState.nations[0].crimeControlIndex = 0.45;
+    evaluateSimulation(crisisElecState);
+
+    const { record } = executeSimulatedElectionInState(crisisElecState, {
+      inaugurateWinner: true,
+      electionType: "Snap Election",
+    });
+    assert.ok(
+      crisisElecState.electionForecast.honeymoonActive,
+      "Inaugurating winner must activate Honeymoon Period"
+    );
+    assert.ok(
+      crisisElecState.electionForecast.incumbentApproval >= 52,
+      `Honeymoon period must shield newly inaugurated winner even in crisis, got ${crisisElecState.electionForecast.incumbentApproval}%`
+    );
+    assert.ok(
+      crisisElecState.electionForecast.projectedWinner.startsWith(record.winner),
+      "Projection must NOT immediately flip against the newly inaugurated winner on Day 1"
+    );
+
+    // Compare Freedom-of-Speech weighting on approval sensitivity in a mild downturn post-honeymoon
+    crisisElecState.nations[0].inaugurationState.inauguratedDate = "2020-01-01"; // expire honeymoon
+    crisisElecState.nations[0].inaugurationState.baselineGovComposite = 76;
+    crisisElecState.nations[0].literacyRate = 0.87;
+    crisisElecState.nations[0].infrastructureEfficiency = 0.77;
+    crisisElecState.nations[0].consumerSentiment = 56;
+    crisisElecState.nations[0].crimeControlIndex = 0.67;
+    crisisElecState.nations[0].socialPolicies = {
+      ...crisisElecState.nations[0].socialPolicies,
+      civilLibertiesCharter: "strong",
+    };
+    evaluateSimulation(crisisElecState);
+    const openSpeechApproval = crisisElecState.electionForecast.incumbentApproval;
+
+    crisisElecState.nations[0].socialPolicies = {
+      ...crisisElecState.nations[0].socialPolicies,
+      civilLibertiesCharter: "low",
+    };
+    evaluateSimulation(crisisElecState);
+    const censoredSpeechApproval = crisisElecState.electionForecast.incumbentApproval;
+    assert.ok(
+      openSpeechApproval < censoredSpeechApproval - 8,
+      `Open Freedom of Speech (1.65x) must weight poor governance much more severely against approval (${openSpeechApproval}%) than restricted speech (${censoredSpeechApproval}%)`
+    );
+    assert.ok(
+      ["safe", "likely", "lean", "tossup"].includes(
+        crisisElecState.electionForecast.stateResults[0].cnnTier
+      ),
+      "Each state must expose CNN margin tier (safe, likely, lean, tossup)"
+    );
+
+    // 5. Scheduled Election Auto-Trigger
+    const schedState = buildSimplifiedSeed();
+    schedState.electionSchedule = {
+      enabled: true,
+      nextElectionDate: "2025-06-01",
+      cycleYears: 4,
+      autoInaugurate: true,
+    };
+    const resSched = advanceSimulationTime(schedState, 180);
+    assert.equal(
+      resSched.electionsHeld,
+      1,
+      "Crossing nextElectionDate must automatically trigger scheduled election"
+    );
+    assert.equal(
+      schedState.nations[0].electionHistory[0]?.electionType,
+      "Scheduled National Election"
+    );
+    assert.equal(
+      schedState.electionSchedule.nextElectionDate,
+      "2029-06-01",
+      "Scheduled election must advance nextElectionDate by cycleYears"
+    );
+  });
 });

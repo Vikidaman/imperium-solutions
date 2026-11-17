@@ -607,6 +607,8 @@ app.patch("/api/sessions/:id/nations/:nationId", (req, res) => {
     "literacyRate",
     "urbanisationIndex",
     "infrastructureEfficiency",
+    "racialEqualityIndex",
+    "crimeControlIndex",
     "rulingParty",
     "enactedPolicies",
     "startingBaseline",
@@ -715,18 +717,54 @@ app.post("/api/sessions/:id/elections", (req, res) => {
   if (!sess) return res.status(404).json({ error: "Session not found" });
 
   try {
-    const { inaugurateWinner = false, actor } = req.body || {};
-    const { record } = executeSimulatedElectionInState(sess.state, { inaugurateWinner });
+    const {
+      inaugurateWinner = false,
+      electionType = "Snap Election",
+      resetCycleFromToday = false,
+      scheduleOnly = false,
+      schedule,
+      actor,
+    } = req.body || {};
+
+    if (schedule) {
+      sess.state.electionSchedule = {
+        ...(sess.state.electionSchedule || {}),
+        enabled: schedule.enabled !== undefined ? Boolean(schedule.enabled) : true,
+        nextElectionDate: schedule.nextElectionDate || sess.state.electionSchedule?.nextElectionDate || "2028-11-07",
+        cycleYears: Math.max(1, Math.min(20, Number(schedule.cycleYears ?? sess.state.electionSchedule?.cycleYears ?? 4))),
+        autoInaugurate: schedule.autoInaugurate !== undefined ? Boolean(schedule.autoInaugurate) : true,
+      };
+    }
+
+    if (scheduleOnly) {
+      persistAndBroadcast(
+        id,
+        actor,
+        "Updated Election Schedule",
+        `Next: ${sess.state.electionSchedule?.nextElectionDate} (${sess.state.electionSchedule?.cycleYears}y cycle)`
+      );
+      return res.json({
+        session: sess,
+        toastMessage: `Election schedule saved (Next: ${sess.state.electionSchedule?.nextElectionDate}).`,
+        activityLog: getActivityLog(id, 60),
+      });
+    }
+
+    const { record } = executeSimulatedElectionInState(sess.state, {
+      inaugurateWinner,
+      electionType,
+      resetCycleFromToday,
+    });
     persistAndBroadcast(
       id,
       actor,
-      `National Election Held: ${record.winner} (${record.winnerEv} EVs)`,
-      inaugurateWinner ? `Inaugurated ${record.winner}` : "Polling & EV tally recorded"
+      `${electionType}: ${record.winner} (${record.winnerEv} EVs)`,
+      inaugurateWinner ? `Inaugurated ${record.winner} (180d honeymoon)` : "Polling & EV tally recorded"
     );
     res.json({
       session: sess,
       electionRecord: record,
-      toastMessage: `Election Result: ${record.winner} wins ${record.winnerEv} Electoral Votes (${record.winnerPollPct}% Vote).`,
+      toastMessage: `${electionType}: ${record.winner} wins ${record.winnerEv} Electoral Votes (${record.winnerPollPct}% Vote).`,
       activityLog: getActivityLog(id, 60),
     });
   } catch (err) {

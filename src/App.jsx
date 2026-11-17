@@ -397,13 +397,26 @@ export default function App() {
     }
   };
 
-  const handleRunElection = async ({ inaugurateWinner = false } = {}) => {
+  const handleRunElection = async ({
+    inaugurateWinner = false,
+    electionType = "Snap Election",
+    resetCycleFromToday = false,
+    scheduleOnly = false,
+    schedule = null,
+  } = {}) => {
     if (guardReadOnly()) return;
     lastMutationTimeRef.current = Date.now();
     const res = await fetch(`/api/sessions/${activeSessionId}/elections`, {
       method: "POST",
       headers: getMutationHeaders(),
-      body: JSON.stringify({ inaugurateWinner, actor: actorName }),
+      body: JSON.stringify({
+        inaugurateWinner,
+        electionType,
+        resetCycleFromToday,
+        scheduleOnly,
+        schedule,
+        actor: actorName,
+      }),
     });
     if (res.ok) {
       const data = await res.json();

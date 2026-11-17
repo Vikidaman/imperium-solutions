@@ -253,6 +253,8 @@ export function computeGovernanceDiagnostics({
   consumerSentiment = 65,
   kFactorScaler = 1500,
   incomeEqualityIndex = 0.615,
+  racialEqualityIndex = 0.68,
+  crimeControlIndex = 0.74,
 }) {
   // 1. Workforce Literacy & Education -> Graduate Underemployment above 94%
   const litExcess = Math.max(0, literacyRate - 0.94);
@@ -341,6 +343,30 @@ export function computeGovernanceDiagnostics({
     eqText = "Severe wealth polarization leaves working households fragile, sharply depressing broad consumption propensity and institutional trust.";
   }
 
+  // 7. Racial Equality & Civil Inclusion -> Compliance & Litigation Friction above 92%
+  const racExcess = Math.max(0, racialEqualityIndex - 0.92);
+  const racialComplianceDrag = racExcess > 0 ? Number((racExcess * 1.6).toFixed(4)) : 0;
+  let racText = "Broad civic integration supports equitable labor force participation and neighborhood stability.";
+  if (racialEqualityIndex >= 0.90) {
+    racText = "Full demographic integration unlocks vast human potential across STEM and entrepreneurship — though rigid federal quota mandates above 92% add compliance litigation friction.";
+  } else if (racialEqualityIndex >= 0.66) {
+    racText = "Broad anti-discrimination protections widen opportunity across metros, though regional wealth and housing gaps persist.";
+  } else {
+    racText = "Systemic exclusion and civil rights rollbacks depress labor force participation, talent matching, and social cohesion.";
+  }
+
+  // 8. Public Safety & Crime Control -> Over-Policing & Carceral Overhead above 93%
+  const crimeCtrlExcess = Math.max(0, crimeControlIndex - 0.93);
+  const carceralOverheadBudgetPct = crimeCtrlExcess > 0 ? Number((crimeCtrlExcess * 0.22).toFixed(5)) : 0;
+  let crimeCtrlText = "Balanced community policing and judicial reliability keep commercial corridors safe.";
+  if (crimeControlIndex >= 0.91) {
+    crimeCtrlText = "Ultra-low street crime and racketeering make commercial hubs remarkably safe — though heavy surveillance & incarceration budgets above 93% carry rising civic and fiscal overhead.";
+  } else if (crimeControlIndex >= 0.70) {
+    crimeCtrlText = "Consistent local policing and prosecution contain violent & property crime without excessive fiscal drag.";
+  } else {
+    crimeCtrlText = "Underfunded justice and rising corruption erode public order, triggering retail shrinkage, capital flight, and falling sentiment.";
+  }
+
   const maluses = {
     literacy: {
       active: litExcess > 0,
@@ -399,6 +425,24 @@ export function computeGovernanceDiagnostics({
         : "Triggers above 70.0% Income Equality when steep redistribution flattens equity risk-reward.",
       equalityCapitalDrag,
     },
+    racialEquality: {
+      active: racExcess > 0,
+      title: "Compliance & Quota Litigation Friction",
+      penaltyLabel: racExcess > 0 ? `-${racialComplianceDrag.toFixed(2)}% Hiring Agility` : "Inactive (< 92.0%)",
+      detail: racExcess > 0
+        ? "Rigid administrative compliance quotas above 92% introduce permitting & hiring litigation overhead."
+        : "Triggers above 92.0% Racial Equality when statutory compliance mandates overtake market flexibility.",
+      racialComplianceDrag,
+    },
+    crimeControl: {
+      active: crimeCtrlExcess > 0,
+      title: "Over-Policing & Carceral Fiscal Drag",
+      penaltyLabel: crimeCtrlExcess > 0 ? `+${(carceralOverheadBudgetPct * 100).toFixed(2)}% Carceral Cost` : "Inactive (< 93.0%)",
+      detail: crimeCtrlExcess > 0
+        ? "Maintaining ultra-low crime above 93% escalates federal corrections outlays and civil-liberties friction."
+        : "Triggers above 93.0% Crime Control when enforcement saturation raises carceral overhead.",
+      carceralOverheadBudgetPct,
+    },
   };
 
   return {
@@ -409,6 +453,8 @@ export function computeGovernanceDiagnostics({
       sentiment: sentText,
       productivity: kText,
       equality: eqText,
+      racialEquality: racText,
+      crimeControl: crimeCtrlText,
     },
     maluses,
     totals: {
@@ -416,25 +462,32 @@ export function computeGovernanceDiagnostics({
       underemploymentRate,
       automationGiniPressure,
       urbanOvercrowdingInflation,
-      infraMaintenanceBudgetPct,
+      infraMaintenanceBudgetPct: Number((infraMaintenanceBudgetPct + carceralOverheadBudgetPct).toFixed(5)),
       sentimentOverheatingInflation,
       sentimentImportLeakage,
       equalityCapitalDrag,
+      racialComplianceDrag,
+      carceralOverheadBudgetPct,
     },
   };
 }
 
 /**
- * Evaluates enacted Social Policies grounded in Individual Freedoms (Human Rights Charter)
- * and Social Obligations & Civic Duties.
+ * Evaluates enacted Social Policies grounded in Individual Freedoms (Human Rights Charter),
+ * Social Obligations & Civic Duties, and Institutional Corruption vs. Fast-Track Business Permits.
  */
-export function evaluateSocialPolicies(nation = {}, party = DEFAULT_POLITICAL_PARTIES[0]) {
+export function evaluateSocialPolicies(nation = {}, party = DEFAULT_POLITICAL_PARTIES[0], enactedPolicies = null) {
   const defaultSocial = cloneDefaultSocialPolicies(party?.name || "Democratic", [party]);
   const rawSocial = nation.socialPolicies || party?.socialPolicies || defaultSocial;
 
   const resolvedPolicies = {};
   let humanRightsIndex = 0;
   let civicObligationIndex = 0;
+  let corruptionIndex = 0;
+  let businessEstablishmentBoost = 0;
+  let trustBonus = 0;
+  let sentimentBonus = 0;
+  let crimeSurge = 0;
   let socialSolBonus = 0;
   let equalityBonus = 0;
   let stemInnovationBonus = 0;
@@ -447,6 +500,11 @@ export function evaluateSocialPolicies(nation = {}, party = DEFAULT_POLITICAL_PA
     resolvedPolicies[spec.id] = levelKey;
     humanRightsIndex += Number(lvl.freedomPts) || 0;
     civicObligationIndex += Number(lvl.obligationPts) || 0;
+    corruptionIndex += Number(lvl.corruptionPts) || 0;
+    businessEstablishmentBoost += Number(lvl.businessEstablishmentBoost) || 0;
+    trustBonus += Number(lvl.trustBonus) || 0;
+    sentimentBonus += Number(lvl.sentimentBonus) || 0;
+    crimeSurge += Number(lvl.crimeSurge) || 0;
     socialSolBonus += Number(lvl.solBonus) || 0;
     equalityBonus += Number(lvl.eqBonus) || 0;
     stemInnovationBonus += Number(lvl.stemBonus) || 0;
@@ -456,14 +514,52 @@ export function evaluateSocialPolicies(nation = {}, party = DEFAULT_POLITICAL_PA
     partyDefaultCostPct += Number(spec.levels[defKey]?.costPct) || 0;
   }
 
+  // Press freedom & weak governance/public safety funding amplify corruption sharply
+  const speechFreedomLevel = resolvedPolicies.civilLibertiesCharter || "balanced";
+  if (speechFreedomLevel === "low") {
+    corruptionIndex += 18;
+    trustBonus -= 0.08;
+  } else if (speechFreedomLevel === "strong") {
+    corruptionIndex = Math.max(2, corruptionIndex - 4);
+  }
+  const activePolicies = enactedPolicies || nation.enactedPolicies || party?.defaultPolicies || {};
+  for (const pid of ["governance", "publicSafety"]) {
+    const pEntry = activePolicies[pid];
+    if (pEntry) {
+      if (pEntry.enacted === false) corruptionIndex += 18;
+      else if (pEntry.funding === "underfunded") corruptionIndex += 10;
+      else if (pEntry.funding === "landmark") corruptionIndex -= 4;
+    }
+  }
+  corruptionIndex = Math.max(0, Math.min(100, Math.round(corruptionIndex)));
+
+  const speechSensitivityMultiplier =
+    speechFreedomLevel === "strong" ? 1.65 : speechFreedomLevel === "low" ? 0.45 : 1.15;
+  const speechFreedomLabel =
+    speechFreedomLevel === "strong"
+      ? "Open Charter (1.65x Voter Reactivity)"
+      : speechFreedomLevel === "low"
+      ? "Restricted Media (0.45x Voter Reactivity)"
+      : "Constitutional Std (1.15x Voter Reactivity)";
+
   return {
     socialPolicies: resolvedPolicies,
     humanRightsIndex: Math.max(0, Math.min(100, Math.round(humanRightsIndex))),
     civicObligationIndex: Math.max(0, Math.min(100, Math.round(civicObligationIndex))),
+    corruptionIndex,
+    businessEstablishmentBoost: Number(businessEstablishmentBoost.toFixed(4)),
+    trustBonus: Number(trustBonus.toFixed(4)),
+    sentimentBonus: Number(sentimentBonus.toFixed(2)),
+    crimeSurge: Number(crimeSurge.toFixed(4)),
+    speechFreedomLevel,
+    speechSensitivityMultiplier,
+    speechFreedomLabel,
     socialSolBonus: Number(socialSolBonus.toFixed(2)),
     equalityBonus: Number(equalityBonus.toFixed(4)),
     stemInnovationBonus: Number(stemInnovationBonus.toFixed(4)),
-    socialCohesionBonus: Number(((humanRightsIndex - 48) * 0.0012 + (civicObligationIndex - 50) * 0.0018).toFixed(4)),
+    socialCohesionBonus: Number(
+      ((humanRightsIndex - 48) * 0.0014 + (civicObligationIndex - 50) * 0.0018 - (corruptionIndex - 20) * 0.0024).toFixed(4)
+    ),
     fiscalCostPct: Number(costPct.toFixed(5)),
     fiscalAdjustmentPct: Number((costPct - partyDefaultCostPct).toFixed(5)),
   };
@@ -544,18 +640,58 @@ export function computeElectionSimulation(state = {}) {
   const unempPct = Number(c.unemploymentRate ?? 0.045) * 100;
   const sol = Number(c.sol ?? 38.9);
   const equality = Number(c.incomeEqualityIndex ?? 0.613);
-  const hrIdx = Number(c.socialPolicyEval?.humanRightsIndex ?? 48);
+  const racialEquality = Number(c.racialEqualityIndex ?? usa.racialEqualityIndex ?? 0.68);
+  const crimeControl = Number(c.crimeControlIndex ?? usa.crimeControlIndex ?? 0.74);
+  const socialEvalCurr = c.socialPolicyEval || evaluateSocialPolicies(usa, resolvePoliticalParty(parties, rulingName));
+  const corruptionIdx = Number(socialEvalCurr.corruptionIndex ?? 20);
+  const speechMult = Number(socialEvalCurr.speechSensitivityMultiplier ?? 1.15);
+  const speechFreedomLabel = socialEvalCurr.speechFreedomLabel || "Constitutional Std (1.15x Voter Reactivity)";
 
-  const rawApproval =
-    47.5 +
-    (growth - 2.0) * 2.4 -
+  const govCompositePct = Number(
+    c.solBreakdown?.govCompositePct ??
+      (((9 * 0.92 + 8 * 0.82 + 6 * 0.83 + 7 * 0.65 + 7 * 0.60 + 5 * (equality / 0.75) + 4 * racialEquality + 4 * crimeControl) / 50.0) * 100)
+  );
+
+  // Honeymoon Period: Newly inaugurated government gets a 180-day honeymoon grace period
+  const inaug = usa.inaugurationState;
+  const currSimDate = state.timeManager?.crisisDate || "2025-01-01";
+  const inHoneymoonParty = Boolean(inaug && inaug.partyName === rulingName);
+  const daysInOffice = inHoneymoonParty
+    ? Math.max(0, diffSimDays(currSimDate, inaug.inauguratedDate || currSimDate))
+    : 999;
+  const honeymoonTotalDays = Number(inaug?.honeymoonTotalDays || 180);
+  const honeymoonRemainingRatio = inHoneymoonParty
+    ? Math.max(0, Math.min(1, 1 - daysInOffice / honeymoonTotalDays))
+    : 0;
+  const honeymoonDaysRemaining = inHoneymoonParty
+    ? Math.max(0, Math.round(honeymoonTotalDays - daysInOffice))
+    : 0;
+
+  const govDeltaSinceInaug = inHoneymoonParty
+    ? govCompositePct - Number(inaug?.baselineGovComposite ?? govCompositePct)
+    : 0;
+
+  const rawMacroGovDelta =
+    (govCompositePct - 76.0) * 1.15 +
+    govDeltaSinceInaug * 2.2 -
+    (corruptionIdx - 20) * 0.32 +
+    (growth - 2.0) * 2.6 -
     Math.max(0, Math.abs(inflationPct - 2.2) - 0.5) * 2.8 -
     (unempPct - 4.5) * 2.4 +
-    (sol - 38.5) * 0.95 +
-    (equality - 0.61) * 35 +
-    (hrIdx - 48) * 0.06;
-  const incumbentApproval = Number(Math.max(18, Math.min(82, rawApproval)).toFixed(1));
-  const incumbentSwing = (incumbentApproval - 47.5) * 0.0038;
+    (equality - 0.61) * 32 +
+    (racialEquality - 0.68) * 18 +
+    (crimeControl - 0.74) * 22;
+
+  const structuralApproval = Math.max(12, Math.min(88, 47.5 + rawMacroGovDelta * speechMult));
+  const honeymoonApproval = 62.0 + (structuralApproval - 47.5) * 0.15;
+  const blendedApproval =
+    honeymoonRemainingRatio > 0
+      ? honeymoonRemainingRatio * honeymoonApproval + (1 - honeymoonRemainingRatio) * structuralApproval
+      : structuralApproval;
+
+  const incumbentApproval = Number(Math.max(12, Math.min(88, blendedApproval)).toFixed(1));
+  const incumbentSwing = (incumbentApproval - 47.5) * 0.0044;
+  const honeymoonPollShield = honeymoonRemainingRatio * 0.42;
 
   const partyProfiles = parties.map((p) => {
     const mode = Number(p.taxDistributionMode ?? 0.52);
@@ -586,11 +722,13 @@ export function computeElectionSimulation(state = {}) {
     const baseSupportWeight = Math.max(0.08, Number(p.currentSupport ?? 0.08));
     const isIncumbent = p.name === rulingName;
     const incumbentBonus = isIncumbent ? incumbentSwing : -incumbentSwing * (1 / Math.max(1, parties.length - 1));
+    const shieldTerm = isIncumbent ? honeymoonPollShield : -honeymoonPollShield * (1 / Math.max(1, parties.length - 1));
 
     const nationalScore = Math.exp(
       Math.log(baseSupportWeight) +
         0.35 * (0.45 * lowAppeal + 0.45 * midAppeal + 0.10 * upperAppeal) +
-        incumbentBonus * 3.2
+        incumbentBonus * 3.2 +
+        shieldTerm
     );
 
     return {
@@ -660,11 +798,13 @@ export function computeElectionSimulation(state = {}) {
         urbanScore * (p.govScore * 0.10 + (p.mode > 0.5 ? 0.22 : -0.10));
 
       const baseLogit = Math.log(Math.max(0.06, Number(p.party.currentSupport ?? 0.08)));
+      const logitShield = p.isIncumbent ? honeymoonPollShield : -honeymoonPollShield * 0.35;
       const logit =
         baseLogit -
         ideologyDistance * 1.75 +
         resourceAlignment +
-        (p.isIncumbent ? incumbentSwing * 2.8 : 0);
+        (p.isIncumbent ? incumbentSwing * 2.8 : 0) +
+        logitShield;
 
       return { name: p.name, color: p.color, expVal: Math.exp(Math.max(-6, Math.min(6, logit))) };
     });
@@ -682,6 +822,14 @@ export function computeElectionSimulation(state = {}) {
     const runnerUp = shares[1] || { name: "N/A", pct: 0 };
     const margin = Number((winner.pct - runnerUp.pct).toFixed(1));
     const isBattleground = margin < 5.0;
+    const cnnTier =
+      margin < 3.0
+        ? "tossup"
+        : margin < 7.0
+        ? "lean"
+        : margin < 13.0
+        ? "likely"
+        : "safe";
 
     if (electoralTotals[winner.name]) {
       electoralTotals[winner.name].ev += eMeta.ev;
@@ -699,6 +847,7 @@ export function computeElectionSimulation(state = {}) {
       runnerUp: runnerUp.name,
       runnerUpPct: runnerUp.pct,
       margin,
+      cnnTier,
       isBattleground,
       shares,
     };
@@ -713,7 +862,7 @@ export function computeElectionSimulation(state = {}) {
     const exps = partyProfiles.map((p) => ({
       name: p.name,
       color: p.color,
-      v: Math.max(0.05, Number(p.party.currentSupport ?? 0.08)) * Math.exp(p[appealKey] + (p.isIncumbent ? incumbentSwing * 2.5 : 0)),
+      v: Math.max(0.05, Number(p.party.currentSupport ?? 0.08)) * Math.exp(p[appealKey] + (p.isIncumbent ? incumbentSwing * 2.5 + honeymoonPollShield * 0.6 : 0)),
     }));
     const tot = exps.reduce((s, x) => s + x.v, 0) || 1;
     return exps.map((x) => ({ name: x.name, color: x.color, pct: Number(((x.v / tot) * 100).toFixed(1)) })).sort((a, b) => b.pct - a.pct);
@@ -722,6 +871,12 @@ export function computeElectionSimulation(state = {}) {
   return {
     incumbentParty: rulingName,
     incumbentApproval,
+    honeymoonActive: honeymoonRemainingRatio > 0,
+    honeymoonDaysRemaining,
+    speechSensitivityMultiplier: speechMult,
+    speechFreedomLabel,
+    govCompositePct: Number(govCompositePct.toFixed(1)),
+    corruptionIndex: corruptionIdx,
     projectedWinner,
     majorityThreshold: 270,
     totalElectoralVotes: 538,
@@ -747,7 +902,8 @@ export function computePolicyProgression(
   party = DEFAULT_POLITICAL_PARTIES[0],
   inflationRate = 0.022,
   unemploymentRate = 0.045,
-  taxDistributionMode = null
+  taxDistributionMode = null,
+  corruptionIndex = 20
 ) {
   const canonicalDefaultPolicies = cloneDefaultPolicies(party?.name || "Democratic");
   const partyDefaults = party?.defaultPolicies || canonicalDefaultPolicies;
@@ -774,35 +930,40 @@ export function computePolicyProgression(
   const infraScore = tierScoreOf(policies.infrastructure);
   const innovScore = tierScoreOf(policies.innovation);
   const govScore = tierScoreOf(policies.governance);
+  const civilRightsScore = tierScoreOf(policies.civilRights);
+  const publicSafetyScore = tierScoreOf(policies.publicSafety);
 
   // Compounding Institutional Neglect Multiplier when multiple core acts are underfunded or repealed
-  const neglectedCount = [eduScore, infraScore, innovScore, govScore].filter((s) => s <= 0).length;
-  const neglectMultiplier = neglectedCount >= 2 ? 1 + 0.18 * (neglectedCount - 1) : 1.0;
+  const neglectedCount = [eduScore, infraScore, innovScore, govScore, civilRightsScore, publicSafetyScore].filter((s) => s <= 0).length;
+  const neglectMultiplier = neglectedCount >= 2 ? 1 + 0.22 * (neglectedCount - 1) : 1.0;
 
-  // Severe quarterly penalties for underfunded (0) and repealed (-1) acts; rewarding priority/landmark
-  const EDU_LIT_MAP = { "-1": -0.0180, 0: -0.0095, 1: 0.0012, 2: 0.0032, 3: 0.0060 };
-  const INFRA_EFF_MAP = { "-1": -0.0240, 0: -0.0125, 1: 0.0012, 2: 0.0038, 3: 0.0070 };
-  const INFRA_URB_MAP = { "-1": -0.0090, 0: -0.0045, 1: 0.0006, 2: 0.0016, 3: 0.0030 };
-  const GOV_URB_MAP = { "-1": -0.0070, 0: -0.0035, 1: 0.0005, 2: 0.0012, 3: 0.0022 };
-  const GOV_SENT_MAP = { "-1": -5.5, 0: -2.8, 1: 0.25, 2: 0.85, 3: 1.65 };
-  const EDU_SENT_MAP = { "-1": -2.0, 0: -1.0, 1: 0.15, 2: 0.40, 3: 0.75 };
-  const INNOV_TFP_MAP = { "-1": -55, 0: -28, 1: 6, 2: 18, 3: 34 };
-  const EDU_TFP_MAP = { "-1": -25, 0: -12, 1: 3, 2: 8, 3: 15 };
-  const GOV_EQ_MAP = { "-1": -0.0140, 0: -0.0070, 1: 0.0010, 2: 0.0028, 3: 0.0052 };
-  const EDU_EQ_MAP = { "-1": -0.0080, 0: -0.0040, 1: 0.0008, 2: 0.0020, 3: 0.0036 };
+  // Exaggerated urgent quarterly trajectories (steep decay when neglected, strong surge at Landmark, steady balanced growth at Standard/Priority)
+  const EDU_LIT_MAP = { "-1": -0.0280, 0: -0.0150, 1: 0.0005, 2: 0.0018, 3: 0.0090 };
+  const INFRA_EFF_MAP = { "-1": -0.0360, 0: -0.0190, 1: 0.0005, 2: 0.0020, 3: 0.0100 };
+  const INFRA_URB_MAP = { "-1": -0.0135, 0: -0.0068, 1: 0.0003, 2: 0.0009, 3: 0.0042 };
+  const GOV_URB_MAP = { "-1": -0.0105, 0: -0.0052, 1: 0.0002, 2: 0.0007, 3: 0.0032 };
+  const GOV_SENT_MAP = { "-1": -8.5, 0: -4.2, 1: 0.10, 2: 0.45, 3: 2.60 };
+  const EDU_SENT_MAP = { "-1": -3.0, 0: -1.5, 1: 0.08, 2: 0.25, 3: 1.15 };
+  const INNOV_TFP_MAP = { "-1": -85, 0: -42, 1: 4, 2: 14, 3: 50 };
+  const EDU_TFP_MAP = { "-1": -38, 0: -18, 1: 2, 2: 6, 3: 22 };
+  const GOV_EQ_MAP = { "-1": -0.0210, 0: -0.0105, 1: 0.0004, 2: 0.0014, 3: 0.0075 };
+  const EDU_EQ_MAP = { "-1": -0.0120, 0: -0.0060, 1: 0.0003, 2: 0.0010, 3: 0.0050 };
+  const RAC_CIV_MAP = { "-1": -0.0320, 0: -0.0160, 1: 0.0006, 2: 0.0024, 3: 0.0120 };
+  const RAC_EDU_MAP = { "-1": -0.0110, 0: -0.0055, 1: 0.0002, 2: 0.0008, 3: 0.0040 };
+  const CRM_SAF_MAP = { "-1": -0.0350, 0: -0.0175, 1: 0.0008, 2: 0.0028, 3: 0.0120 };
+  const CRM_GOV_MAP = { "-1": -0.0120, 0: -0.0060, 1: 0.0002, 2: 0.0009, 3: 0.0042 };
 
   const partyInfraShare = Number(party?.infrastructureInvestmentShare ?? 0.038);
   const partyEduGovShare = Number(party?.educationGovernanceShare ?? 0.055);
 
-  // Positive party share bonuses apply ONLY if funded at standard or higher (preventing free drift under austerity)
   const eduPartyBonus =
     eduScore >= 1
-      ? (partyEduGovShare - 0.050) * 0.04
-      : Math.min(0, (partyEduGovShare - 0.050) * 0.08);
+      ? (partyEduGovShare - 0.050) * 0.06
+      : Math.min(0, (partyEduGovShare - 0.050) * 0.12);
   const infraPartyBonus =
     infraScore >= 1
-      ? (partyInfraShare - 0.035) * 0.12
-      : Math.min(0, (partyInfraShare - 0.035) * 0.20);
+      ? (partyInfraShare - 0.035) * 0.16
+      : Math.min(0, (partyInfraShare - 0.035) * 0.25);
 
   const scaleNegative = (val) => (val < 0 ? val * neglectMultiplier : val);
 
@@ -817,23 +978,37 @@ export function computePolicyProgression(
   );
 
   const macroSentimentDrag =
-    Math.max(0, inflationRate - 0.03) * 28 + Math.max(0, unemploymentRate - 0.05) * 24;
+    Math.max(0, inflationRate - 0.03) * 32 + Math.max(0, unemploymentRate - 0.05) * 28;
   const rawSent = (GOV_SENT_MAP[govScore] ?? 0) + (EDU_SENT_MAP[eduScore] ?? 0);
   const sentimentDelta = Number(
     (scaleNegative(rawSent) - macroSentimentDrag).toFixed(3)
   );
 
-  const infraTfpBonus = infraScore >= 2 ? 5 : infraScore <= 0 ? -6 : 0;
-  const rawTfp = (INNOV_TFP_MAP[innovScore] ?? 0) + (EDU_TFP_MAP[eduScore] ?? 0) + infraTfpBonus;
+  const infraTfpBonus = infraScore >= 2 ? 7 : infraScore <= 0 ? -9 : 0;
+  const corruptionTfpDrag = Math.max(0, (Number(corruptionIndex) - 30) * 0.45);
+  const rawTfp = (INNOV_TFP_MAP[innovScore] ?? 0) + (EDU_TFP_MAP[eduScore] ?? 0) + infraTfpBonus - corruptionTfpDrag;
   const tfpDelta = Number(scaleNegative(rawTfp).toFixed(1));
 
   const effMode =
     taxDistributionMode !== null && taxDistributionMode !== undefined
       ? Number(taxDistributionMode)
       : Number(nation.taxDistributionMode ?? party?.taxDistributionMode ?? 0.62);
-  const taxModeEqPush = (effMode - 0.55) * 0.012;
+  const taxModeEqPush = (effMode - 0.55) * 0.016;
   const rawEq = (GOV_EQ_MAP[govScore] ?? 0) + (EDU_EQ_MAP[eduScore] ?? 0) + taxModeEqPush;
   const equalityDelta = Number(scaleNegative(rawEq).toFixed(5));
+
+  const rawRacialEq =
+    (RAC_CIV_MAP[civilRightsScore] ?? 0) +
+    (RAC_EDU_MAP[eduScore] ?? 0) +
+    (effMode - 0.55) * 0.008;
+  const racialEqualityDelta = Number(scaleNegative(rawRacialEq).toFixed(5));
+
+  const corruptionCrimeDrag = (Number(corruptionIndex) - 20) * 0.00055;
+  const rawCrimeCtrl =
+    (CRM_SAF_MAP[publicSafetyScore] ?? 0) +
+    (CRM_GOV_MAP[govScore] ?? 0) -
+    corruptionCrimeDrag;
+  const crimeControlDelta = Number(scaleNegative(rawCrimeCtrl).toFixed(5));
 
   return {
     literacyDelta,
@@ -842,6 +1017,8 @@ export function computePolicyProgression(
     sentimentDelta,
     tfpDelta,
     equalityDelta,
+    racialEqualityDelta,
+    crimeControlDelta,
     neglectedCount,
     neglectMultiplier: Number(neglectMultiplier.toFixed(2)),
     policyBudgetAdjustmentPct: Number((rawCostPct - defaultCostPct).toFixed(5)),
@@ -953,13 +1130,29 @@ export function ensureUsaState(state) {
         consumerSentiment: Math.max(1, Number(usaNation.consumerSentiment ?? 65)),
         kFactorScaler: Number(usaNation.kFactorScaler ?? 1500),
         incomeEqualityIndex: 0.615,
+        racialEqualityIndex: normalizeRateMetric(usaNation.racialEqualityIndex, 0.68),
+        crimeControlIndex: normalizeRateMetric(usaNation.crimeControlIndex, 0.74),
         publicDebt:
           usaNation.publicDebt !== undefined && usaNation.publicDebt !== null
             ? Number(usaNation.publicDebt)
             : 34500000000000,
       };
-    } else if (usaNation.startingBaseline.incomeEqualityIndex === undefined) {
-      usaNation.startingBaseline.incomeEqualityIndex = 0.615;
+    } else {
+      if (usaNation.startingBaseline.incomeEqualityIndex === undefined) {
+        usaNation.startingBaseline.incomeEqualityIndex = 0.615;
+      }
+      if (usaNation.startingBaseline.racialEqualityIndex === undefined) {
+        usaNation.startingBaseline.racialEqualityIndex = 0.68;
+      }
+      if (usaNation.startingBaseline.crimeControlIndex === undefined) {
+        usaNation.startingBaseline.crimeControlIndex = 0.74;
+      }
+    }
+    if (usaNation.racialEqualityIndex === undefined) {
+      usaNation.racialEqualityIndex = usaNation.startingBaseline.racialEqualityIndex ?? 0.68;
+    }
+    if (usaNation.crimeControlIndex === undefined) {
+      usaNation.crimeControlIndex = usaNation.startingBaseline.crimeControlIndex ?? 0.74;
     }
     if (!usaNation.enactedPolicies) {
       usaNation.enactedPolicies = cloneDefaultPolicies(usaNation.rulingParty, state.politicalParties);
@@ -969,6 +1162,14 @@ export function ensureUsaState(state) {
     }
     if (!Array.isArray(usaNation.electionHistory)) {
       usaNation.electionHistory = [];
+    }
+    if (!state.electionSchedule) {
+      state.electionSchedule = {
+        enabled: true,
+        nextElectionDate: "2028-11-07",
+        cycleYears: 4,
+        autoInaugurate: true,
+      };
     }
 
     if (!usaNation.constituentStates || usaNation.constituentStates.length === 0) {
@@ -1331,9 +1532,9 @@ export function evaluateSimulation(state) {
       )
     );
     const baseTaxLevel = Math.max(
-      0.08,
+      0.0,
       Math.min(
-        0.50,
+        1.0,
         nation.baseTaxLevel !== undefined && nation.baseTaxLevel !== null
           ? Number(nation.baseTaxLevel)
           : Number(party.baseTaxLevel ?? 0.24)
@@ -1374,7 +1575,7 @@ export function evaluateSimulation(state) {
         ? Number(nation.workerShareOverride)
         : Number(party.workerShareOfGdp ?? 0.55);
 
-    const socialPolicyEval = evaluateSocialPolicies(nation, party);
+    const socialPolicyEval = evaluateSocialPolicies(nation, party, nation.enactedPolicies || party?.defaultPolicies);
 
     // Pre-compute policy progression (using prior inflation/unemployment estimates for macro sentiment nudge)
     const estInflation = Number(nation.computed?.inflationRate ?? 0.024);
@@ -1384,7 +1585,8 @@ export function evaluateSimulation(state) {
       party,
       estInflation,
       estUnemployment,
-      taxDistributionMode
+      taxDistributionMode,
+      socialPolicyEval.corruptionIndex
     );
     policyProgression.policyBudgetAdjustmentPct = Number(
       (policyProgression.policyBudgetAdjustmentPct + socialPolicyEval.fiscalAdjustmentPct).toFixed(5)
@@ -1437,11 +1639,21 @@ export function evaluateSimulation(state) {
           : 0.82
       )
     );
-    const consumerSentiment = Math.max(
-      1,
+    const baseSentVal =
       nation.consumerSentiment !== undefined && nation.consumerSentiment !== null
-        ? Math.max(1, Number(nation.consumerSentiment))
-        : 65
+        ? Number(nation.consumerSentiment)
+        : 65;
+    const consumerSentiment = Math.min(
+      115,
+      Math.max(10, Number((baseSentVal + socialPolicyEval.sentimentBonus).toFixed(2)))
+    );
+    const racialEqualityIndex = Math.min(
+      1,
+      Math.max(0.20, normalizeRateMetric(nation.racialEqualityIndex, 0.68))
+    );
+    const crimeControlIndex = Math.min(
+      1,
+      Math.max(0.15, normalizeRateMetric(nation.crimeControlIndex, 0.74))
     );
     const centralBankRate = Number(nation.centralBankRate ?? 0.045);
     const freightDelayFriction = Math.max(0, Number(nation.freightDelayFriction) || 0);
@@ -1496,39 +1708,48 @@ export function evaluateSimulation(state) {
       consumerSentiment,
       kFactorScaler: kFactorVal,
       incomeEqualityIndex,
+      racialEqualityIndex,
+      crimeControlIndex,
     });
     const malusTotals = governanceDiagnostics.totals;
 
     // --- Core Aggregate Demand (AD = C + I + G + NX) Determination ---
-    // Baseline reference rates: Democratic (baseTaxLevel=0.24, mode=0.62) -> incomeTax=0.3016, corp=0.2442, sales=0.0512
     const refRates = computeTaxRatesFromPosture(0.24, 0.62);
     const baselineDispShare = 0.55 * (1 - refRates.incomeTax) * (1 - refRates.salesTax);
     const dispIncomeRatio = (workerShareOfGdp * (1 - incomeTax) * (1 - salesTax)) / baselineDispShare;
     const sentimentRatio = consumerSentiment / 65.0;
     const baseCIdx = 0.42 + 0.36 * dispIncomeRatio + 0.22 * Math.pow(sentimentRatio, 0.42);
+    const lafferConsDrag = Math.max(0, incomeTax - 0.48) * 0.45 + Math.max(0, salesTax - 0.30) * 0.35;
     const cIdx = Math.max(
-      0.45,
-      Math.min(1.75, baseCIdx * bellCurveTax.consumptionMpcMultiplier)
+      0.25,
+      Math.min(1.85, baseCIdx * bellCurveTax.consumptionMpcMultiplier - lafferConsDrag)
     );
     const cShare = 0.68 * cIdx;
 
     // 2. Gross Private Domestic Investment (I) — Baseline weight 18% of GDP
+    // Includes fast-track business establishment permit boost (from deregulation/patronage) vs corruption chaos drag
     const baselineCorpShare = (1 - 0.55) * (1 - refRates.corporateTax);
     const profitRatio = ((1 - workerShareOfGdp) * (1 - corporateTax)) / baselineCorpShare;
     const rateIdx = 1 - (centralBankRate - 0.045) * 3.2;
+    const lafferCapexDrag = Math.max(0, corporateTax - 0.48) * 0.55 + Math.max(0, capitalGainsTax - 0.48) * 0.30;
     const structIdx =
       1 +
       (infrastructureEfficiency - 0.82) * 0.85 +
       (literacyRate - 0.92) * 0.60 +
       (urbanisationIndex - 0.83) * 0.38 +
+      (racialEqualityIndex - 0.68) * 0.28 +
+      (crimeControlIndex - 0.74) * 0.32 +
+      socialPolicyEval.businessEstablishmentBoost +
       (infrastructureInvestmentShare - 0.038) * 1.4 +
       (educationGovernanceShare - 0.055) * 0.8 -
       freightDelayFriction * 0.45 -
       bellCurveTax.investmentCapexDrag -
-      malusTotals.equalityCapitalDrag * 0.12;
+      lafferCapexDrag -
+      malusTotals.equalityCapitalDrag * 0.12 -
+      malusTotals.racialComplianceDrag * 0.10;
     const iIdx = Math.max(
-      0.30,
-      Math.min(1.90, 0.34 * profitRatio + 0.26 * rateIdx + 0.40 * structIdx)
+      0.20,
+      Math.min(2.10, 0.34 * profitRatio + 0.26 * rateIdx + 0.40 * structIdx)
     );
     const iShare = 0.18 * iIdx;
 
@@ -1636,10 +1857,15 @@ export function evaluateSimulation(state) {
     const healthcarePolicy =
       nation.healthcarePolicy || party.healthcarePolicy || "Private Healthcare";
 
-    const crimeRate =
+    const baseCriminalRate =
       totalEmployed > 0
         ? (numberOfCriminals / totalEmployed) * getCrimePolicyMultiplier(crimePolicy)
         : 0;
+    const structuralCrime = Math.max(
+      0,
+      (0.74 - crimeControlIndex) * 0.22 + (socialPolicyEval.crimeSurge || 0)
+    );
+    const crimeRate = Number(Math.max(0.001, Math.min(0.45, baseCriminalRate + structuralCrime)).toFixed(4));
 
     const quarterlyWages = Math.max(
       0,
@@ -1653,24 +1879,27 @@ export function evaluateSimulation(state) {
       Math.min(0.008, (crimeRate * urbanisationIndex) * 0.02 + getHealthcareMortalityBase(healthcarePolicy) * 0.22)
     );
 
-    // Standard of Living (SoL) as the weighted aggregate of Good Governance Trajectory + Social Policies
-    const litPts = Number((10.0 * literacyRate).toFixed(2));
-    const infraPts = Number((9.0 * infrastructureEfficiency).toFixed(2));
-    const urbPts = Number((7.0 * urbanisationIndex).toFixed(2));
-    const sentPts = Number((8.0 * Math.min(1.0, consumerSentiment / 100)).toFixed(2));
-    const prodPts = Number((8.0 * Math.min(1.0, kFactorVal / 2500)).toFixed(2));
-    const eqPts = Number((8.0 * Math.min(1.0, incomeEqualityIndex / 0.75)).toFixed(2));
+    // Standard of Living (SoL) as the weighted aggregate of all 8 Good Governance Trajectory indicators + Social Policies & Corruption Drag
+    const litPts = Number((9.0 * literacyRate).toFixed(2));
+    const infraPts = Number((8.0 * infrastructureEfficiency).toFixed(2));
+    const urbPts = Number((6.0 * urbanisationIndex).toFixed(2));
+    const sentPts = Number((7.0 * Math.min(1.0, consumerSentiment / 100)).toFixed(2));
+    const prodPts = Number((7.0 * Math.min(1.0, kFactorVal / 2500)).toFixed(2));
+    const eqPts = Number((5.0 * Math.min(1.0, incomeEqualityIndex / 0.75)).toFixed(2));
+    const racialEqualityPts = Number((4.0 * racialEqualityIndex).toFixed(2));
+    const crimeControlPts = Number((4.0 * crimeControlIndex).toFixed(2));
     const socialPolicyPts = socialPolicyEval.socialSolBonus;
-    const crimeMortalityDragPts = Number(((crimeRate + mortalityRate) * 4.0).toFixed(2));
-    const rawSol =
+    const crimeMortalityDragPts = Number(((crimeRate + mortalityRate) * 6.5).toFixed(2));
+    const govSumPts =
       litPts +
       infraPts +
       urbPts +
       sentPts +
       prodPts +
       eqPts +
-      socialPolicyPts -
-      crimeMortalityDragPts;
+      racialEqualityPts +
+      crimeControlPts;
+    const rawSol = govSumPts + socialPolicyPts - crimeMortalityDragPts;
     const sol = Number(Math.max(1.0, Math.min(50.0, Number.isFinite(rawSol) ? rawSol : 15.0)).toFixed(2));
     const solBreakdown = {
       literacyPts: litPts,
@@ -1679,9 +1908,11 @@ export function evaluateSimulation(state) {
       sentimentPts: sentPts,
       productivityPts: prodPts,
       equalityPts: eqPts,
+      racialEqualityPts,
+      crimeControlPts,
       socialPolicyPts,
       crimeMortalityDragPts,
-      govCompositePct: Number((((litPts + infraPts + urbPts + sentPts + prodPts + eqPts) / 50.0) * 100).toFixed(1)),
+      govCompositePct: Number(((govSumPts / 50.0) * 100).toFixed(1)),
       totalSol: sol,
     };
 
@@ -1830,12 +2061,33 @@ export function evaluateSimulation(state) {
     const povertyRate = Number(Math.max(0.025, Math.min(0.60, (48 - sol * lowNetFactor) / 95)).toFixed(3));
     const institutionalTrust = Number(
       Math.max(
-        0.1,
-        Math.min(0.95, 0.78 - Math.max(0, inflationRate - 0.04) * 1.8 - unemploymentRate * 0.7 + (incomeEqualityIndex - 0.60) * 0.35 + (socialPolicyEval.humanRightsIndex - 48) * 0.0015)
+        0.05,
+        Math.min(
+          0.95,
+          0.78 -
+            Math.max(0, inflationRate - 0.04) * 1.8 -
+            unemploymentRate * 0.7 +
+            (incomeEqualityIndex - 0.60) * 0.35 +
+            (racialEqualityIndex - 0.68) * 0.22 +
+            (crimeControlIndex - 0.74) * 0.30 +
+            (socialPolicyEval.humanRightsIndex - 48) * 0.0015 +
+            (socialPolicyEval.trustBonus || 0)
+        )
       ).toFixed(2)
     );
     const socialCohesion = Number(
-      Math.max(0.1, Math.min(0.95, 0.88 - unemploymentRate * 0.8 - (giniCoefficient - 0.35) * 0.9 + socialPolicyEval.socialCohesionBonus)).toFixed(2)
+      Math.max(
+        0.05,
+        Math.min(
+          0.95,
+          0.88 -
+            unemploymentRate * 0.8 -
+            (giniCoefficient - 0.35) * 0.9 +
+            (racialEqualityIndex - 0.68) * 0.25 +
+            (crimeControlIndex - 0.74) * 0.22 +
+            socialPolicyEval.socialCohesionBonus
+        )
+      ).toFixed(2)
     );
 
     const servicesEvaluation = evaluateServicesProduction({
@@ -1878,6 +2130,9 @@ export function evaluateSimulation(state) {
       inflationRate,
       giniCoefficient,
       incomeEqualityIndex,
+      racialEqualityIndex,
+      crimeControlIndex,
+      corruptionIndex: socialPolicyEval.corruptionIndex,
       povertyRate,
       institutionalTrust,
       socialCohesion,
@@ -2041,7 +2296,8 @@ export function runBudgetAndDividendUpdater(state) {
       party,
       Number(c.inflationRate ?? 0.024),
       Number(c.unemploymentRate ?? 0.045),
-      c.taxDistributionMode
+      c.taxDistributionMode,
+      Number(c.socialPolicyEval?.corruptionIndex ?? 20)
     );
     const currLit = normalizeRateMetric(nation.literacyRate ?? c.literacyRate, 0.92);
     const currInfra = normalizeRateMetric(
@@ -2052,6 +2308,8 @@ export function runBudgetAndDividendUpdater(state) {
     const currSent = Math.max(1, Number(nation.consumerSentiment ?? c.consumerConfidence ?? 65));
     const currKFactor = Math.max(400, Number(nation.kFactorScaler ?? 1500));
     const currEqDrift = Number(nation.equalityDrift) || 0;
+    const currRacial = normalizeRateMetric(nation.racialEqualityIndex ?? c.racialEqualityIndex, 0.68);
+    const currCrimeCtrl = normalizeRateMetric(nation.crimeControlIndex ?? c.crimeControlIndex, 0.74);
 
     nation.literacyRate = Number(Math.min(0.999, Math.max(0.40, currLit + prog.literacyDelta)).toFixed(4));
     nation.infrastructureEfficiency = Number(
@@ -2065,6 +2323,12 @@ export function runBudgetAndDividendUpdater(state) {
     );
     nation.kFactorScaler = Math.round(Math.min(3500, Math.max(600, currKFactor + prog.tfpDelta)));
     nation.equalityDrift = Number(Math.max(-0.18, Math.min(0.18, currEqDrift + prog.equalityDelta)).toFixed(5));
+    nation.racialEqualityIndex = Number(
+      Math.min(0.999, Math.max(0.25, currRacial + prog.racialEqualityDelta)).toFixed(4)
+    );
+    nation.crimeControlIndex = Number(
+      Math.min(0.999, Math.max(0.20, currCrimeCtrl + prog.crimeControlDelta)).toFixed(4)
+    );
     nation.enactedPolicies = prog.policies;
 
     const basePops =
@@ -2213,9 +2477,29 @@ export function advanceSimulationTime(state, daysToAdd = 90) {
     dateDiff = diffSimDays(nextPayDateStr, targetDateStr) - tm.fractionalDays;
   }
 
+  let electionsHeld = 0;
+  const sched = state.electionSchedule;
+  if (sched?.enabled && sched.nextElectionDate) {
+    let guard = 10;
+    while (diffSimDays(tm.crisisDate, sched.nextElectionDate) >= 0 && guard-- > 0) {
+      executeSimulatedElectionInState(state, {
+        inaugurateWinner: Boolean(sched.autoInaugurate),
+        electionType: "Scheduled National Election",
+      });
+      const parsedNext = parseSimDate(sched.nextElectionDate);
+      const cycleYears = Math.max(1, Number(sched.cycleYears) || 4);
+      sched.nextElectionDate = formatSimDate({
+        year: parsedNext.year + cycleYears,
+        month: parsedNext.month,
+        day: Math.min(getDaysInMonth(parsedNext.year + cycleYears, parsedNext.month), parsedNext.day),
+      });
+      electionsHeld++;
+    }
+  }
+
   state.version = (state.version || 0) + 1;
   evaluateSimulation(state);
-  return { state, quartersCrossed };
+  return { state, quartersCrossed, electionsHeld };
 }
 
 /**
@@ -2235,8 +2519,8 @@ export function upsertPoliticalPartyInState(state, payload = {}, targetName = nu
   const existing = idx >= 0 ? list[idx] : {};
 
   const baseTaxLevel = Math.max(
-    0.08,
-    Math.min(0.50, Number(payload.baseTaxLevel ?? existing.baseTaxLevel ?? 0.22))
+    0.0,
+    Math.min(1.0, Number(payload.baseTaxLevel ?? existing.baseTaxLevel ?? 0.22))
   );
   const taxDistributionMode = Math.max(
     0.10,
@@ -2331,6 +2615,14 @@ export function upsertPoliticalPartyInState(state, payload = {}, targetName = nu
     usa.corporateTaxOverride = null;
     usa.capitalGainsTaxOverride = null;
     usa.salesTaxOverride = null;
+    if (payload.makeRulingParty) {
+      usa.inaugurationState = {
+        partyName: partyObj.name,
+        inauguratedDate: state.timeManager?.crisisDate || "2025-01-01",
+        honeymoonTotalDays: 180,
+        baselineGovComposite: Number(usa.computed?.solBreakdown?.govCompositePct ?? 76),
+      };
+    }
   }
 
   evaluateSimulation(state);
@@ -2362,19 +2654,25 @@ export function deletePoliticalPartyInState(state, partyName) {
 
 /**
  * Conducts a full 50-state + DC National Election based on current polling & macro conditions,
- * stores the result in `usa.electionHistory`, and optionally inaugurates the winning party.
+ * stores the result in `usa.electionHistory`, and optionally inaugurates the winning party
+ * with a 180-day Honeymoon grace period whose subsequent decay is weighted by Freedom of Speech.
  */
-export function executeSimulatedElectionInState(state, { inaugurateWinner = false } = {}) {
+export function executeSimulatedElectionInState(
+  state,
+  { inaugurateWinner = false, electionType = "Snap Election", resetCycleFromToday = false } = {}
+) {
   evaluateSimulation(state);
   const usa = state.nations[0];
   const election = computeElectionSimulation(state);
   const leader = election.electoralStandings[0];
   const winnerName = leader?.name || usa.rulingParty;
+  const electionDate = state.timeManager?.crisisDate || "2025-01-01";
 
   const record = {
-    id: `elec_${Date.now().toString(36)}`,
-    date: state.timeManager?.crisisDate || "2025-01-01",
+    id: `elec_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 6)}`,
+    date: electionDate,
     quarter: Number(state.timeManager?.quarterNumber || 1),
+    electionType,
     incumbentParty: election.incumbentParty,
     incumbentApproval: election.incumbentApproval,
     winner: winnerName,
@@ -2406,6 +2704,22 @@ export function executeSimulatedElectionInState(state, { inaugurateWinner = fals
     usa.corporateTaxOverride = null;
     usa.capitalGainsTaxOverride = null;
     usa.salesTaxOverride = null;
+    usa.inaugurationState = {
+      partyName: winParty.name,
+      inauguratedDate: electionDate,
+      honeymoonTotalDays: 180,
+      baselineGovComposite: Number(usa.computed?.solBreakdown?.govCompositePct ?? 76),
+    };
+  }
+
+  if (resetCycleFromToday && state.electionSchedule) {
+    const parsedNow = parseSimDate(electionDate);
+    const cycleYears = Math.max(1, Number(state.electionSchedule.cycleYears) || 4);
+    state.electionSchedule.nextElectionDate = formatSimDate({
+      year: parsedNow.year + cycleYears,
+      month: parsedNow.month,
+      day: Math.min(getDaysInMonth(parsedNow.year + cycleYears, parsedNow.month), parsedNow.day),
+    });
   }
 
   evaluateSimulation(state);

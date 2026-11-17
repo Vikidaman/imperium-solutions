@@ -755,6 +755,8 @@ export default {
             "literacyRate",
             "urbanisationIndex",
             "infrastructureEfficiency",
+            "racialEqualityIndex",
+            "crimeControlIndex",
             "rulingParty",
             "enactedPolicies",
             "startingBaseline",
@@ -873,20 +875,59 @@ export default {
         if (!sess) return jsonResponse({ error: "Session not found" }, 404);
         try {
           const body = await request.json().catch(() => ({}));
-          const { inaugurateWinner = false, actor } = body;
-          const { record } = executeSimulatedElectionInState(sess.state, { inaugurateWinner });
+          const {
+            inaugurateWinner = false,
+            electionType = "Snap Election",
+            resetCycleFromToday = false,
+            scheduleOnly = false,
+            schedule,
+            actor,
+          } = body;
+
+          if (schedule) {
+            sess.state.electionSchedule = {
+              ...(sess.state.electionSchedule || {}),
+              enabled: schedule.enabled !== undefined ? Boolean(schedule.enabled) : true,
+              nextElectionDate: schedule.nextElectionDate || sess.state.electionSchedule?.nextElectionDate || "2028-11-07",
+              cycleYears: Math.max(1, Math.min(20, Number(schedule.cycleYears ?? sess.state.electionSchedule?.cycleYears ?? 4))),
+              autoInaugurate: schedule.autoInaugurate !== undefined ? Boolean(schedule.autoInaugurate) : true,
+            };
+          }
+
+          if (scheduleOnly) {
+            evaluateSimulation(sess.state);
+            await saveStateToD1(db, sess);
+            await logActivity(
+              db,
+              sessionId,
+              actor || "Director",
+              "Updated Election Schedule",
+              `Next: ${sess.state.electionSchedule?.nextElectionDate} (${sess.state.electionSchedule?.cycleYears}y)`
+            );
+            return jsonResponse({
+              session: sess,
+              toastMessage: `Election schedule saved (Next: ${sess.state.electionSchedule?.nextElectionDate}).`,
+              activityLog: await getActivityLog(db, sessionId, 60),
+            });
+          }
+
+          const { record } = executeSimulatedElectionInState(sess.state, {
+            inaugurateWinner,
+            electionType,
+            resetCycleFromToday,
+          });
           await saveStateToD1(db, sess);
           await logActivity(
             db,
             sessionId,
             actor || "Director",
-            `National Election: ${record.winner} (${record.winnerEv} EVs)`,
-            inaugurateWinner ? `Inaugurated ${record.winner}` : "Polling recorded"
+            `${electionType}: ${record.winner} (${record.winnerEv} EVs)`,
+            inaugurateWinner ? `Inaugurated ${record.winner} (180d honeymoon)` : "Polling recorded"
           );
           return jsonResponse({
             session: sess,
             electionRecord: record,
-            toastMessage: `Election Result: ${record.winner} wins ${record.winnerEv} Electoral Votes (${record.winnerPollPct}% Vote).`,
+            toastMessage: `${electionType}: ${record.winner} wins ${record.winnerEv} Electoral Votes (${record.winnerPollPct}% Vote).`,
             activityLog: await getActivityLog(db, sessionId, 60),
           });
         } catch (err) {

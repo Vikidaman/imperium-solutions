@@ -136,6 +136,22 @@ export const POLICY_CATALOG = [
     description:
       "Public safety modernization, healthcare access, and municipal administrative reliability.",
   },
+  {
+    id: "civilRights",
+    name: "Racial Equality, Fair Housing & Civil Rights Act",
+    shortName: "Racial Equality & Civil Rights",
+    drives: ["Racial Equality Index", "Workforce Participation", "Income Equality Index"],
+    description:
+      "Equal opportunity enforcement, fair lending/housing integration, and minority enterprise capital access.",
+  },
+  {
+    id: "publicSafety",
+    name: "Public Safety, Community Policing & Anti-Crime Act",
+    shortName: "Crime Control & Justice",
+    drives: ["Public Safety & Crime Control", "Household Consumer Sentiment", "Corruption Suppression"],
+    description:
+      "Modernized forensic policing, organized crime & graft prosecution, violence interruption, and judicial rehabilitation.",
+  },
 ];
 
 export const SOCIAL_POLICY_LEVELS = {
@@ -217,27 +233,78 @@ export const SOCIAL_POLICY_CATALOG = [
       strong: { label: "Mandatory Co-Determination", freedomPts: 0, obligationPts: 33, solBonus: 0.8, stemBonus: 0.0, eqBonus: 0.028, costPct: 0.003 },
     },
   },
+  {
+    id: "antiCorruptionAndEthics",
+    category: "social_obligation",
+    shortName: "Anti-Corruption, Deregulation & Fast-Track Permits",
+    articleRef: "UNCAC & Public Integrity Compact",
+    drives: ["Corruption Index", "Business Establishment Speed", "Institutional Trust", "Crime Rate"],
+    levels: {
+      low: {
+        label: "Patronage & Fast-Track Permits",
+        freedomPts: 0,
+        obligationPts: 2,
+        corruptionPts: 58,
+        businessEstablishmentBoost: 0.22,
+        trustBonus: -0.26,
+        sentimentBonus: -11.0,
+        crimeSurge: 0.042,
+        solBonus: -3.2,
+        stemBonus: -0.06,
+        eqBonus: -0.035,
+        costPct: -0.002,
+      },
+      balanced: {
+        label: "Standard Ethics & Inspectorates",
+        freedomPts: 0,
+        obligationPts: 14,
+        corruptionPts: 20,
+        businessEstablishmentBoost: 0.0,
+        trustBonus: 0.0,
+        sentimentBonus: 0.0,
+        crimeSurge: 0.0,
+        solBonus: 0.0,
+        stemBonus: 0.0,
+        eqBonus: 0.0,
+        costPct: 0.0,
+      },
+      strong: {
+        label: "Zero-Tolerance ICAC & Sunshine",
+        freedomPts: 0,
+        obligationPts: 28,
+        corruptionPts: 4,
+        businessEstablishmentBoost: -0.06,
+        trustBonus: 0.20,
+        sentimentBonus: 7.5,
+        crimeSurge: -0.018,
+        solBonus: 2.5,
+        stemBonus: 0.04,
+        eqBonus: 0.025,
+        costPct: 0.004,
+      },
+    },
+  },
 ];
 
 /**
  * Computes statutory Income Tax, Corporate Profit Tax, Capital Gains Tax, and Sales Tax
- * directly from Base Tax Level [0.08, 0.50] and Bell-Curve Modal Position [0.10, 0.90]:
+ * directly from Base Tax Level [0.00, 1.00] (0%–100% of national income) and Bell-Curve Modal Position [0.10, 0.90]:
  * - Lower Class Peak (m -> 0.15): Maximizes Sales & Consumption Tax.
  * - Middle Class Peak (m -> 0.50): Maximizes Federal Income Tax.
  * - Upper Income Peak (m -> 0.85): Maximizes Corporate Profit & Capital Gains Taxes.
  */
 export function computeTaxRatesFromPosture(baseTaxLevel = 0.24, taxDistributionMode = 0.62) {
-  const b = Math.max(0.08, Math.min(0.50, Number.isFinite(Number(baseTaxLevel)) ? Number(baseTaxLevel) : 0.24));
+  const b = Math.max(0.0, Math.min(1.0, Number.isFinite(Number(baseTaxLevel)) ? Number(baseTaxLevel) : 0.24));
   const m = Math.max(0.10, Math.min(0.90, Number.isFinite(Number(taxDistributionMode)) ? Number(taxDistributionMode) : 0.62));
 
   const wLow = Math.exp(-Math.pow(m - 0.15, 2) / (2 * Math.pow(0.22, 2)));
   const wMid = Math.exp(-Math.pow(m - 0.50, 2) / (2 * Math.pow(0.22, 2)));
   const wUpper = Math.exp(-Math.pow(m - 0.85, 2) / (2 * Math.pow(0.22, 2)));
 
-  const salesTax = Number(Math.max(0.01, Math.min(0.35, b * (0.14 + 0.72 * wLow))).toFixed(4));
-  const incomeTax = Number(Math.max(0.05, Math.min(0.60, b * (0.55 + 0.82 * wMid))).toFixed(4));
-  const corporateTax = Number(Math.max(0.05, Math.min(0.65, b * (0.45 + 0.98 * wUpper))).toFixed(4));
-  const capitalGainsTax = Number(Math.max(0.02, Math.min(0.65, b * (0.35 + 1.08 * wUpper))).toFixed(4));
+  const salesTax = b === 0 ? 0 : Number(Math.max(0.0, Math.min(0.85, b * (0.14 + 0.72 * wLow))).toFixed(4));
+  const incomeTax = b === 0 ? 0 : Number(Math.max(0.0, Math.min(0.98, b * (0.55 + 0.82 * wMid))).toFixed(4));
+  const corporateTax = b === 0 ? 0 : Number(Math.max(0.0, Math.min(0.98, b * (0.45 + 0.98 * wUpper))).toFixed(4));
+  const capitalGainsTax = b === 0 ? 0 : Number(Math.max(0.0, Math.min(0.98, b * (0.35 + 1.08 * wUpper))).toFixed(4));
 
   return {
     baseTaxLevel: Number(b.toFixed(4)),
@@ -342,6 +409,8 @@ export const DEFAULT_POLITICAL_PARTIES = [
       infrastructure: { enacted: true, funding: "priority" },
       innovation: { enacted: true, funding: "standard" },
       governance: { enacted: true, funding: "priority" },
+      civilRights: { enacted: true, funding: "priority" },
+      publicSafety: { enacted: true, funding: "standard" },
     },
     socialPolicies: {
       civilLibertiesCharter: "balanced",
@@ -350,6 +419,7 @@ export const DEFAULT_POLITICAL_PARTIES = [
       nationalCivicService: "low",
       environmentalStewardship: "balanced",
       corporateSocialObligation: "balanced",
+      antiCorruptionAndEthics: "balanced",
     },
   }),
   buildPartyWithTaxPosture({
@@ -374,6 +444,8 @@ export const DEFAULT_POLITICAL_PARTIES = [
       infrastructure: { enacted: true, funding: "standard" },
       innovation: { enacted: true, funding: "priority" },
       governance: { enacted: true, funding: "standard" },
+      civilRights: { enacted: true, funding: "standard" },
+      publicSafety: { enacted: true, funding: "priority" },
     },
     socialPolicies: {
       civilLibertiesCharter: "balanced",
@@ -382,6 +454,7 @@ export const DEFAULT_POLITICAL_PARTIES = [
       nationalCivicService: "balanced",
       environmentalStewardship: "low",
       corporateSocialObligation: "low",
+      antiCorruptionAndEthics: "balanced",
     },
   }),
   buildPartyWithTaxPosture({
@@ -406,6 +479,8 @@ export const DEFAULT_POLITICAL_PARTIES = [
       infrastructure: { enacted: true, funding: "landmark" },
       innovation: { enacted: true, funding: "priority" },
       governance: { enacted: true, funding: "landmark" },
+      civilRights: { enacted: true, funding: "landmark" },
+      publicSafety: { enacted: true, funding: "standard" },
     },
     socialPolicies: {
       civilLibertiesCharter: "strong",
@@ -414,6 +489,7 @@ export const DEFAULT_POLITICAL_PARTIES = [
       nationalCivicService: "strong",
       environmentalStewardship: "strong",
       corporateSocialObligation: "strong",
+      antiCorruptionAndEthics: "strong",
     },
   }),
   buildPartyWithTaxPosture({
@@ -438,6 +514,8 @@ export const DEFAULT_POLITICAL_PARTIES = [
       infrastructure: { enacted: true, funding: "underfunded" },
       innovation: { enacted: true, funding: "standard" },
       governance: { enacted: false, funding: "underfunded" },
+      civilRights: { enacted: true, funding: "standard" },
+      publicSafety: { enacted: true, funding: "underfunded" },
     },
     socialPolicies: {
       civilLibertiesCharter: "strong",
@@ -446,6 +524,7 @@ export const DEFAULT_POLITICAL_PARTIES = [
       nationalCivicService: "low",
       environmentalStewardship: "low",
       corporateSocialObligation: "low",
+      antiCorruptionAndEthics: "low",
     },
   }),
   buildPartyWithTaxPosture({
@@ -470,6 +549,8 @@ export const DEFAULT_POLITICAL_PARTIES = [
       infrastructure: { enacted: true, funding: "priority" },
       innovation: { enacted: true, funding: "landmark" },
       governance: { enacted: true, funding: "standard" },
+      civilRights: { enacted: true, funding: "priority" },
+      publicSafety: { enacted: true, funding: "priority" },
     },
     socialPolicies: {
       civilLibertiesCharter: "strong",
@@ -478,6 +559,7 @@ export const DEFAULT_POLITICAL_PARTIES = [
       nationalCivicService: "balanced",
       environmentalStewardship: "balanced",
       corporateSocialObligation: "balanced",
+      antiCorruptionAndEthics: "strong",
     },
   }),
 ];
@@ -506,12 +588,11 @@ export function resolvePoliticalParty(partiesList, partyName) {
 export function cloneDefaultPolicies(partyName = "Democratic", partiesList = DEFAULT_POLITICAL_PARTIES) {
   const party = resolvePoliticalParty(partiesList, partyName);
   const src = party.defaultPolicies || DEFAULT_POLITICAL_PARTIES[0].defaultPolicies;
-  return {
-    education: { ...(src.education || { enacted: true, funding: "standard" }) },
-    infrastructure: { ...(src.infrastructure || { enacted: true, funding: "standard" }) },
-    innovation: { ...(src.innovation || { enacted: true, funding: "standard" }) },
-    governance: { ...(src.governance || { enacted: true, funding: "standard" }) },
-  };
+  const out = {};
+  for (const spec of POLICY_CATALOG) {
+    out[spec.id] = { ...(src[spec.id] || { enacted: true, funding: "standard" }) };
+  }
+  return out;
 }
 
 export function cloneDefaultSocialPolicies(partyName = "Democratic", partiesList = DEFAULT_POLITICAL_PARTIES) {
@@ -582,14 +663,20 @@ export function buildSimplifiedSeed(originalSeed = {}) {
       nextPaymentDate: "2025-04-01",
       isLive: false,
     },
+    electionSchedule: originalSeed.electionSchedule || {
+      enabled: true,
+      nextElectionDate: "2028-11-07",
+      cycleYears: 4,
+      autoInaugurate: true,
+    },
     politicalParties: DEFAULT_POLITICAL_PARTIES.map((p) => ({
       ...p,
-      defaultPolicies: {
-        education: { ...p.defaultPolicies.education },
-        infrastructure: { ...p.defaultPolicies.infrastructure },
-        innovation: { ...p.defaultPolicies.innovation },
-        governance: { ...p.defaultPolicies.governance },
-      },
+      defaultPolicies: Object.fromEntries(
+        POLICY_CATALOG.map((spec) => [
+          spec.id,
+          { ...(p.defaultPolicies?.[spec.id] || { enacted: true, funding: "standard" }) },
+        ])
+      ),
       socialPolicies: { ...p.socialPolicies },
     })),
     sectorsConfig: originalSeed.sectorsConfig || [
@@ -632,6 +719,8 @@ export function buildSimplifiedSeed(originalSeed = {}) {
         literacyRate: 0.92,
         urbanisationIndex: 0.83,
         infrastructureEfficiency: 0.82,
+        racialEqualityIndex: 0.68,
+        crimeControlIndex: 0.74,
         centralBankRate: 0.045,
         equalityDrift: 0,
         rulingParty,
@@ -642,6 +731,8 @@ export function buildSimplifiedSeed(originalSeed = {}) {
           consumerSentiment: 65,
           kFactorScaler: 1500,
           incomeEqualityIndex: 0.615,
+          racialEqualityIndex: 0.68,
+          crimeControlIndex: 0.74,
           publicDebt: 34500000000000,
         },
         enactedPolicies: cloneDefaultPolicies(rulingParty),

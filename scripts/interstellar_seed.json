@@ -12,6 +12,12 @@
     "daysPerMinute": 1.5,
     "liveStatus": "VIRGIN"
   },
+  "electionSchedule": {
+    "enabled": true,
+    "nextElectionDate": "2028-11-07",
+    "cycleYears": 4,
+    "autoInaugurate": true
+  },
   "politicalParties": [
     {
       "nation": "USA",
@@ -45,6 +51,14 @@
         "governance": {
           "enacted": true,
           "funding": "priority"
+        },
+        "civilRights": {
+          "enacted": true,
+          "funding": "priority"
+        },
+        "publicSafety": {
+          "enacted": true,
+          "funding": "standard"
         }
       },
       "socialPolicies": {
@@ -53,7 +67,8 @@
         "economicAndLaborRights": "balanced",
         "nationalCivicService": "low",
         "environmentalStewardship": "balanced",
-        "corporateSocialObligation": "balanced"
+        "corporateSocialObligation": "balanced",
+        "antiCorruptionAndEthics": "balanced"
       },
       "incomeTaxPreference": 0.3016,
       "corporateTaxRate": 0.2442,
@@ -92,6 +107,14 @@
         "governance": {
           "enacted": true,
           "funding": "standard"
+        },
+        "civilRights": {
+          "enacted": true,
+          "funding": "standard"
+        },
+        "publicSafety": {
+          "enacted": true,
+          "funding": "priority"
         }
       },
       "socialPolicies": {
@@ -100,7 +123,8 @@
         "economicAndLaborRights": "low",
         "nationalCivicService": "balanced",
         "environmentalStewardship": "low",
-        "corporateSocialObligation": "low"
+        "corporateSocialObligation": "low",
+        "antiCorruptionAndEthics": "balanced"
       },
       "incomeTaxPreference": 0.2513,
       "corporateTaxRate": 0.11,
@@ -139,6 +163,14 @@
         "governance": {
           "enacted": true,
           "funding": "landmark"
+        },
+        "civilRights": {
+          "enacted": true,
+          "funding": "landmark"
+        },
+        "publicSafety": {
+          "enacted": true,
+          "funding": "standard"
         }
       },
       "socialPolicies": {
@@ -147,7 +179,8 @@
         "economicAndLaborRights": "strong",
         "nationalCivicService": "strong",
         "environmentalStewardship": "strong",
-        "corporateSocialObligation": "strong"
+        "corporateSocialObligation": "strong",
+        "antiCorruptionAndEthics": "strong"
       },
       "incomeTaxPreference": 0.2504,
       "corporateTaxRate": 0.4263,
@@ -186,6 +219,14 @@
         "governance": {
           "enacted": false,
           "funding": "underfunded"
+        },
+        "civilRights": {
+          "enacted": true,
+          "funding": "standard"
+        },
+        "publicSafety": {
+          "enacted": true,
+          "funding": "underfunded"
         }
       },
       "socialPolicies": {
@@ -194,7 +235,8 @@
         "economicAndLaborRights": "low",
         "nationalCivicService": "low",
         "environmentalStewardship": "low",
-        "corporateSocialObligation": "low"
+        "corporateSocialObligation": "low",
+        "antiCorruptionAndEthics": "low"
       },
       "incomeTaxPreference": 0.1078,
       "corporateTaxRate": 0.0521,
@@ -233,6 +275,14 @@
         "governance": {
           "enacted": true,
           "funding": "standard"
+        },
+        "civilRights": {
+          "enacted": true,
+          "funding": "priority"
+        },
+        "publicSafety": {
+          "enacted": true,
+          "funding": "priority"
         }
       },
       "socialPolicies": {
@@ -241,7 +291,8 @@
         "economicAndLaborRights": "balanced",
         "nationalCivicService": "balanced",
         "environmentalStewardship": "balanced",
-        "corporateSocialObligation": "balanced"
+        "corporateSocialObligation": "balanced",
+        "antiCorruptionAndEthics": "strong"
       },
       "incomeTaxPreference": 0.3007,
       "corporateTaxRate": 0.169,
@@ -1050,6 +1101,8 @@
       "literacyRate": 0.92,
       "urbanisationIndex": 0.83,
       "infrastructureEfficiency": 0.82,
+      "racialEqualityIndex": 0.68,
+      "crimeControlIndex": 0.74,
       "centralBankRate": 0.045,
       "equalityDrift": 0,
       "rulingParty": "Democratic",
@@ -1060,6 +1113,8 @@
         "consumerSentiment": 65,
         "kFactorScaler": 1500,
         "incomeEqualityIndex": 0.615,
+        "racialEqualityIndex": 0.68,
+        "crimeControlIndex": 0.74,
         "publicDebt": 34500000000000
       },
       "enactedPolicies": {
@@ -1078,6 +1133,14 @@
         "governance": {
           "enacted": true,
           "funding": "priority"
+        },
+        "civilRights": {
+          "enacted": true,
+          "funding": "priority"
+        },
+        "publicSafety": {
+          "enacted": true,
+          "funding": "standard"
         }
       },
       "electionHistory": [],
@@ -2142,7 +2205,8 @@
         "economicAndLaborRights": "balanced",
         "nationalCivicService": "low",
         "environmentalStewardship": "balanced",
-        "corporateSocialObligation": "balanced"
+        "corporateSocialObligation": "balanced",
+        "antiCorruptionAndEthics": "balanced"
       },
       "marketComputed": [
         {
@@ -4080,60 +4144,65 @@
         "underemploymentRate": 0.03,
         "quarterlyWages": 62091.99427404417,
         "consumerConfidence": 65,
-        "sol": 39.28,
+        "sol": 38.5,
         "solBreakdown": {
-          "literacyPts": 9.2,
-          "infrastructurePts": 7.38,
-          "urbanisationPts": 5.81,
-          "sentimentPts": 5.2,
-          "productivityPts": 4.8,
-          "equalityPts": 6.83,
+          "literacyPts": 8.28,
+          "infrastructurePts": 6.56,
+          "urbanisationPts": 4.98,
+          "sentimentPts": 4.55,
+          "productivityPts": 4.2,
+          "equalityPts": 4.27,
+          "racialEqualityPts": 2.72,
+          "crimeControlPts": 2.96,
           "socialPolicyPts": 0.2,
-          "crimeMortalityDragPts": 0.14,
-          "govCompositePct": 78.4,
-          "totalSol": 39.28
+          "crimeMortalityDragPts": 0.22,
+          "govCompositePct": 77,
+          "totalSol": 38.5
         },
         "literacyRate": 0.92,
-        "crimeRate": 0.03149999882198957,
+        "crimeRate": 0.0315,
         "urbanisationIndex": 0.83,
-        "mortalityRate": 0.0027228999804450272,
-        "fertilityRate": 0.0025296319999999995,
-        "netImmigrationRate": 0.0011576200176701564,
-        "popGrowthRate": 0.0009643520372251287,
+        "mortalityRate": 0.0027229000000000003,
+        "fertilityRate": 0.0024793999999999997,
+        "netImmigrationRate": 0.00112525,
+        "popGrowthRate": 0.0008817499999999993,
         "infrastructureEfficiency": 0.82,
         "inflationRate": 0.0247,
         "giniCoefficient": 0.36,
         "incomeEqualityIndex": 0.64,
-        "povertyRate": 0.092,
+        "racialEqualityIndex": 0.68,
+        "crimeControlIndex": 0.74,
+        "corruptionIndex": 20,
+        "povertyRate": 0.1,
         "institutionalTrust": 0.76,
-        "socialCohesion": 0.82,
+        "socialCohesion": 0.85,
         "cohorts": {
           "lowIncome": {
             "name": "Low-Income & Labor Cohort",
             "popShare": 0.45,
             "pops": 75600000,
             "averageWage": 34439,
-            "livingStandard": 28.3,
+            "livingStandard": 27.7,
             "taxBurden": 0.193,
             "unemploymentRate": 0.0653,
-            "povertyRate": 0.097
+            "povertyRate": 0.106
           },
           "middleClass": {
             "name": "Middle Class & Technical Cohort",
             "popShare": 0.45,
             "pops": 75600000,
             "averageWage": 58830,
-            "livingStandard": 39.3,
+            "livingStandard": 38.5,
             "taxBurden": 0.4246,
             "unemploymentRate": 0.036,
-            "homeOwnershipRate": 0.66
+            "homeOwnershipRate": 0.65
           },
           "upperClass": {
             "name": "Capital & Ownership Cohort",
             "popShare": 0.1,
             "pops": 16800000,
             "averageWage": 126843,
-            "livingStandard": 46.4,
+            "livingStandard": 45.4,
             "taxBurden": 0.4994,
             "unemploymentRate": 0.0135,
             "capitalIncomeShare": 0.53
@@ -4312,7 +4381,9 @@
             "urbanisation": "Mature metropolitan corridors sustain deep corporate services, thick skilled labor pools, and efficient supply hubs.",
             "sentiment": "Balanced household confidence keeps personal consumption steady (~68% of GDP) without destabilizing price spikes.",
             "productivity": "Modern industrial capital stock sustains competitive global output per worker across services and manufacturing.",
-            "equality": "Broad middle-class purchasing power anchors household demand while preserving healthy incentives for entrepreneurship and R&D."
+            "equality": "Broad middle-class purchasing power anchors household demand while preserving healthy incentives for entrepreneurship and R&D.",
+            "racialEquality": "Broad anti-discrimination protections widen opportunity across metros, though regional wealth and housing gaps persist.",
+            "crimeControl": "Consistent local policing and prosecution contain violent & property crime without excessive fiscal drag."
           },
           "maluses": {
             "literacy": {
@@ -4359,6 +4430,20 @@
               "penaltyLabel": "Inactive (< 70.0%)",
               "detail": "Triggers above 70.0% Income Equality when steep redistribution flattens equity risk-reward.",
               "equalityCapitalDrag": 0
+            },
+            "racialEquality": {
+              "active": false,
+              "title": "Compliance & Quota Litigation Friction",
+              "penaltyLabel": "Inactive (< 92.0%)",
+              "detail": "Triggers above 92.0% Racial Equality when statutory compliance mandates overtake market flexibility.",
+              "racialComplianceDrag": 0
+            },
+            "crimeControl": {
+              "active": false,
+              "title": "Over-Policing & Carceral Fiscal Drag",
+              "penaltyLabel": "Inactive (< 93.0%)",
+              "detail": "Triggers above 93.0% Crime Control when enforcement saturation raises carceral overhead.",
+              "carceralOverheadBudgetPct": 0
             }
           },
           "totals": {
@@ -4369,7 +4454,9 @@
             "infraMaintenanceBudgetPct": 0,
             "sentimentOverheatingInflation": 0,
             "sentimentImportLeakage": 0,
-            "equalityCapitalDrag": 0
+            "equalityCapitalDrag": 0,
+            "racialComplianceDrag": 0,
+            "carceralOverheadBudgetPct": 0
           }
         },
         "endowmentPolicyMultipliers": {
@@ -4390,14 +4477,23 @@
             "economicAndLaborRights": "balanced",
             "nationalCivicService": "low",
             "environmentalStewardship": "balanced",
-            "corporateSocialObligation": "balanced"
+            "corporateSocialObligation": "balanced",
+            "antiCorruptionAndEthics": "balanced"
           },
           "humanRightsIndex": 48,
-          "civicObligationIndex": 44,
+          "civicObligationIndex": 58,
+          "corruptionIndex": 20,
+          "businessEstablishmentBoost": 0,
+          "trustBonus": 0,
+          "sentimentBonus": 0,
+          "crimeSurge": 0,
+          "speechFreedomLevel": "balanced",
+          "speechSensitivityMultiplier": 1.15,
+          "speechFreedomLabel": "Constitutional Std (1.15x Voter Reactivity)",
           "socialSolBonus": 0.2,
           "equalityBonus": 0.014,
           "stemInnovationBonus": 0.03,
-          "socialCohesionBonus": -0.0108,
+          "socialCohesionBonus": 0.0144,
           "fiscalCostPct": 0.003,
           "fiscalAdjustmentPct": 0
         },
@@ -4407,7 +4503,8 @@
           "economicAndLaborRights": "balanced",
           "nationalCivicService": "low",
           "environmentalStewardship": "balanced",
-          "corporateSocialObligation": "balanced"
+          "corporateSocialObligation": "balanced",
+          "antiCorruptionAndEthics": "balanced"
         },
         "stateBudgetPercent": 0.22,
         "govtDividends": 0,
@@ -4446,16 +4543,18 @@
           "budgetAsPercentOfGdp": 0.22
         },
         "policyProgression": {
-          "literacyDelta": 0.0034,
-          "infrastructureDelta": 0.00416,
-          "urbanisationDelta": 0.0028,
-          "sentimentDelta": 1.25,
-          "tfpDelta": 19,
-          "equalityDelta": 0.00564,
+          "literacyDelta": 0.0021,
+          "infrastructureDelta": 0.00248,
+          "urbanisationDelta": 0.0016,
+          "sentimentDelta": 0.7,
+          "tfpDelta": 17,
+          "equalityDelta": 0.00352,
+          "racialEqualityDelta": 0.00376,
+          "crimeControlDelta": 0.0017,
           "neglectedCount": 0,
           "neglectMultiplier": 1,
           "policyBudgetAdjustmentPct": 0,
-          "totalPolicyCostPct": 0.015,
+          "totalPolicyCostPct": 0.02,
           "policies": {
             "education": {
               "enacted": true,
@@ -4472,6 +4571,14 @@
             "governance": {
               "enacted": true,
               "funding": "priority"
+            },
+            "civilRights": {
+              "enacted": true,
+              "funding": "priority"
+            },
+            "publicSafety": {
+              "enacted": true,
+              "funding": "standard"
             }
           },
           "partyDefaultPolicies": {
@@ -4490,6 +4597,14 @@
             "governance": {
               "enacted": true,
               "funding": "priority"
+            },
+            "civilRights": {
+              "enacted": true,
+              "funding": "priority"
+            },
+            "publicSafety": {
+              "enacted": true,
+              "funding": "standard"
             }
           }
         },
@@ -4509,6 +4624,14 @@
           "governance": {
             "enacted": true,
             "funding": "priority"
+          },
+          "civilRights": {
+            "enacted": true,
+            "funding": "priority"
+          },
+          "publicSafety": {
+            "enacted": true,
+            "funding": "standard"
           }
         },
         "startingBaseline": {
@@ -4518,6 +4641,8 @@
           "consumerSentiment": 65,
           "kFactorScaler": 1500,
           "incomeEqualityIndex": 0.615,
+          "racialEqualityIndex": 0.68,
+          "crimeControlIndex": 0.74,
           "publicDebt": 34500000000000
         },
         "treasuryBalance": 850000000000,
@@ -4542,17 +4667,17 @@
             "superLinearExponent": 1.15
           },
           "consumer": {
-            "consumerOutput": 9877716051743.178,
+            "consumerOutput": 9779151240757.758,
             "amenityMultiplier": 1.522710248865505,
-            "solMultiplier": 0.8863407922464136,
-            "crimeDampening": 0.99984250000589,
-            "hospitalityDemandMultiplier": 1.349427640016321,
-            "workerProductivity": 270637.350149731,
+            "solMultiplier": 0.8774964387392122,
+            "crimeDampening": 0.9998425,
+            "hospitalityDemandMultiplier": 1.335962373391934,
+            "workerProductivity": 267936.794765939,
             "subLinearExponent": 0.85
           },
-          "totalServicesGdp": 297648769183963.3,
-          "corporateGdpShare": 0.9668141881492606,
-          "consumerGdpShare": 0.03318581185073944,
+          "totalServicesGdp": 297550204372977.9,
+          "corporateGdpShare": 0.9671344495919094,
+          "consumerGdpShare": 0.032865550408090576,
           "corporateShareOfLabor": 0.7006753057127213,
           "specializations": [
             "Commercial Banking & Asset Management",
@@ -4561,7 +4686,7 @@
             "Tier-1 Hospitality & Tourism Attraction",
             "Megalopolis Corporate Headquarters"
           ],
-          "aiAdvisoryContext": "Human Capital: 92% (STEM & Universities)\nUrban Agglomeration: 83% (Metropolitan density & network scale)\nFinancial Depth: 89% (Banking assets & venture funds)\nDigital Infrastructure: 85% (Cloud data centers & gigabit fiber)\nConsumer Amenities: 82% (Tourism, recreation & hospitality)\nSuper-Linear Scaling Multiplier: 9.43x\nHospitality Demand Multiplier: 1.35x\nCorporate Services Share: 96.7%\nHospitality Share: 3.3%\nPrimary Specializations: Commercial Banking & Asset Management; High-Tech Software & Cloud Compute; Biomedical & Quantum R&D; Tier-1 Hospitality & Tourism Attraction; Megalopolis Corporate Headquarters",
+          "aiAdvisoryContext": "Human Capital: 92% (STEM & Universities)\nUrban Agglomeration: 83% (Metropolitan density & network scale)\nFinancial Depth: 89% (Banking assets & venture funds)\nDigital Infrastructure: 85% (Cloud data centers & gigabit fiber)\nConsumer Amenities: 82% (Tourism, recreation & hospitality)\nSuper-Linear Scaling Multiplier: 9.43x\nHospitality Demand Multiplier: 1.34x\nCorporate Services Share: 96.7%\nHospitality Share: 3.3%\nPrimary Specializations: Commercial Banking & Asset Management; High-Tech Software & Cloud Compute; Biomedical & Quantum R&D; Tier-1 Hospitality & Tourism Attraction; Megalopolis Corporate Headquarters",
           "indices": {
             "humanCapitalIndex": 92,
             "urbanAgglomerationIndex": 83,
@@ -4586,7 +4711,7 @@
           "adMultiplier": 0.9988,
           "cumulativeGrowthFactor": 1
         },
-        "annualRealGdpGrowth": 2.744,
+        "annualRealGdpGrowth": 2.458,
         "forecast": {
           "modelVersion": "1.0.0",
           "features": {
@@ -4600,36 +4725,36 @@
             "fiscal_balance_ratio": -0.794,
             "debt_to_gdp_ratio": 127.04,
             "trade_openness": 58,
-            "population_growth": 0.096,
+            "population_growth": 0.088,
             "development_tier": 1
           },
-          "baselineForecast": 2.409,
-          "structuralAdjustment": 0.335,
+          "baselineForecast": 2.289,
+          "structuralAdjustment": 0.169,
           "crisisAdjustment": 0,
-          "finalGrowth": 2.744,
+          "finalGrowth": 2.458,
           "adGrowthBreakdown": {
-            "consumptionGrowth": 1.196,
-            "investmentGrowth": 0.893,
-            "governmentGrowth": 0.459,
+            "consumptionGrowth": 1.165,
+            "investmentGrowth": 0.85,
+            "governmentGrowth": 0.414,
             "netExportsGrowth": -0.139,
-            "supplyTrendGrowth": 0.335
+            "supplyTrendGrowth": 0.169
           },
           "intervals": {
             "interval80": [
-              1.82,
-              4.43
+              1.53,
+              4.15
             ],
             "interval95": [
-              -3.25,
-              6.13
+              -3.53,
+              5.84
             ]
           },
           "attributions": {
-            "consumption_demand_C": 1.196,
-            "private_investment_I": 0.893,
-            "government_spending_G": 0.459,
+            "consumption_demand_C": 1.165,
+            "private_investment_I": 0.85,
+            "government_spending_G": 0.414,
             "net_exports_NX": -0.139,
-            "labor_and_tfp_supply": 0.335
+            "labor_and_tfp_supply": 0.169
           }
         }
       }
@@ -5177,38 +5302,44 @@
   ],
   "electionForecast": {
     "incumbentParty": "Democratic",
-    "incumbentApproval": 51.1,
-    "projectedWinner": "Republican",
+    "incumbentApproval": 51.3,
+    "honeymoonActive": false,
+    "honeymoonDaysRemaining": 0,
+    "speechSensitivityMultiplier": 1.15,
+    "speechFreedomLabel": "Constitutional Std (1.15x Voter Reactivity)",
+    "govCompositePct": 77,
+    "corruptionIndex": 20,
+    "projectedWinner": "Democratic",
     "majorityThreshold": 270,
     "totalElectoralVotes": 538,
     "electoralStandings": [
       {
-        "name": "Republican",
-        "color": "#ef4444",
-        "ev": 281,
-        "statesWon": 28,
-        "pollPct": 34.9
-      },
-      {
         "name": "Democratic",
         "color": "#3b82f6",
-        "ev": 257,
-        "statesWon": 23,
-        "pollPct": 43.9
+        "ev": 273,
+        "statesWon": 24,
+        "pollPct": 44.2
+      },
+      {
+        "name": "Republican",
+        "color": "#ef4444",
+        "ev": 265,
+        "statesWon": 27,
+        "pollPct": 34.7
       },
       {
         "name": "Progressive Labor",
         "color": "#10b981",
         "ev": 0,
         "statesWon": 0,
-        "pollPct": 8.2
+        "pollPct": 8.1
       },
       {
         "name": "Centrist Technocrats",
         "color": "#06b6d4",
         "ev": 0,
         "statesWon": 0,
-        "pollPct": 7.5
+        "pollPct": 7.4
       },
       {
         "name": "Libertarian Free-Market",
@@ -5224,9 +5355,9 @@
         "color": "#3b82f6",
         "politicalAlignment": "Centre-Left",
         "isIncumbent": true,
-        "pollPct": 43.9,
+        "pollPct": 44.2,
         "humanRightsIndex": 48,
-        "civicObligationIndex": 44,
+        "civicObligationIndex": 58,
         "taxDistributionMode": 0.62,
         "baseTaxLevel": 0.24
       },
@@ -5235,9 +5366,9 @@
         "color": "#ef4444",
         "politicalAlignment": "Centre-Right",
         "isIncumbent": false,
-        "pollPct": 34.9,
+        "pollPct": 34.7,
         "humanRightsIndex": 40,
-        "civicObligationIndex": 32,
+        "civicObligationIndex": 46,
         "taxDistributionMode": 0.38,
         "baseTaxLevel": 0.2
       },
@@ -5246,7 +5377,7 @@
         "color": "#10b981",
         "politicalAlignment": "Progressive",
         "isIncumbent": false,
-        "pollPct": 8.2,
+        "pollPct": 8.1,
         "humanRightsIndex": 100,
         "civicObligationIndex": 100,
         "taxDistributionMode": 0.82,
@@ -5257,9 +5388,9 @@
         "color": "#06b6d4",
         "politicalAlignment": "Centrist",
         "isIncumbent": false,
-        "pollPct": 7.5,
+        "pollPct": 7.4,
         "humanRightsIndex": 66,
-        "civicObligationIndex": 56,
+        "civicObligationIndex": 84,
         "taxDistributionMode": 0.52,
         "baseTaxLevel": 0.22
       },
@@ -5270,7 +5401,7 @@
         "isIncumbent": false,
         "pollPct": 5.6,
         "humanRightsIndex": 75,
-        "civicObligationIndex": 20,
+        "civicObligationIndex": 22,
         "taxDistributionMode": 0.25,
         "baseTaxLevel": 0.11
       }
@@ -5280,17 +5411,17 @@
         {
           "name": "Democratic",
           "color": "#3b82f6",
-          "pct": 56
+          "pct": 56.2
         },
         {
           "name": "Republican",
           "color": "#ef4444",
-          "pct": 21.9
+          "pct": 21.8
         },
         {
           "name": "Progressive Labor",
           "color": "#10b981",
-          "pct": 14.6
+          "pct": 14.5
         },
         {
           "name": "Centrist Technocrats",
@@ -5307,17 +5438,17 @@
         {
           "name": "Democratic",
           "color": "#3b82f6",
-          "pct": 51.2
+          "pct": 51.4
         },
         {
           "name": "Republican",
           "color": "#ef4444",
-          "pct": 35.9
+          "pct": 35.8
         },
         {
           "name": "Centrist Technocrats",
           "color": "#06b6d4",
-          "pct": 5.8
+          "pct": 5.7
         },
         {
           "name": "Progressive Labor",
@@ -5334,12 +5465,12 @@
         {
           "name": "Republican",
           "color": "#ef4444",
-          "pct": 53.4
+          "pct": 53.2
         },
         {
           "name": "Democratic",
           "color": "#3b82f6",
-          "pct": 32.3
+          "pct": 32.5
         },
         {
           "name": "Libertarian Free-Market",
@@ -5364,23 +5495,24 @@
         "code": "GA",
         "region": "Southern Logistics Sunbelt",
         "ev": 16,
-        "winner": "Republican",
-        "winnerColor": "#ef4444",
-        "winnerPct": 42.5,
-        "runnerUp": "Democratic",
-        "runnerUpPct": 42.4,
-        "margin": 0.1,
+        "winner": "Democratic",
+        "winnerColor": "#3b82f6",
+        "winnerPct": 42.6,
+        "runnerUp": "Republican",
+        "runnerUpPct": 42.3,
+        "margin": 0.3,
+        "cnnTier": "tossup",
         "isBattleground": true,
         "shares": [
           {
-            "name": "Republican",
-            "color": "#ef4444",
-            "pct": 42.5
-          },
-          {
             "name": "Democratic",
             "color": "#3b82f6",
-            "pct": 42.4
+            "pct": 42.6
+          },
+          {
+            "name": "Republican",
+            "color": "#ef4444",
+            "pct": 42.3
           },
           {
             "name": "Centrist Technocrats",
@@ -5406,21 +5538,22 @@
         "ev": 10,
         "winner": "Democratic",
         "winnerColor": "#3b82f6",
-        "winnerPct": 42.8,
+        "winnerPct": 43,
         "runnerUp": "Republican",
-        "runnerUpPct": 42,
-        "margin": 0.8,
+        "runnerUpPct": 41.8,
+        "margin": 1.2,
+        "cnnTier": "tossup",
         "isBattleground": true,
         "shares": [
           {
             "name": "Democratic",
             "color": "#3b82f6",
-            "pct": 42.8
+            "pct": 43
           },
           {
             "name": "Republican",
             "color": "#ef4444",
-            "pct": 42
+            "pct": 41.8
           },
           {
             "name": "Centrist Technocrats",
@@ -5430,7 +5563,7 @@
           {
             "name": "Progressive Labor",
             "color": "#10b981",
-            "pct": 3.2
+            "pct": 3.1
           },
           {
             "name": "Libertarian Free-Market",
@@ -5446,21 +5579,22 @@
         "ev": 15,
         "winner": "Democratic",
         "winnerColor": "#3b82f6",
-        "winnerPct": 43,
+        "winnerPct": 43.2,
         "runnerUp": "Republican",
-        "runnerUpPct": 41.8,
-        "margin": 1.2,
+        "runnerUpPct": 41.6,
+        "margin": 1.6,
+        "cnnTier": "tossup",
         "isBattleground": true,
         "shares": [
           {
             "name": "Democratic",
             "color": "#3b82f6",
-            "pct": 43
+            "pct": 43.2
           },
           {
             "name": "Republican",
             "color": "#ef4444",
-            "pct": 41.8
+            "pct": 41.6
           },
           {
             "name": "Centrist Technocrats",
@@ -5486,26 +5620,27 @@
         "ev": 11,
         "winner": "Republican",
         "winnerColor": "#ef4444",
-        "winnerPct": 43.7,
+        "winnerPct": 43.6,
         "runnerUp": "Democratic",
-        "runnerUpPct": 41.6,
-        "margin": 2.1,
+        "runnerUpPct": 41.8,
+        "margin": 1.8,
+        "cnnTier": "tossup",
         "isBattleground": true,
         "shares": [
           {
             "name": "Republican",
             "color": "#ef4444",
-            "pct": 43.7
+            "pct": 43.6
           },
           {
             "name": "Democratic",
             "color": "#3b82f6",
-            "pct": 41.6
+            "pct": 41.8
           },
           {
             "name": "Centrist Technocrats",
             "color": "#06b6d4",
-            "pct": 9.3
+            "pct": 9.2
           },
           {
             "name": "Progressive Labor",
@@ -5526,26 +5661,27 @@
         "ev": 5,
         "winner": "Democratic",
         "winnerColor": "#3b82f6",
-        "winnerPct": 44.5,
+        "winnerPct": 44.7,
         "runnerUp": "Republican",
-        "runnerUpPct": 41.6,
-        "margin": 2.9,
+        "runnerUpPct": 41.4,
+        "margin": 3.3,
+        "cnnTier": "lean",
         "isBattleground": true,
         "shares": [
           {
             "name": "Democratic",
             "color": "#3b82f6",
-            "pct": 44.5
+            "pct": 44.7
           },
           {
             "name": "Republican",
             "color": "#ef4444",
-            "pct": 41.6
+            "pct": 41.4
           },
           {
             "name": "Centrist Technocrats",
             "color": "#06b6d4",
-            "pct": 8.4
+            "pct": 8.3
           },
           {
             "name": "Progressive Labor",
@@ -5566,26 +5702,27 @@
         "ev": 6,
         "winner": "Democratic",
         "winnerColor": "#3b82f6",
-        "winnerPct": 44.1,
+        "winnerPct": 44.3,
         "runnerUp": "Republican",
-        "runnerUpPct": 41.1,
-        "margin": 3,
+        "runnerUpPct": 40.9,
+        "margin": 3.4,
+        "cnnTier": "lean",
         "isBattleground": true,
         "shares": [
           {
             "name": "Democratic",
             "color": "#3b82f6",
-            "pct": 44.1
+            "pct": 44.3
           },
           {
             "name": "Republican",
             "color": "#ef4444",
-            "pct": 41.1
+            "pct": 40.9
           },
           {
             "name": "Centrist Technocrats",
             "color": "#06b6d4",
-            "pct": 9.5
+            "pct": 9.4
           },
           {
             "name": "Progressive Labor",
@@ -5606,21 +5743,22 @@
         "ev": 16,
         "winner": "Republican",
         "winnerColor": "#ef4444",
-        "winnerPct": 44.7,
+        "winnerPct": 44.6,
         "runnerUp": "Democratic",
-        "runnerUpPct": 40.4,
-        "margin": 4.3,
+        "runnerUpPct": 40.6,
+        "margin": 4,
+        "cnnTier": "lean",
         "isBattleground": true,
         "shares": [
           {
             "name": "Republican",
             "color": "#ef4444",
-            "pct": 44.7
+            "pct": 44.6
           },
           {
             "name": "Democratic",
             "color": "#3b82f6",
-            "pct": 40.4
+            "pct": 40.6
           },
           {
             "name": "Centrist Technocrats",
@@ -5648,21 +5786,22 @@
         "ev": 54,
         "winner": "Democratic",
         "winnerColor": "#3b82f6",
-        "winnerPct": 60.8,
+        "winnerPct": 61,
         "runnerUp": "Republican",
-        "runnerUpPct": 26.4,
-        "margin": 34.4,
+        "runnerUpPct": 26.2,
+        "margin": 34.8,
+        "cnnTier": "safe",
         "isBattleground": false,
         "shares": [
           {
             "name": "Democratic",
             "color": "#3b82f6",
-            "pct": 60.8
+            "pct": 61
           },
           {
             "name": "Republican",
             "color": "#ef4444",
-            "pct": 26.4
+            "pct": 26.2
           },
           {
             "name": "Centrist Technocrats",
@@ -5688,21 +5827,22 @@
         "ev": 40,
         "winner": "Republican",
         "winnerColor": "#ef4444",
-        "winnerPct": 55.4,
+        "winnerPct": 55.2,
         "runnerUp": "Democratic",
-        "runnerUpPct": 31.9,
-        "margin": 23.5,
+        "runnerUpPct": 32.1,
+        "margin": 23.1,
+        "cnnTier": "safe",
         "isBattleground": false,
         "shares": [
           {
             "name": "Republican",
             "color": "#ef4444",
-            "pct": 55.4
+            "pct": 55.2
           },
           {
             "name": "Democratic",
             "color": "#3b82f6",
-            "pct": 31.9
+            "pct": 32.1
           },
           {
             "name": "Centrist Technocrats",
@@ -5728,21 +5868,22 @@
         "ev": 30,
         "winner": "Republican",
         "winnerColor": "#ef4444",
-        "winnerPct": 50,
+        "winnerPct": 49.9,
         "runnerUp": "Democratic",
-        "runnerUpPct": 36.4,
-        "margin": 13.6,
+        "runnerUpPct": 36.6,
+        "margin": 13.3,
+        "cnnTier": "safe",
         "isBattleground": false,
         "shares": [
           {
             "name": "Republican",
             "color": "#ef4444",
-            "pct": 50
+            "pct": 49.9
           },
           {
             "name": "Democratic",
             "color": "#3b82f6",
-            "pct": 36.4
+            "pct": 36.6
           },
           {
             "name": "Centrist Technocrats",
@@ -5768,21 +5909,22 @@
         "ev": 28,
         "winner": "Democratic",
         "winnerColor": "#3b82f6",
-        "winnerPct": 59.7,
+        "winnerPct": 59.9,
         "runnerUp": "Republican",
-        "runnerUpPct": 26.1,
-        "margin": 33.6,
+        "runnerUpPct": 26,
+        "margin": 33.9,
+        "cnnTier": "safe",
         "isBattleground": false,
         "shares": [
           {
             "name": "Democratic",
             "color": "#3b82f6",
-            "pct": 59.7
+            "pct": 59.9
           },
           {
             "name": "Republican",
             "color": "#ef4444",
-            "pct": 26.1
+            "pct": 26
           },
           {
             "name": "Centrist Technocrats",
@@ -5808,26 +5950,27 @@
         "ev": 19,
         "winner": "Democratic",
         "winnerColor": "#3b82f6",
-        "winnerPct": 53.5,
+        "winnerPct": 53.7,
         "runnerUp": "Republican",
-        "runnerUpPct": 32.3,
-        "margin": 21.2,
+        "runnerUpPct": 32.1,
+        "margin": 21.6,
+        "cnnTier": "safe",
         "isBattleground": false,
         "shares": [
           {
             "name": "Democratic",
             "color": "#3b82f6",
-            "pct": 53.5
+            "pct": 53.7
           },
           {
             "name": "Republican",
             "color": "#ef4444",
-            "pct": 32.3
+            "pct": 32.1
           },
           {
             "name": "Centrist Technocrats",
             "color": "#06b6d4",
-            "pct": 8.4
+            "pct": 8.3
           },
           {
             "name": "Progressive Labor",
@@ -5848,21 +5991,22 @@
         "ev": 19,
         "winner": "Republican",
         "winnerColor": "#ef4444",
-        "winnerPct": 46.1,
+        "winnerPct": 45.9,
         "runnerUp": "Democratic",
-        "runnerUpPct": 39.4,
-        "margin": 6.7,
+        "runnerUpPct": 39.6,
+        "margin": 6.3,
+        "cnnTier": "lean",
         "isBattleground": false,
         "shares": [
           {
             "name": "Republican",
             "color": "#ef4444",
-            "pct": 46.1
+            "pct": 45.9
           },
           {
             "name": "Democratic",
             "color": "#3b82f6",
-            "pct": 39.4
+            "pct": 39.6
           },
           {
             "name": "Centrist Technocrats",
@@ -5888,26 +6032,27 @@
         "ev": 17,
         "winner": "Republican",
         "winnerColor": "#ef4444",
-        "winnerPct": 54.6,
+        "winnerPct": 54.4,
         "runnerUp": "Democratic",
-        "runnerUpPct": 32.6,
-        "margin": 22,
+        "runnerUpPct": 32.8,
+        "margin": 21.6,
+        "cnnTier": "safe",
         "isBattleground": false,
         "shares": [
           {
             "name": "Republican",
             "color": "#ef4444",
-            "pct": 54.6
+            "pct": 54.4
           },
           {
             "name": "Democratic",
             "color": "#3b82f6",
-            "pct": 32.6
+            "pct": 32.8
           },
           {
             "name": "Centrist Technocrats",
             "color": "#06b6d4",
-            "pct": 7.4
+            "pct": 7.3
           },
           {
             "name": "Libertarian Free-Market",
@@ -5926,23 +6071,24 @@
         "code": "GA",
         "region": "Southern Logistics Sunbelt",
         "ev": 16,
-        "winner": "Republican",
-        "winnerColor": "#ef4444",
-        "winnerPct": 42.5,
-        "runnerUp": "Democratic",
-        "runnerUpPct": 42.4,
-        "margin": 0.1,
+        "winner": "Democratic",
+        "winnerColor": "#3b82f6",
+        "winnerPct": 42.6,
+        "runnerUp": "Republican",
+        "runnerUpPct": 42.3,
+        "margin": 0.3,
+        "cnnTier": "tossup",
         "isBattleground": true,
         "shares": [
           {
-            "name": "Republican",
-            "color": "#ef4444",
-            "pct": 42.5
-          },
-          {
             "name": "Democratic",
             "color": "#3b82f6",
-            "pct": 42.4
+            "pct": 42.6
+          },
+          {
+            "name": "Republican",
+            "color": "#ef4444",
+            "pct": 42.3
           },
           {
             "name": "Centrist Technocrats",
@@ -5968,21 +6114,22 @@
         "ev": 16,
         "winner": "Republican",
         "winnerColor": "#ef4444",
-        "winnerPct": 44.7,
+        "winnerPct": 44.6,
         "runnerUp": "Democratic",
-        "runnerUpPct": 40.4,
-        "margin": 4.3,
+        "runnerUpPct": 40.6,
+        "margin": 4,
+        "cnnTier": "lean",
         "isBattleground": true,
         "shares": [
           {
             "name": "Republican",
             "color": "#ef4444",
-            "pct": 44.7
+            "pct": 44.6
           },
           {
             "name": "Democratic",
             "color": "#3b82f6",
-            "pct": 40.4
+            "pct": 40.6
           },
           {
             "name": "Centrist Technocrats",
@@ -6008,21 +6155,22 @@
         "ev": 15,
         "winner": "Democratic",
         "winnerColor": "#3b82f6",
-        "winnerPct": 43,
+        "winnerPct": 43.2,
         "runnerUp": "Republican",
-        "runnerUpPct": 41.8,
-        "margin": 1.2,
+        "runnerUpPct": 41.6,
+        "margin": 1.6,
+        "cnnTier": "tossup",
         "isBattleground": true,
         "shares": [
           {
             "name": "Democratic",
             "color": "#3b82f6",
-            "pct": 43
+            "pct": 43.2
           },
           {
             "name": "Republican",
             "color": "#ef4444",
-            "pct": 41.8
+            "pct": 41.6
           },
           {
             "name": "Centrist Technocrats",
@@ -6048,21 +6196,22 @@
         "ev": 14,
         "winner": "Democratic",
         "winnerColor": "#3b82f6",
-        "winnerPct": 56.2,
+        "winnerPct": 56.4,
         "runnerUp": "Republican",
-        "runnerUpPct": 28.4,
-        "margin": 27.8,
+        "runnerUpPct": 28.2,
+        "margin": 28.2,
+        "cnnTier": "safe",
         "isBattleground": false,
         "shares": [
           {
             "name": "Democratic",
             "color": "#3b82f6",
-            "pct": 56.2
+            "pct": 56.4
           },
           {
             "name": "Republican",
             "color": "#ef4444",
-            "pct": 28.4
+            "pct": 28.2
           },
           {
             "name": "Centrist Technocrats",
@@ -6077,7 +6226,7 @@
           {
             "name": "Libertarian Free-Market",
             "color": "#f59e0b",
-            "pct": 1.6
+            "pct": 1.5
           }
         ]
       },
@@ -6088,26 +6237,27 @@
         "ev": 13,
         "winner": "Democratic",
         "winnerColor": "#3b82f6",
-        "winnerPct": 49.2,
+        "winnerPct": 49.4,
         "runnerUp": "Republican",
-        "runnerUpPct": 35.3,
-        "margin": 13.9,
+        "runnerUpPct": 35.1,
+        "margin": 14.3,
+        "cnnTier": "safe",
         "isBattleground": false,
         "shares": [
           {
             "name": "Democratic",
             "color": "#3b82f6",
-            "pct": 49.2
+            "pct": 49.4
           },
           {
             "name": "Republican",
             "color": "#ef4444",
-            "pct": 35.3
+            "pct": 35.1
           },
           {
             "name": "Centrist Technocrats",
             "color": "#06b6d4",
-            "pct": 9.9
+            "pct": 9.8
           },
           {
             "name": "Progressive Labor",
@@ -6128,26 +6278,27 @@
         "ev": 12,
         "winner": "Democratic",
         "winnerColor": "#3b82f6",
-        "winnerPct": 59.6,
+        "winnerPct": 59.8,
         "runnerUp": "Republican",
-        "runnerUpPct": 26.5,
-        "margin": 33.1,
+        "runnerUpPct": 26.3,
+        "margin": 33.5,
+        "cnnTier": "safe",
         "isBattleground": false,
         "shares": [
           {
             "name": "Democratic",
             "color": "#3b82f6",
-            "pct": 59.6
+            "pct": 59.8
           },
           {
             "name": "Republican",
             "color": "#ef4444",
-            "pct": 26.5
+            "pct": 26.3
           },
           {
             "name": "Centrist Technocrats",
             "color": "#06b6d4",
-            "pct": 7.9
+            "pct": 7.8
           },
           {
             "name": "Progressive Labor",
@@ -6168,26 +6319,27 @@
         "ev": 11,
         "winner": "Republican",
         "winnerColor": "#ef4444",
-        "winnerPct": 43.7,
+        "winnerPct": 43.6,
         "runnerUp": "Democratic",
-        "runnerUpPct": 41.6,
-        "margin": 2.1,
+        "runnerUpPct": 41.8,
+        "margin": 1.8,
+        "cnnTier": "tossup",
         "isBattleground": true,
         "shares": [
           {
             "name": "Republican",
             "color": "#ef4444",
-            "pct": 43.7
+            "pct": 43.6
           },
           {
             "name": "Democratic",
             "color": "#3b82f6",
-            "pct": 41.6
+            "pct": 41.8
           },
           {
             "name": "Centrist Technocrats",
             "color": "#06b6d4",
-            "pct": 9.3
+            "pct": 9.2
           },
           {
             "name": "Progressive Labor",
@@ -6208,21 +6360,22 @@
         "ev": 11,
         "winner": "Republican",
         "winnerColor": "#ef4444",
-        "winnerPct": 59.7,
+        "winnerPct": 59.6,
         "runnerUp": "Democratic",
-        "runnerUpPct": 28.5,
-        "margin": 31.2,
+        "runnerUpPct": 28.7,
+        "margin": 30.9,
+        "cnnTier": "safe",
         "isBattleground": false,
         "shares": [
           {
             "name": "Republican",
             "color": "#ef4444",
-            "pct": 59.7
+            "pct": 59.6
           },
           {
             "name": "Democratic",
             "color": "#3b82f6",
-            "pct": 28.5
+            "pct": 28.7
           },
           {
             "name": "Centrist Technocrats",
@@ -6248,21 +6401,22 @@
         "ev": 11,
         "winner": "Democratic",
         "winnerColor": "#3b82f6",
-        "winnerPct": 65.4,
+        "winnerPct": 65.6,
         "runnerUp": "Republican",
-        "runnerUpPct": 20.3,
-        "margin": 45.1,
+        "runnerUpPct": 20.1,
+        "margin": 45.5,
+        "cnnTier": "safe",
         "isBattleground": false,
         "shares": [
           {
             "name": "Democratic",
             "color": "#3b82f6",
-            "pct": 65.4
+            "pct": 65.6
           },
           {
             "name": "Republican",
             "color": "#ef4444",
-            "pct": 20.3
+            "pct": 20.1
           },
           {
             "name": "Centrist Technocrats",
@@ -6288,21 +6442,22 @@
         "ev": 11,
         "winner": "Republican",
         "winnerColor": "#ef4444",
-        "winnerPct": 63.6,
+        "winnerPct": 63.4,
         "runnerUp": "Democratic",
-        "runnerUpPct": 25.3,
-        "margin": 38.3,
+        "runnerUpPct": 25.4,
+        "margin": 38,
+        "cnnTier": "safe",
         "isBattleground": false,
         "shares": [
           {
             "name": "Republican",
             "color": "#ef4444",
-            "pct": 63.6
+            "pct": 63.4
           },
           {
             "name": "Democratic",
             "color": "#3b82f6",
-            "pct": 25.3
+            "pct": 25.4
           },
           {
             "name": "Centrist Technocrats",
@@ -6328,21 +6483,22 @@
         "ev": 10,
         "winner": "Democratic",
         "winnerColor": "#3b82f6",
-        "winnerPct": 50,
+        "winnerPct": 50.2,
         "runnerUp": "Republican",
-        "runnerUpPct": 35.7,
-        "margin": 14.3,
+        "runnerUpPct": 35.5,
+        "margin": 14.7,
+        "cnnTier": "safe",
         "isBattleground": false,
         "shares": [
           {
             "name": "Democratic",
             "color": "#3b82f6",
-            "pct": 50
+            "pct": 50.2
           },
           {
             "name": "Republican",
             "color": "#ef4444",
-            "pct": 35.7
+            "pct": 35.5
           },
           {
             "name": "Centrist Technocrats",
@@ -6368,21 +6524,22 @@
         "ev": 10,
         "winner": "Democratic",
         "winnerColor": "#3b82f6",
-        "winnerPct": 64.5,
+        "winnerPct": 64.7,
         "runnerUp": "Republican",
-        "runnerUpPct": 21.5,
-        "margin": 43,
+        "runnerUpPct": 21.4,
+        "margin": 43.3,
+        "cnnTier": "safe",
         "isBattleground": false,
         "shares": [
           {
             "name": "Democratic",
             "color": "#3b82f6",
-            "pct": 64.5
+            "pct": 64.7
           },
           {
             "name": "Republican",
             "color": "#ef4444",
-            "pct": 21.5
+            "pct": 21.4
           },
           {
             "name": "Centrist Technocrats",
@@ -6408,21 +6565,22 @@
         "ev": 10,
         "winner": "Democratic",
         "winnerColor": "#3b82f6",
-        "winnerPct": 46.7,
+        "winnerPct": 46.9,
         "runnerUp": "Republican",
-        "runnerUpPct": 37.7,
-        "margin": 9,
+        "runnerUpPct": 37.5,
+        "margin": 9.4,
+        "cnnTier": "likely",
         "isBattleground": false,
         "shares": [
           {
             "name": "Democratic",
             "color": "#3b82f6",
-            "pct": 46.7
+            "pct": 46.9
           },
           {
             "name": "Republican",
             "color": "#ef4444",
-            "pct": 37.7
+            "pct": 37.5
           },
           {
             "name": "Centrist Technocrats",
@@ -6437,7 +6595,7 @@
           {
             "name": "Libertarian Free-Market",
             "color": "#f59e0b",
-            "pct": 2.1
+            "pct": 2
           }
         ]
       },
@@ -6448,21 +6606,22 @@
         "ev": 10,
         "winner": "Republican",
         "winnerColor": "#ef4444",
-        "winnerPct": 56.8,
+        "winnerPct": 56.6,
         "runnerUp": "Democratic",
-        "runnerUpPct": 30.9,
-        "margin": 25.9,
+        "runnerUpPct": 31.1,
+        "margin": 25.5,
+        "cnnTier": "safe",
         "isBattleground": false,
         "shares": [
           {
             "name": "Republican",
             "color": "#ef4444",
-            "pct": 56.8
+            "pct": 56.6
           },
           {
             "name": "Democratic",
             "color": "#3b82f6",
-            "pct": 30.9
+            "pct": 31.1
           },
           {
             "name": "Centrist Technocrats",
@@ -6472,7 +6631,7 @@
           {
             "name": "Libertarian Free-Market",
             "color": "#f59e0b",
-            "pct": 3.2
+            "pct": 3.1
           },
           {
             "name": "Progressive Labor",
@@ -6488,21 +6647,22 @@
         "ev": 10,
         "winner": "Democratic",
         "winnerColor": "#3b82f6",
-        "winnerPct": 42.8,
+        "winnerPct": 43,
         "runnerUp": "Republican",
-        "runnerUpPct": 42,
-        "margin": 0.8,
+        "runnerUpPct": 41.8,
+        "margin": 1.2,
+        "cnnTier": "tossup",
         "isBattleground": true,
         "shares": [
           {
             "name": "Democratic",
             "color": "#3b82f6",
-            "pct": 42.8
+            "pct": 43
           },
           {
             "name": "Republican",
             "color": "#ef4444",
-            "pct": 42
+            "pct": 41.8
           },
           {
             "name": "Centrist Technocrats",
@@ -6512,7 +6672,7 @@
           {
             "name": "Progressive Labor",
             "color": "#10b981",
-            "pct": 3.2
+            "pct": 3.1
           },
           {
             "name": "Libertarian Free-Market",
@@ -6528,21 +6688,22 @@
         "ev": 9,
         "winner": "Republican",
         "winnerColor": "#ef4444",
-        "winnerPct": 67.2,
+        "winnerPct": 67,
         "runnerUp": "Democratic",
-        "runnerUpPct": 22.1,
-        "margin": 45.1,
+        "runnerUpPct": 22.3,
+        "margin": 44.7,
+        "cnnTier": "safe",
         "isBattleground": false,
         "shares": [
           {
             "name": "Republican",
             "color": "#ef4444",
-            "pct": 67.2
+            "pct": 67
           },
           {
             "name": "Democratic",
             "color": "#3b82f6",
-            "pct": 22.1
+            "pct": 22.3
           },
           {
             "name": "Centrist Technocrats",
@@ -6568,26 +6729,27 @@
         "ev": 9,
         "winner": "Republican",
         "winnerColor": "#ef4444",
-        "winnerPct": 53.5,
+        "winnerPct": 53.4,
         "runnerUp": "Democratic",
-        "runnerUpPct": 33.6,
-        "margin": 19.9,
+        "runnerUpPct": 33.8,
+        "margin": 19.6,
+        "cnnTier": "safe",
         "isBattleground": false,
         "shares": [
           {
             "name": "Republican",
             "color": "#ef4444",
-            "pct": 53.5
+            "pct": 53.4
           },
           {
             "name": "Democratic",
             "color": "#3b82f6",
-            "pct": 33.6
+            "pct": 33.8
           },
           {
             "name": "Centrist Technocrats",
             "color": "#06b6d4",
-            "pct": 7.5
+            "pct": 7.4
           },
           {
             "name": "Libertarian Free-Market",
@@ -6597,7 +6759,7 @@
           {
             "name": "Progressive Labor",
             "color": "#10b981",
-            "pct": 2.4
+            "pct": 2.3
           }
         ]
       },
@@ -6608,21 +6770,22 @@
         "ev": 8,
         "winner": "Republican",
         "winnerColor": "#ef4444",
-        "winnerPct": 66.5,
+        "winnerPct": 66.4,
         "runnerUp": "Democratic",
-        "runnerUpPct": 22.7,
-        "margin": 43.8,
+        "runnerUpPct": 22.8,
+        "margin": 43.6,
+        "cnnTier": "safe",
         "isBattleground": false,
         "shares": [
           {
             "name": "Republican",
             "color": "#ef4444",
-            "pct": 66.5
+            "pct": 66.4
           },
           {
             "name": "Democratic",
             "color": "#3b82f6",
-            "pct": 22.7
+            "pct": 22.8
           },
           {
             "name": "Centrist Technocrats",
@@ -6648,26 +6811,27 @@
         "ev": 8,
         "winner": "Republican",
         "winnerColor": "#ef4444",
-        "winnerPct": 65,
+        "winnerPct": 64.9,
         "runnerUp": "Democratic",
-        "runnerUpPct": 24.3,
-        "margin": 40.7,
+        "runnerUpPct": 24.4,
+        "margin": 40.5,
+        "cnnTier": "safe",
         "isBattleground": false,
         "shares": [
           {
             "name": "Republican",
             "color": "#ef4444",
-            "pct": 65
+            "pct": 64.9
           },
           {
             "name": "Democratic",
             "color": "#3b82f6",
-            "pct": 24.3
+            "pct": 24.4
           },
           {
             "name": "Centrist Technocrats",
             "color": "#06b6d4",
-            "pct": 5.3
+            "pct": 5.2
           },
           {
             "name": "Libertarian Free-Market",
@@ -6688,21 +6852,22 @@
         "ev": 8,
         "winner": "Democratic",
         "winnerColor": "#3b82f6",
-        "winnerPct": 56.9,
+        "winnerPct": 57.1,
         "runnerUp": "Republican",
-        "runnerUpPct": 28.7,
-        "margin": 28.2,
+        "runnerUpPct": 28.5,
+        "margin": 28.6,
+        "cnnTier": "safe",
         "isBattleground": false,
         "shares": [
           {
             "name": "Democratic",
             "color": "#3b82f6",
-            "pct": 56.9
+            "pct": 57.1
           },
           {
             "name": "Republican",
             "color": "#ef4444",
-            "pct": 28.7
+            "pct": 28.5
           },
           {
             "name": "Centrist Technocrats",
@@ -6728,21 +6893,22 @@
         "ev": 7,
         "winner": "Democratic",
         "winnerColor": "#3b82f6",
-        "winnerPct": 60.9,
+        "winnerPct": 61.1,
         "runnerUp": "Republican",
-        "runnerUpPct": 24.6,
-        "margin": 36.3,
+        "runnerUpPct": 24.5,
+        "margin": 36.6,
+        "cnnTier": "safe",
         "isBattleground": false,
         "shares": [
           {
             "name": "Democratic",
             "color": "#3b82f6",
-            "pct": 60.9
+            "pct": 61.1
           },
           {
             "name": "Republican",
             "color": "#ef4444",
-            "pct": 24.6
+            "pct": 24.5
           },
           {
             "name": "Centrist Technocrats",
@@ -6752,7 +6918,7 @@
           {
             "name": "Progressive Labor",
             "color": "#10b981",
-            "pct": 4.5
+            "pct": 4.4
           },
           {
             "name": "Libertarian Free-Market",
@@ -6768,21 +6934,22 @@
         "ev": 7,
         "winner": "Republican",
         "winnerColor": "#ef4444",
-        "winnerPct": 67.7,
+        "winnerPct": 67.5,
         "runnerUp": "Democratic",
-        "runnerUpPct": 20.9,
-        "margin": 46.8,
+        "runnerUpPct": 21,
+        "margin": 46.5,
+        "cnnTier": "safe",
         "isBattleground": false,
         "shares": [
           {
             "name": "Republican",
             "color": "#ef4444",
-            "pct": 67.7
+            "pct": 67.5
           },
           {
             "name": "Democratic",
             "color": "#3b82f6",
-            "pct": 20.9
+            "pct": 21
           },
           {
             "name": "Libertarian Free-Market",
@@ -6792,7 +6959,7 @@
           {
             "name": "Centrist Technocrats",
             "color": "#06b6d4",
-            "pct": 4.6
+            "pct": 4.5
           },
           {
             "name": "Progressive Labor",
@@ -6808,21 +6975,22 @@
         "ev": 6,
         "winner": "Republican",
         "winnerColor": "#ef4444",
-        "winnerPct": 68.9,
+        "winnerPct": 68.7,
         "runnerUp": "Democratic",
-        "runnerUpPct": 20.4,
-        "margin": 48.5,
+        "runnerUpPct": 20.6,
+        "margin": 48.1,
+        "cnnTier": "safe",
         "isBattleground": false,
         "shares": [
           {
             "name": "Republican",
             "color": "#ef4444",
-            "pct": 68.9
+            "pct": 68.7
           },
           {
             "name": "Democratic",
             "color": "#3b82f6",
-            "pct": 20.4
+            "pct": 20.6
           },
           {
             "name": "Libertarian Free-Market",
@@ -6848,26 +7016,27 @@
         "ev": 6,
         "winner": "Republican",
         "winnerColor": "#ef4444",
-        "winnerPct": 51.2,
+        "winnerPct": 51,
         "runnerUp": "Democratic",
-        "runnerUpPct": 35.4,
-        "margin": 15.8,
+        "runnerUpPct": 35.6,
+        "margin": 15.4,
+        "cnnTier": "safe",
         "isBattleground": false,
         "shares": [
           {
             "name": "Republican",
             "color": "#ef4444",
-            "pct": 51.2
+            "pct": 51
           },
           {
             "name": "Democratic",
             "color": "#3b82f6",
-            "pct": 35.4
+            "pct": 35.6
           },
           {
             "name": "Centrist Technocrats",
             "color": "#06b6d4",
-            "pct": 8
+            "pct": 7.9
           },
           {
             "name": "Libertarian Free-Market",
@@ -6888,21 +7057,22 @@
         "ev": 6,
         "winner": "Republican",
         "winnerColor": "#ef4444",
-        "winnerPct": 58.4,
+        "winnerPct": 58.3,
         "runnerUp": "Democratic",
-        "runnerUpPct": 29.5,
-        "margin": 28.9,
+        "runnerUpPct": 29.7,
+        "margin": 28.6,
+        "cnnTier": "safe",
         "isBattleground": false,
         "shares": [
           {
             "name": "Republican",
             "color": "#ef4444",
-            "pct": 58.4
+            "pct": 58.3
           },
           {
             "name": "Democratic",
             "color": "#3b82f6",
-            "pct": 29.5
+            "pct": 29.7
           },
           {
             "name": "Centrist Technocrats",
@@ -6928,21 +7098,22 @@
         "ev": 6,
         "winner": "Republican",
         "winnerColor": "#ef4444",
-        "winnerPct": 62.3,
+        "winnerPct": 62.1,
         "runnerUp": "Democratic",
-        "runnerUpPct": 26.5,
-        "margin": 35.8,
+        "runnerUpPct": 26.6,
+        "margin": 35.5,
+        "cnnTier": "safe",
         "isBattleground": false,
         "shares": [
           {
             "name": "Republican",
             "color": "#ef4444",
-            "pct": 62.3
+            "pct": 62.1
           },
           {
             "name": "Democratic",
             "color": "#3b82f6",
-            "pct": 26.5
+            "pct": 26.6
           },
           {
             "name": "Centrist Technocrats",
@@ -6968,26 +7139,27 @@
         "ev": 6,
         "winner": "Democratic",
         "winnerColor": "#3b82f6",
-        "winnerPct": 44.1,
+        "winnerPct": 44.3,
         "runnerUp": "Republican",
-        "runnerUpPct": 41.1,
-        "margin": 3,
+        "runnerUpPct": 40.9,
+        "margin": 3.4,
+        "cnnTier": "lean",
         "isBattleground": true,
         "shares": [
           {
             "name": "Democratic",
             "color": "#3b82f6",
-            "pct": 44.1
+            "pct": 44.3
           },
           {
             "name": "Republican",
             "color": "#ef4444",
-            "pct": 41.1
+            "pct": 40.9
           },
           {
             "name": "Centrist Technocrats",
             "color": "#06b6d4",
-            "pct": 9.5
+            "pct": 9.4
           },
           {
             "name": "Progressive Labor",
@@ -7008,21 +7180,22 @@
         "ev": 6,
         "winner": "Republican",
         "winnerColor": "#ef4444",
-        "winnerPct": 64.7,
+        "winnerPct": 64.5,
         "runnerUp": "Democratic",
-        "runnerUpPct": 24.3,
-        "margin": 40.4,
+        "runnerUpPct": 24.4,
+        "margin": 40.1,
+        "cnnTier": "safe",
         "isBattleground": false,
         "shares": [
           {
             "name": "Republican",
             "color": "#ef4444",
-            "pct": 64.7
+            "pct": 64.5
           },
           {
             "name": "Democratic",
             "color": "#3b82f6",
-            "pct": 24.3
+            "pct": 24.4
           },
           {
             "name": "Centrist Technocrats",
@@ -7048,21 +7221,22 @@
         "ev": 5,
         "winner": "Republican",
         "winnerColor": "#ef4444",
-        "winnerPct": 58.6,
+        "winnerPct": 58.5,
         "runnerUp": "Democratic",
-        "runnerUpPct": 29.3,
-        "margin": 29.3,
+        "runnerUpPct": 29.5,
+        "margin": 29,
+        "cnnTier": "safe",
         "isBattleground": false,
         "shares": [
           {
             "name": "Republican",
             "color": "#ef4444",
-            "pct": 58.6
+            "pct": 58.5
           },
           {
             "name": "Democratic",
             "color": "#3b82f6",
-            "pct": 29.3
+            "pct": 29.5
           },
           {
             "name": "Centrist Technocrats",
@@ -7088,26 +7262,27 @@
         "ev": 5,
         "winner": "Democratic",
         "winnerColor": "#3b82f6",
-        "winnerPct": 44.5,
+        "winnerPct": 44.7,
         "runnerUp": "Republican",
-        "runnerUpPct": 41.6,
-        "margin": 2.9,
+        "runnerUpPct": 41.4,
+        "margin": 3.3,
+        "cnnTier": "lean",
         "isBattleground": true,
         "shares": [
           {
             "name": "Democratic",
             "color": "#3b82f6",
-            "pct": 44.5
+            "pct": 44.7
           },
           {
             "name": "Republican",
             "color": "#ef4444",
-            "pct": 41.6
+            "pct": 41.4
           },
           {
             "name": "Centrist Technocrats",
             "color": "#06b6d4",
-            "pct": 8.4
+            "pct": 8.3
           },
           {
             "name": "Progressive Labor",
@@ -7128,21 +7303,22 @@
         "ev": 4,
         "winner": "Democratic",
         "winnerColor": "#3b82f6",
-        "winnerPct": 65.1,
+        "winnerPct": 65.3,
         "runnerUp": "Republican",
-        "runnerUpPct": 22,
-        "margin": 43.1,
+        "runnerUpPct": 21.9,
+        "margin": 43.4,
+        "cnnTier": "safe",
         "isBattleground": false,
         "shares": [
           {
             "name": "Democratic",
             "color": "#3b82f6",
-            "pct": 65.1
+            "pct": 65.3
           },
           {
             "name": "Republican",
             "color": "#ef4444",
-            "pct": 22
+            "pct": 21.9
           },
           {
             "name": "Centrist Technocrats",
@@ -7168,21 +7344,22 @@
         "ev": 4,
         "winner": "Republican",
         "winnerColor": "#ef4444",
-        "winnerPct": 65.5,
+        "winnerPct": 65.3,
         "runnerUp": "Democratic",
-        "runnerUpPct": 22.9,
-        "margin": 42.6,
+        "runnerUpPct": 23,
+        "margin": 42.3,
+        "cnnTier": "safe",
         "isBattleground": false,
         "shares": [
           {
             "name": "Republican",
             "color": "#ef4444",
-            "pct": 65.5
+            "pct": 65.3
           },
           {
             "name": "Democratic",
             "color": "#3b82f6",
-            "pct": 22.9
+            "pct": 23
           },
           {
             "name": "Centrist Technocrats",
@@ -7208,21 +7385,22 @@
         "ev": 4,
         "winner": "Democratic",
         "winnerColor": "#3b82f6",
-        "winnerPct": 50,
+        "winnerPct": 50.2,
         "runnerUp": "Republican",
-        "runnerUpPct": 34.7,
-        "margin": 15.3,
+        "runnerUpPct": 34.5,
+        "margin": 15.7,
+        "cnnTier": "safe",
         "isBattleground": false,
         "shares": [
           {
             "name": "Democratic",
             "color": "#3b82f6",
-            "pct": 50
+            "pct": 50.2
           },
           {
             "name": "Republican",
             "color": "#ef4444",
-            "pct": 34.7
+            "pct": 34.5
           },
           {
             "name": "Centrist Technocrats",
@@ -7232,7 +7410,7 @@
           {
             "name": "Progressive Labor",
             "color": "#10b981",
-            "pct": 3.5
+            "pct": 3.4
           },
           {
             "name": "Libertarian Free-Market",
@@ -7248,21 +7426,22 @@
         "ev": 4,
         "winner": "Republican",
         "winnerColor": "#ef4444",
-        "winnerPct": 63.2,
+        "winnerPct": 63.1,
         "runnerUp": "Democratic",
-        "runnerUpPct": 25.5,
-        "margin": 37.7,
+        "runnerUpPct": 25.6,
+        "margin": 37.5,
+        "cnnTier": "safe",
         "isBattleground": false,
         "shares": [
           {
             "name": "Republican",
             "color": "#ef4444",
-            "pct": 63.2
+            "pct": 63.1
           },
           {
             "name": "Democratic",
             "color": "#3b82f6",
-            "pct": 25.5
+            "pct": 25.6
           },
           {
             "name": "Centrist Technocrats",
@@ -7272,7 +7451,7 @@
           {
             "name": "Libertarian Free-Market",
             "color": "#f59e0b",
-            "pct": 3.8
+            "pct": 3.7
           },
           {
             "name": "Progressive Labor",
@@ -7288,21 +7467,22 @@
         "ev": 4,
         "winner": "Democratic",
         "winnerColor": "#3b82f6",
-        "winnerPct": 48.4,
+        "winnerPct": 48.6,
         "runnerUp": "Republican",
-        "runnerUpPct": 35.2,
-        "margin": 13.2,
+        "runnerUpPct": 35,
+        "margin": 13.6,
+        "cnnTier": "safe",
         "isBattleground": false,
         "shares": [
           {
             "name": "Democratic",
             "color": "#3b82f6",
-            "pct": 48.4
+            "pct": 48.6
           },
           {
             "name": "Republican",
             "color": "#ef4444",
-            "pct": 35.2
+            "pct": 35
           },
           {
             "name": "Centrist Technocrats",
@@ -7328,21 +7508,22 @@
         "ev": 4,
         "winner": "Democratic",
         "winnerColor": "#3b82f6",
-        "winnerPct": 62.2,
+        "winnerPct": 62.4,
         "runnerUp": "Republican",
-        "runnerUpPct": 23.7,
-        "margin": 38.5,
+        "runnerUpPct": 23.5,
+        "margin": 38.9,
+        "cnnTier": "safe",
         "isBattleground": false,
         "shares": [
           {
             "name": "Democratic",
             "color": "#3b82f6",
-            "pct": 62.2
+            "pct": 62.4
           },
           {
             "name": "Republican",
             "color": "#ef4444",
-            "pct": 23.7
+            "pct": 23.5
           },
           {
             "name": "Centrist Technocrats",
@@ -7368,21 +7549,22 @@
         "ev": 4,
         "winner": "Republican",
         "winnerColor": "#ef4444",
-        "winnerPct": 67,
+        "winnerPct": 66.9,
         "runnerUp": "Democratic",
-        "runnerUpPct": 20,
-        "margin": 47,
+        "runnerUpPct": 20.1,
+        "margin": 46.8,
+        "cnnTier": "safe",
         "isBattleground": false,
         "shares": [
           {
             "name": "Republican",
             "color": "#ef4444",
-            "pct": 67
+            "pct": 66.9
           },
           {
             "name": "Democratic",
             "color": "#3b82f6",
-            "pct": 20
+            "pct": 20.1
           },
           {
             "name": "Libertarian Free-Market",
@@ -7408,21 +7590,22 @@
         "ev": 3,
         "winner": "Republican",
         "winnerColor": "#ef4444",
-        "winnerPct": 59.5,
+        "winnerPct": 59.4,
         "runnerUp": "Democratic",
-        "runnerUpPct": 28.6,
-        "margin": 30.9,
+        "runnerUpPct": 28.8,
+        "margin": 30.6,
+        "cnnTier": "safe",
         "isBattleground": false,
         "shares": [
           {
             "name": "Republican",
             "color": "#ef4444",
-            "pct": 59.5
+            "pct": 59.4
           },
           {
             "name": "Democratic",
             "color": "#3b82f6",
-            "pct": 28.6
+            "pct": 28.8
           },
           {
             "name": "Centrist Technocrats",
@@ -7448,21 +7631,22 @@
         "ev": 3,
         "winner": "Democratic",
         "winnerColor": "#3b82f6",
-        "winnerPct": 59.3,
+        "winnerPct": 59.5,
         "runnerUp": "Republican",
-        "runnerUpPct": 26.4,
-        "margin": 32.9,
+        "runnerUpPct": 26.3,
+        "margin": 33.2,
+        "cnnTier": "safe",
         "isBattleground": false,
         "shares": [
           {
             "name": "Democratic",
             "color": "#3b82f6",
-            "pct": 59.3
+            "pct": 59.5
           },
           {
             "name": "Republican",
             "color": "#ef4444",
-            "pct": 26.4
+            "pct": 26.3
           },
           {
             "name": "Centrist Technocrats",
@@ -7488,31 +7672,32 @@
         "ev": 3,
         "winner": "Democratic",
         "winnerColor": "#3b82f6",
-        "winnerPct": 54.7,
+        "winnerPct": 54.9,
         "runnerUp": "Progressive Labor",
-        "runnerUpPct": 21.3,
-        "margin": 33.4,
+        "runnerUpPct": 21.2,
+        "margin": 33.7,
+        "cnnTier": "safe",
         "isBattleground": false,
         "shares": [
           {
             "name": "Democratic",
             "color": "#3b82f6",
-            "pct": 54.7
+            "pct": 54.9
           },
           {
             "name": "Progressive Labor",
             "color": "#10b981",
-            "pct": 21.3
+            "pct": 21.2
           },
           {
             "name": "Republican",
             "color": "#ef4444",
-            "pct": 17.5
+            "pct": 17.4
           },
           {
             "name": "Centrist Technocrats",
             "color": "#06b6d4",
-            "pct": 5.4
+            "pct": 5.3
           },
           {
             "name": "Libertarian Free-Market",
@@ -7528,21 +7713,22 @@
         "ev": 3,
         "winner": "Republican",
         "winnerColor": "#ef4444",
-        "winnerPct": 69,
+        "winnerPct": 68.9,
         "runnerUp": "Democratic",
-        "runnerUpPct": 19.7,
-        "margin": 49.3,
+        "runnerUpPct": 19.9,
+        "margin": 49,
+        "cnnTier": "safe",
         "isBattleground": false,
         "shares": [
           {
             "name": "Republican",
             "color": "#ef4444",
-            "pct": 69
+            "pct": 68.9
           },
           {
             "name": "Democratic",
             "color": "#3b82f6",
-            "pct": 19.7
+            "pct": 19.9
           },
           {
             "name": "Libertarian Free-Market",
@@ -7568,21 +7754,22 @@
         "ev": 3,
         "winner": "Republican",
         "winnerColor": "#ef4444",
-        "winnerPct": 65.8,
+        "winnerPct": 65.6,
         "runnerUp": "Democratic",
-        "runnerUpPct": 23.1,
-        "margin": 42.7,
+        "runnerUpPct": 23.3,
+        "margin": 42.3,
+        "cnnTier": "safe",
         "isBattleground": false,
         "shares": [
           {
             "name": "Republican",
             "color": "#ef4444",
-            "pct": 65.8
+            "pct": 65.6
           },
           {
             "name": "Democratic",
             "color": "#3b82f6",
-            "pct": 23.1
+            "pct": 23.3
           },
           {
             "name": "Centrist Technocrats",
@@ -7608,21 +7795,22 @@
         "ev": 3,
         "winner": "Democratic",
         "winnerColor": "#3b82f6",
-        "winnerPct": 61.2,
+        "winnerPct": 61.4,
         "runnerUp": "Republican",
-        "runnerUpPct": 24.8,
-        "margin": 36.4,
+        "runnerUpPct": 24.7,
+        "margin": 36.7,
+        "cnnTier": "safe",
         "isBattleground": false,
         "shares": [
           {
             "name": "Democratic",
             "color": "#3b82f6",
-            "pct": 61.2
+            "pct": 61.4
           },
           {
             "name": "Republican",
             "color": "#ef4444",
-            "pct": 24.8
+            "pct": 24.7
           },
           {
             "name": "Centrist Technocrats",
@@ -7648,21 +7836,22 @@
         "ev": 3,
         "winner": "Republican",
         "winnerColor": "#ef4444",
-        "winnerPct": 68.7,
+        "winnerPct": 68.6,
         "runnerUp": "Democratic",
-        "runnerUpPct": 17.5,
-        "margin": 51.2,
+        "runnerUpPct": 17.6,
+        "margin": 51,
+        "cnnTier": "safe",
         "isBattleground": false,
         "shares": [
           {
             "name": "Republican",
             "color": "#ef4444",
-            "pct": 68.7
+            "pct": 68.6
           },
           {
             "name": "Democratic",
             "color": "#3b82f6",
-            "pct": 17.5
+            "pct": 17.6
           },
           {
             "name": "Libertarian Free-Market",

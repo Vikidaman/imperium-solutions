@@ -209,7 +209,7 @@ export function computeGdpForecast(nation, state, modelData = null) {
   const budgetPct = Number(c.stateBudgetPercent ?? nation.budgetPercentOverride ?? 0.22);
   const centralBankRate = Number(nation.centralBankRate ?? 0.045);
 
-  const consumerSentiment = Math.max(1, Number(nation.consumerSentiment ?? c.consumerConfidence ?? 65));
+  const consumerSentiment = Math.max(1, Number(c.consumerConfidence ?? nation.consumerSentiment ?? 65));
   const infraEff = Math.min(1, Math.max(0.05, Number(nation.infrastructureEfficiency ?? c.infrastructureEfficiency ?? 0.82)));
   const rawLit = Number(nation.literacyRate ?? c.literacyRate ?? 0.92);
   const literacyRate = Math.min(1, Math.max(0.05, rawLit > 1 ? rawLit / 100 : rawLit));
@@ -218,6 +218,12 @@ export function computeGdpForecast(nation, state, modelData = null) {
   const crimeRate = Math.max(0, Number(c.crimeRate ?? nation.crimeRate ?? 0.02));
   const kFactor = Math.max(100, Number(nation.kFactorScaler) || 1500);
   const incomeEqualityIndex = Number(c.incomeEqualityIndex ?? 0.615);
+  const racialEqualityIndex = Math.min(1, Math.max(0.20, Number(c.racialEqualityIndex ?? nation.racialEqualityIndex ?? 0.68)));
+  const crimeControlIndex = Math.min(1, Math.max(0.15, Number(c.crimeControlIndex ?? nation.crimeControlIndex ?? 0.74)));
+  const socialEval = c.socialPolicyEval || {};
+  const businessEstablishmentBoost = Number(socialEval.businessEstablishmentBoost || 0);
+  const corruptionIndex = Number(socialEval.corruptionIndex ?? 20);
+  const baseTaxLevel = Number(c.baseTaxLevel ?? nation.baseTaxLevel ?? 0.24);
   const debtToGdpRatio = Number(c.debtToGdpRatio ?? features.debt_to_gdp_ratio ?? 126.0);
   const popGrowthQuarterly = Number(c.popGrowthRate ?? 0.0019);
   const freightDelay = Math.max(0, Number(nation.freightDelayFriction) || 0);
@@ -227,15 +233,20 @@ export function computeGdpForecast(nation, state, modelData = null) {
   const govDiagTotals = c.governanceDiagnostics?.totals || {};
 
   // Forward-looking governance momentum effect (severe drag when policies are underfunded/repealed)
-  const litMomentum = ((Number(prog.literacyDelta ?? 0.0034) - 0.0034) * 40);
-  const infraMomentum = ((Number(prog.infrastructureDelta ?? 0.00416) - 0.00416) * 45);
-  const tfpMomentum = ((Number(prog.tfpDelta ?? 9) - 9) * 0.022);
-  const sentMomentum = ((Number(prog.sentimentDelta ?? 0.8) - 0.8) * 0.14);
-  const eqMomentum = ((Number(prog.equalityDelta ?? 0.0045) - 0.0045) * 35);
+  const litMomentum = ((Number(prog.literacyDelta ?? 0.0021) - 0.0021) * 40);
+  const infraMomentum = ((Number(prog.infrastructureDelta ?? 0.0025) - 0.0025) * 45);
+  const tfpMomentum = ((Number(prog.tfpDelta ?? 10) - 10) * 0.022);
+  const sentMomentum = ((Number(prog.sentimentDelta ?? 0.7) - 0.7) * 0.14);
+  const eqMomentum = ((Number(prog.equalityDelta ?? 0.0035) - 0.0035) * 35);
+  const racialMomentum = ((Number(prog.racialEqualityDelta ?? 0.0038) - 0.0038) * 30);
+  const crimeCtrlMomentum = ((Number(prog.crimeControlDelta ?? 0.0017) - 0.0017) * 30);
 
   // High-governance structural malus drags on growth (graduate mismatch, automation displacement, capital compression)
   const underempDrag = (Number(govDiagTotals.totalMalusUnemploymentBonus) || 0) * 18.0;
   const equalityCapDrag = (Number(govDiagTotals.equalityCapitalDrag) || 0) * 0.45;
+  const lafferConsPenalty = Math.max(0, incomeTax - 0.45) * 14.0 + Math.max(0, salesTax - 0.28) * 10.0;
+  const lafferCapexPenalty = Math.max(0, corporateTax - 0.45) * 16.0;
+  const zeroTaxChaos = baseTaxLevel < 0.08 ? (0.08 - baseTaxLevel) * 28.0 : 0;
 
   // --- Component 1: Household Consumption Growth Contribution (ΔC) ---
   // Includes bell-curve MPC incidence effect, equality purchasing-power boost, and household credit channel
@@ -248,14 +259,15 @@ export function computeGdpForecast(nation, state, modelData = null) {
   const consumptionGrowthContrib =
     1.10 +
     (cIdx - 1.0) * 4.8 +
-    (sentimentRatio - 1.0) * 1.15 +
+    (sentimentRatio - 1.0) * 1.45 +
     mpcIncidenceAdj +
     equalityConsBonus +
     sentMomentum * 0.5 -
+    lafferConsPenalty -
     creditRateDrag;
 
   // --- Component 2: Gross Private Domestic Investment Growth Contribution (ΔI) ---
-  // After-tax corporate return, monetary rate elasticity, infrastructure & TFP momentum, and capex drag
+  // After-tax corporate return, monetary rate elasticity, infrastructure & TFP momentum, and fast-track vs corruption trade-off
   const afterTaxProfitRatio = ((1 - workerShare) * (1 - corporateTax)) / 0.34011;
   const interestDrag = (centralBankRate - 0.045) * 16.0;
   const infraBonus = (infraEff - 0.82) * 3.8;
@@ -264,6 +276,10 @@ export function computeGdpForecast(nation, state, modelData = null) {
   const humanCapitalBonus = (literacyRate - 0.92) * 3.4 + (urbanisationIndex - 0.83) * 1.6;
   const tfpBonus = ((kFactor - 1500) / 1500) * 2.4;
   const capexModeDrag = (Number(bellCurve.investmentCapexDrag) || 0) * 4.2;
+  const businessEstabForecastBoost =
+    businessEstablishmentBoost * 5.5 - Math.max(0, corruptionIndex - 20) * 0.055;
+  const racialEqualityBonus = (racialEqualityIndex - 0.68) * 5.5;
+  const crimeControlBonus = (crimeControlIndex - 0.74) * 6.5;
   const investmentGrowthContrib =
     0.75 +
     (afterTaxProfitRatio - 1.0) * 2.8 -
@@ -273,7 +289,11 @@ export function computeGdpForecast(nation, state, modelData = null) {
     humanCapitalBonus +
     tfpBonus +
     infraMomentum * 0.65 +
-    tfpMomentum * 0.65 -
+    tfpMomentum * 0.65 +
+    businessEstabForecastBoost +
+    racialEqualityBonus * 0.45 +
+    crimeControlBonus * 0.45 -
+    lafferCapexPenalty -
     capexModeDrag -
     equalityCapDrag -
     freightDelay * 1.8;
@@ -284,7 +304,7 @@ export function computeGdpForecast(nation, state, modelData = null) {
     debtToGdpRatio > 130
       ? Math.min(2.8, ((debtToGdpRatio - 130) / 100) * 1.35)
       : (130 - debtToGdpRatio) / 100 * 0.22;
-  const governmentGrowthContrib = 0.42 + fiscalStimulus - debtCrowdingOut + sentMomentum * 0.4 + eqMomentum * 0.5;
+  const governmentGrowthContrib = 0.42 + fiscalStimulus - debtCrowdingOut - zeroTaxChaos + sentMomentum * 0.4 + eqMomentum * 0.5;
 
   // --- Component 4: Net Exports & Trade Competitiveness Contribution (ΔNX) ---
   const nxShare = ad.nxShare !== undefined ? Number(ad.nxShare) : -0.03;
@@ -293,18 +313,22 @@ export function computeGdpForecast(nation, state, modelData = null) {
 
   // --- Component 5: Supply-Side Demographic, Governance Momentum & Malus Adjustment ---
   const annualizedPopGrowthPct = Math.max(-2.0, Math.min(4.0, popGrowthQuarterly * 4 * 100));
-  const crimeDrag = Math.max(0, (crimeRate - 0.02)) * 1.8;
+  const crimeDrag = Math.max(0, (crimeRate - 0.02)) * 12.0;
   const mlSignalAdjustment = Math.max(-0.25, Math.min(0.25, (ml_ensemble_raw - 2.2) * 0.05));
   const supplyTrendContrib = Math.max(
-    -4.5,
+    -8.5,
     Math.min(
-      4.5,
+      6.5,
       annualizedPopGrowthPct * 0.75 -
         crimeDrag +
         mlSignalAdjustment +
         litMomentum * 0.55 +
         infraMomentum * 0.35 +
-        tfpMomentum * 0.35 -
+        tfpMomentum * 0.35 +
+        racialEqualityBonus * 0.55 +
+        crimeControlBonus * 0.55 +
+        racialMomentum * 0.5 +
+        crimeCtrlMomentum * 0.5 -
         underempDrag
     )
   );
@@ -332,8 +356,8 @@ export function computeGdpForecast(nation, state, modelData = null) {
 
   // 4. Final Real GDP Growth Rate (% per year)
   const unclippedFinal = ad_baseline_forecast + structural_adj + crisis_adj;
-  // Clamp to realistic macroeconomic bounds [-12.0%, +16.0%]
-  const final_growth = Math.max(-12.0, Math.min(16.0, unclippedFinal));
+  // Clamp to wide macroeconomic bounds [-22.0%, +20.0%] so extreme tax/governance regimes register sharply
+  const final_growth = Math.max(-22.0, Math.min(20.0, unclippedFinal));
 
   // 5. Conformal Prediction Intervals (80% and 95%)
   const conf = meta.conformal_intervals || {
