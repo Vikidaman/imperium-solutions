@@ -270,4 +270,107 @@ describe("Round Progression and United States Simulation Mechanics", () => {
       "Sustained landmark governance & innovation investment should yield stronger long-run GDP growth outlook"
     );
   });
+
+  it("models asymmetric bell-curve tax burden distribution, Income Equality in governance, severe underfunding decay, high-governance maluses, and elastic outlook/inflation", () => {
+    // 1. Bell-curve tax distribution shift: Low-income peak (0.18) vs Upper-income progressive peak (0.85)
+    const lowModeState = buildSimplifiedSeed();
+    lowModeState.nations[0].taxDistributionMode = 0.18;
+    evaluateSimulation(lowModeState);
+    const lowC = lowModeState.nations[0].computed;
+
+    const highModeState = buildSimplifiedSeed();
+    highModeState.nations[0].taxDistributionMode = 0.85;
+    evaluateSimulation(highModeState);
+    const highC = highModeState.nations[0].computed;
+
+    assert.equal(lowC.bellCurveTaxIncidence.skewDirection, "right-tailed");
+    assert.equal(highC.bellCurveTaxIncidence.skewDirection, "left-tailed");
+    assert.ok(
+      lowC.cohorts.lowIncome.taxBurden > highC.cohorts.lowIncome.taxBurden,
+      "Lower-income tax peak must raise low-income cohort effective tax burden"
+    );
+    assert.ok(
+      highC.cohorts.upperClass.taxBurden > lowC.cohorts.upperClass.taxBurden,
+      "Upper-income tax peak must raise upper-class cohort effective tax burden"
+    );
+    assert.ok(
+      lowC.cohorts.lowIncome.livingStandard < highC.cohorts.lowIncome.livingStandard,
+      "Right-tailed lower-income tax burden must reduce low-income Standard of Living"
+    );
+    assert.ok(
+      lowC.aggregateDemand.consumption < highC.aggregateDemand.consumption,
+      "Shifting tax burden to high-MPC low-income households must reduce Aggregate Consumption C"
+    );
+    assert.ok(
+      lowC.incomeEqualityIndex < highC.incomeEqualityIndex,
+      "Right-tailed lower-income tax peak must reduce Income Equality Index"
+    );
+
+    // 2. Severe underfunding penalties across all 6 governance metrics including Income Equality
+    const underState = buildSimplifiedSeed();
+    underState.nations[0].enactedPolicies = {
+      education: { enacted: true, funding: "underfunded" },
+      infrastructure: { enacted: true, funding: "underfunded" },
+      innovation: { enacted: true, funding: "underfunded" },
+      governance: { enacted: true, funding: "underfunded" },
+    };
+    evaluateSimulation(underState);
+    const initialUnderGrowth = underState.nations[0].computed.forecast.finalGrowth;
+    const initialEquality = underState.nations[0].computed.incomeEqualityIndex;
+
+    assert.ok(
+      underState.nations[0].computed.policyProgression.neglectedCount === 4,
+      "All 4 underfunded policies should activate compounding institutional neglect multiplier"
+    );
+    assert.ok(
+      initialUnderGrowth < 0,
+      `Systemic underfunding must severely penalize 1-year GDP outlook, got ${initialUnderGrowth}%`
+    );
+
+    advanceSimulationTime(underState, 360);
+    assert.ok(underState.nations[0].literacyRate <= 0.88, "Underfunded education should cause steep literacy decay");
+    assert.ok(underState.nations[0].infrastructureEfficiency <= 0.77, "Underfunded infrastructure should erode rapidly");
+    assert.ok(underState.nations[0].kFactorScaler <= 1300, "Underfunded R&D should shrink TFP K-factor steeply");
+    assert.ok(underState.nations[0].computed.incomeEqualityIndex < initialEquality - 0.03, "Underfunded governance & education should erode Income Equality");
+
+    // 3. High-Governance Maluses & Qualitative Explanations + Elastic Inflation
+    const malusState = buildSimplifiedSeed();
+    const mUsa = malusState.nations[0];
+    mUsa.literacyRate = 0.996;
+    mUsa.kFactorScaler = 2400;
+    mUsa.urbanisationIndex = 0.96;
+    mUsa.infrastructureEfficiency = 0.97;
+    mUsa.consumerSentiment = 105;
+    mUsa.workerShareOverride = 0.72;
+    mUsa.equalityDrift = 0.14;
+    evaluateSimulation(malusState);
+    const mc = mUsa.computed;
+    const maluses = mc.governanceDiagnostics.maluses;
+
+    assert.ok(maluses.literacy.active, "Literacy > 94% must trigger Graduate Underemployment malus");
+    assert.ok(maluses.productivity.active, "K-Factor > 1800 must trigger Automation Structural Unemployment malus");
+    assert.ok(maluses.urbanisation.active, "Urbanisation > 88% must trigger Metro Housing Inflation malus");
+    assert.ok(maluses.infrastructure.active, "Infrastructure > 91% must trigger Maintenance Overhead malus");
+    assert.ok(maluses.sentiment.active, "Sentiment > 85 must trigger Overheating & Import Leakage malus");
+    assert.ok(maluses.equality.active, "Income Equality > 70% must trigger Wage Compression & Capital Drag malus");
+    assert.ok(mc.unemploymentRate > 0.08, "Graduate mismatch + automation displacement must visibly raise unemploymentRate");
+    assert.ok(
+      mc.governanceDiagnostics.explanations.literacy.includes("capable"),
+      "Qualitative governance explanations must describe capability for high literacy"
+    );
+
+    // 4. Monetary policy elasticity on Inflation and GDP growth
+    const hikeState = buildSimplifiedSeed();
+    hikeState.nations[0].centralBankRate = 0.095;
+    evaluateSimulation(hikeState);
+    const baseState = evaluateSimulation(buildSimplifiedSeed());
+    assert.ok(
+      hikeState.nations[0].computed.inflationRate < baseState.nations[0].computed.inflationRate - 0.015,
+      "Fed rate hike must elastically lower inflation by more than 1.5 percentage points"
+    );
+    assert.ok(
+      hikeState.nations[0].computed.forecast.finalGrowth < baseState.nations[0].computed.forecast.finalGrowth - 0.8,
+      "Fed rate hike must elastically compress 1-year GDP growth outlook"
+    );
+  });
 });

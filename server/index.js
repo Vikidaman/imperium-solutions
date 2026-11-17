@@ -601,6 +601,8 @@ app.patch("/api/sessions/:id/nations/:nationId", (req, res) => {
     "corporateTaxOverride",
     "workerShareOverride",
     "budgetPercentOverride",
+    "taxDistributionMode",
+    "equalityDrift",
     "centralBankRate",
     "freightDelayFriction",
     "cumulativeGrowthFactor",
