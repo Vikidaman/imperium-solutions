@@ -332,6 +332,89 @@ function buildPartyWithTaxPosture(rawParty) {
   };
 }
 
+export const FEDERALISM_POLICY_ORDER = ["pro_federalist", "moderate", "states_rights"];
+
+export const FEDERALISM_POLICY_CATALOG = {
+  pro_federalist: {
+    id: "pro_federalist",
+    shortLabel: "Pro-Federalist",
+    label: "Pro-Federalist (Uniform National Standard)",
+    adherenceRate: 0.90,
+    description:
+      "Close state adherence to federal tax, regulatory, and civil charter mandates even when state governments disagree; maximizes uniform national standards.",
+  },
+  moderate: {
+    id: "moderate",
+    shortLabel: "Moderate Cooperative",
+    label: "Moderate (Cooperative Federalism)",
+    adherenceRate: 0.68,
+    description:
+      "Aligns with core federal baselines while permitting targeted state discretion on controversial fiscal, policing, and social policies.",
+  },
+  states_rights: {
+    id: "states_rights",
+    shortLabel: "States' Rights",
+    label: "States' Rights (Autonomous State Sovereignty)",
+    adherenceRate: 0.35,
+    description:
+      "Significant state deviation from federal mandates; state legislatures and governors align regulation to regional resources and state party control.",
+  },
+};
+
+export const STATE_FIPS_BY_NAME = {
+  Alabama: "01",
+  Alaska: "02",
+  Arizona: "04",
+  Arkansas: "05",
+  California: "06",
+  Colorado: "08",
+  Connecticut: "09",
+  Delaware: "10",
+  "District of Columbia": "11",
+  Florida: "12",
+  Georgia: "13",
+  Hawaii: "15",
+  Idaho: "16",
+  Illinois: "17",
+  Indiana: "18",
+  Iowa: "19",
+  Kansas: "20",
+  Kentucky: "21",
+  Louisiana: "22",
+  Maine: "23",
+  Maryland: "24",
+  Massachusetts: "25",
+  Michigan: "26",
+  Minnesota: "27",
+  Mississippi: "28",
+  Missouri: "29",
+  Montana: "30",
+  Nebraska: "31",
+  Nevada: "32",
+  "New Hampshire": "33",
+  "New Jersey": "34",
+  "New Mexico": "35",
+  "New York": "36",
+  "North Carolina": "37",
+  "North Dakota": "38",
+  Ohio: "39",
+  Oklahoma: "40",
+  Oregon: "41",
+  Pennsylvania: "42",
+  "Rhode Island": "44",
+  "South Carolina": "45",
+  "South Dakota": "46",
+  Tennessee: "47",
+  Texas: "48",
+  Utah: "49",
+  Vermont: "50",
+  Virginia: "51",
+  Washington: "53",
+  "West Virginia": "54",
+  Wisconsin: "55",
+  Wyoming: "56",
+};
+
 export const US_STATE_ELECTORAL_DATA = {
   Alabama: { ev: 9, lean: -0.28 },
   Alaska: { ev: 3, lean: -0.11 },
@@ -402,6 +485,7 @@ export const DEFAULT_POLITICAL_PARTIES = [
     localCrimePolicy: "Beat Cops",
     healthcarePolicy: "Subsidized Healthcare",
     politicalAlignment: "Centre-Left",
+    federalismPolicy: "moderate",
     platformSummary:
       "Progressive taxation, targeted infrastructure & STEM investment, and expanded social safety nets with moderate deficits.",
     defaultPolicies: {
@@ -437,6 +521,7 @@ export const DEFAULT_POLITICAL_PARTIES = [
     localCrimePolicy: "Profiling",
     healthcarePolicy: "Private Healthcare",
     politicalAlignment: "Centre-Right",
+    federalismPolicy: "states_rights",
     platformSummary:
       "Lower income and corporate taxes to incentivize private investment, higher consumption reliance, and restrained social outlays.",
     defaultPolicies: {
@@ -472,6 +557,7 @@ export const DEFAULT_POLITICAL_PARTIES = [
     localCrimePolicy: "Gentle Touch",
     healthcarePolicy: "State-run Healthcare",
     politicalAlignment: "Progressive",
+    federalismPolicy: "pro_federalist",
     platformSummary:
       "High top-end & corporate taxes funding landmark public education, green infrastructure, and universal human-rights charters.",
     defaultPolicies: {
@@ -507,6 +593,7 @@ export const DEFAULT_POLITICAL_PARTIES = [
     localCrimePolicy: "Gentle Touch",
     healthcarePolicy: "Private Healthcare",
     politicalAlignment: "Libertarian",
+    federalismPolicy: "states_rights",
     platformSummary:
       "Minimal federal taxation, strict fiscal surplus targeting debt paydown, and deregulation over federally funded programs.",
     defaultPolicies: {
@@ -542,6 +629,7 @@ export const DEFAULT_POLITICAL_PARTIES = [
     localCrimePolicy: "Beat Cops",
     healthcarePolicy: "Subsidized Healthcare",
     politicalAlignment: "Centrist",
+    federalismPolicy: "moderate",
     platformSummary:
       "Near-balanced budgets paired with evidence-based capital investment into R&D, grid infrastructure, and workforce STEM training.",
     defaultPolicies: {
@@ -668,9 +756,12 @@ export function buildSimplifiedSeed(originalSeed = {}) {
       nextElectionDate: "2028-11-07",
       cycleYears: 4,
       autoInaugurate: true,
+      midtermEnabled: true,
+      nextMidtermDate: "2026-11-03",
     },
     politicalParties: DEFAULT_POLITICAL_PARTIES.map((p) => ({
       ...p,
+      federalismPolicy: p.federalismPolicy || "moderate",
       defaultPolicies: Object.fromEntries(
         POLICY_CATALOG.map((spec) => [
           spec.id,

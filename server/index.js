@@ -738,6 +738,12 @@ app.post("/api/sessions/:id/elections", (req, res) => {
         nextElectionDate: schedule.nextElectionDate || sess.state.electionSchedule?.nextElectionDate || "2028-11-07",
         cycleYears: Math.max(1, Math.min(20, Number(schedule.cycleYears ?? sess.state.electionSchedule?.cycleYears ?? 4))),
         autoInaugurate: schedule.autoInaugurate !== undefined ? Boolean(schedule.autoInaugurate) : true,
+        midtermEnabled:
+          schedule.midtermEnabled !== undefined
+            ? Boolean(schedule.midtermEnabled)
+            : sess.state.electionSchedule?.midtermEnabled ?? true,
+        nextMidtermDate:
+          schedule.nextMidtermDate || sess.state.electionSchedule?.nextMidtermDate || "2026-11-03",
       };
     }
 
@@ -760,16 +766,22 @@ app.post("/api/sessions/:id/elections", (req, res) => {
       electionType,
       resetCycleFromToday,
     });
+    const isMidterm = electionType === "Midterm Congressional Election";
+    const summaryLabel = isMidterm
+      ? `${record.congress?.house?.leaderParty || record.winner} leads House (${record.congress?.house?.standings?.[0]?.seats || 0}/435)`
+      : `${record.winner} wins ${record.winnerEv} Electoral Votes (${record.winnerPollPct}% Vote)`;
     persistAndBroadcast(
       id,
       actor,
-      `${electionType}: ${record.winner} (${record.winnerEv} EVs)`,
-      inaugurateWinner ? `Inaugurated ${record.winner} (180d honeymoon)` : "Polling & EV tally recorded"
+      `${electionType}: ${summaryLabel}`,
+      inaugurateWinner && !isMidterm
+        ? `Inaugurated ${record.winner} (fatigue reset on party change)`
+        : "Congress & Electoral tally certified"
     );
     res.json({
       session: sess,
       electionRecord: record,
-      toastMessage: `${electionType}: ${record.winner} wins ${record.winnerEv} Electoral Votes (${record.winnerPollPct}% Vote).`,
+      toastMessage: `${electionType}: ${summaryLabel}.`,
       activityLog: getActivityLog(id, 60),
     });
   } catch (err) {

@@ -6,6 +6,8 @@ import {
   SIMPLIFIED_60_GOODS,
   DEFAULT_POLITICAL_PARTIES,
   FUNDING_TIERS,
+  FEDERALISM_POLICY_CATALOG,
+  STATE_FIPS_BY_NAME,
   POLICY_CATALOG,
   SOCIAL_POLICY_CATALOG,
   US_STATE_ELECTORAL_DATA,
@@ -32,6 +34,8 @@ export {
   calculateSuperLinearAgglomeration,
   calculateConsumerServices,
   computeTaxRatesFromPosture,
+  FEDERALISM_POLICY_CATALOG,
+  STATE_FIPS_BY_NAME,
 };
 
 const TECH_ERA_TO_TOOL_INPUT = [
@@ -702,6 +706,75 @@ export function computeGovernmentFatigueMetrics(
   else if (effectiveFatigue >= 40) fatigueStatusLabel = "Rising Public Weariness";
   else if (effectiveFatigue >= 20) fatigueStatusLabel = "Moderate Incumbent Wear";
 
+  const swingScore = effectiveFatigue <= 32 ? (32 - effectiveFatigue) * 0.45 : -(effectiveFatigue - 32) * 0.65;
+
+  const factors = [
+    {
+      id: "reform_impulse",
+      label: "Core Act Reform & Governance Impulse",
+      valueText: `${policyImpulse >= 0 ? "+" : ""}${policyImpulse.toFixed(1)} pts`,
+      impactDirection: policyImpulse >= 1.2 ? "slowing" : policyImpulse <= -1.2 ? "accelerating" : "neutral",
+      detail:
+        policyImpulse >= 5.5
+          ? "Rapid, landmark enactments actively holding voter fatigue low"
+          : policyImpulse >= 1.2
+          ? "Constructive policy gains cushioning quarterly fatigue accumulation"
+          : policyImpulse <= -1.2
+          ? "Repealed or underfunded acts accelerating voter dissatisfaction"
+          : "Policy trajectory is near status quo",
+    },
+    {
+      id: "macro_conditions",
+      label: "Macroeconomic Growth, Inflation & Jobs",
+      valueText: `${growth.toFixed(1)}% GDP · ${inflationPct.toFixed(1)}% CPI · ${unempPct.toFixed(1)}% U3`,
+      impactDirection:
+        conditionBadness >= 3.0 ? "accelerating" : growth >= 1.8 && inflationPct <= 3.0 && unempPct <= 4.8 ? "slowing" : "neutral",
+      detail:
+        conditionBadness >= 3.0
+          ? `Economic stress (+${conditionBadness.toFixed(1)} index) driving desire for leadership change`
+          : "Steady macro indicators keeping household economic anxiety restrained",
+    },
+    {
+      id: "governance_composite",
+      label: "8-Indicator Good Governance Composite",
+      valueText: `${govCompositePct.toFixed(1)}/100`,
+      impactDirection: govCompositePct >= 78 ? "slowing" : govCompositePct < 73 ? "accelerating" : "neutral",
+      detail: "Weighted across literacy, infrastructure, urbanisation, productivity, equality, racial equity & crime safety",
+    },
+    {
+      id: "corruption_pressure",
+      label: "Institutional Corruption & Ethics",
+      valueText: `${corruptionIdx}/100`,
+      impactDirection: corruptionIdx >= 35 ? "accelerating" : corruptionIdx <= 12 ? "slowing" : "neutral",
+      detail:
+        corruptionIdx >= 35
+          ? "Elevated patronage and fast-track graft eroding public patience"
+          : "Public integrity controls keeping corruption grievances contained",
+    },
+    {
+      id: "speech_multiplier",
+      label: "Freedom of Speech Accountability",
+      valueText: `${speechMult.toFixed(2)}x`,
+      impactDirection: speechMult >= 1.4 && conditionBadness >= 2.0 ? "accelerating" : "neutral",
+      detail:
+        speechMult >= 1.4
+          ? "Open press amplifies civic scrutiny when crises go unaddressed"
+          : speechMult <= 0.75
+          ? "Restricted press dampens short-term public awareness of decline"
+          : "Standard constitutional press accountability",
+    },
+    {
+      id: "electoral_swing",
+      label: "Electoral Polling & Midterm Swing",
+      valueText: `${swingScore >= 0 ? "+" : ""}${swingScore.toFixed(1)} pts`,
+      impactDirection: effectiveFatigue > 32 ? "accelerating" : "slowing",
+      detail:
+        effectiveFatigue <= 32
+          ? "Satisfied electorate rewards the governing party and shrinks opposition turnout"
+          : "Rising public exhaustion fuels an opposition surge in presidential & midterm polls",
+    },
+  ];
+
   return {
     baseFatigue: Number(baseFatigue.toFixed(1)),
     effectiveFatigue,
@@ -710,12 +783,280 @@ export function computeGovernmentFatigueMetrics(
     fatigueTrajectoryReason,
     conditionBadness: Number(conditionBadness.toFixed(2)),
     policyImpulse: Number(policyImpulse.toFixed(2)),
+    factors,
+  };
+}
+
+function normalizePartyShares(rawWeights) {
+  const sum = rawWeights.reduce((acc, item) => acc + item.w, 0) || 1;
+  return rawWeights
+    .map((item) => ({
+      name: item.name,
+      color: item.color,
+      pct: Number(((item.w / sum) * 100).toFixed(1)),
+    }))
+    .sort((a, b) => b.pct - a.pct);
+}
+
+function apportionSeatsHamilton(sharesList, totalSeats) {
+  const sumPct = sharesList.reduce((acc, s) => acc + s.pct, 0) || 1;
+  const quotas = sharesList.map((s) => {
+    const exact = (s.pct / sumPct) * totalSeats;
+    const floorVal = Math.floor(exact);
+    return {
+      name: s.name,
+      color: s.color,
+      seats: floorVal,
+      remainder: exact - floorVal,
+      pct: s.pct,
+    };
+  });
+  let remaining = totalSeats - quotas.reduce((acc, q) => acc + q.seats, 0);
+  const byRem = [...quotas].sort((a, b) => b.remainder - a.remainder || b.pct - a.pct);
+  for (let i = 0; i < byRem.length && remaining > 0; i++) {
+    byRem[i].seats += 1;
+    remaining -= 1;
+  }
+  const map = {};
+  for (const q of quotas) map[q.name] = q.seats;
+  return map;
+}
+
+function buildExitPollsAndDemographics(partyProfiles, oppDiv, ctx) {
+  const {
+    approvalPct,
+    growth,
+    inflationPct,
+    unempPct,
+    govCompositePct,
+    corruptionIdx,
+    racialEquality,
+    crimeControl,
+    equality,
+    effectiveFatigue,
+    netIncumbentMomentum,
+    localMomentumShift = 0,
+    stemScore = 0.72,
+    urbanScore = 0.72,
+    extractiveScore = 0.35,
+    agriScore = 0.45,
+    federalAdherence = 0.75,
+  } = ctx;
+
+  const rightDirectionRaw =
+    50 +
+    (approvalPct - 50) * 0.78 +
+    (growth - 1.6) * 4.5 -
+    Math.max(0, inflationPct - 2.6) * 4.2 -
+    Math.max(0, unempPct - 4.6) * 4.0 -
+    Math.max(0, effectiveFatigue - 28) * 0.25;
+  const rightDirectionPct = Number(Math.max(10, Math.min(86, rightDirectionRaw)).toFixed(1));
+  const wrongTrackPct = Number((100 - rightDirectionPct).toFixed(1));
+
+  const realIncomeScore = (growth - 1.5) * 8.5 - (inflationPct - 2.4) * 7.2 - (unempPct - 4.5) * 6.5 + (equality - 0.61) * 45;
+  const betterOffPct = Number(Math.max(12, Math.min(68, 34 + realIncomeScore * 0.75)).toFixed(1));
+  const worseOffPct = Number(Math.max(10, Math.min(68, 33 - realIncomeScore * 0.80)).toFixed(1));
+  const samePct = Number(Math.max(6, 100 - betterOffPct - worseOffPct).toFixed(1));
+  const adjBetter = Number((100 - worseOffPct - samePct).toFixed(1));
+
+  const topIssueWeightRaw = [
+    {
+      id: "economy",
+      label: "Economy, Inflation & Jobs",
+      weight: Math.max(14, 34 + Math.max(0, inflationPct - 2.5) * 4.5 + Math.max(0, unempPct - 4.6) * 4.5 + Math.max(0, 1.6 - growth) * 5.0),
+      leaderSortKey: "upperAppeal",
+    },
+    {
+      id: "healthcare_edu",
+      label: "Healthcare, Schools & Cost Support",
+      weight: Math.max(10, 21 + Math.max(0, 80 - govCompositePct) * 0.4),
+      leaderSortKey: "lowAppeal",
+    },
+    {
+      id: "crime_safety",
+      label: "Public Safety, Policing & Crime",
+      weight: Math.max(8, 15 + Math.max(0, 0.74 - crimeControl) * 45),
+      leaderSortKey: "safetyAppeal",
+    },
+    {
+      id: "corruption_rights",
+      label: "Corruption, Civil Rights & Democracy",
+      weight: Math.max(8, 15 + Math.max(0, corruptionIdx - 22) * 0.45 + Math.max(0, 0.68 - racialEquality) * 25),
+      leaderSortKey: "rightsAppeal",
+    },
+    {
+      id: "federalism_energy",
+      label: "Federalism, Energy & State Autonomy",
+      weight: Math.max(7, 15 + Math.max(0, 0.78 - federalAdherence) * 28 + extractiveScore * 8),
+      leaderSortKey: "ruralAppeal",
+    },
+  ];
+  const issueWeightSum = topIssueWeightRaw.reduce((s, i) => s + i.weight, 0) || 1;
+
+  const pollCohort = (scoreFn) => {
+    const weights = partyProfiles.map((p) => {
+      const mom =
+        p.isIncumbent
+          ? (netIncumbentMomentum + localMomentumShift) * 0.85
+          : -(netIncumbentMomentum + localMomentumShift) * (1.0 / oppDiv);
+      const val = Math.max(0.05, Number(p.party.currentSupport ?? 0.08)) * Math.exp(Math.max(-5, Math.min(5, scoreFn(p) + mom)));
+      return { name: p.name, color: p.color, w: val };
+    });
+    return normalizePartyShares(weights);
+  };
+
+  const demographicPolls = {
+    income: [
+      { id: "lowIncome", label: "Lower-Income (<$50k)", shareLabel: "45% Electorate", votes: pollCohort((p) => p.lowAppeal) },
+      { id: "middleClass", label: "Middle-Class ($50k–$150k)", shareLabel: "45% Electorate", votes: pollCohort((p) => p.midAppeal) },
+      { id: "upperClass", label: "Upper-Income (>$150k)", shareLabel: "10% Electorate", votes: pollCohort((p) => p.upperAppeal) },
+    ],
+    race: [
+      {
+        id: "white",
+        label: "White Voters",
+        votes: pollCohort((p) => -p.leftRightScore * -0.45 + p.upperAppeal * 0.35 + (extractiveScore - 0.3) * (p.leftRightScore * 0.3)),
+      },
+      {
+        id: "black",
+        label: "Black Voters",
+        votes: pollCohort((p) => p.civilRightsScore * 0.25 + (p.humanRightsIndex - 48) * 0.015 + p.lowAppeal * 0.45 - p.leftRightScore * 0.55),
+      },
+      {
+        id: "hispanic",
+        label: "Hispanic / Latino Voters",
+        votes: pollCohort((p) => p.midAppeal * 0.55 + p.civilRightsScore * 0.14 - Math.max(0, inflationPct - 3.0) * (p.isIncumbent ? 0.14 : -0.08)),
+      },
+      {
+        id: "asianOther",
+        label: "Asian & Other Voters",
+        votes: pollCohort((p) => p.innovScore * 0.16 + p.civilRightsScore * 0.16 + p.publicSafetyScore * 0.10 + stemScore * 0.2 - p.leftRightScore * 0.25),
+      },
+    ],
+    gender: [
+      {
+        id: "men",
+        label: "Men",
+        votes: pollCohort((p) => p.leftRightScore * 0.35 + p.upperAppeal * 0.3 + p.publicSafetyScore * 0.10 + (extractiveScore - 0.3) * 0.15),
+      },
+      {
+        id: "women",
+        label: "Women",
+        votes: pollCohort((p) => -p.leftRightScore * 0.40 + p.eduScore * 0.12 + p.govScore * 0.12 + (p.humanRightsIndex - 48) * 0.012),
+      },
+    ],
+    educationAndAge: [
+      {
+        id: "collegeGrad",
+        label: "College Graduates",
+        votes: pollCohort((p) => -p.leftRightScore * 0.42 + p.innovScore * 0.16 + (p.humanRightsIndex - 48) * 0.012 + stemScore * 0.25),
+      },
+      {
+        id: "nonCollege",
+        label: "Non-College Voters",
+        votes: pollCohort((p) => p.leftRightScore * 0.38 + p.midAppeal * 0.45 + p.infraScore * 0.12),
+      },
+      {
+        id: "youngVoters",
+        label: "Young Voters (18–34)",
+        votes: pollCohort((p) => -p.leftRightScore * 0.48 + (p.humanRightsIndex - 48) * 0.015 + p.lowAppeal * 0.3 - Math.max(0, effectiveFatigue - 25) * (p.isIncumbent ? 0.014 : -0.008)),
+      },
+      {
+        id: "seniors",
+        label: "Seniors (65+)",
+        votes: pollCohort((p) => p.leftRightScore * 0.25 + p.publicSafetyScore * 0.16 + p.govScore * 0.14),
+      },
+    ],
+    communityType: [
+      {
+        id: "urban",
+        label: "Urban Core",
+        votes: pollCohort((p) => -p.leftRightScore * 0.65 + urbanScore * 0.35 + p.govScore * 0.15 + p.civilRightsScore * 0.12),
+      },
+      {
+        id: "suburban",
+        label: "Suburban Swing",
+        votes: pollCohort((p) => p.midAppeal * 0.65 + p.publicSafetyScore * 0.12 + p.eduScore * 0.10),
+      },
+      {
+        id: "rural",
+        label: "Rural & Small Town",
+        votes: pollCohort((p) => p.leftRightScore * 0.65 + (1 - federalAdherence) * (p.federalismPolicy === "states_rights" ? 0.4 : -0.15) + agriScore * 0.25),
+      },
+    ],
+  };
+
+  const safetyLeaders = pollCohort((p) => p.publicSafetyScore * 0.24 + p.leftRightScore * 0.25);
+  const rightsLeaders = pollCohort((p) => (p.humanRightsIndex - 45) * 0.02 + p.civilRightsScore * 0.22 - p.corruptionScore * 0.02);
+  const fedLeaders = pollCohort((p) => (p.federalismPolicy === "states_rights" ? 0.35 : -0.15) + p.leftRightScore * 0.3);
+
+  const issueLeadersMap = {
+    economy: demographicPolls.income[1].votes[0],
+    healthcare_edu: demographicPolls.income[0].votes[0],
+    crime_safety: safetyLeaders[0],
+    corruption_rights: rightsLeaders[0],
+    federalism_energy: fedLeaders[0],
+  };
+
+  const topIssues = topIssueWeightRaw
+    .map((it) => ({
+      id: it.id,
+      label: it.label,
+      pct: Number(((it.weight / issueWeightSum) * 100).toFixed(1)),
+      leaderParty: issueLeadersMap[it.id]?.name || rulingName,
+      leaderColor: issueLeadersMap[it.id]?.color || "#3b82f6",
+    }))
+    .sort((a, b) => b.pct - a.pct);
+
+  const drivers = [
+    {
+      label: "Right Direction vs. Wrong Track Mood",
+      impactPts: Number(((rightDirectionPct - 50) * 0.35).toFixed(1)),
+      direction: rightDirectionPct >= 50 ? "positive" : "negative",
+      detail: `${rightDirectionPct}% see the trajectory heading in the right direction vs ${wrongTrackPct}% wrong track`,
+    },
+    {
+      label: "Household Pocketbook vs. Last Election",
+      impactPts: Number(((adjBetter - worseOffPct) * 0.28).toFixed(1)),
+      direction: adjBetter >= worseOffPct ? "positive" : "negative",
+      detail: `${adjBetter}% say they are financially better off vs ${worseOffPct}% worse off`,
+    },
+    {
+      label: "Government Fatigue & Time in Power",
+      impactPts: Number((-(effectiveFatigue * 0.52)).toFixed(1)),
+      direction: effectiveFatigue <= 25 ? "positive" : "negative",
+      detail: `${effectiveFatigue.toFixed(1)}% accumulated fatigue wearing on incumbent approval`,
+    },
+    {
+      label: "Good Governance & Corruption Balance",
+      impactPts: Number((((govCompositePct - 75.5) * 0.5) - (corruptionIdx - 20) * 0.2).toFixed(1)),
+      direction: govCompositePct >= 75.5 && corruptionIdx <= 25 ? "positive" : "negative",
+      detail: `Governance composite at ${govCompositePct.toFixed(1)}/100 and Corruption Index at ${corruptionIdx}/100`,
+    },
+  ];
+
+  return {
+    approvalBreakdown: {
+      approvePct: Number(approvalPct.toFixed(1)),
+      disapprovePct: Number((100 - approvalPct).toFixed(1)),
+      netApproval: Number((approvalPct - (100 - approvalPct)).toFixed(1)),
+      rightDirectionPct,
+      wrongTrackPct,
+      financialSituation: {
+        betterOffPct: adjBetter,
+        samePct,
+        worseOffPct,
+      },
+      topIssues,
+      drivers,
+    },
+    demographicPolls,
   };
 }
 
 /**
- * Simulates US National Polling, Cohort Voter Support, Government Fatigue & Incumbent Approval,
- * and 50-State + D.C. (538 Electoral Votes) CNN-Tiered State-by-State Projections.
+ * Simulates US National Polling, Extended CNN Exit Poll Demographics, Government Fatigue,
+ * 50-State + D.C. Federalism & Resource/Services Leverage, and U.S. Congress (435 House + 100 Senate) & Midterms.
  */
 export function computeElectionSimulation(state = {}) {
   const parties = Array.isArray(state.politicalParties) && state.politicalParties.length > 0
@@ -801,7 +1142,10 @@ export function computeElectionSimulation(state = {}) {
     const infraScore = pol.infrastructure?.enacted === false ? -1 : (FUNDING_TIERS[pol.infrastructure?.funding]?.tierScore ?? 1);
     const innovScore = pol.innovation?.enacted === false ? -1 : (FUNDING_TIERS[pol.innovation?.funding]?.tierScore ?? 1);
     const govScore = pol.governance?.enacted === false ? -1 : (FUNDING_TIERS[pol.governance?.funding]?.tierScore ?? 1);
+    const civilRightsScore = pol.civilRights?.enacted === false ? -1 : (FUNDING_TIERS[pol.civilRights?.funding]?.tierScore ?? 1);
+    const publicSafetyScore = pol.publicSafety?.enacted === false ? -1 : (FUNDING_TIERS[pol.publicSafety?.funding]?.tierScore ?? 1);
     const socialEval = evaluateSocialPolicies({ socialPolicies: p.socialPolicies }, p);
+    const federalismPolicy = FEDERALISM_POLICY_CATALOG[p.federalismPolicy] ? p.federalismPolicy : "moderate";
 
     const leftRightScore = Math.max(
       -1.2,
@@ -836,14 +1180,18 @@ export function computeElectionSimulation(state = {}) {
       name: p.name,
       color: p.color || "#94a3b8",
       politicalAlignment: p.politicalAlignment || "Custom",
+      federalismPolicy,
       mode,
       baseTax,
       eduScore,
       infraScore,
       innovScore,
       govScore,
+      civilRightsScore,
+      publicSafetyScore,
       humanRightsIndex: socialEval.humanRightsIndex,
       civicObligationIndex: socialEval.civicObligationIndex,
+      corruptionScore: socialEval.corruptionIndex,
       leftRightScore,
       lowAppeal,
       midAppeal,
@@ -859,6 +1207,7 @@ export function computeElectionSimulation(state = {}) {
       name: p.name,
       color: p.color,
       politicalAlignment: p.politicalAlignment,
+      federalismPolicy: p.federalismPolicy,
       isIncumbent: p.isIncumbent,
       pollPct: Number(((p.nationalScore / totalNatScore) * 100).toFixed(1)),
       humanRightsIndex: p.humanRightsIndex,
@@ -868,7 +1217,14 @@ export function computeElectionSimulation(state = {}) {
     }))
     .sort((a, b) => b.pollPct - a.pollPct);
 
+  const natIncumbentPct = nationalPolls.find((p) => p.name === rulingName)?.pollPct ?? 50;
+  const fedProfile = partyProfiles.find((p) => p.name === rulingName) || partyProfiles[0];
+  const fedDoctrine = FEDERALISM_POLICY_CATALOG[fedProfile?.federalismPolicy || "moderate"] || FEDERALISM_POLICY_CATALOG.moderate;
+  const oppDivGlobal = Math.max(1, partyProfiles.length - 1);
+
   const electoralTotals = {};
+  const houseTotals = {};
+  const senateTotals = {};
   for (const p of partyProfiles) {
     electoralTotals[p.name] = {
       name: p.name,
@@ -877,7 +1233,13 @@ export function computeElectionSimulation(state = {}) {
       statesWon: 0,
       pollPct: nationalPolls.find((n) => n.name === p.name)?.pollPct || 0,
     };
+    houseTotals[p.name] = { name: p.name, color: p.color, seats: 0 };
+    senateTotals[p.name] = { name: p.name, color: p.color, seats: 0 };
   }
+
+  // Midterm wave penalty intensifies Government Fatigue backlash against the White House party in Congressional races
+  const midtermFatigueWave =
+    effectiveFatigue > 25 ? -((effectiveFatigue - 25) * 0.014) : (25 - effectiveFatigue) * 0.008;
 
   const stateResults = Object.entries(US_STATE_ELECTORAL_DATA).map(([stateName, eMeta]) => {
     const geo = getUsStateEndowment(stateName) || {};
@@ -886,6 +1248,7 @@ export function computeElectionSimulation(state = {}) {
     const urbanScore = (srv.urbanAgglomerationIndex || 50) / 100;
     const extractiveScore = ((geo.hydrocarbonIndex || 0) + (geo.mineralIndex || 0)) / 200;
     const agriScore = (geo.arableLandIndex || 0) / 100;
+    const fips = STATE_FIPS_BY_NAME[stateName] || "00";
 
     const scored = partyProfiles.map((p) => {
       const targetPos = p.leftRightScore;
@@ -938,11 +1301,172 @@ export function computeElectionSimulation(state = {}) {
       electoralTotals[winner.name].statesWon += 1;
     }
 
+    // Federalism & State Economic Leverage Model
+    const stateGovProfile = partyProfiles.find((p) => p.name === winner.name) || fedProfile;
+    const stateFedKey = stateGovProfile.federalismPolicy || "moderate";
+    const stateDoctrine = FEDERALISM_POLICY_CATALOG[stateFedKey] || FEDERALISM_POLICY_CATALOG.moderate;
+    const samePartyAsFederal = winner.name === rulingName;
+    const ideologicalGap = Math.abs(stateGovProfile.leftRightScore - (fedProfile?.leftRightScore || 0));
+    const rawAdherence = samePartyAsFederal
+      ? 0.85 + 0.11 * fedDoctrine.adherenceRate
+      : fedDoctrine.adherenceRate * 0.40 + stateDoctrine.adherenceRate * 0.60 - Math.min(0.24, ideologicalGap * 0.14);
+    const federalAdherence = Math.max(0.18, Math.min(0.96, rawAdherence));
+    const federalAdherencePct = Number((federalAdherence * 100).toFixed(1));
+
+    const blendedInfra = federalAdherence * fedProfile.infraScore + (1 - federalAdherence) * stateGovProfile.infraScore;
+    const blendedEdu = federalAdherence * fedProfile.eduScore + (1 - federalAdherence) * stateGovProfile.eduScore;
+    const blendedInnov = federalAdherence * fedProfile.innovScore + (1 - federalAdherence) * stateGovProfile.innovScore;
+
+    const resourceRaw =
+      ((geo.hydrocarbonIndex || 0) +
+        (geo.mineralIndex || 0) +
+        (geo.arableLandIndex || 0) +
+        (geo.logisticsWaterwayIndex || 0)) /
+      4;
+    const servicesRaw =
+      ((srv.humanCapitalIndex || 50) +
+        (srv.urbanAgglomerationIndex || 50) +
+        (srv.financialDepthIndex || 50) +
+        (srv.digitalConnectivityIndex || 50) +
+        (srv.consumerAmenityIndex || 50)) /
+      5;
+
+    const resourceLeveragePct = Number(
+      Math.max(
+        25,
+        Math.min(
+          98,
+          44 +
+            resourceRaw * 0.36 +
+            blendedInfra * 5.0 +
+            (stateFedKey === "states_rights" ? 6.5 : -1.5)
+        )
+      ).toFixed(1)
+    );
+    const servicesLeveragePct = Number(
+      Math.max(
+        25,
+        Math.min(
+          98,
+          36 +
+            servicesRaw * 0.46 +
+            blendedEdu * 4.2 +
+            blendedInnov * 5.5 +
+            (stateGovProfile.humanRightsIndex - 48) * 0.14
+        )
+      ).toFixed(1)
+    );
+    const stateGdpGrowthPct = Number(
+      (
+        growth +
+        (resourceLeveragePct - 62) * 0.022 +
+        (servicesLeveragePct - 68) * 0.028
+      ).toFixed(2)
+    );
+    const stateUnemploymentPct = Number(
+      Math.max(
+        2.1,
+        unempPct - (servicesLeveragePct - 68) * 0.03 - (resourceLeveragePct - 62) * 0.02
+      ).toFixed(1)
+    );
+
+    let federalStateTensionLabel = "Harmonious Alignment";
+    if (federalAdherencePct < 50) federalStateTensionLabel = "Active Regulatory Nullification";
+    else if (federalAdherencePct < 75) federalStateTensionLabel = "Negotiated State Discretion";
+
+    const stateLegislatureParty = margin < 2.2 ? `${winner.name} / ${runnerUp.name} Divided` : winner.name;
+
+    const dominantSectors = [];
+    if ((geo.hydrocarbonIndex || 0) >= 60) dominantSectors.push("Energy & Hydrocarbons");
+    if ((geo.mineralIndex || 0) >= 65) dominantSectors.push("Critical Minerals");
+    if ((geo.arableLandIndex || 0) >= 65) dominantSectors.push("Agriculture");
+    if ((srv.humanCapitalIndex || 0) >= 72) dominantSectors.push("STEM & R&D");
+    if ((srv.financialDepthIndex || 0) >= 72) dominantSectors.push("Finance & Capital");
+    if ((srv.urbanAgglomerationIndex || 0) >= 72) dominantSectors.push("Urban Services");
+    if (dominantSectors.length === 0) dominantSectors.push("Regional Commerce & Logistics");
+
+    // Congressional Representation (50 States -> 435 House Seats + 100 Senate Seats; D.C. has 0 voting seats)
+    let stateHouseSeats = {};
+    let stateSenateSeats = {};
+    let stateHouseCount = 0;
+    if (stateName !== "District of Columbia") {
+      stateHouseCount = Math.max(1, eMeta.ev - 2);
+      const congScored = partyProfiles.map((p) => {
+        const stShare = shares.find((s) => s.name === p.name)?.pct || 1;
+        const congWave = p.isIncumbent
+          ? midtermFatigueWave
+          : -midtermFatigueWave / oppDivGlobal;
+        return {
+          name: p.name,
+          color: p.color,
+          pct: Math.max(1, stShare * Math.exp(Math.max(-1.2, Math.min(1.2, congWave * 2.2)))),
+        };
+      });
+      stateHouseSeats = apportionSeatsHamilton(congScored, stateHouseCount);
+      for (const [pName, sc] of Object.entries(stateHouseSeats)) {
+        if (houseTotals[pName]) houseTotals[pName].seats += sc;
+      }
+
+      // Senate: 2 seats (Class A reflects current congressional tide; Class B blends structural baseline lean)
+      const congSorted = [...congScored].sort((a, b) => b.pct - a.pct);
+      const senSeat1 = congSorted[0]?.name || winner.name;
+      const structuralScored = partyProfiles.map((p) => {
+        const targetPos = p.leftRightScore;
+        const dist = Math.abs(targetPos - -eMeta.lean * 1.15);
+        return {
+          name: p.name,
+          score: Math.log(Math.max(0.06, Number(p.party.currentSupport ?? 0.08))) - dist * 2.1 + (p.isIncumbent ? midtermFatigueWave * 0.7 : 0),
+        };
+      }).sort((a, b) => b.score - a.score);
+      const senSeat2 = structuralScored[0]?.name || senSeat1;
+      stateSenateSeats[senSeat1] = (stateSenateSeats[senSeat1] || 0) + 1;
+      stateSenateSeats[senSeat2] = (stateSenateSeats[senSeat2] || 0) + 1;
+      if (senateTotals[senSeat1]) senateTotals[senSeat1].seats += 1;
+      if (senateTotals[senSeat2]) senateTotals[senSeat2].seats += 1;
+    }
+
+    // Per-state CNN Approval & Expanded Demographics for click-into-state inspection
+    const stateIncPct = shares.find((s) => s.name === rulingName)?.pct ?? 45;
+    const stateApprovalPct = Math.max(
+      12,
+      Math.min(
+        88,
+        incumbentApproval +
+          (stateIncPct - natIncumbentPct) * 0.55 +
+          (resourceLeveragePct - 62) * 0.08 +
+          (servicesLeveragePct - 68) * 0.10
+      )
+    );
+    const localMomentumShift = -eMeta.lean * 0.45;
+    const stateExit = buildExitPollsAndDemographics(partyProfiles, oppDivGlobal, {
+      approvalPct: stateApprovalPct,
+      growth: stateGdpGrowthPct,
+      inflationPct,
+      unempPct: stateUnemploymentPct,
+      govCompositePct,
+      corruptionIdx,
+      racialEquality,
+      crimeControl,
+      equality,
+      effectiveFatigue,
+      netIncumbentMomentum,
+      localMomentumShift,
+      stemScore,
+      urbanScore,
+      extractiveScore,
+      agriScore,
+      federalAdherence,
+    });
+
     return {
       stateName,
+      fips,
       code: US_STATES_CATALOG[stateName]?.code || stateName.slice(0, 2).toUpperCase(),
       region: US_STATES_CATALOG[stateName]?.region || "US",
       ev: eMeta.ev,
+      houseSeats: stateHouseCount,
+      houseSeatSplit: stateHouseSeats,
+      senateSeatSplit: stateSenateSeats,
       winner: winner.name,
       winnerColor: winner.color,
       winnerPct: winner.pct,
@@ -952,6 +1476,25 @@ export function computeElectionSimulation(state = {}) {
       cnnTier,
       isBattleground,
       shares,
+      federalism: {
+        governorParty: winner.name,
+        governorColor: winner.color,
+        stateLegislatureParty,
+        federalismPolicy: stateFedKey,
+        federalismLabel: stateDoctrine.shortLabel,
+        federalismFullLabel: stateDoctrine.label,
+        federalAdherencePct,
+        resourceLeveragePct,
+        servicesLeveragePct,
+        stateGdpGrowthPct,
+        stateUnemploymentPct,
+        dominantSectors: dominantSectors.slice(0, 3),
+        federalStateTensionLabel,
+        primaryBasins: geo.primaryBasins || [],
+        primaryClusters: srv.primaryClusters || [],
+      },
+      approvalBreakdown: stateExit.approvalBreakdown,
+      demographicPolls: stateExit.demographicPolls,
     };
   });
 
@@ -959,6 +1502,56 @@ export function computeElectionSimulation(state = {}) {
   const leader = sortedEvStandings[0] || { name: rulingName, ev: 538 };
   const projectedWinner = leader.ev >= 270 ? leader.name : `${leader.name} (Plurality / Coalition)`;
   const battlegrounds = stateResults.filter((s) => s.isBattleground).sort((a, b) => a.margin - b.margin);
+
+  const sortedHouse = Object.values(houseTotals).sort((a, b) => b.seats - a.seats);
+  const sortedSenate = Object.values(senateTotals).sort((a, b) => b.seats - a.seats);
+  const houseLeader = sortedHouse[0] || { name: rulingName, color: "#3b82f6", seats: 0 };
+  const senateLeader = sortedSenate[0] || { name: rulingName, color: "#3b82f6", seats: 0 };
+
+  let legislativeControlLabel = "Divided Congress (Split Chambers)";
+  if (houseLeader.name === rulingName && houseLeader.seats >= 218 && senateLeader.name === rulingName && senateLeader.seats >= 51) {
+    legislativeControlLabel = "Unified Government (White House + Congress)";
+  } else if (houseLeader.name !== rulingName && houseLeader.seats >= 218 && senateLeader.name !== rulingName && senateLeader.seats >= 51) {
+    legislativeControlLabel = "Unified Opposition Congress";
+  }
+
+  const congress = {
+    house: {
+      totalSeats: 435,
+      majorityThreshold: 218,
+      standings: sortedHouse,
+      leaderParty: houseLeader.name,
+      leaderColor: houseLeader.color,
+      isMajority: houseLeader.seats >= 218,
+    },
+    senate: {
+      totalSeats: 100,
+      majorityThreshold: 51,
+      standings: sortedSenate,
+      leaderParty: senateLeader.name,
+      leaderColor: senateLeader.color,
+      isMajority: senateLeader.seats >= 51,
+    },
+    legislativeControlLabel,
+    midtermFatiguePenaltyPts: Number((midtermFatigueWave * 100).toFixed(1)),
+    nextMidtermDate: state.electionSchedule?.nextMidtermDate || "2026-11-03",
+  };
+
+  const nationalExit = buildExitPollsAndDemographics(partyProfiles, oppDivGlobal, {
+    approvalPct: incumbentApproval,
+    growth,
+    inflationPct,
+    unempPct,
+    govCompositePct,
+    corruptionIdx,
+    racialEquality,
+    crimeControl,
+    equality,
+    effectiveFatigue,
+    netIncumbentMomentum,
+    localMomentumShift: 0,
+    federalAdherence: fedDoctrine.adherenceRate,
+  });
 
   const cohortPoll = (appealKey) => {
     const oppDiv = Math.max(1, partyProfiles.length - 1);
@@ -985,6 +1578,7 @@ export function computeElectionSimulation(state = {}) {
     fatigueRatePerQuarter: fatigueMetrics.fatigueRatePerQuarter,
     fatigueStatusLabel: fatigueMetrics.fatigueStatusLabel,
     fatigueTrajectoryReason: fatigueMetrics.fatigueTrajectoryReason,
+    fatigueFactors: fatigueMetrics.factors || [],
     honeymoonActive: effectiveFatigue < 20,
     speechSensitivityMultiplier: speechMult,
     speechFreedomLabel,
@@ -995,6 +1589,9 @@ export function computeElectionSimulation(state = {}) {
     totalElectoralVotes: 538,
     electoralStandings: sortedEvStandings,
     nationalPolls,
+    approvalBreakdown: nationalExit.approvalBreakdown,
+    demographicPolls: nationalExit.demographicPolls,
+    congress,
     cohortVotes: {
       lowIncome: cohortPoll("lowAppeal"),
       middleClass: cohortPoll("midAppeal"),
@@ -2637,6 +3234,23 @@ export function advanceSimulationTime(state, daysToAdd = 90) {
       electionsHeld++;
     }
   }
+  if (sched?.midtermEnabled && sched.nextMidtermDate) {
+    let midGuard = 10;
+    while (diffSimDays(tm.crisisDate, sched.nextMidtermDate) >= 0 && midGuard-- > 0) {
+      executeSimulatedElectionInState(state, {
+        inaugurateWinner: false,
+        electionType: "Midterm Congressional Election",
+      });
+      const parsedMid = parseSimDate(sched.nextMidtermDate);
+      const midYears = Math.max(2, Number(sched.cycleYears) || 4);
+      sched.nextMidtermDate = formatSimDate({
+        year: parsedMid.year + midYears,
+        month: parsedMid.month,
+        day: Math.min(getDaysInMonth(parsedMid.year + midYears, parsedMid.month), parsedMid.day),
+      });
+      electionsHeld++;
+    }
+  }
 
   state.version = (state.version || 0) + 1;
   evaluateSimulation(state);
@@ -2674,6 +3288,9 @@ export function upsertPoliticalPartyInState(state, payload = {}, targetName = nu
     name,
     color: payload.color || existing.color || "#8b5cf6",
     politicalAlignment: payload.politicalAlignment || existing.politicalAlignment || "Custom Coalition",
+    federalismPolicy: FEDERALISM_POLICY_CATALOG[payload.federalismPolicy]
+      ? payload.federalismPolicy
+      : existing.federalismPolicy || "moderate",
     platformSummary:
       payload.platformSummary ||
       existing.platformSummary ||
@@ -2801,8 +3418,10 @@ export function executeSimulatedElectionInState(
   evaluateSimulation(state);
   const usa = state.nations[0];
   const election = computeElectionSimulation(state);
+  const isMidterm = electionType === "Midterm Congressional Election";
   const leader = election.electoralStandings[0];
-  const winnerName = leader?.name || usa.rulingParty;
+  const houseLeader = election.congress?.house?.leaderParty || leader?.name || usa.rulingParty;
+  const winnerName = isMidterm ? houseLeader : leader?.name || usa.rulingParty;
   const electionDate = state.timeManager?.crisisDate || "2025-01-01";
   const prevRulingParty = usa.rulingParty;
 
@@ -2819,11 +3438,15 @@ export function executeSimulatedElectionInState(
     winnerPollPct: Number(leader?.pollPct || 0),
     electoralStandings: election.electoralStandings,
     nationalPolls: election.nationalPolls,
+    congress: election.congress,
     stateResults: (election.stateResults || []).map((st) => ({
       stateName: st.stateName,
       code: st.code,
       region: st.region,
       ev: st.ev,
+      houseSeats: st.houseSeats,
+      houseSeatSplit: st.houseSeatSplit,
+      senateSeatSplit: st.senateSeatSplit,
       winner: st.winner,
       winnerColor: st.winnerColor,
       winnerPct: st.winnerPct,
@@ -2834,8 +3457,12 @@ export function executeSimulatedElectionInState(
       isBattleground: st.isBattleground,
       shares: st.shares,
     })),
-    inaugurated: Boolean(inaugurateWinner),
+    inaugurated: Boolean(inaugurateWinner) && !isMidterm,
   };
+
+  if (isMidterm || !usa.congressControl) {
+    usa.congressControl = election.congress;
+  }
 
   if (!Array.isArray(usa.electionHistory)) {
     usa.electionHistory = [];
@@ -2845,7 +3472,7 @@ export function executeSimulatedElectionInState(
     usa.electionHistory.pop();
   }
 
-  if (inaugurateWinner && winnerName) {
+  if (inaugurateWinner && !isMidterm && winnerName) {
     const winParty = resolvePoliticalParty(state.politicalParties, winnerName);
     usa.rulingParty = winParty.name;
     usa.baseTaxLevel = winParty.baseTaxLevel;

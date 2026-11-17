@@ -98,7 +98,7 @@ export default function App() {
   const [activityLog, setActivityLog] = useState([]);
   const [activeTab, setActiveTab] = useState("map");
   const [marketsSubTab, setMarketsSubTab] = useState("supplychain");
-  const [partiesSubTab, setPartiesSubTab] = useState("studio");
+  const [partiesSubTab, setPartiesSubTab] = useState("elections");
   const [actorName, setActorName] = useState("Director");
   const [headerSpeedInput, setHeaderSpeedInput] = useState("90");
   const [loading, setLoading] = useState(true);
@@ -109,7 +109,7 @@ export default function App() {
 
   const handleJumpToTab = useCallback((tabId) => {
     if (tabId === "markets") setMarketsSubTab("supplychain");
-    if (tabId === "parties") setPartiesSubTab("studio");
+    if (tabId === "parties") setPartiesSubTab("elections");
     setActiveTab(tabId);
   }, []);
 
@@ -758,8 +758,13 @@ export default function App() {
                 state={state}
                 onUpdateNation={handleUpdateNation}
                 onResetScenario={handleResetScenario}
+                onRunElection={handleRunElection}
                 onOpenPartyStudio={() => {
                   setPartiesSubTab("studio");
+                  setActiveTab("parties");
+                }}
+                onOpenElectionsForecast={() => {
+                  setPartiesSubTab("elections");
                   setActiveTab("parties");
                 }}
                 isReadOnly={isReadOnly}

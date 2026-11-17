@@ -787,4 +787,86 @@ describe("Round Progression and United States Simulation Mechanics", () => {
       "Scheduled election must advance nextElectionDate by cycleYears"
     );
   });
+
+  it("models party federalism adherence doctrines, state resource/services leverage, 435 House + 100 Senate midterms, fatigue breakdown, CNN dynamic exit polls, and state/national multi-demographic polls", () => {
+    const state = buildSimplifiedSeed();
+    evaluateSimulation(state);
+    const fc = state.electionForecast;
+
+    // 1. Fatigue factor breakdown & approval exit poll drivers
+    assert.ok(Array.isArray(fc.fatigueFactors) && fc.fatigueFactors.length >= 5, "fatigueFactors breakdown must list at least 5 drivers");
+    assert.ok(fc.approvalBreakdown, "National approvalBreakdown must be populated");
+    assert.equal(
+      Number((fc.approvalBreakdown.approvePct + fc.approvalBreakdown.disapprovePct).toFixed(1)),
+      100,
+      "Approve + Disapprove must sum to 100%"
+    );
+    assert.equal(
+      Number((fc.approvalBreakdown.rightDirectionPct + fc.approvalBreakdown.wrongTrackPct).toFixed(1)),
+      100,
+      "Right Direction + Wrong Track must sum to 100%"
+    );
+    assert.ok(
+      Array.isArray(fc.approvalBreakdown.topIssues) && fc.approvalBreakdown.topIssues.length >= 4,
+      "CNN top issues ranking must be present"
+    );
+
+    // 2. Expanded National & State Multi-Demographic Polls
+    assert.ok(fc.demographicPolls?.race?.length === 4, "National race demographics must include all 4 groups");
+    assert.ok(fc.demographicPolls?.gender?.length === 2, "National gender demographics must include Men & Women");
+    assert.ok(fc.demographicPolls?.educationAndAge?.length === 4, "Education & age cohorts must be populated");
+    assert.ok(fc.demographicPolls?.communityType?.length === 3, "Urban/Suburban/Rural cohorts must be populated");
+
+    const ca = fc.stateResults.find((s) => s.stateName === "California");
+    const wy = fc.stateResults.find((s) => s.stateName === "Wyoming");
+    assert.ok(ca && wy, "Both California and Wyoming state entries must be present");
+    assert.equal(ca.fips, "06");
+    assert.equal(wy.fips, "56");
+    assert.ok(ca.federalism.federalAdherencePct > wy.federalism.federalAdherencePct + 20, "California (aligned with incumbent & pro-cooperative) must show far higher Federal Adherence than opposition States-Rights Wyoming");
+    assert.ok(ca.federalism.servicesLeveragePct > wy.federalism.servicesLeveragePct, "California must exhibit stronger Services & STEM capital leverage");
+    assert.ok(wy.federalism.resourceLeveragePct > 50, "Wyoming extractive resource endowments must contribute substantially to resourceLeveragePct");
+    assert.ok(ca.demographicPolls?.race?.length === 4 && ca.approvalBreakdown, "Clicked states must expose full state-level exit polls & demographic crosstabs");
+
+    // 3. U.S. Congress (435 House + 100 Senate) & Fatigue Midterm Backlash
+    const houseTotal = fc.congress.house.standings.reduce((s, p) => s + p.seats, 0);
+    const senateTotal = fc.congress.senate.standings.reduce((s, p) => s + p.seats, 0);
+    assert.equal(houseTotal, 435, "U.S. House of Representatives must allocate exactly 435 seats across 50 states");
+    assert.equal(senateTotal, 100, "U.S. Senate must allocate exactly 100 seats across 50 states");
+
+    const baseIncHouseSeats =
+      fc.congress.house.standings.find((p) => p.name === state.nations[0].rulingParty)?.seats || 0;
+
+    // Simulate high government fatigue ahead of midterms -> incumbent loses House seats
+    state.nations[0].governmentFatigue = 75;
+    evaluateSimulation(state);
+    const fatiguedIncHouseSeats =
+      state.electionForecast.congress.house.standings.find((p) => p.name === state.nations[0].rulingParty)?.seats || 0;
+    assert.ok(
+      fatiguedIncHouseSeats < baseIncHouseSeats - 25,
+      `High Government Fatigue (75%) must cause a severe midterm House seat backlash (${fatiguedIncHouseSeats} vs ${baseIncHouseSeats})`
+    );
+
+    // Executing a Midterm Congressional Election records Congress seats without swapping White House party
+    const preMidtermPres = state.nations[0].rulingParty;
+    const midRes = executeSimulatedElectionInState(state, {
+      inaugurateWinner: false,
+      electionType: "Midterm Congressional Election",
+    });
+    assert.equal(state.nations[0].rulingParty, preMidtermPres, "Midterm Congressional Election must keep the President's party unchanged");
+    assert.ok(midRes.record.congress?.house?.standings?.length > 0, "Midterm record must preserve certified House & Senate standings");
+
+    // 4. Upserting a party preserves federalismPolicy
+    upsertPoliticalPartyInState(
+      state,
+      {
+        name: "Federal Unionists",
+        federalismPolicy: "pro_federalist",
+        baseTaxLevel: 0.25,
+        taxDistributionMode: 0.60,
+      },
+      null
+    );
+    const createdFed = state.politicalParties.find((p) => p.name === "Federal Unionists");
+    assert.equal(createdFed?.federalismPolicy, "pro_federalist", "Custom party must persist federalismPolicy doctrine");
+  });
 });

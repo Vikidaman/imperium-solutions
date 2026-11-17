@@ -37,6 +37,7 @@ import { getUsStateServicesEndowment } from "../data/usServicesEndowments";
 import {
   DEFAULT_POLITICAL_PARTIES,
   FUNDING_TIERS,
+  FEDERALISM_POLICY_CATALOG,
   POLICY_CATALOG,
   SOCIAL_POLICY_CATALOG,
   resolvePoliticalParty,
@@ -185,7 +186,9 @@ const InteractiveWorldMap = ({
   nations: nationsProp,
   onUpdateNation,
   onResetScenario,
+  onRunElection,
   onOpenPartyStudio,
+  onOpenElectionsForecast,
   canConfigure,
   isReadOnly = false,
 }) => {
@@ -1266,132 +1269,78 @@ const InteractiveWorldMap = ({
               )}
             </div>
 
-            {/* Political Party in Power & Industrial Focus */}
-            {canEdit ? (
-              <div className="space-y-2.5">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-[11px] font-semibold uppercase tracking-wider text-slate-400 mb-1">
-                      Political Party in Power
-                    </label>
-                    <select
-                      value={activeParty.name}
-                      onChange={(e) => {
-                        const nextParty = resolvePoliticalParty(
-                          state?.politicalParties,
-                          e.target.value
-                        );
-                        updatePolicy({
-                          rulingParty: nextParty.name,
-                          crimePolicy: nextParty.localCrimePolicy,
-                          healthcarePolicy: nextParty.healthcarePolicy,
-                          enactedPolicies: nextParty.defaultPolicies
-                            ? structuredClone(nextParty.defaultPolicies)
-                            : cloneDefaultPolicies(nextParty.name),
-                          socialPolicies: nextParty.socialPolicies
-                            ? structuredClone(nextParty.socialPolicies)
-                            : cloneDefaultSocialPolicies(nextParty.name),
-                          baseTaxLevel: nextParty.baseTaxLevel ?? 0.24,
-                          taxDistributionMode: nextParty.taxDistributionMode ?? 0.62,
-                          incomeTaxOverride: null,
-                          corporateTaxOverride: null,
-                          salesTaxOverride: null,
-                          capitalGainsTaxOverride: null,
-                          workerShareOverride: null,
-                          budgetPercentOverride: null,
-                        });
-                      }}
-                      className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-blue-500 cursor-pointer"
-                    >
-                      {partyList.map((party) => (
-                        <option key={party} value={party}>
-                          {party}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-[11px] font-semibold uppercase tracking-wider text-slate-400 mb-1">
-                      National Industrial Focus
-                    </label>
-                    <select
-                      value={usa.specializedIndustry || ""}
-                      onChange={(e) =>
-                        updatePolicy({ specializedIndustry: e.target.value })
-                      }
-                      className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-blue-500 cursor-pointer"
-                    >
-                      {SPECIALIZATION_OPTIONS.map((opt) => (
-                        <option key={opt.id} value={opt.id}>
-                          {opt.label}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-                {partyPrefs.platformSummary && (
-                  <div className="text-[11px] text-slate-300 bg-slate-950/60 border border-slate-800/80 rounded-lg px-3 py-2 flex items-center justify-between gap-2">
-                    <span>{partyPrefs.platformSummary}</span>
+            {/* Party Fiscal & Policy Posture (Party in Power Determined by Election Forecast & CNN Map) */}
+            <div className="bg-slate-950/70 border border-amber-500/30 rounded-xl p-3.5 space-y-3">
+              <div className="flex flex-wrap items-start justify-between gap-2 border-b border-slate-800/80 pb-2.5">
+                <div className="space-y-1 flex-1 min-w-[220px]">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="text-[11px] font-semibold uppercase tracking-wider text-amber-300 flex items-center gap-1.5">
+                      <Sliders className="w-3.5 h-3.5" />
+                      Party Fiscal &amp; Policy Posture
+                    </span>
+                    <span className="text-[11px] font-bold text-white px-2 py-0.5 rounded-md bg-slate-900 border border-slate-700">
+                      {activeParty.name}
+                    </span>
                     {partyPrefs.politicalAlignment && (
-                      <span className="shrink-0 text-[10px] font-semibold uppercase px-2 py-0.5 rounded-full bg-blue-500/15 text-blue-300 border border-blue-500/30">
+                      <span className="text-[10px] font-semibold uppercase px-2 py-0.5 rounded-full bg-blue-500/15 text-blue-300 border border-blue-500/30">
                         {partyPrefs.politicalAlignment}
                       </span>
                     )}
+                    <span className="text-[10px] font-semibold uppercase px-2 py-0.5 rounded-full bg-violet-500/15 text-violet-300 border border-violet-500/30">
+                      Federalism: {(FEDERALISM_POLICY_CATALOG[activeParty.federalismPolicy || "moderate"] || FEDERALISM_POLICY_CATALOG.moderate).shortLabel}
+                    </span>
                   </div>
-                )}
-              </div>
-            ) : (
-              <div className="bg-slate-950/70 border border-slate-800/90 rounded-xl p-3.5 space-y-2">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <div>
-                    <div className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">
-                      Governing Coalition
-                    </div>
-                    <div className="text-sm font-bold text-white flex items-center gap-2 mt-0.5">
-                      <span>{activeParty.name}</span>
-                      {partyPrefs.politicalAlignment && (
-                        <span className="text-[10px] font-semibold uppercase px-2 py-0.5 rounded-full bg-cyan-500/15 text-cyan-300 border border-cyan-500/30">
-                          {partyPrefs.politicalAlignment}
-                        </span>
+                  {(partyPrefs.platformSummary || activeParty.platformSummary) && (
+                    <p className="text-[11px] text-slate-300 leading-relaxed">
+                      {partyPrefs.platformSummary || activeParty.platformSummary}
+                    </p>
+                  )}
+                  <div className="flex flex-wrap items-center gap-2 text-[10px] text-slate-400">
+                    <span>
+                      Ruling party in power is determined by the winner of the{" "}
+                      <button
+                        type="button"
+                        onClick={() => onOpenElectionsForecast?.()}
+                        className="text-sky-300 hover:text-sky-200 underline cursor-pointer font-semibold"
+                      >
+                        Election Forecast &amp; CNN Map
+                      </button>
+                      {state?.electionForecast?.electoralStandings?.[0] && (
+                        <>
+                          {" "}
+                          (Current leader:{" "}
+                          <span className="text-white font-semibold">
+                            {state.electionForecast.electoralStandings[0].name}
+                          </span>{" "}
+                          · {state.electionForecast.electoralStandings[0].ev} EV)
+                        </>
                       )}
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <div className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">
-                      Industrial Focus
-                    </div>
-                    <div className="text-xs font-semibold text-amber-300 mt-0.5">
-                      {SPECIALIZATION_OPTIONS.find((s) => s.id === (usa.specializedIndustry || ""))?.label ||
-                        "Balanced Diversified Economy"}
-                    </div>
-                  </div>
-                </div>
-                {partyPrefs.platformSummary && (
-                  <p className="text-[11px] text-slate-400 leading-relaxed">
-                    {partyPrefs.platformSummary}
-                  </p>
-                )}
-              </div>
-            )}
-
-            {/* Active Party Fiscal & Policy Posture Overview (Configured Authoritatively in Party Studio) */}
-            <div className="bg-slate-950/70 border border-amber-500/30 rounded-xl p-3.5 space-y-3">
-              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800/80 pb-2">
-                <div>
-                  <span className="text-[11px] font-semibold uppercase tracking-wider text-amber-300 flex items-center gap-1.5">
-                    <Sliders className="w-3.5 h-3.5" />
-                    Party Fiscal &amp; Policy Posture
-                  </span>
-                  <div className="text-[10px] text-slate-400 mt-0.5">
-                    Authoritative mandate: <span className="text-white font-semibold">{activeParty.name}</span>
+                      .
+                    </span>
+                    {canEdit &&
+                      onRunElection &&
+                      state?.electionForecast?.electoralStandings?.[0]?.name &&
+                      state.electionForecast.electoralStandings[0].name !== activeParty.name && (
+                        <button
+                          type="button"
+                          onClick={() =>
+                            onRunElection({
+                              inaugurateWinner: true,
+                              electionType: "Electoral Mandate Sync",
+                            })
+                          }
+                          className="px-2 py-0.5 rounded bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-200 border border-emerald-500/40 font-semibold cursor-pointer"
+                        >
+                          Seat CNN Map Winner ({state.electionForecast.electoralStandings[0].name})
+                        </button>
+                      )}
                   </div>
                 </div>
                 {onOpenPartyStudio && (
                   <button
                     type="button"
                     onClick={() => onOpenPartyStudio()}
-                    className="px-2.5 py-1.5 rounded-lg text-[11px] font-bold bg-amber-500/20 hover:bg-amber-500/30 text-amber-200 border border-amber-500/40 flex items-center gap-1 cursor-pointer transition"
+                    className="px-2.5 py-1.5 rounded-lg text-[11px] font-bold bg-amber-500/20 hover:bg-amber-500/30 text-amber-200 border border-amber-500/40 flex items-center gap-1 cursor-pointer transition shrink-0"
                   >
                     <Edit2 className="w-3 h-3" />
                     Open Party Studio
