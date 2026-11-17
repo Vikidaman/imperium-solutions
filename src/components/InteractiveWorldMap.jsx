@@ -189,6 +189,7 @@ const InteractiveWorldMap = ({
   onRunElection,
   onOpenPartyStudio,
   onOpenElectionsForecast,
+  onInspectStatePolitics,
   canConfigure,
   isReadOnly = false,
 }) => {
@@ -217,9 +218,14 @@ const InteractiveWorldMap = ({
     const agriMult = Number(mult.agriYieldMultiplier ?? 1);
     const urbanMult = Number(mult.urbanAgglomerationMultiplier ?? 1);
 
+    const elecByName = new Map(
+      (state?.electionForecast?.stateResults || []).map((s) => [s.stateName, s])
+    );
+
     return Object.entries(US_STATES_CATALOG).map(([name, meta]) => {
       const geoRaw = getUsStateEndowment(name) || {};
       const srvRaw = getUsStateServicesEndowment(name) || {};
+      const elecState = elecByName.get(name) || null;
       const stateGdp = totalGdp * (meta.gdpShare || 0);
       const statePops = totalPops * (meta.popShare || 0);
       const gdpPerWorker = statePops > 0 ? stateGdp / statePops : 0;
@@ -266,6 +272,10 @@ const InteractiveWorldMap = ({
         stateGdp,
         statePops,
         gdpPerWorker,
+        elecState,
+        governorParty: elecState?.federalism?.governorParty || null,
+        governorColor: elecState?.federalism?.governorColor || "#64748b",
+        federalAdherencePct: elecState?.federalism?.federalAdherencePct ?? null,
         geo: {
           ...geoRaw,
           hydrocarbonIndex,
@@ -294,7 +304,13 @@ const InteractiveWorldMap = ({
         },
       };
     });
-  }, [c.aggregateGdp, c.effectiveWorkingPops, c.endowmentPolicyMultipliers, usa?.workingPops]);
+  }, [
+    c.aggregateGdp,
+    c.effectiveWorkingPops,
+    c.endowmentPolicyMultipliers,
+    usa?.workingPops,
+    state?.electionForecast?.stateResults,
+  ]);
 
   const selectedState = useMemo(() => {
     return (
@@ -345,6 +361,8 @@ const InteractiveWorldMap = ({
           return (
             (b.srv?.financialDepthIndex || 0) - (a.srv?.financialDepthIndex || 0)
           );
+        if (sortBy === "adherence")
+          return (b.federalAdherencePct || 0) - (a.federalAdherencePct || 0);
         return b.stateGdp - a.stateGdp;
       });
   }, [statesWithMetrics, stateSearch, stateFilter, sortBy]);
@@ -897,6 +915,89 @@ const InteractiveWorldMap = ({
                   </div>
                 </div>
               </div>
+
+              {/* State Federalism, Political Control & State Exit Poll Snapshot */}
+              {selectedState.elecState && (
+                <div className="mt-4 pt-4 border-t border-slate-800/80 space-y-3">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div className="text-xs font-semibold uppercase tracking-wider text-cyan-300 flex items-center gap-1.5">
+                      <Landmark className="w-3.5 h-3.5" />
+                      State Politics, Federalism Adherence &amp; State Polls ({selectedState.name})
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span
+                        className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${
+                          (selectedState.federalAdherencePct ?? 70) < 50
+                            ? "bg-rose-500/15 text-rose-300 border-rose-500/40"
+                            : (selectedState.federalAdherencePct ?? 70) < 75
+                            ? "bg-amber-500/15 text-amber-300 border-amber-500/40"
+                            : "bg-emerald-500/15 text-emerald-300 border-emerald-500/40"
+                        }`}
+                      >
+                        {selectedState.elecState.federalism?.federalStateTensionLabel} (
+                        {selectedState.federalAdherencePct}% Adherence)
+                      </span>
+                      {onInspectStatePolitics && (
+                        <button
+                          type="button"
+                          onClick={() => onInspectStatePolitics(selectedState.name)}
+                          className="px-2.5 py-1 rounded-lg text-[11px] font-bold bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-200 border border-cyan-500/40 flex items-center gap-1 cursor-pointer transition"
+                        >
+                          County Map &amp; Full State Polls
+                          <ArrowUpRight className="w-3 h-3" />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
+                    <div className="bg-slate-950/70 border border-slate-800/80 rounded-lg p-2.5">
+                      <div className="text-[10px] text-slate-400">Governor &amp; Statehouse</div>
+                      <div className="font-bold text-white flex items-center gap-1.5 mt-0.5 truncate">
+                        <span
+                          className="w-2 h-2 rounded-full shrink-0"
+                          style={{ backgroundColor: selectedState.governorColor }}
+                        />
+                        {selectedState.governorParty}
+                      </div>
+                      <div className="text-[10px] text-slate-400 mt-0.5 truncate">
+                        {selectedState.elecState.federalism?.federalismLabel}
+                      </div>
+                    </div>
+
+                    <div className="bg-slate-950/70 border border-slate-800/80 rounded-lg p-2.5">
+                      <div className="text-[10px] text-slate-400">Electoral Lean ({selectedState.elecState.ev} EV)</div>
+                      <div className="font-mono font-bold text-white mt-0.5">
+                        {selectedState.elecState.winnerPct}% vs {selectedState.elecState.runnerUpPct}%
+                      </div>
+                      <div className="text-[10px] text-amber-300 mt-0.5 uppercase font-semibold">
+                        +{selectedState.elecState.margin}% ({selectedState.elecState.cnnTier})
+                      </div>
+                    </div>
+
+                    <div className="bg-slate-950/70 border border-slate-800/80 rounded-lg p-2.5">
+                      <div className="text-[10px] text-slate-400">State Approval / Direction</div>
+                      <div className="font-mono font-bold text-emerald-300 mt-0.5">
+                        {selectedState.elecState.approvalBreakdown?.approvePct ?? 50}% Approve
+                      </div>
+                      <div className="text-[10px] text-slate-400 mt-0.5">
+                        Right Dir: {selectedState.elecState.approvalBreakdown?.rightDirectionPct ?? 50}%
+                      </div>
+                    </div>
+
+                    <div className="bg-slate-950/70 border border-slate-800/80 rounded-lg p-2.5">
+                      <div className="text-[10px] text-slate-400">Economic Leverage</div>
+                      <div className="font-mono font-bold text-white mt-0.5">
+                        {selectedState.elecState.federalism?.stateGdpGrowthPct}% Growth
+                      </div>
+                      <div className="text-[10px] text-slate-400 mt-0.5">
+                        Res {selectedState.elecState.federalism?.resourceLeveragePct}% · Srv{" "}
+                        {selectedState.elecState.federalism?.servicesLeveragePct}%
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
@@ -935,6 +1036,7 @@ const InteractiveWorldMap = ({
                   <option value="agriculture">Sort: Agriculture</option>
                   <option value="tech">Sort: High-Tech</option>
                   <option value="finance">Sort: Finance</option>
+                  <option value="adherence">Sort: Federal Adherence</option>
                   <option value="name">Sort: Alphabetical</option>
                 </select>
               </div>
@@ -972,7 +1074,8 @@ const InteractiveWorldMap = ({
                 <thead className="bg-slate-950/90 text-slate-400 text-[10px] uppercase tracking-wider sticky top-0 z-10">
                   <tr>
                     <th className="py-2 px-3">State</th>
-                    <th className="py-2 px-2">Region</th>
+                    <th className="py-2 px-2">Governor</th>
+                    <th className="py-2 px-2 text-right">Fed. Adh.</th>
                     <th className="py-2 px-2 text-right">State GDP</th>
                     <th className="py-2 px-2 text-right">Workforce</th>
                     <th className="py-2 px-2 text-center">Res. Score</th>
@@ -1000,8 +1103,21 @@ const InteractiveWorldMap = ({
                             <span>{st.name}</span>
                           </div>
                         </td>
-                        <td className="py-2 px-2 text-slate-400 text-[11px]">
-                          {st.region}
+                        <td className="py-2 px-2 text-[11px] font-medium">
+                          {st.governorParty ? (
+                            <span className="inline-flex items-center gap-1">
+                              <span
+                                className="w-2 h-2 rounded-full shrink-0"
+                                style={{ backgroundColor: st.governorColor }}
+                              />
+                              <span className="truncate max-w-[90px]">{st.governorParty}</span>
+                            </span>
+                          ) : (
+                            <span className="text-slate-500">Territory</span>
+                          )}
+                        </td>
+                        <td className="py-2 px-2 text-right font-mono text-cyan-300">
+                          {st.federalAdherencePct !== null ? `${st.federalAdherencePct}%` : "—"}
                         </td>
                         <td className="py-2 px-2 text-right font-mono text-emerald-300">
                           {formatCompactCurrency(st.stateGdp)}

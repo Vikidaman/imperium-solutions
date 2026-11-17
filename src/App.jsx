@@ -99,6 +99,7 @@ export default function App() {
   const [activeTab, setActiveTab] = useState("map");
   const [marketsSubTab, setMarketsSubTab] = useState("supplychain");
   const [partiesSubTab, setPartiesSubTab] = useState("elections");
+  const [focusedElectionState, setFocusedElectionState] = useState(null);
   const [actorName, setActorName] = useState("Director");
   const [headerSpeedInput, setHeaderSpeedInput] = useState("90");
   const [loading, setLoading] = useState(true);
@@ -109,7 +110,10 @@ export default function App() {
 
   const handleJumpToTab = useCallback((tabId) => {
     if (tabId === "markets") setMarketsSubTab("supplychain");
-    if (tabId === "parties") setPartiesSubTab("elections");
+    if (tabId === "parties") {
+      setPartiesSubTab("elections");
+      setFocusedElectionState(null);
+    }
     setActiveTab(tabId);
   }, []);
 
@@ -760,10 +764,17 @@ export default function App() {
                 onResetScenario={handleResetScenario}
                 onRunElection={handleRunElection}
                 onOpenPartyStudio={() => {
+                  setFocusedElectionState(null);
                   setPartiesSubTab("studio");
                   setActiveTab("parties");
                 }}
                 onOpenElectionsForecast={() => {
+                  setFocusedElectionState(null);
+                  setPartiesSubTab("elections");
+                  setActiveTab("parties");
+                }}
+                onInspectStatePolitics={(stateName) => {
+                  setFocusedElectionState(stateName || null);
                   setPartiesSubTab("elections");
                   setActiveTab("parties");
                 }}
@@ -775,6 +786,7 @@ export default function App() {
               <PoliticalPartiesAndElectionsView
                 state={state}
                 initialSubView={partiesSubTab}
+                initialSelectedState={focusedElectionState}
                 isReadOnly={isReadOnly}
                 onUpsertParty={handleUpsertParty}
                 onDeleteParty={handleDeleteParty}

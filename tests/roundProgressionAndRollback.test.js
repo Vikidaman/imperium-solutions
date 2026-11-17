@@ -868,5 +868,17 @@ describe("Round Progression and United States Simulation Mechanics", () => {
     );
     const createdFed = state.politicalParties.find((p) => p.name === "Federal Unionists");
     assert.equal(createdFed?.federalismPolicy, "pro_federalist", "Custom party must persist federalismPolicy doctrine");
+
+    // 5. National federalismSummary attached on forecast & usa.computed
+    const baseFedState = evaluateSimulation(buildSimplifiedSeed());
+    assert.ok(
+      baseFedState.electionForecast.federalismSummary.alignedStatesCount >= 10,
+      "Baseline healthy admin must align with at least 10 state governments"
+    );
+    const fs = state.electionForecast.federalismSummary;
+    assert.ok(fs && typeof fs.avgFederalAdherencePct === "number", "federalismSummary.avgFederalAdherencePct must be populated");
+    assert.ok(fs.alignedStatesCount >= 0 && fs.alignedStatesCount <= 51, "alignedStatesCount must stay within 0..51 jurisdictions");
+    assert.ok(fs.federalStateFrictionIndex >= 0 && fs.federalStateFrictionIndex <= 100, "federalStateFrictionIndex must remain bounded 0-100");
+    assert.deepStrictEqual(state.nations[0].computed.federalismSummary, fs, "usa.computed.federalismSummary must match forecast");
   });
 });

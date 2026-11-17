@@ -4818,7 +4818,17 @@
           ]
         },
         "governmentFatigue": 0,
-        "fatigueRatePerQuarter": 0.85
+        "fatigueRatePerQuarter": 0.85,
+        "federalismSummary": {
+          "federalDoctrineId": "moderate",
+          "federalDoctrineLabel": "Moderate Cooperative",
+          "avgFederalAdherencePct": 82.2,
+          "avgResourceLeveragePct": 75.9,
+          "avgServicesLeveragePct": 89.1,
+          "alignedStatesCount": 33,
+          "nullificationStatesCount": 18,
+          "federalStateFrictionIndex": 17.8
+        }
       }
     }
   ],
@@ -6105,6 +6115,16 @@
           ]
         }
       ]
+    },
+    "federalismSummary": {
+      "federalDoctrineId": "moderate",
+      "federalDoctrineLabel": "Moderate Cooperative",
+      "avgFederalAdherencePct": 82.2,
+      "avgResourceLeveragePct": 75.9,
+      "avgServicesLeveragePct": 89.1,
+      "alignedStatesCount": 33,
+      "nullificationStatesCount": 18,
+      "federalStateFrictionIndex": 17.8
     },
     "congress": {
       "house": {

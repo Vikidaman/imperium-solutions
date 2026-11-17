@@ -805,6 +805,7 @@ export default function PoliticalPartiesAndElectionsView({
   role = "director",
   isReadOnly = false,
   initialSubView = "elections",
+  initialSelectedState = null,
   onUpsertParty,
   onDeleteParty,
   onRunElection,
@@ -843,7 +844,7 @@ export default function PoliticalPartiesAndElectionsView({
   const [stateSearch, setStateSearch] = useState("");
   const [stateFilter, setStateFilter] = useState("all");
   // null = National U.S. View & National Polls; string = clicked state's County Map, Federalism & State Polls
-  const [selectedMapState, setSelectedMapState] = useState(null);
+  const [selectedMapState, setSelectedMapState] = useState(initialSelectedState || null);
   const [highlightTossups, setHighlightTossups] = useState(true);
   const [selectedHistoryId, setSelectedHistoryId] = useState(null);
   const [selectedHistMapState, setSelectedHistMapState] = useState("Pennsylvania");
@@ -858,6 +859,10 @@ export default function PoliticalPartiesAndElectionsView({
       setActiveSubView(initialSubView);
     }
   }, [initialSubView]);
+
+  useEffect(() => {
+    setSelectedMapState(initialSelectedState || null);
+  }, [initialSelectedState]);
 
   useEffect(() => {
     return () => {

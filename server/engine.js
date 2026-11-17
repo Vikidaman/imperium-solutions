@@ -1503,6 +1503,34 @@ export function computeElectionSimulation(state = {}) {
   const projectedWinner = leader.ev >= 270 ? leader.name : `${leader.name} (Plurality / Coalition)`;
   const battlegrounds = stateResults.filter((s) => s.isBattleground).sort((a, b) => a.margin - b.margin);
 
+  // National Federalism & State Leverage Aggregate Summary
+  let evWeightSum = 0;
+  let adhWeighted = 0;
+  let resWeighted = 0;
+  let srvWeighted = 0;
+  let alignedStatesCount = 0;
+  let nullificationStatesCount = 0;
+  for (const st of stateResults) {
+    const w = st.ev || 1;
+    evWeightSum += w;
+    adhWeighted += (st.federalism?.federalAdherencePct ?? 68) * w;
+    resWeighted += (st.federalism?.resourceLeveragePct ?? 60) * w;
+    srvWeighted += (st.federalism?.servicesLeveragePct ?? 65) * w;
+    if (st.federalism?.governorParty === rulingName) alignedStatesCount += 1;
+    if ((st.federalism?.federalAdherencePct ?? 68) < 50) nullificationStatesCount += 1;
+  }
+  const avgFederalAdherencePct = Number((evWeightSum > 0 ? adhWeighted / evWeightSum : 68).toFixed(1));
+  const federalismSummary = {
+    federalDoctrineId: fedDoctrine.id,
+    federalDoctrineLabel: fedDoctrine.shortLabel,
+    avgFederalAdherencePct,
+    avgResourceLeveragePct: Number((evWeightSum > 0 ? resWeighted / evWeightSum : 60).toFixed(1)),
+    avgServicesLeveragePct: Number((evWeightSum > 0 ? srvWeighted / evWeightSum : 65).toFixed(1)),
+    alignedStatesCount,
+    nullificationStatesCount,
+    federalStateFrictionIndex: Number(Math.max(0, Math.min(100, 100 - avgFederalAdherencePct)).toFixed(1)),
+  };
+
   const sortedHouse = Object.values(houseTotals).sort((a, b) => b.seats - a.seats);
   const sortedSenate = Object.values(senateTotals).sort((a, b) => b.seats - a.seats);
   const houseLeader = sortedHouse[0] || { name: rulingName, color: "#3b82f6", seats: 0 };
@@ -1591,6 +1619,7 @@ export function computeElectionSimulation(state = {}) {
     nationalPolls,
     approvalBreakdown: nationalExit.approvalBreakdown,
     demographicPolls: nationalExit.demographicPolls,
+    federalismSummary,
     congress,
     cohortVotes: {
       lowIncome: cohortPoll("lowAppeal"),
@@ -2975,6 +3004,9 @@ export function evaluateSimulation(state) {
 
   state.globalMarket = globalMarket;
   state.electionForecast = computeElectionSimulation(state);
+  if (state.nations?.[0]?.computed) {
+    state.nations[0].computed.federalismSummary = state.electionForecast.federalismSummary;
+  }
   return state;
 }
 
