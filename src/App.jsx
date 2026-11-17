@@ -13,12 +13,16 @@ import {
   ShieldCheck,
   Lock,
   LogOut,
+  Vote,
 } from "lucide-react";
 import InteractiveWorldMap from "./components/InteractiveWorldMap";
 import DirectorLoginPortal from "./components/DirectorLoginPortal";
 
 const MarketsAndTechView = lazy(() => import("./components/MarketsAndTechView"));
 const LedgerAndTimeView = lazy(() => import("./components/LedgerAndTimeView"));
+const PoliticalPartiesAndElectionsView = lazy(() =>
+  import("./components/PoliticalPartiesAndElectionsView")
+);
 
 function detectPrivatePortalRoute() {
   if (typeof window === "undefined") return false;
@@ -336,6 +340,74 @@ export default function App() {
     }
   };
 
+  const handleUpsertParty = async (payload, originalPartyName = null) => {
+    if (guardReadOnly()) return;
+    lastMutationTimeRef.current = Date.now();
+    const url = originalPartyName
+      ? `/api/sessions/${activeSessionId}/parties/${encodeURIComponent(originalPartyName)}`
+      : `/api/sessions/${activeSessionId}/parties`;
+    const method = originalPartyName ? "PATCH" : "POST";
+    const res = await fetch(url, {
+      method,
+      headers: getMutationHeaders(),
+      body: JSON.stringify({ ...payload, actor: actorName }),
+    });
+    if (res.ok) {
+      const data = await res.json();
+      setSessionData(data.session);
+      setActivityLog(data.activityLog || []);
+      showToast(
+        originalPartyName
+          ? `Updated posture for ${payload.name}`
+          : `Created political party: ${payload.name}`
+      );
+    } else {
+      const err = await res.json().catch(() => ({}));
+      showToast(err.error || "Failed to save political party");
+    }
+  };
+
+  const handleDeleteParty = async (partyName) => {
+    if (guardReadOnly()) return;
+    lastMutationTimeRef.current = Date.now();
+    const res = await fetch(
+      `/api/sessions/${activeSessionId}/parties/${encodeURIComponent(partyName)}`,
+      {
+        method: "DELETE",
+        headers: getMutationHeaders(),
+        body: JSON.stringify({ actor: actorName }),
+      }
+    );
+    if (res.ok) {
+      const data = await res.json();
+      setSessionData(data.session);
+      setActivityLog(data.activityLog || []);
+      showToast(`Removed party: ${partyName}`);
+    } else {
+      const err = await res.json().catch(() => ({}));
+      showToast(err.error || "Failed to delete party");
+    }
+  };
+
+  const handleRunElection = async ({ inaugurateWinner = false } = {}) => {
+    if (guardReadOnly()) return;
+    lastMutationTimeRef.current = Date.now();
+    const res = await fetch(`/api/sessions/${activeSessionId}/elections`, {
+      method: "POST",
+      headers: getMutationHeaders(),
+      body: JSON.stringify({ inaugurateWinner, actor: actorName }),
+    });
+    if (res.ok) {
+      const data = await res.json();
+      setSessionData(data.session);
+      setActivityLog(data.activityLog || []);
+      showToast(data.toastMessage || "National Election Certified");
+    } else {
+      const err = await res.json().catch(() => ({}));
+      showToast(err.error || "Failed to conduct election");
+    }
+  };
+
   const handleUpdateMarket = async (nationId, payload) => {
     if (guardReadOnly()) return;
     lastMutationTimeRef.current = Date.now();
@@ -478,13 +550,18 @@ export default function App() {
             </div>
           </div>
 
-          {/* 3 Focused Navigation Tabs */}
+          {/* 4 Focused Navigation Tabs */}
           <nav className="flex flex-wrap items-center gap-1.5">
             {[
               {
                 id: "map",
                 label: "US Map, 50 States & Cabinet",
                 icon: Globe2,
+              },
+              {
+                id: "parties",
+                label: "Parties & Elections",
+                icon: Vote,
               },
               {
                 id: "markets",
@@ -633,6 +710,37 @@ export default function App() {
                 onUpdateNation={handleUpdateNation}
                 onResetScenario={handleResetScenario}
                 isReadOnly={isReadOnly}
+              />
+            )}
+
+            {activeTab === "parties" && (
+              <PoliticalPartiesAndElectionsView
+                state={state}
+                isReadOnly={isReadOnly}
+                onUpsertParty={handleUpsertParty}
+                onDeleteParty={handleDeleteParty}
+                onRunElection={handleRunElection}
+                onSetRulingParty={(party) =>
+                  handleUpdateNation("nation_usa", {
+                    rulingParty: party.name,
+                    crimePolicy: party.localCrimePolicy || "Beat Cops",
+                    healthcarePolicy: party.healthcarePolicy || "Subsidized Healthcare",
+                    enactedPolicies: party.defaultPolicies
+                      ? structuredClone(party.defaultPolicies)
+                      : undefined,
+                    socialPolicies: party.socialPolicies
+                      ? structuredClone(party.socialPolicies)
+                      : undefined,
+                    baseTaxLevel: party.baseTaxLevel ?? 0.24,
+                    taxDistributionMode: party.taxDistributionMode ?? 0.62,
+                    incomeTaxOverride: null,
+                    corporateTaxOverride: null,
+                    salesTaxOverride: null,
+                    capitalGainsTaxOverride: null,
+                    workerShareOverride: null,
+                    budgetPercentOverride: null,
+                  })
+                }
               />
             )}
 

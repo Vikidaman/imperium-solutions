@@ -23,6 +23,9 @@ import {
   advanceSimulationTime,
   runBudgetAndDividendUpdater,
   addDaysToSimDate,
+  upsertPoliticalPartyInState,
+  deletePoliticalPartyInState,
+  executeSimulatedElectionInState,
 } from "./engine.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -599,9 +602,12 @@ app.patch("/api/sessions/:id/nations/:nationId", (req, res) => {
     "incomeTaxOverride",
     "salesTaxOverride",
     "corporateTaxOverride",
+    "capitalGainsTaxOverride",
     "workerShareOverride",
     "budgetPercentOverride",
+    "baseTaxLevel",
     "taxDistributionMode",
+    "socialPolicies",
     "equalityDrift",
     "centralBankRate",
     "freightDelayFriction",
@@ -627,6 +633,86 @@ app.patch("/api/sessions/:id/nations/:nationId", (req, res) => {
     session: sess,
     activityLog: getActivityLog(id, 60),
   });
+});
+
+app.post("/api/sessions/:id/parties", (req, res) => {
+  const { id } = req.params;
+  const sess = getCachedSession(id);
+  if (!sess) return res.status(404).json({ error: "Session not found" });
+
+  try {
+    const { actor, ...payload } = req.body || {};
+    const partyObj = upsertPoliticalPartyInState(sess.state, payload);
+    persistAndBroadcast(
+      id,
+      actor,
+      `Configured Party: ${partyObj.name}`,
+      `Base Tax ${(partyObj.baseTaxLevel * 100).toFixed(0)}%, Bell Mode P${Math.round(partyObj.taxDistributionMode * 100)}`
+    );
+    res.json({ session: sess, party: partyObj, activityLog: getActivityLog(id, 60) });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+app.patch("/api/sessions/:id/parties/:partyName", (req, res) => {
+  const { id, partyName } = req.params;
+  const sess = getCachedSession(id);
+  if (!sess) return res.status(404).json({ error: "Session not found" });
+
+  try {
+    const { actor, ...payload } = req.body || {};
+    const partyObj = upsertPoliticalPartyInState(sess.state, payload, decodeURIComponent(partyName));
+    persistAndBroadcast(
+      id,
+      actor,
+      `Updated Party Platform: ${partyObj.name}`,
+      `Base Tax ${(partyObj.baseTaxLevel * 100).toFixed(0)}%, Bell Mode P${Math.round(partyObj.taxDistributionMode * 100)}`
+    );
+    res.json({ session: sess, party: partyObj, activityLog: getActivityLog(id, 60) });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+app.delete("/api/sessions/:id/parties/:partyName", (req, res) => {
+  const { id, partyName } = req.params;
+  const sess = getCachedSession(id);
+  if (!sess) return res.status(404).json({ error: "Session not found" });
+
+  try {
+    const decoded = decodeURIComponent(partyName);
+    deletePoliticalPartyInState(sess.state, decoded);
+    persistAndBroadcast(id, req.body?.actor, `Dissolved Party: ${decoded}`, "");
+    res.json({ session: sess, activityLog: getActivityLog(id, 60) });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+app.post("/api/sessions/:id/elections", (req, res) => {
+  const { id } = req.params;
+  const sess = getCachedSession(id);
+  if (!sess) return res.status(404).json({ error: "Session not found" });
+
+  try {
+    const { inaugurateWinner = false, actor } = req.body || {};
+    const { record } = executeSimulatedElectionInState(sess.state, { inaugurateWinner });
+    persistAndBroadcast(
+      id,
+      actor,
+      `National Election Held: ${record.winner} (${record.winnerEv} EVs)`,
+      inaugurateWinner ? `Inaugurated ${record.winner}` : "Polling & EV tally recorded"
+    );
+    res.json({
+      session: sess,
+      electionRecord: record,
+      toastMessage: `Election Result: ${record.winner} wins ${record.winnerEv} Electoral Votes (${record.winnerPollPct}% Vote).`,
+      activityLog: getActivityLog(id, 60),
+    });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
 });
 
 app.patch("/api/sessions/:id/nations/:nationId/market", (req, res) => {

@@ -3,6 +3,9 @@ import {
   advanceSimulationTime,
   runBudgetAndDividendUpdater,
   addDaysToSimDate,
+  upsertPoliticalPartyInState,
+  deletePoliticalPartyInState,
+  executeSimulatedElectionInState,
 } from "./server/engine.js";
 import { buildSimplifiedSeed } from "./server/simplifiedSeedConfig.js";
 
@@ -758,9 +761,12 @@ export default {
             "incomeTaxOverride",
             "salesTaxOverride",
             "corporateTaxOverride",
+            "capitalGainsTaxOverride",
             "workerShareOverride",
             "budgetPercentOverride",
+            "baseTaxLevel",
             "taxDistributionMode",
+            "socialPolicies",
             "equalityDrift",
             "centralBankRate",
             "freightDelayFriction",
@@ -829,6 +835,55 @@ export default {
         evaluateSimulation(sess.state);
         await saveStateToD1(db, sess);
         return jsonResponse({ session: sess, activityLog: await getActivityLog(db, sessionId, 60) });
+      }
+
+      if (subAction === "parties") {
+        const sess = await getSession(env, request.url, sessionId);
+        if (!sess) return jsonResponse({ error: "Session not found" }, 404);
+        const targetPartyName = parts[4] ? decodeURIComponent(parts[4]) : null;
+        try {
+          if (request.method === "POST" || (request.method === "PATCH" && targetPartyName)) {
+            const body = await request.json().catch(() => ({}));
+            const partyObj = upsertPoliticalPartyInState(sess.state, body, targetPartyName);
+            await saveStateToD1(db, sess);
+            await logActivity(db, sessionId, body.actor || "Director", `Configured Party: ${partyObj.name}`, "");
+            return jsonResponse({ session: sess, party: partyObj, activityLog: await getActivityLog(db, sessionId, 60) });
+          }
+          if (request.method === "DELETE" && targetPartyName) {
+            deletePoliticalPartyInState(sess.state, targetPartyName);
+            await saveStateToD1(db, sess);
+            await logActivity(db, sessionId, "Director", `Dissolved Party: ${targetPartyName}`, "");
+            return jsonResponse({ session: sess, activityLog: await getActivityLog(db, sessionId, 60) });
+          }
+        } catch (err) {
+          return jsonResponse({ error: err.message }, 400);
+        }
+      }
+
+      if (subAction === "elections" && request.method === "POST") {
+        const sess = await getSession(env, request.url, sessionId);
+        if (!sess) return jsonResponse({ error: "Session not found" }, 404);
+        try {
+          const body = await request.json().catch(() => ({}));
+          const { inaugurateWinner = false, actor } = body;
+          const { record } = executeSimulatedElectionInState(sess.state, { inaugurateWinner });
+          await saveStateToD1(db, sess);
+          await logActivity(
+            db,
+            sessionId,
+            actor || "Director",
+            `National Election: ${record.winner} (${record.winnerEv} EVs)`,
+            inaugurateWinner ? `Inaugurated ${record.winner}` : "Polling recorded"
+          );
+          return jsonResponse({
+            session: sess,
+            electionRecord: record,
+            toastMessage: `Election Result: ${record.winner} wins ${record.winnerEv} Electoral Votes (${record.winnerPollPct}% Vote).`,
+            activityLog: await getActivityLog(db, sessionId, 60),
+          });
+        } catch (err) {
+          return jsonResponse({ error: err.message }, 400);
+        }
       }
     }
 

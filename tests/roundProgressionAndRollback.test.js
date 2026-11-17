@@ -4,11 +4,16 @@ import {
   advanceSimulationTime,
   evaluateSimulation,
   runBudgetAndDividendUpdater,
+  upsertPoliticalPartyInState,
+  deletePoliticalPartyInState,
+  executeSimulatedElectionInState,
 } from "../server/engine.js";
 import {
   buildSimplifiedSeed,
   DEFAULT_POLITICAL_PARTIES,
+  US_STATE_ELECTORAL_DATA,
   cloneDefaultPolicies,
+  computeTaxRatesFromPosture,
 } from "../server/simplifiedSeedConfig.js";
 
 describe("Round Progression and United States Simulation Mechanics", () => {
@@ -371,6 +376,157 @@ describe("Round Progression and United States Simulation Mechanics", () => {
     assert.ok(
       hikeState.nations[0].computed.forecast.finalGrowth < baseState.nations[0].computed.forecast.finalGrowth - 0.8,
       "Fed rate hike must elastically compress 1-year GDP growth outlook"
+    );
+  });
+
+  it("computes SoL from Good Governance Trajectory, scales resource/knowledge endowments by funding, and correlates bell-curve tax modifiers, social policies, custom parties & 538-EV elections", () => {
+    // 1. Standard of Living as weighted aggregate of Good Governance Trajectory
+    const solState = buildSimplifiedSeed();
+    evaluateSimulation(solState);
+    const lowGovState = buildSimplifiedSeed();
+    lowGovState.nations[0].literacyRate = 0.65;
+    lowGovState.nations[0].infrastructureEfficiency = 0.55;
+    lowGovState.nations[0].urbanisationIndex = 0.60;
+    lowGovState.nations[0].consumerSentiment = 35;
+    lowGovState.nations[0].kFactorScaler = 800;
+    evaluateSimulation(lowGovState);
+
+    assert.ok(solState.nations[0].computed.solBreakdown, "solBreakdown must be populated");
+    assert.ok(
+      solState.nations[0].computed.sol > lowGovState.nations[0].computed.sol + 10,
+      "Degrading Good Governance indicators must strongly reduce Standard of Living"
+    );
+
+    // 2. Policy funding directly gates Natural Resource & Services/Knowledge endowments and sector output
+    const fundedState = buildSimplifiedSeed();
+    fundedState.nations[0].enactedPolicies = {
+      education: { enacted: true, funding: "landmark" },
+      infrastructure: { enacted: true, funding: "landmark" },
+      innovation: { enacted: true, funding: "landmark" },
+      governance: { enacted: true, funding: "landmark" },
+    };
+    evaluateSimulation(fundedState);
+
+    const repealedState = buildSimplifiedSeed();
+    repealedState.nations[0].enactedPolicies = {
+      education: { enacted: false, funding: "underfunded" },
+      infrastructure: { enacted: false, funding: "underfunded" },
+      innovation: { enacted: false, funding: "underfunded" },
+      governance: { enacted: false, funding: "underfunded" },
+    };
+    evaluateSimulation(repealedState);
+
+    const fMult = fundedState.nations[0].computed.endowmentPolicyMultipliers;
+    const rMult = repealedState.nations[0].computed.endowmentPolicyMultipliers;
+    assert.ok(
+      fMult.stemTalentMultiplier > rMult.stemTalentMultiplier + 0.35,
+      "Repealing Education & R&D must drastically degrade STEM & University Talent endowment multiplier"
+    );
+    assert.ok(
+      fMult.resourceExtractionMultiplier > rMult.resourceExtractionMultiplier + 0.25,
+      "Repealing Infrastructure & Innovation must degrade Natural Resource realization multiplier"
+    );
+    assert.ok(
+      fundedState.nations[0].computed.officeGdp > repealedState.nations[0].computed.officeGdp * 1.4,
+      "Knowledge & Services sector GDP must dynamically drop when R&D & Education are repealed"
+    );
+
+    // 3. Bell-curve tax rate correlation across Lower, Middle, and Upper Income peaks
+    const lowPeak = computeTaxRatesFromPosture(0.24, 0.15);
+    const midPeak = computeTaxRatesFromPosture(0.24, 0.50);
+    const highPeak = computeTaxRatesFromPosture(0.24, 0.85);
+
+    assert.ok(
+      lowPeak.salesTax > midPeak.salesTax && lowPeak.salesTax > highPeak.salesTax,
+      "Sales & consumption tax must peak when tax burden is positioned on Lower Class (m=0.15)"
+    );
+    assert.ok(
+      midPeak.incomeTax > lowPeak.incomeTax && midPeak.incomeTax > highPeak.incomeTax,
+      "Income tax must peak when tax burden is positioned on Middle Class (m=0.50)"
+    );
+    assert.ok(
+      highPeak.corporateTax > midPeak.corporateTax && highPeak.corporateTax > lowPeak.corporateTax,
+      "Corporate tax must peak when tax burden is positioned on Upper Income (m=0.85)"
+    );
+    assert.ok(
+      highPeak.capitalGainsTax > midPeak.capitalGainsTax && highPeak.capitalGainsTax > lowPeak.capitalGainsTax,
+      "Capital gains tax must peak when tax burden is positioned on Upper Income (m=0.85)"
+    );
+
+    // 4. Social Policies (UDHR Human Rights Freedoms & Social Obligations)
+    const charterState = buildSimplifiedSeed();
+    charterState.nations[0].socialPolicies = {
+      civilLibertiesCharter: "strong",
+      privacyAndDueProcess: "strong",
+      economicAndLaborRights: "strong",
+      nationalCivicService: "strong",
+      environmentalStewardship: "strong",
+      corporateSocialObligation: "strong",
+    };
+    evaluateSimulation(charterState);
+
+    const restrictedState = buildSimplifiedSeed();
+    restrictedState.nations[0].socialPolicies = {
+      civilLibertiesCharter: "low",
+      privacyAndDueProcess: "low",
+      economicAndLaborRights: "low",
+      nationalCivicService: "low",
+      environmentalStewardship: "low",
+      corporateSocialObligation: "low",
+    };
+    evaluateSimulation(restrictedState);
+
+    assert.ok(
+      charterState.nations[0].computed.socialPolicyEval.humanRightsIndex >= 95,
+      "Strong UDHR freedom policies must yield near-100 humanRightsIndex"
+    );
+    assert.ok(
+      charterState.nations[0].computed.socialPolicyEval.civicObligationIndex >= 95,
+      "Strong social obligation policies must yield near-100 civicObligationIndex"
+    );
+    assert.ok(
+      charterState.nations[0].computed.sol > restrictedState.nations[0].computed.sol + 4,
+      "Strong human rights charter & obligations must raise Standard of Living relative to restriction"
+    );
+
+    // 5. Custom Party Creation, Modification, Deletion & 538-EV Election Simulation
+    const totalEvCheck = Object.values(US_STATE_ELECTORAL_DATA).reduce((s, d) => s + d.ev, 0);
+    assert.equal(totalEvCheck, 538, "All 50 states + DC must sum to exactly 538 Electoral Votes");
+
+    const partyState = buildSimplifiedSeed();
+    evaluateSimulation(partyState);
+    assert.equal(partyState.electionForecast.stateResults.length, 51, "Election must model 50 states + DC");
+    const castEvSum = partyState.electionForecast.electoralStandings.reduce((s, p) => s + p.ev, 0);
+    assert.equal(castEvSum, 538, "Electoral standings must distribute all 538 EVs");
+
+    upsertPoliticalPartyInState(partyState, {
+      name: "Forward Technocrats",
+      color: "#8b5cf6",
+      politicalAlignment: "Techno-Progressive",
+      baseTaxLevel: 0.28,
+      taxDistributionMode: 0.72,
+      currentSupport: 0.35,
+      makeRulingParty: true,
+    });
+    assert.equal(partyState.nations[0].rulingParty, "Forward Technocrats");
+    assert.ok(
+      partyState.politicalParties.some((p) => p.name === "Forward Technocrats"),
+      "Custom party must be persisted in state.politicalParties"
+    );
+
+    const elecResult = executeSimulatedElectionInState(partyState, { inaugurateWinner: true });
+    assert.ok(elecResult.record.winner, "Simulated election must produce a winner");
+    assert.equal(partyState.nations[0].electionHistory.length, 1, "Election record must be saved to history");
+
+    // Verify deleting a non-ruling party works cleanly
+    const victimName = partyState.politicalParties.find(
+      (p) => p.name !== partyState.nations[0].rulingParty
+    )?.name;
+    assert.ok(victimName);
+    deletePoliticalPartyInState(partyState, victimName);
+    assert.ok(
+      !partyState.politicalParties.some((p) => p.name === victimName),
+      "Deleted non-ruling party should be removed from roster"
     );
   });
 });

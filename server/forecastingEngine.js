@@ -239,30 +239,30 @@ export function computeGdpForecast(nation, state, modelData = null) {
 
   // --- Component 1: Household Consumption Growth Contribution (ΔC) ---
   // Includes bell-curve MPC incidence effect, equality purchasing-power boost, and household credit channel
-  const dispIncomeRatio = (workerShare * (1 - incomeTax) * (1 - salesTax)) / 0.37224;
+  const dispIncomeRatio = (workerShare * (1 - incomeTax) * (1 - salesTax)) / 0.36446;
   const sentimentRatio = consumerSentiment / 65.0;
   const cIdx = ad.cIdx !== undefined ? Number(ad.cIdx) : (0.42 + 0.36 * dispIncomeRatio + 0.22 * Math.pow(sentimentRatio, 0.42));
   const mpcIncidenceAdj = ((Number(bellCurve.consumptionMpcMultiplier) || 1.0) - 1.0) * 6.5;
-  const equalityConsBonus = (incomeEqualityIndex - 0.615) * 3.8;
+  const equalityConsBonus = (incomeEqualityIndex - 0.613) * 2.4;
   const creditRateDrag = (centralBankRate - 0.045) * 7.5;
   const consumptionGrowthContrib =
-    1.15 +
-    (cIdx - 1.0) * 5.2 +
-    (sentimentRatio - 1.0) * 1.45 +
+    1.10 +
+    (cIdx - 1.0) * 4.8 +
+    (sentimentRatio - 1.0) * 1.15 +
     mpcIncidenceAdj +
     equalityConsBonus +
-    sentMomentum * 0.6 -
+    sentMomentum * 0.5 -
     creditRateDrag;
 
   // --- Component 2: Gross Private Domestic Investment Growth Contribution (ΔI) ---
   // After-tax corporate return, monetary rate elasticity, infrastructure & TFP momentum, and capex drag
-  const afterTaxProfitRatio = ((1 - workerShare) * (1 - corporateTax)) / 0.3375;
+  const afterTaxProfitRatio = ((1 - workerShare) * (1 - corporateTax)) / 0.34011;
   const interestDrag = (centralBankRate - 0.045) * 16.0;
-  const infraBonus = (infraEff - 0.82) * 5.5;
+  const infraBonus = (infraEff - 0.82) * 3.8;
   const partyInfraShare = Number(c.partyPreferences?.infrastructureInvestmentShare ?? 0.038);
-  const partyInfraBonus = (partyInfraShare - 0.038) * 20.0;
-  const humanCapitalBonus = (literacyRate - 0.92) * 4.5 + (urbanisationIndex - 0.83) * 2.2;
-  const tfpBonus = ((kFactor - 1500) / 1500) * 3.4;
+  const partyInfraBonus = (partyInfraShare - 0.038) * 18.0;
+  const humanCapitalBonus = (literacyRate - 0.92) * 3.4 + (urbanisationIndex - 0.83) * 1.6;
+  const tfpBonus = ((kFactor - 1500) / 1500) * 2.4;
   const capexModeDrag = (Number(bellCurve.investmentCapexDrag) || 0) * 4.2;
   const investmentGrowthContrib =
     0.75 +

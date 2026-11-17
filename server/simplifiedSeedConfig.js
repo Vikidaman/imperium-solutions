@@ -138,16 +138,196 @@ export const POLICY_CATALOG = [
   },
 ];
 
-export const DEFAULT_POLITICAL_PARTIES = [
+export const SOCIAL_POLICY_LEVELS = {
+  low: { id: "low", label: "Restricted / Minimal", score: 0 },
+  balanced: { id: "balanced", label: "Constitutional Standard", score: 1 },
+  strong: { id: "strong", label: "Universal Charter", score: 2 },
+};
+
+export const SOCIAL_POLICY_CATALOG = [
   {
+    id: "civilLibertiesCharter",
+    category: "individual_freedom",
+    shortName: "Expression, Press & Academic Freedom",
+    articleRef: "UDHR Articles 18–19",
+    drives: ["STEM & Research Openness", "Household Sentiment"],
+    levels: {
+      low: { label: "Restricted Speech", freedomPts: 0, obligationPts: 0, solBonus: -1.4, stemBonus: -0.10, eqBonus: 0, costPct: 0.0 },
+      balanced: { label: "First Amendment Std.", freedomPts: 16, obligationPts: 0, solBonus: 0.0, stemBonus: 0.0, eqBonus: 0, costPct: 0.0 },
+      strong: { label: "Open Charter Guarantee", freedomPts: 34, obligationPts: 0, solBonus: 1.1, stemBonus: 0.07, eqBonus: 0.005, costPct: 0.002 },
+    },
+  },
+  {
+    id: "privacyAndDueProcess",
+    category: "individual_freedom",
+    shortName: "Privacy, Due Process & Equal Protection",
+    articleRef: "UDHR Articles 7–12",
+    drives: ["Institutional Trust", "Standard of Living"],
+    levels: {
+      low: { label: "Mass Surveillance", freedomPts: 0, obligationPts: 0, solBonus: -1.2, stemBonus: -0.04, eqBonus: -0.01, costPct: -0.001 },
+      balanced: { label: "Judicial Due Process", freedomPts: 16, obligationPts: 0, solBonus: 0.0, stemBonus: 0.0, eqBonus: 0, costPct: 0.0 },
+      strong: { label: "Strict Data & Equal Rights", freedomPts: 33, obligationPts: 0, solBonus: 1.0, stemBonus: 0.03, eqBonus: 0.01, costPct: 0.002 },
+    },
+  },
+  {
+    id: "economicAndLaborRights",
+    category: "individual_freedom",
+    shortName: "Work, Union & Dignified Living Rights",
+    articleRef: "UDHR Articles 23–25",
+    drives: ["Income Equality Index", "Social Cohesion"],
+    levels: {
+      low: { label: "Deregulated At-Will", freedomPts: 8, obligationPts: 0, solBonus: -0.9, stemBonus: 0.02, eqBonus: -0.025, costPct: -0.003 },
+      balanced: { label: "Statutory Labor Guard", freedomPts: 16, obligationPts: 0, solBonus: 0.0, stemBonus: 0.0, eqBonus: 0, costPct: 0.0 },
+      strong: { label: "Full Bargaining Charter", freedomPts: 33, obligationPts: 0, solBonus: 1.2, stemBonus: 0.01, eqBonus: 0.028, costPct: 0.005 },
+    },
+  },
+  {
+    id: "nationalCivicService",
+    category: "social_obligation",
+    shortName: "National Civic & Community Service Duty",
+    articleRef: "UDHR Article 29 Duty",
+    drives: ["Infrastructure Upkeep", "Social Cohesion"],
+    levels: {
+      low: { label: "Purely Voluntary", freedomPts: 0, obligationPts: 8, solBonus: 0.0, stemBonus: 0.0, eqBonus: 0, costPct: 0.0 },
+      balanced: { label: "Incentivized Service Corps", freedomPts: 0, obligationPts: 20, solBonus: 0.4, stemBonus: 0.02, eqBonus: 0.008, costPct: 0.003 },
+      strong: { label: "Universal Civic Duty", freedomPts: 0, obligationPts: 34, solBonus: 0.7, stemBonus: 0.03, eqBonus: 0.015, costPct: 0.007 },
+    },
+  },
+  {
+    id: "environmentalStewardship",
+    category: "social_obligation",
+    shortName: "Ecological & Resource Stewardship",
+    articleRef: "Intergenerational Duty",
+    drives: ["Agricultural Resilience", "Public Health SoL"],
+    levels: {
+      low: { label: "Deregulated Extraction", freedomPts: 0, obligationPts: 6, solBonus: -0.6, stemBonus: -0.02, eqBonus: -0.005, costPct: -0.002 },
+      balanced: { label: "Clean Grid Standards", freedomPts: 0, obligationPts: 18, solBonus: 0.0, stemBonus: 0.02, eqBonus: 0.004, costPct: 0.002 },
+      strong: { label: "Zero-Carbon Covenant", freedomPts: 0, obligationPts: 33, solBonus: 0.9, stemBonus: 0.05, eqBonus: 0.010, costPct: 0.006 },
+    },
+  },
+  {
+    id: "corporateSocialObligation",
+    category: "social_obligation",
+    shortName: "Stakeholder & Living-Wage Fiduciary Duty",
+    articleRef: "Civic Economic Compact",
+    drives: ["Income Equality Index", "Household Wages"],
+    levels: {
+      low: { label: "Shareholder Primacy", freedomPts: 0, obligationPts: 6, solBonus: -0.4, stemBonus: 0.02, eqBonus: -0.015, costPct: -0.001 },
+      balanced: { label: "Stakeholder Governance", freedomPts: 0, obligationPts: 18, solBonus: 0.2, stemBonus: 0.01, eqBonus: 0.010, costPct: 0.001 },
+      strong: { label: "Mandatory Co-Determination", freedomPts: 0, obligationPts: 33, solBonus: 0.8, stemBonus: 0.0, eqBonus: 0.028, costPct: 0.003 },
+    },
+  },
+];
+
+/**
+ * Computes statutory Income Tax, Corporate Profit Tax, Capital Gains Tax, and Sales Tax
+ * directly from Base Tax Level [0.08, 0.50] and Bell-Curve Modal Position [0.10, 0.90]:
+ * - Lower Class Peak (m -> 0.15): Maximizes Sales & Consumption Tax.
+ * - Middle Class Peak (m -> 0.50): Maximizes Federal Income Tax.
+ * - Upper Income Peak (m -> 0.85): Maximizes Corporate Profit & Capital Gains Taxes.
+ */
+export function computeTaxRatesFromPosture(baseTaxLevel = 0.24, taxDistributionMode = 0.62) {
+  const b = Math.max(0.08, Math.min(0.50, Number.isFinite(Number(baseTaxLevel)) ? Number(baseTaxLevel) : 0.24));
+  const m = Math.max(0.10, Math.min(0.90, Number.isFinite(Number(taxDistributionMode)) ? Number(taxDistributionMode) : 0.62));
+
+  const wLow = Math.exp(-Math.pow(m - 0.15, 2) / (2 * Math.pow(0.22, 2)));
+  const wMid = Math.exp(-Math.pow(m - 0.50, 2) / (2 * Math.pow(0.22, 2)));
+  const wUpper = Math.exp(-Math.pow(m - 0.85, 2) / (2 * Math.pow(0.22, 2)));
+
+  const salesTax = Number(Math.max(0.01, Math.min(0.35, b * (0.14 + 0.72 * wLow))).toFixed(4));
+  const incomeTax = Number(Math.max(0.05, Math.min(0.60, b * (0.55 + 0.82 * wMid))).toFixed(4));
+  const corporateTax = Number(Math.max(0.05, Math.min(0.65, b * (0.45 + 0.98 * wUpper))).toFixed(4));
+  const capitalGainsTax = Number(Math.max(0.02, Math.min(0.65, b * (0.35 + 1.08 * wUpper))).toFixed(4));
+
+  return {
+    baseTaxLevel: Number(b.toFixed(4)),
+    taxDistributionMode: Number(m.toFixed(3)),
+    incomeTax,
+    corporateTax,
+    capitalGainsTax,
+    salesTax,
+    classAffinityWeights: {
+      lowerClassSalesPeak: Number(wLow.toFixed(3)),
+      middleClassIncomePeak: Number(wMid.toFixed(3)),
+      upperIncomeCapitalPeak: Number(wUpper.toFixed(3)),
+    },
+  };
+}
+
+function buildPartyWithTaxPosture(rawParty) {
+  const derived = computeTaxRatesFromPosture(rawParty.baseTaxLevel, rawParty.taxDistributionMode);
+  return {
+    ...rawParty,
+    incomeTaxPreference: derived.incomeTax,
+    corporateTaxRate: derived.corporateTax,
+    capitalGainsTaxRate: derived.capitalGainsTax,
+    salesTaxPreference: derived.salesTax,
+  };
+}
+
+export const US_STATE_ELECTORAL_DATA = {
+  Alabama: { ev: 9, lean: -0.28 },
+  Alaska: { ev: 3, lean: -0.11 },
+  Arizona: { ev: 11, lean: -0.02 },
+  Arkansas: { ev: 6, lean: -0.30 },
+  California: { ev: 54, lean: 0.24 },
+  Colorado: { ev: 10, lean: 0.12 },
+  Connecticut: { ev: 7, lean: 0.17 },
+  Delaware: { ev: 3, lean: 0.16 },
+  "District of Columbia": { ev: 3, lean: 0.78 },
+  Florida: { ev: 30, lean: -0.09 },
+  Georgia: { ev: 16, lean: -0.01 },
+  Hawaii: { ev: 4, lean: 0.26 },
+  Idaho: { ev: 4, lean: -0.32 },
+  Illinois: { ev: 19, lean: 0.14 },
+  Indiana: { ev: 11, lean: -0.18 },
+  Iowa: { ev: 6, lean: -0.11 },
+  Kansas: { ev: 6, lean: -0.15 },
+  Kentucky: { ev: 8, lean: -0.28 },
+  Louisiana: { ev: 8, lean: -0.21 },
+  Maine: { ev: 4, lean: 0.08 },
+  Maryland: { ev: 10, lean: 0.28 },
+  Massachusetts: { ev: 11, lean: 0.29 },
+  Michigan: { ev: 15, lean: 0.01 },
+  Minnesota: { ev: 10, lean: 0.06 },
+  Mississippi: { ev: 6, lean: -0.20 },
+  Missouri: { ev: 10, lean: -0.16 },
+  Montana: { ev: 4, lean: -0.18 },
+  Nebraska: { ev: 5, lean: -0.20 },
+  Nevada: { ev: 6, lean: 0.00 },
+  "New Hampshire": { ev: 4, lean: 0.05 },
+  "New Jersey": { ev: 14, lean: 0.12 },
+  "New Mexico": { ev: 5, lean: 0.09 },
+  "New York": { ev: 28, lean: 0.18 },
+  "North Carolina": { ev: 16, lean: -0.03 },
+  "North Dakota": { ev: 3, lean: -0.33 },
+  Ohio: { ev: 17, lean: -0.10 },
+  Oklahoma: { ev: 7, lean: -0.34 },
+  Oregon: { ev: 8, lean: 0.15 },
+  Pennsylvania: { ev: 19, lean: 0.00 },
+  "Rhode Island": { ev: 4, lean: 0.18 },
+  "South Carolina": { ev: 9, lean: -0.14 },
+  "South Dakota": { ev: 3, lean: -0.28 },
+  Tennessee: { ev: 11, lean: -0.26 },
+  Texas: { ev: 40, lean: -0.10 },
+  Utah: { ev: 6, lean: -0.22 },
+  Vermont: { ev: 3, lean: 0.32 },
+  Virginia: { ev: 13, lean: 0.08 },
+  Washington: { ev: 12, lean: 0.19 },
+  "West Virginia": { ev: 4, lean: -0.40 },
+  Wisconsin: { ev: 10, lean: 0.00 },
+  Wyoming: { ev: 3, lean: -0.44 },
+};
+
+export const DEFAULT_POLITICAL_PARTIES = [
+  buildPartyWithTaxPosture({
     nation: "USA",
     name: "Democratic",
+    color: "#3b82f6",
     currentSupport: 0.45,
-    incomeTaxPreference: 0.28,
-    salesTaxPreference: 0.06,
-    corporateTaxRate: 0.25,
-    workerShareOfGdp: 0.55,
+    baseTaxLevel: 0.24,
     taxDistributionMode: 0.62,
+    workerShareOfGdp: 0.55,
     infrastructureInvestmentShare: 0.038,
     educationGovernanceShare: 0.055,
     deficitTargetAsPercentOfGdp: -0.032,
@@ -163,16 +343,23 @@ export const DEFAULT_POLITICAL_PARTIES = [
       innovation: { enacted: true, funding: "standard" },
       governance: { enacted: true, funding: "priority" },
     },
-  },
-  {
+    socialPolicies: {
+      civilLibertiesCharter: "balanced",
+      privacyAndDueProcess: "balanced",
+      economicAndLaborRights: "balanced",
+      nationalCivicService: "low",
+      environmentalStewardship: "balanced",
+      corporateSocialObligation: "balanced",
+    },
+  }),
+  buildPartyWithTaxPosture({
     nation: "USA",
     name: "Republican",
+    color: "#ef4444",
     currentSupport: 0.45,
-    incomeTaxPreference: 0.21,
-    salesTaxPreference: 0.08,
-    corporateTaxRate: 0.17,
-    workerShareOfGdp: 0.48,
+    baseTaxLevel: 0.20,
     taxDistributionMode: 0.38,
+    workerShareOfGdp: 0.48,
     infrastructureInvestmentShare: 0.028,
     educationGovernanceShare: 0.042,
     deficitTargetAsPercentOfGdp: -0.024,
@@ -188,16 +375,23 @@ export const DEFAULT_POLITICAL_PARTIES = [
       innovation: { enacted: true, funding: "priority" },
       governance: { enacted: true, funding: "standard" },
     },
-  },
-  {
+    socialPolicies: {
+      civilLibertiesCharter: "balanced",
+      privacyAndDueProcess: "balanced",
+      economicAndLaborRights: "low",
+      nationalCivicService: "balanced",
+      environmentalStewardship: "low",
+      corporateSocialObligation: "low",
+    },
+  }),
+  buildPartyWithTaxPosture({
     nation: "USA",
     name: "Progressive Labor",
+    color: "#10b981",
     currentSupport: 0.04,
-    incomeTaxPreference: 0.35,
-    salesTaxPreference: 0.05,
-    corporateTaxRate: 0.32,
-    workerShareOfGdp: 0.62,
+    baseTaxLevel: 0.30,
     taxDistributionMode: 0.82,
+    workerShareOfGdp: 0.62,
     infrastructureInvestmentShare: 0.048,
     educationGovernanceShare: 0.070,
     deficitTargetAsPercentOfGdp: -0.045,
@@ -206,23 +400,30 @@ export const DEFAULT_POLITICAL_PARTIES = [
     healthcarePolicy: "State-run Healthcare",
     politicalAlignment: "Progressive",
     platformSummary:
-      "High top-end & corporate taxes funding landmark public education, green infrastructure, and universal public services.",
+      "High top-end & corporate taxes funding landmark public education, green infrastructure, and universal human-rights charters.",
     defaultPolicies: {
       education: { enacted: true, funding: "landmark" },
       infrastructure: { enacted: true, funding: "landmark" },
       innovation: { enacted: true, funding: "priority" },
       governance: { enacted: true, funding: "landmark" },
     },
-  },
-  {
+    socialPolicies: {
+      civilLibertiesCharter: "strong",
+      privacyAndDueProcess: "strong",
+      economicAndLaborRights: "strong",
+      nationalCivicService: "strong",
+      environmentalStewardship: "strong",
+      corporateSocialObligation: "strong",
+    },
+  }),
+  buildPartyWithTaxPosture({
     nation: "USA",
     name: "Libertarian Free-Market",
+    color: "#f59e0b",
     currentSupport: 0.03,
-    incomeTaxPreference: 0.10,
-    salesTaxPreference: 0.05,
-    corporateTaxRate: 0.10,
-    workerShareOfGdp: 0.50,
+    baseTaxLevel: 0.11,
     taxDistributionMode: 0.25,
+    workerShareOfGdp: 0.50,
     infrastructureInvestmentShare: 0.016,
     educationGovernanceShare: 0.025,
     deficitTargetAsPercentOfGdp: 0.010,
@@ -238,16 +439,23 @@ export const DEFAULT_POLITICAL_PARTIES = [
       innovation: { enacted: true, funding: "standard" },
       governance: { enacted: false, funding: "underfunded" },
     },
-  },
-  {
+    socialPolicies: {
+      civilLibertiesCharter: "strong",
+      privacyAndDueProcess: "strong",
+      economicAndLaborRights: "low",
+      nationalCivicService: "low",
+      environmentalStewardship: "low",
+      corporateSocialObligation: "low",
+    },
+  }),
+  buildPartyWithTaxPosture({
     nation: "USA",
     name: "Centrist Technocrats",
+    color: "#06b6d4",
     currentSupport: 0.03,
-    incomeTaxPreference: 0.24,
-    salesTaxPreference: 0.06,
-    corporateTaxRate: 0.20,
-    workerShareOfGdp: 0.53,
+    baseTaxLevel: 0.22,
     taxDistributionMode: 0.52,
+    workerShareOfGdp: 0.53,
     infrastructureInvestmentShare: 0.042,
     educationGovernanceShare: 0.060,
     deficitTargetAsPercentOfGdp: -0.010,
@@ -263,7 +471,15 @@ export const DEFAULT_POLITICAL_PARTIES = [
       innovation: { enacted: true, funding: "landmark" },
       governance: { enacted: true, funding: "standard" },
     },
-  },
+    socialPolicies: {
+      civilLibertiesCharter: "strong",
+      privacyAndDueProcess: "balanced",
+      economicAndLaborRights: "balanced",
+      nationalCivicService: "balanced",
+      environmentalStewardship: "balanced",
+      corporateSocialObligation: "balanced",
+    },
+  }),
 ];
 
 export const PARTY_NAME_ALIASES = {
@@ -279,23 +495,33 @@ export function resolvePoliticalParty(partiesList, partyName) {
   const canonicalName = PARTY_NAME_ALIASES[partyName] || partyName || "Democratic";
   const found =
     list.find((p) => p.name === canonicalName) ||
-    DEFAULT_POLITICAL_PARTIES.find((p) => p.name === canonicalName) ||
-    list.find((p) => p.name === partyName);
+    list.find((p) => p.name === partyName) ||
+    DEFAULT_POLITICAL_PARTIES.find((p) => p.name === canonicalName);
   const template =
     DEFAULT_POLITICAL_PARTIES.find((p) => p.name === canonicalName) ||
     DEFAULT_POLITICAL_PARTIES[0];
   return found ? { ...template, ...found } : template;
 }
 
-export function cloneDefaultPolicies(partyName = "Democratic") {
-  const party = resolvePoliticalParty(DEFAULT_POLITICAL_PARTIES, partyName);
+export function cloneDefaultPolicies(partyName = "Democratic", partiesList = DEFAULT_POLITICAL_PARTIES) {
+  const party = resolvePoliticalParty(partiesList, partyName);
   const src = party.defaultPolicies || DEFAULT_POLITICAL_PARTIES[0].defaultPolicies;
   return {
-    education: { ...src.education },
-    infrastructure: { ...src.infrastructure },
-    innovation: { ...src.innovation },
-    governance: { ...src.governance },
+    education: { ...(src.education || { enacted: true, funding: "standard" }) },
+    infrastructure: { ...(src.infrastructure || { enacted: true, funding: "standard" }) },
+    innovation: { ...(src.innovation || { enacted: true, funding: "standard" }) },
+    governance: { ...(src.governance || { enacted: true, funding: "standard" }) },
   };
+}
+
+export function cloneDefaultSocialPolicies(partyName = "Democratic", partiesList = DEFAULT_POLITICAL_PARTIES) {
+  const party = resolvePoliticalParty(partiesList, partyName);
+  const src = party.socialPolicies || DEFAULT_POLITICAL_PARTIES[0].socialPolicies;
+  const out = {};
+  for (const spec of SOCIAL_POLICY_CATALOG) {
+    out[spec.id] = src[spec.id] || "balanced";
+  }
+  return out;
 }
 
 export function buildSimplifiedSeed(originalSeed = {}) {
@@ -364,6 +590,7 @@ export function buildSimplifiedSeed(originalSeed = {}) {
         innovation: { ...p.defaultPolicies.innovation },
         governance: { ...p.defaultPolicies.governance },
       },
+      socialPolicies: { ...p.socialPolicies },
     })),
     sectorsConfig: originalSeed.sectorsConfig || [
       { name: "Agricultural Sector GDP", sentiment: 55, kFactorBonus: 0.3, cbpf: 0 },
@@ -418,6 +645,7 @@ export function buildSimplifiedSeed(originalSeed = {}) {
           publicDebt: 34500000000000,
         },
         enactedPolicies: cloneDefaultPolicies(rulingParty),
+        electionHistory: [],
         federalCooperativity: 0.1,
         diplomaticExpenses: 0,
         treasuryBalance: 850000000000,
