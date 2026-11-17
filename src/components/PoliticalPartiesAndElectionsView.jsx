@@ -1090,11 +1090,15 @@ export default function PoliticalPartiesAndElectionsView({
   };
 
   const fatigueVal = Number(forecast.governmentFatigue ?? usa.governmentFatigue ?? 0);
+  const fatigueEquilibrium = Number(forecast.fatigueEquilibrium ?? 25);
+  const frustrationSpeedPct = Number(forecast.frustrationSpeedPct ?? 14);
+  const signedStepPerQuarter = Number(forecast.signedStepPerQuarter ?? forecast.fatigueRatePerQuarter ?? 0);
+  const equilibriumBreakdown = forecast.equilibriumBreakdown || {};
   const fatigueRate = Number(forecast.fatigueRatePerQuarter ?? 0);
-  const fatigueStatus = forecast.fatigueStatusLabel || "Satisfied";
+  const fatigueStatus = forecast.fatigueStatusLabel || "Fresh Mandate";
   const fatigueReason =
     forecast.fatigueTrajectoryReason ||
-    "Resets to 0% whenever a new party enters office and climbs slowly under strong reform or rapidly during mismanaged crises.";
+    "Resets to 0% whenever a new party enters office and converges toward Equilibrium Max Fatigue (F*) based on how well the country is governed.";
   const fatigueFactors = Array.isArray(forecast.fatigueFactors) ? forecast.fatigueFactors : [];
   const congress = forecast.congress || {
     house: { totalSeats: 435, majorityThreshold: 218, standings: [], leaderParty: rulingPartyName, leaderColor: "#3b82f6", isMajority: true },
@@ -1228,7 +1232,7 @@ export default function PoliticalPartiesAndElectionsView({
                   }`}
                 >
                   <Timer className="w-3.5 h-3.5" />
-                  Gov Fatigue: {fatigueVal.toFixed(1)}% (+{fatigueRate.toFixed(1)}/qtr · {fatigueStatus})
+                  Gov Fatigue: {fatigueVal.toFixed(1)}% &rarr; Eq {fatigueEquilibrium.toFixed(0)}% (λ {frustrationSpeedPct.toFixed(0)}%)
                 </span>
                 <span className="px-2.5 py-1 rounded-full bg-sky-500/15 border border-sky-500/40 font-mono text-sky-300 flex items-center gap-1">
                   <Megaphone className="w-3.5 h-3.5" />
@@ -1576,17 +1580,17 @@ export default function PoliticalPartiesAndElectionsView({
             </div>
           )}
 
-          {/* DEDICATED WIDGET 1: Full-Sized Government Fatigue Meter & Factor Breakdown */}
+          {/* DEDICATED WIDGET 1: Full-Sized Government Fatigue Equilibrium Meter & Factor Breakdown */}
           <div className="bg-slate-900/85 border border-slate-800 rounded-2xl p-5 space-y-4 shadow-xl">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
                 <div className="text-xs font-bold uppercase tracking-wider text-amber-300 flex items-center gap-1.5">
                   <Timer className="w-4 h-4" />
-                  Government Fatigue &amp; Incumbent Weariness Meter
+                  Government Fatigue Equilibrium &amp; Frustration Speed
                 </div>
                 <p className="text-xs text-slate-400 mt-0.5">{fatigueReason}</p>
               </div>
-              <div className="flex items-center gap-2 text-xs font-mono">
+              <div className="flex flex-wrap items-center gap-2 text-xs font-mono">
                 <span
                   className={`px-3 py-1 rounded-full border font-bold ${
                     fatigueVal >= 55
@@ -1596,43 +1600,96 @@ export default function PoliticalPartiesAndElectionsView({
                       : "bg-emerald-500/15 border-emerald-500/40 text-emerald-300"
                   }`}
                 >
-                  {fatigueStatus} · {fatigueVal.toFixed(1)}%
+                  Current: {fatigueVal.toFixed(1)}% ({fatigueStatus})
                 </span>
-                <span className="px-2.5 py-1 rounded-full bg-slate-950 border border-slate-800 text-slate-300">
-                  +{fatigueRate.toFixed(2)}% / qtr
+                <span
+                  className="px-2.5 py-1 rounded-full bg-violet-500/15 border border-violet-500/40 text-violet-200 font-bold"
+                  title="Long-run Equilibrium Max Fatigue F* determined by national conditions & governance (persists across new inaugurations until fixed)"
+                >
+                  Equilibrium F*: {fatigueEquilibrium.toFixed(1)}%
+                </span>
+                <span
+                  className="px-2.5 py-1 rounded-full bg-slate-950 border border-slate-800 text-slate-300"
+                  title="Quarterly convergence speed lambda (% of remaining gap closed per quarter)"
+                >
+                  Speed λ: {frustrationSpeedPct.toFixed(1)}%/qtr ({signedStepPerQuarter >= 0 ? "+" : ""}
+                  {signedStepPerQuarter.toFixed(1)}%)
                 </span>
               </div>
             </div>
 
-            {/* Full-Size Segmented Progress Bar */}
+            {/* Full-Size Segmented Progress Bar with Equilibrium Target Pin */}
             <div className="space-y-1.5">
               <div className="relative w-full h-5 bg-slate-950 rounded-xl overflow-hidden border border-slate-800">
+                {/* Equilibrium Zone Tint */}
                 <div
-                  className={`h-full transition-all duration-500 rounded-l-xl ${
+                  className="absolute top-0 bottom-0 left-0 bg-violet-500/15 border-r-2 border-violet-400 transition-all duration-500"
+                  style={{ width: `${Math.min(100, Math.max(2, fatigueEquilibrium))}%` }}
+                  title={`Equilibrium Max Fatigue Target F*: ${fatigueEquilibrium.toFixed(1)}%`}
+                />
+                {/* Current Fatigue Fill */}
+                <div
+                  className={`relative h-full transition-all duration-500 rounded-l-xl ${
                     fatigueVal >= 65
                       ? "bg-gradient-to-r from-amber-500 to-rose-600"
                       : fatigueVal >= 32
                       ? "bg-gradient-to-r from-emerald-500 via-amber-400 to-amber-500"
                       : "bg-gradient-to-r from-emerald-500 to-cyan-400"
                   }`}
-                  style={{ width: `${Math.min(100, Math.max(2, fatigueVal))}%` }}
+                  style={{ width: `${Math.min(100, Math.max(1.5, fatigueVal))}%` }}
                 />
                 {/* 32% Pivot Marker */}
                 <div
-                  className="absolute top-0 bottom-0 left-[32%] w-0.5 bg-white/60"
+                  className="absolute top-0 bottom-0 left-[32%] w-0.5 bg-white/55"
                   title="32% Opposition Surge Threshold"
                 />
                 {/* 65% Exhaustion Marker */}
                 <div
-                  className="absolute top-0 bottom-0 left-[65%] w-0.5 bg-rose-300/60"
+                  className="absolute top-0 bottom-0 left-[65%] w-0.5 bg-rose-300/55"
                   title="65% Severe Voter Exhaustion"
                 />
               </div>
-              <div className="flex justify-between text-[10px] font-mono text-slate-500">
-                <span>0% Fresh Mandate</span>
-                <span>32% Opposition Surge Threshold</span>
-                <span>65% Severe Exhaustion</span>
+              <div className="flex flex-wrap justify-between gap-2 text-[10px] font-mono text-slate-400">
+                <span>0% New Admin Reset</span>
+                <span>32% Opposition Surge</span>
+                <span className="text-violet-300 font-semibold">
+                  Violet Bar = Max Fatigue Equilibrium ({fatigueEquilibrium.toFixed(1)}%)
+                </span>
                 <span>100%</span>
+              </div>
+            </div>
+
+            {/* 5-Component Equilibrium Max Fatigue Weighted Breakdown */}
+            <div className="bg-slate-950/75 border border-slate-800 rounded-xl p-3 space-y-2 text-[11px]">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <span className="font-semibold text-slate-200 uppercase tracking-wider text-[10px]">
+                  Equilibrium Max Fatigue (F*) Weight Breakdown — {fatigueEquilibrium.toFixed(1)} / 100 pts
+                </span>
+                <span className="font-mono text-[10px] text-slate-400">
+                  Determined by national performance (stays anchored across inaugurations until conditions change)
+                </span>
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 font-mono">
+                <div className="bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-1.5">
+                  <div className="text-[9px] text-slate-400 font-sans">Governance (0–30)</div>
+                  <div className="font-bold text-amber-300">{equilibriumBreakdown.govDeficitPts ?? 0} pts</div>
+                </div>
+                <div className="bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-1.5">
+                  <div className="text-[9px] text-slate-400 font-sans">Macro Misery (0–25)</div>
+                  <div className="font-bold text-cyan-300">{equilibriumBreakdown.macroMiseryPts ?? 0} pts</div>
+                </div>
+                <div className="bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-1.5">
+                  <div className="text-[9px] text-slate-400 font-sans">Policy Neglect (0–20)</div>
+                  <div className="font-bold text-rose-300">{equilibriumBreakdown.policyNeglectPts ?? 0} pts</div>
+                </div>
+                <div className="bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-1.5">
+                  <div className="text-[9px] text-slate-400 font-sans">Corruption (0–15)</div>
+                  <div className="font-bold text-violet-300">{equilibriumBreakdown.corruptionTrustPts ?? 0} pts</div>
+                </div>
+                <div className="bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-1.5">
+                  <div className="text-[9px] text-slate-400 font-sans">Fiscal / Gini (0–10)</div>
+                  <div className="font-bold text-emerald-300">{equilibriumBreakdown.fiscalStressPts ?? 0} pts</div>
+                </div>
               </div>
             </div>
 

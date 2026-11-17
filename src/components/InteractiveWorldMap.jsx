@@ -1509,6 +1509,11 @@ const InteractiveWorldMap = ({
                     }`}
                   >
                     {Number(c.governmentFatigue ?? 0).toFixed(1)}%
+                    {c.fatigueEquilibrium !== undefined && (
+                      <span className="text-[9px] text-slate-400 font-normal ml-1">
+                        &rarr; Eq {Number(c.fatigueEquilibrium).toFixed(0)}%
+                      </span>
+                    )}
                   </div>
                 </div>
               </div>

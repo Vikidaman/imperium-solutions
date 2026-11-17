@@ -628,8 +628,10 @@ export function computeEndowmentPolicyMultipliers({
 }
 
 /**
- * Computes Government Fatigue (0–100) accumulation rate and effective voter fatigue
- * based on national conditions, enacted policy trajectory, and Freedom of Speech sensitivity.
+ * Computes Equilibrium Government Fatigue (0–100), Current Fatigue, and Voter Frustration Speed (lambda)
+ * following the dynamical convergence law: F_{t+1} = F_t + lambda * (F* - F_t).
+ * - F* (fatigueEquilibrium / max fatigue) is determined by how well or badly the country is run.
+ * - lambda (frustrationSpeedPct) controls how rapidly voters become frustrated (or recover when F* < F_t).
  */
 export function computeGovernmentFatigueMetrics(
   nation = {},
@@ -638,23 +640,17 @@ export function computeGovernmentFatigueMetrics(
   govCompositePct = 76.0,
   growth = 1.8,
   inflationPct = 2.4,
-  unempPct = 4.5
+  unempPct = 4.5,
+  giniVal = null
 ) {
   const baseFatigue = Math.max(0, Math.min(100, Number(nation.governmentFatigue ?? 0)));
   const corruptionIdx = Number(socialPolicyEval.corruptionIndex ?? 20);
   const speechMult = Number(socialPolicyEval.speechSensitivityMultiplier ?? 1.15);
+  const baseTax = Number(nation.baseTaxLevel ?? nation.computed?.baseTaxLevel ?? 0.24);
+  const gini = Number(giniVal ?? nation.computed?.giniCoefficient ?? 0.385);
+  const neglectedCount = Number(policyProgression.neglectedCount || 0);
 
-  // Measure how troubled the country's current conditions are (0 = healthy baseline, higher = crisis)
-  const conditionBadness = Math.max(
-    0,
-    Math.max(0, 73.0 - govCompositePct) * 0.45 +
-      Math.max(0, 1.4 - growth) * 2.1 +
-      Math.max(0, inflationPct - 3.2) * 1.8 +
-      Math.max(0, unempPct - 5.0) * 2.0 +
-      Math.max(0, corruptionIdx - 28) * 0.16
-  );
-
-  // Measure whether current policies are fixing or worsening conditions, and how rapidly
+  // Policy Reform Impulse (negative under cuts/repeals, strongly positive under Landmark enactments)
   const policyImpulse =
     Number(policyProgression.literacyDelta || 0) * 650 +
     Number(policyProgression.infrastructureDelta || 0) * 600 +
@@ -665,41 +661,121 @@ export function computeGovernmentFatigueMetrics(
     Number(policyProgression.tfpDelta || 0) * 0.06 -
     Math.max(0, corruptionIdx - 25) * 0.12;
 
-  let rawRate = 3.5;
-  let fatigueTrajectoryReason = "Normal governing wear-and-tear over time in office.";
+  // Objective national crisis pressure (used in speed & factor display)
+  const conditionBadness = Math.max(
+    0,
+    Math.max(0, 73.0 - govCompositePct) * 0.45 +
+      Math.max(0, 1.4 - growth) * 2.1 +
+      Math.max(0, inflationPct - 3.2) * 1.8 +
+      Math.max(0, unempPct - 5.0) * 2.0 +
+      Math.max(0, corruptionIdx - 28) * 0.16
+  );
 
-  if (policyImpulse >= 5.5) {
-    // Extremely good and rapid reforms: fatigue increases very slowly
-    rawRate = Math.max(0.6, 1.2 - Math.min(0.6, (policyImpulse - 5.5) * 0.08) + conditionBadness * 0.06);
-    fatigueTrajectoryReason =
-      "Rapid, high-impact reforms are alleviating national pressure and keeping voter fatigue minimal.";
-  } else if (policyImpulse >= 1.2) {
-    // Good reforms alleviating conditions: fatigue increases less proportionately
-    rawRate = 2.4 + (5.5 - policyImpulse) * 0.35 + conditionBadness * 0.18;
-    fatigueTrajectoryReason =
-      "Constructive reforms are cushioning public frustration, slowing the build-up of voter fatigue.";
-  } else if (policyImpulse <= -1.2) {
-    // Bad policy changes worsening conditions: fatigue increases greatly
-    rawRate = (10.5 + Math.abs(policyImpulse) * 1.85 + conditionBadness * 0.70) * speechMult;
-    fatigueTrajectoryReason =
-      "Damaging policy cuts and deteriorating governance are triggering a sharp surge in government fatigue.";
-  } else if (conditionBadness >= 3.0) {
-    // Terrible conditions with stagnant/no meaningful change: fatigue increases moderately
-    rawRate = (5.8 + conditionBadness * 0.55) * speechMult;
-    fatigueTrajectoryReason =
-      "Terrible national conditions without bold corrective policy are moderately compounding public fatigue.";
-  } else {
-    rawRate = 3.2 + conditionBadness * 0.30;
+  // 1. Five Weighted Components Determining Equilibrium / Max Fatigue F* (0 - 100 pts)
+  const govDeficitPts = Number(
+    Math.min(
+      30,
+      Math.max(
+        0,
+        (86.0 - govCompositePct) * 1.35 -
+          (policyImpulse >= 18.0 ? Math.min(6.0, (policyImpulse - 18.0) * 0.4) : 0)
+      )
+    ).toFixed(1)
+  );
+  const macroMiseryPts = Number(
+    Math.min(
+      25,
+      Math.max(
+        0,
+        Math.max(0, 2.3 - growth) * 4.5 +
+          Math.max(0, inflationPct - 2.1) * 2.8 +
+          Math.max(0, unempPct - 4.0) * 3.2
+      )
+    ).toFixed(1)
+  );
+  const policyNeglectPts = Number(
+    Math.min(20, Math.max(0, 12.0 - policyImpulse * 0.45 + neglectedCount * 2.5)).toFixed(1)
+  );
+  const corruptionTrustPts = Number(
+    Math.min(15, Math.max(0, (corruptionIdx - 8) * 0.26)).toFixed(1)
+  );
+  const fiscalStressPts = Number(
+    Math.min(
+      10,
+      Math.max(0, Math.max(0, baseTax - 0.22) * 18 + Math.max(0, gini - 0.365) * 28)
+    ).toFixed(1)
+  );
+
+  // Bold sweeping landmark reforms (policyImpulse >= 18.0) actively lower long-run Equilibrium F*
+  const policyReformCredit =
+    policyImpulse >= 18.0 ? Number(Math.min(22.0, (policyImpulse - 18.0) * 1.4).toFixed(1)) : 0;
+
+  const fatigueEquilibrium = Number(
+    Math.max(
+      5.0,
+      Math.min(
+        99.0,
+        govDeficitPts +
+          macroMiseryPts +
+          policyNeglectPts +
+          corruptionTrustPts +
+          fiscalStressPts -
+          policyReformCredit
+      )
+    ).toFixed(1)
+  );
+
+  // 2. Determinants of Voter Frustration Velocity lambda (5% - 65% of gap per quarter)
+  const baseSpeed = 0.14;
+  const pocketbookUrgency = Math.min(
+    0.18,
+    Math.max(0, inflationPct - 2.8) * 0.025 +
+      Math.max(0, unempPct - 4.8) * 0.03 +
+      Math.max(0, 1.2 - growth) * 0.03
+  );
+  const policyUrgency =
+    policyImpulse <= -1.2
+      ? Math.min(0.16, Math.abs(policyImpulse) * 0.022)
+      : policyImpulse >= 18.0 && baseFatigue < fatigueEquilibrium
+      ? -0.08
+      : policyImpulse >= 18.0 && baseFatigue > fatigueEquilibrium
+      ? 0.12
+      : 0;
+  const corruptionUrgency = Math.min(0.08, Math.max(0, corruptionIdx - 25) * 0.002);
+
+  const rawLambda = Math.max(
+    0.05,
+    Math.min(
+      0.65,
+      (baseSpeed + pocketbookUrgency + policyUrgency + corruptionUrgency) *
+        (0.25 + 0.75 * speechMult)
+    )
+  );
+  const frustrationSpeedPct = Number((rawLambda * 100).toFixed(1));
+
+  // Equilibrium step: F_{t+1} = F_t + lambda * (F* - F_t)
+  const equilibriumGap = Number((fatigueEquilibrium - baseFatigue).toFixed(1));
+  const signedStepPerQuarter = Number((rawLambda * equilibriumGap).toFixed(2));
+  const fatigueRatePerQuarter = Number(
+    Math.max(
+      0.5,
+      Math.abs(signedStepPerQuarter) > 0.01 ? Math.abs(signedStepPerQuarter) : rawLambda * fatigueEquilibrium
+    ).toFixed(2)
+  );
+
+  let fatigueTrajectoryReason = `Converging toward Equilibrium Max Fatigue (${fatigueEquilibrium}%) at a voter frustration speed of ${frustrationSpeedPct}%/qtr.`;
+  if (signedStepPerQuarter < -0.25) {
+    fatigueTrajectoryReason = `Strong reforms pushed Equilibrium Max Fatigue (${fatigueEquilibrium}%) below current levels, allowing public fatigue to recover.`;
+  } else if (fatigueEquilibrium <= 22) {
+    fatigueTrajectoryReason = `Strong governance and rapid reforms keep Equilibrium Max Fatigue low (${fatigueEquilibrium}%), containing long-run wear.`;
+  } else if (fatigueEquilibrium >= 72) {
+    fatigueTrajectoryReason = `Severe misgovernance and damaging cuts have pushed Equilibrium Max Fatigue to ${fatigueEquilibrium}%, driving rapid exhaustion at ${frustrationSpeedPct}%/qtr.`;
+  } else if (fatigueEquilibrium >= 48) {
+    fatigueTrajectoryReason = `Unaddressed economic or governance strain pulls voter fatigue toward an elevated Equilibrium (${fatigueEquilibrium}%) at ${frustrationSpeedPct}% of the gap per quarter.`;
   }
 
-  const fatigueRatePerQuarter = Number(Math.max(0.5, Math.min(48.0, rawRate)).toFixed(2));
-
-  // Immediate intra-quarter reaction when disastrous policies are actively enacted in office
-  const instantPolicyShock =
-    policyImpulse < -1.5 ? Math.min(24, Math.abs(policyImpulse) * 1.2 * Math.max(0.6, speechMult)) : 0;
-  const effectiveFatigue = Number(
-    Math.max(0, Math.min(100, baseFatigue + instantPolicyShock)).toFixed(1)
-  );
+  // Strictly reflects current accumulated fatigue (0% on Day 1 of a new administration, no instant Day-1 shock overwrite)
+  const effectiveFatigue = Number(baseFatigue.toFixed(1));
 
   let fatigueStatusLabel = "Fresh Mandate";
   if (effectiveFatigue >= 65) fatigueStatusLabel = "Severe Voter Exhaustion";
@@ -710,58 +786,46 @@ export function computeGovernmentFatigueMetrics(
 
   const factors = [
     {
+      id: "equilibrium_ceiling",
+      label: "Equilibrium Max Fatigue (F*)",
+      valueText: `${fatigueEquilibrium.toFixed(1)}% Cap`,
+      impactDirection: fatigueEquilibrium >= 52 ? "accelerating" : fatigueEquilibrium <= 25 ? "slowing" : "neutral",
+      detail: `Long-run ceiling (${govDeficitPts} gov + ${macroMiseryPts} macro + ${policyNeglectPts} policy + ${corruptionTrustPts} graft + ${fiscalStressPts} tax)`,
+    },
+    {
+      id: "frustration_velocity",
+      label: "Voter Frustration Speed (λ)",
+      valueText: `${frustrationSpeedPct.toFixed(1)}% / qtr`,
+      impactDirection:
+        rawLambda >= 0.30 ? "accelerating" : rawLambda <= 0.12 ? "slowing" : "neutral",
+      detail: `Closes ${frustrationSpeedPct}% of gap toward F* each quarter (${signedStepPerQuarter >= 0 ? "+" : ""}${signedStepPerQuarter}% next qtr)`,
+    },
+    {
       id: "reform_impulse",
       label: "Core Act Reform & Governance Impulse",
       valueText: `${policyImpulse >= 0 ? "+" : ""}${policyImpulse.toFixed(1)} pts`,
       impactDirection: policyImpulse >= 1.2 ? "slowing" : policyImpulse <= -1.2 ? "accelerating" : "neutral",
       detail:
         policyImpulse >= 5.5
-          ? "Rapid, landmark enactments actively holding voter fatigue low"
-          : policyImpulse >= 1.2
-          ? "Constructive policy gains cushioning quarterly fatigue accumulation"
+          ? "Landmark reforms pull Equilibrium F* down and grant voters patience"
           : policyImpulse <= -1.2
-          ? "Repealed or underfunded acts accelerating voter dissatisfaction"
-          : "Policy trajectory is near status quo",
+          ? "Repeals & underfunding raise Max Fatigue F* and spike frustration velocity"
+          : "Balanced policy stance with modest impact on Equilibrium ceiling",
     },
     {
       id: "macro_conditions",
       label: "Macroeconomic Growth, Inflation & Jobs",
       valueText: `${growth.toFixed(1)}% GDP · ${inflationPct.toFixed(1)}% CPI · ${unempPct.toFixed(1)}% U3`,
       impactDirection:
-        conditionBadness >= 3.0 ? "accelerating" : growth >= 1.8 && inflationPct <= 3.0 && unempPct <= 4.8 ? "slowing" : "neutral",
-      detail:
-        conditionBadness >= 3.0
-          ? `Economic stress (+${conditionBadness.toFixed(1)} index) driving desire for leadership change`
-          : "Steady macro indicators keeping household economic anxiety restrained",
-    },
-    {
-      id: "governance_composite",
-      label: "8-Indicator Good Governance Composite",
-      valueText: `${govCompositePct.toFixed(1)}/100`,
-      impactDirection: govCompositePct >= 78 ? "slowing" : govCompositePct < 73 ? "accelerating" : "neutral",
-      detail: "Weighted across literacy, infrastructure, urbanisation, productivity, equality, racial equity & crime safety",
-    },
-    {
-      id: "corruption_pressure",
-      label: "Institutional Corruption & Ethics",
-      valueText: `${corruptionIdx}/100`,
-      impactDirection: corruptionIdx >= 35 ? "accelerating" : corruptionIdx <= 12 ? "slowing" : "neutral",
-      detail:
-        corruptionIdx >= 35
-          ? "Elevated patronage and fast-track graft eroding public patience"
-          : "Public integrity controls keeping corruption grievances contained",
+        macroMiseryPts >= 10 ? "accelerating" : macroMiseryPts <= 3 ? "slowing" : "neutral",
+      detail: `Adds +${macroMiseryPts} pts to Equilibrium F* based on real growth, CPI inflation & U3 unemployment`,
     },
     {
       id: "speech_multiplier",
-      label: "Freedom of Speech Accountability",
-      valueText: `${speechMult.toFixed(2)}x`,
-      impactDirection: speechMult >= 1.4 && conditionBadness >= 2.0 ? "accelerating" : "neutral",
-      detail:
-        speechMult >= 1.4
-          ? "Open press amplifies civic scrutiny when crises go unaddressed"
-          : speechMult <= 0.75
-          ? "Restricted press dampens short-term public awareness of decline"
-          : "Standard constitutional press accountability",
+      label: "Freedom of Speech & Corruption Velocity",
+      valueText: `${speechMult.toFixed(2)}x · ${corruptionIdx}/100`,
+      impactDirection: speechMult >= 1.4 && conditionBadness >= 2.0 ? "accelerating" : corruptionIdx <= 12 ? "slowing" : "neutral",
+      detail: "Open press speeds up voter accountability when conditions deteriorate; graft lifts F*",
     },
     {
       id: "electoral_swing",
@@ -770,15 +834,27 @@ export function computeGovernmentFatigueMetrics(
       impactDirection: effectiveFatigue > 32 ? "accelerating" : "slowing",
       detail:
         effectiveFatigue <= 32
-          ? "Satisfied electorate rewards the governing party and shrinks opposition turnout"
-          : "Rising public exhaustion fuels an opposition surge in presidential & midterm polls",
+          ? "Fresh mandate / low fatigue protects the sitting party until wear climbs past 32%"
+          : "Current exhaustion fuels an opposition surge across presidential & midterm districts",
     },
   ];
 
   return {
     baseFatigue: Number(baseFatigue.toFixed(1)),
     effectiveFatigue,
+    fatigueEquilibrium,
+    frustrationSpeedPct,
+    frustrationLambda: Number(rawLambda.toFixed(3)),
+    equilibriumGap,
+    signedStepPerQuarter,
     fatigueRatePerQuarter,
+    equilibriumBreakdown: {
+      govDeficitPts,
+      macroMiseryPts,
+      policyNeglectPts,
+      corruptionTrustPts,
+      fiscalStressPts,
+    },
     fatigueStatusLabel,
     fatigueTrajectoryReason,
     conditionBadness: Number(conditionBadness.toFixed(2)),
@@ -1096,6 +1172,7 @@ export function computeElectionSimulation(state = {}) {
       corruptionIdx
     );
 
+  const giniCurr = Number(c.giniCoefficient ?? 0.385);
   const fatigueMetrics =
     c.fatigueMetrics ||
     computeGovernmentFatigueMetrics(
@@ -1105,7 +1182,8 @@ export function computeElectionSimulation(state = {}) {
       govCompositePct,
       growth,
       inflationPct,
-      unempPct
+      unempPct,
+      giniCurr
     );
 
   const effectiveFatigue = fatigueMetrics.effectiveFatigue;
@@ -1603,6 +1681,12 @@ export function computeElectionSimulation(state = {}) {
     incumbentParty: rulingName,
     incumbentApproval,
     governmentFatigue: effectiveFatigue,
+    fatigueEquilibrium: fatigueMetrics.fatigueEquilibrium,
+    frustrationSpeedPct: fatigueMetrics.frustrationSpeedPct,
+    frustrationLambda: fatigueMetrics.frustrationLambda,
+    equilibriumGap: fatigueMetrics.equilibriumGap,
+    signedStepPerQuarter: fatigueMetrics.signedStepPerQuarter,
+    equilibriumBreakdown: fatigueMetrics.equilibriumBreakdown,
     fatigueRatePerQuarter: fatigueMetrics.fatigueRatePerQuarter,
     fatigueStatusLabel: fatigueMetrics.fatigueStatusLabel,
     fatigueTrajectoryReason: fatigueMetrics.fatigueTrajectoryReason,
@@ -2260,6 +2344,10 @@ export function evaluateSimulation(state) {
     nation.marketComputed = Array.from(mMap.values());
 
     const party = resolvePoliticalParty(state.politicalParties, nation.rulingParty);
+    if (nation.lastRulingParty && nation.lastRulingParty !== party.name) {
+      nation.governmentFatigue = 0;
+    }
+    nation.lastRulingParty = party.name;
 
     const taxDistributionMode = Math.max(
       0.10,
@@ -2974,10 +3062,13 @@ export function evaluateSimulation(state) {
       solBreakdown.govCompositePct,
       fc.finalGrowth,
       inflationRate * 100,
-      unemploymentRate * 100
+      unemploymentRate * 100,
+      giniCoefficient
     );
     nation.computed.fatigueMetrics = fatigueMetrics;
     nation.computed.governmentFatigue = fatigueMetrics.effectiveFatigue;
+    nation.computed.fatigueEquilibrium = fatigueMetrics.fatigueEquilibrium;
+    nation.computed.frustrationSpeedPct = fatigueMetrics.frustrationSpeedPct;
     nation.computed.fatigueRatePerQuarter = fatigueMetrics.fatigueRatePerQuarter;
   }
 
@@ -3046,6 +3137,10 @@ export function runBudgetAndDividendUpdater(state) {
 
     // Progress good-governance structural metrics based on enacted policy mix & funding tiers
     const party = resolvePoliticalParty(state.politicalParties, nation.rulingParty);
+    if (nation.lastRulingParty && nation.lastRulingParty !== party.name) {
+      nation.governmentFatigue = 0;
+    }
+    nation.lastRulingParty = party.name;
     const prog = computePolicyProgression(
       nation,
       party,
@@ -3086,7 +3181,7 @@ export function runBudgetAndDividendUpdater(state) {
     );
     nation.enactedPolicies = prog.policies;
 
-    // Accumulate Government Fatigue based on national trajectory & policy urgency
+    // Converge Government Fatigue toward Equilibrium Max Fatigue: F_{t+1} = F_t + lambda * (F* - F_t)
     const qtrFatigue = computeGovernmentFatigueMetrics(
       nation,
       prog,
@@ -3094,11 +3189,12 @@ export function runBudgetAndDividendUpdater(state) {
       Number(c.solBreakdown?.govCompositePct ?? 76),
       annualGrowthPct,
       Number(c.inflationRate ?? 0.024) * 100,
-      Number(c.unemploymentRate ?? 0.045) * 100
+      Number(c.unemploymentRate ?? 0.045) * 100,
+      Number(c.giniCoefficient ?? 0.385)
     );
     const currFatigue = Math.max(0, Math.min(100, Number(nation.governmentFatigue) || 0));
     nation.governmentFatigue = Number(
-      Math.max(0, Math.min(100, currFatigue + qtrFatigue.fatigueRatePerQuarter)).toFixed(2)
+      Math.max(0, Math.min(100, currFatigue + qtrFatigue.signedStepPerQuarter)).toFixed(2)
     );
 
     const basePops =
@@ -3409,6 +3505,7 @@ export function upsertPoliticalPartyInState(state, payload = {}, targetName = nu
     if (payload.makeRulingParty && switchingToDifferentParty) {
       usa.governmentFatigue = 0;
     }
+    usa.lastRulingParty = partyObj.name;
   }
 
   evaluateSimulation(state);
@@ -3524,6 +3621,7 @@ export function executeSimulatedElectionInState(
         Math.max(0, (Number(usa.governmentFatigue) || 0) - 5).toFixed(2)
       );
     }
+    usa.lastRulingParty = winParty.name;
   }
 
   if (resetCycleFromToday && state.electionSchedule) {

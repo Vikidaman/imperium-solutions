@@ -794,6 +794,7 @@ export default function App() {
                 onSetRulingParty={(party) =>
                   handleUpdateNation("nation_usa", {
                     rulingParty: party.name,
+                    governmentFatigue: 0,
                     crimePolicy: party.localCrimePolicy || "Beat Cops",
                     healthcarePolicy: party.healthcarePolicy || "Subsidized Healthcare",
                     enactedPolicies: party.defaultPolicies

@@ -4138,6 +4138,7 @@
           "exportTariffRevenues": 0
         }
       ],
+      "lastRulingParty": "Democratic",
       "computed": {
         "agriculturalGdp": 879978610881.1497,
         "industryGdp": 11650593476556.984,
@@ -4767,58 +4768,72 @@
         "fatigueMetrics": {
           "baseFatigue": 0,
           "effectiveFatigue": 0,
-          "fatigueRatePerQuarter": 0.85,
+          "fatigueEquilibrium": 29.4,
+          "frustrationSpeedPct": 15.6,
+          "frustrationLambda": 0.156,
+          "equilibriumGap": 29.4,
+          "signedStepPerQuarter": 4.58,
+          "fatigueRatePerQuarter": 4.58,
+          "equilibriumBreakdown": {
+            "govDeficitPts": 12.2,
+            "macroMiseryPts": 6.1,
+            "policyNeglectPts": 7.6,
+            "corruptionTrustPts": 3.1,
+            "fiscalStressPts": 0.4
+          },
           "fatigueStatusLabel": "Fresh Mandate",
-          "fatigueTrajectoryReason": "Rapid, high-impact reforms are alleviating national pressure and keeping voter fatigue minimal.",
+          "fatigueTrajectoryReason": "Converging toward Equilibrium Max Fatigue (29.4%) at a voter frustration speed of 15.6%/qtr.",
           "conditionBadness": 0,
           "policyImpulse": 9.86,
           "factors": [
+            {
+              "id": "equilibrium_ceiling",
+              "label": "Equilibrium Max Fatigue (F*)",
+              "valueText": "29.4% Cap",
+              "impactDirection": "neutral",
+              "detail": "Long-run ceiling (12.2 gov + 6.1 macro + 7.6 policy + 3.1 graft + 0.4 tax)"
+            },
+            {
+              "id": "frustration_velocity",
+              "label": "Voter Frustration Speed (λ)",
+              "valueText": "15.6% / qtr",
+              "impactDirection": "neutral",
+              "detail": "Closes 15.6% of gap toward F* each quarter (+4.58% next qtr)"
+            },
             {
               "id": "reform_impulse",
               "label": "Core Act Reform & Governance Impulse",
               "valueText": "+9.9 pts",
               "impactDirection": "slowing",
-              "detail": "Rapid, landmark enactments actively holding voter fatigue low"
+              "detail": "Landmark reforms pull Equilibrium F* down and grant voters patience"
             },
             {
               "id": "macro_conditions",
               "label": "Macroeconomic Growth, Inflation & Jobs",
               "valueText": "1.5% GDP · 2.5% CPI · 4.5% U3",
               "impactDirection": "neutral",
-              "detail": "Steady macro indicators keeping household economic anxiety restrained"
-            },
-            {
-              "id": "governance_composite",
-              "label": "8-Indicator Good Governance Composite",
-              "valueText": "77.0/100",
-              "impactDirection": "neutral",
-              "detail": "Weighted across literacy, infrastructure, urbanisation, productivity, equality, racial equity & crime safety"
-            },
-            {
-              "id": "corruption_pressure",
-              "label": "Institutional Corruption & Ethics",
-              "valueText": "20/100",
-              "impactDirection": "neutral",
-              "detail": "Public integrity controls keeping corruption grievances contained"
+              "detail": "Adds +6.1 pts to Equilibrium F* based on real growth, CPI inflation & U3 unemployment"
             },
             {
               "id": "speech_multiplier",
-              "label": "Freedom of Speech Accountability",
-              "valueText": "1.15x",
+              "label": "Freedom of Speech & Corruption Velocity",
+              "valueText": "1.15x · 20/100",
               "impactDirection": "neutral",
-              "detail": "Standard constitutional press accountability"
+              "detail": "Open press speeds up voter accountability when conditions deteriorate; graft lifts F*"
             },
             {
               "id": "electoral_swing",
               "label": "Electoral Polling & Midterm Swing",
               "valueText": "+14.4 pts",
               "impactDirection": "slowing",
-              "detail": "Satisfied electorate rewards the governing party and shrinks opposition turnout"
+              "detail": "Fresh mandate / low fatigue protects the sitting party until wear climbs past 32%"
             }
           ]
         },
         "governmentFatigue": 0,
-        "fatigueRatePerQuarter": 0.85,
+        "fatigueEquilibrium": 29.4,
+        "frustrationSpeedPct": 15.6,
+        "fatigueRatePerQuarter": 4.58,
         "federalismSummary": {
           "federalDoctrineId": "moderate",
           "federalDoctrineLabel": "Moderate Cooperative",
@@ -5376,51 +5391,63 @@
     "incumbentParty": "Democratic",
     "incumbentApproval": 66.6,
     "governmentFatigue": 0,
-    "fatigueRatePerQuarter": 0.85,
+    "fatigueEquilibrium": 29.4,
+    "frustrationSpeedPct": 15.6,
+    "frustrationLambda": 0.156,
+    "equilibriumGap": 29.4,
+    "signedStepPerQuarter": 4.58,
+    "equilibriumBreakdown": {
+      "govDeficitPts": 12.2,
+      "macroMiseryPts": 6.1,
+      "policyNeglectPts": 7.6,
+      "corruptionTrustPts": 3.1,
+      "fiscalStressPts": 0.4
+    },
+    "fatigueRatePerQuarter": 4.58,
     "fatigueStatusLabel": "Fresh Mandate",
-    "fatigueTrajectoryReason": "Rapid, high-impact reforms are alleviating national pressure and keeping voter fatigue minimal.",
+    "fatigueTrajectoryReason": "Converging toward Equilibrium Max Fatigue (29.4%) at a voter frustration speed of 15.6%/qtr.",
     "fatigueFactors": [
+      {
+        "id": "equilibrium_ceiling",
+        "label": "Equilibrium Max Fatigue (F*)",
+        "valueText": "29.4% Cap",
+        "impactDirection": "neutral",
+        "detail": "Long-run ceiling (12.2 gov + 6.1 macro + 7.6 policy + 3.1 graft + 0.4 tax)"
+      },
+      {
+        "id": "frustration_velocity",
+        "label": "Voter Frustration Speed (λ)",
+        "valueText": "15.6% / qtr",
+        "impactDirection": "neutral",
+        "detail": "Closes 15.6% of gap toward F* each quarter (+4.58% next qtr)"
+      },
       {
         "id": "reform_impulse",
         "label": "Core Act Reform & Governance Impulse",
         "valueText": "+9.9 pts",
         "impactDirection": "slowing",
-        "detail": "Rapid, landmark enactments actively holding voter fatigue low"
+        "detail": "Landmark reforms pull Equilibrium F* down and grant voters patience"
       },
       {
         "id": "macro_conditions",
         "label": "Macroeconomic Growth, Inflation & Jobs",
         "valueText": "1.5% GDP · 2.5% CPI · 4.5% U3",
         "impactDirection": "neutral",
-        "detail": "Steady macro indicators keeping household economic anxiety restrained"
-      },
-      {
-        "id": "governance_composite",
-        "label": "8-Indicator Good Governance Composite",
-        "valueText": "77.0/100",
-        "impactDirection": "neutral",
-        "detail": "Weighted across literacy, infrastructure, urbanisation, productivity, equality, racial equity & crime safety"
-      },
-      {
-        "id": "corruption_pressure",
-        "label": "Institutional Corruption & Ethics",
-        "valueText": "20/100",
-        "impactDirection": "neutral",
-        "detail": "Public integrity controls keeping corruption grievances contained"
+        "detail": "Adds +6.1 pts to Equilibrium F* based on real growth, CPI inflation & U3 unemployment"
       },
       {
         "id": "speech_multiplier",
-        "label": "Freedom of Speech Accountability",
-        "valueText": "1.15x",
+        "label": "Freedom of Speech & Corruption Velocity",
+        "valueText": "1.15x · 20/100",
         "impactDirection": "neutral",
-        "detail": "Standard constitutional press accountability"
+        "detail": "Open press speeds up voter accountability when conditions deteriorate; graft lifts F*"
       },
       {
         "id": "electoral_swing",
         "label": "Electoral Polling & Midterm Swing",
         "valueText": "+14.4 pts",
         "impactDirection": "slowing",
-        "detail": "Satisfied electorate rewards the governing party and shrinks opposition turnout"
+        "detail": "Fresh mandate / low fatigue protects the sitting party until wear climbs past 32%"
       }
     ],
     "honeymoonActive": true,

@@ -881,4 +881,127 @@ describe("Round Progression and United States Simulation Mechanics", () => {
     assert.ok(fs.federalStateFrictionIndex >= 0 && fs.federalStateFrictionIndex <= 100, "federalStateFrictionIndex must remain bounded 0-100");
     assert.deepStrictEqual(state.nations[0].computed.federalismSummary, fs, "usa.computed.federalismSummary must match forecast");
   });
+
+  it("models Equilibrium Government Fatigue (F*), Frustration Speed (lambda), recovery convergence, and Day-1 admin reset while preserving equilibrium", () => {
+    // 1. Equilibrium ceiling F* scales strictly with how badly the country is governed
+    const reformState = buildSimplifiedSeed();
+    reformState.nations[0].enactedPolicies = {
+      education: { enacted: true, funding: "landmark" },
+      infrastructure: { enacted: true, funding: "landmark" },
+      innovation: { enacted: true, funding: "landmark" },
+      governance: { enacted: true, funding: "landmark" },
+      civilRights: { enacted: true, funding: "landmark" },
+      publicSafety: { enacted: true, funding: "landmark" },
+    };
+    evaluateSimulation(reformState);
+    const reformEq = reformState.electionForecast.fatigueEquilibrium;
+
+    const crisisState = buildSimplifiedSeed();
+    crisisState.nations[0].literacyRate = 0.62;
+    crisisState.nations[0].infrastructureEfficiency = 0.54;
+    crisisState.nations[0].consumerSentiment = 38;
+    crisisState.nations[0].crimeControlIndex = 0.48;
+    evaluateSimulation(crisisState);
+    const crisisEq = crisisState.electionForecast.fatigueEquilibrium;
+
+    const wreckState = buildSimplifiedSeed();
+    wreckState.nations[0].literacyRate = 0.60;
+    wreckState.nations[0].infrastructureEfficiency = 0.50;
+    wreckState.nations[0].consumerSentiment = 35;
+    wreckState.nations[0].baseTaxLevel = 0.65;
+    wreckState.nations[0].enactedPolicies = {
+      education: { enacted: false, funding: "underfunded" },
+      infrastructure: { enacted: false, funding: "underfunded" },
+      innovation: { enacted: false, funding: "underfunded" },
+      governance: { enacted: false, funding: "underfunded" },
+      civilRights: { enacted: false, funding: "underfunded" },
+      publicSafety: { enacted: false, funding: "underfunded" },
+    };
+    evaluateSimulation(wreckState);
+    const wreckEq = wreckState.electionForecast.fatigueEquilibrium;
+
+    assert.ok(
+      reformEq < crisisEq && crisisEq < wreckEq,
+      `Expected reformEq (${reformEq}%) < crisisEq (${crisisEq}%) < wreckEq (${wreckEq}%)`
+    );
+
+    // 2. Frustration velocity lambda responds strongly to press freedom / open speech
+    const openPressState = buildSimplifiedSeed();
+    openPressState.nations[0].literacyRate = 0.65;
+    openPressState.nations[0].consumerSentiment = 42;
+    openPressState.nations[0].socialPolicies = {
+      ...openPressState.nations[0].socialPolicies,
+      civilLibertiesCharter: "strong",
+    };
+    evaluateSimulation(openPressState);
+    const openLambda = openPressState.electionForecast.frustrationSpeedPct;
+
+    const closedPressState = buildSimplifiedSeed();
+    closedPressState.nations[0].literacyRate = 0.65;
+    closedPressState.nations[0].consumerSentiment = 42;
+    closedPressState.nations[0].socialPolicies = {
+      ...closedPressState.nations[0].socialPolicies,
+      civilLibertiesCharter: "low",
+    };
+    evaluateSimulation(closedPressState);
+    const closedLambda = closedPressState.electionForecast.frustrationSpeedPct;
+    assert.ok(
+      openLambda > closedLambda + 5,
+      `Open Charter press must accelerate voter frustration velocity (${openLambda}%) vs censored press (${closedLambda}%)`
+    );
+
+    // 3. Convergence toward Equilibrium: rises when F < F*, recovers downward when F > F*
+    const recoverState = buildSimplifiedSeed();
+    recoverState.nations[0].enactedPolicies = reformState.nations[0].enactedPolicies;
+    recoverState.nations[0].governmentFatigue = 68;
+    evaluateSimulation(recoverState);
+    assert.ok(
+      recoverState.electionForecast.signedStepPerQuarter < 0,
+      "When current fatigue (68%) exceeds low reform Equilibrium F*, signedStepPerQuarter must be negative"
+    );
+    advanceSimulationTime(recoverState, 180);
+    assert.ok(
+      recoverState.nations[0].governmentFatigue < 60,
+      `Quarterly equilibrium convergence must pull elevated fatigue down toward F* (got ${recoverState.nations[0].governmentFatigue}%)`
+    );
+
+    // 4. Changing administration strictly resets governmentFatigue = 0 (no Day-1 shock overwrite) WHILE equilibrium F* stays anchored to country conditions
+    const handoffState = buildSimplifiedSeed();
+    handoffState.nations[0].literacyRate = 0.64;
+    handoffState.nations[0].infrastructureEfficiency = 0.56;
+    handoffState.nations[0].consumerSentiment = 40;
+    handoffState.nations[0].governmentFatigue = 74;
+    evaluateSimulation(handoffState);
+    const preChangeEq = handoffState.electionForecast.fatigueEquilibrium;
+
+    const { record: elecRec } = executeSimulatedElectionInState(handoffState, {
+      inaugurateWinner: true,
+      electionType: "Snap Election",
+    });
+    assert.notEqual(elecRec.winner, "Democratic", "Crisis + 74% fatigue should elect an opposition winner");
+    assert.equal(
+      handoffState.nations[0].governmentFatigue,
+      0,
+      "Inaugurating a new administration must strictly reset nation.governmentFatigue to 0"
+    );
+    assert.equal(
+      handoffState.electionForecast.governmentFatigue,
+      0,
+      "Forecast effective governmentFatigue must start strictly at 0% on Day 1 of new administration (no Day-1 instant shock)"
+    );
+    assert.ok(
+      handoffState.electionForecast.fatigueEquilibrium >= 35 && Math.abs(handoffState.electionForecast.fatigueEquilibrium - preChangeEq) <= 15,
+      `Equilibrium Max Fatigue F* must remain elevated (${handoffState.electionForecast.fatigueEquilibrium}%) reflecting inherited bad national conditions`
+    );
+
+    // Direct party switch via evaluateSimulation also resets fatigue to 0
+    handoffState.nations[0].governmentFatigue = 45;
+    handoffState.nations[0].rulingParty = "Democratic";
+    evaluateSimulation(handoffState);
+    assert.equal(
+      handoffState.nations[0].governmentFatigue,
+      0,
+      "Switching rulingParty in state must automatically reset governmentFatigue to 0"
+    );
+  });
 });
